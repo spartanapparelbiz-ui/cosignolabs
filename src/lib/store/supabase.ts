@@ -152,7 +152,11 @@ export class SupabaseStore implements Store {
     if (!canTransition(current.status, to)) {
       throw new Error(`invalid_transition:${current.status}->${to}`);
     }
-    // The Postgres function revalidates the transition atomically.
+    if ((to === "executing" || to === "approved") && current.injection_flag) {
+      throw new Error("injection_blocked");
+    }
+    // The Postgres function revalidates the transition atomically (and the
+    // trigger + function re-check the injection flag inside the database).
     const { data, error } = await this.client.rpc("transition_action", {
       p_action_id: id,
       p_user_id: userId,

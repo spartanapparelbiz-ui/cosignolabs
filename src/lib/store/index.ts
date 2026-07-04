@@ -105,9 +105,17 @@ const globalStore = globalThis as unknown as { __cosignoStore?: Store };
 
 export function getStore(): Store {
   if (!globalStore.__cosignoStore) {
-    globalStore.__cosignoStore = supabaseConfigured()
-      ? new SupabaseStore()
-      : new MemoryStore();
+    if (supabaseConfigured()) {
+      globalStore.__cosignoStore = new SupabaseStore();
+    } else {
+      // The in-memory store exists for local development only. Production
+      // fails closed rather than silently serving a non-persistent,
+      // shared-user backend.
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("supabase_not_configured");
+      }
+      globalStore.__cosignoStore = new MemoryStore();
+    }
   }
   return globalStore.__cosignoStore;
 }

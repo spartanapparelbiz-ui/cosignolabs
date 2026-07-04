@@ -1,4 +1,6 @@
+import { EngineError } from "../actions/engine";
 import { autoExecute, proposeAction } from "../actions/engine";
+import { logSecurity } from "../log";
 import { getStore } from "../store";
 import { resolveTier } from "../tiers";
 import { ActionRecord, MessageRecord, SessionRecord } from "../types";
@@ -13,14 +15,18 @@ export interface CommandResult {
 
 /**
  * The full loop for one command:
- *   1. persist the user's message,
- *   2. plan (Anthropic or offline mock) with external content wrapped as
- *      untrusted data,
- *   3. resolve each proposal's tier SERVER-SIDE — the model's requested
- *      tier is advisory; a mismatch is recorded on the card (tier_note),
- *   4. create proposals; injection-suspected turns are flagged, never
+ *   1. usage gate FIRST — planning calls (Anthropic invocations) count
+ *      against the meter, so over-limit users get a 402 before any model
+ *      call spends a cent,
+ *   2. persist the user's message,
+ *   3. plan (Anthropic or offline dev mock) with external content wrapped
+ *      as untrusted data; the planning call is metered,
+ *   4. resolve each proposal's tier SERVER-SIDE — the model's requested
+ *      tier is advisory; a mismatch is clamped, recorded on the card
+ *      (tier_note) and logged as a security signal,
+ *   5. create proposals; injection-suspected turns are flagged, never
  *      executed automatically,
- *   5. auto-execute tier-1 proposals (logged like everything else).
+ *   6. auto-execute tier-1 proposals (logged like everything else).
  */
 export async function runCommand(
   userId: string,
@@ -31,6 +37,16 @@ export async function runCommand(
   } = {}
 ): Promise<CommandResult> {
   const store = getStore();
+
+  // Usage gate before the model is invoked.
+  const usage = await store.getUsage(userId);
+  if (usage.actions_executed >= usage.limit) {
+    logSecurity("usage_limit_hit", { userId, at: "planning" });
+    throw new EngineError(
+      "usage_limit",
+      "You've used all actions in this cycle. Upgrade to keep going."
+    );
+  }
 
   let session = opts.sessionId
     ? await store.getSession(userId, opts.sessionId)
@@ -44,7 +60,10 @@ export async function runCommand(
 
   const userMessage = await store.addMessage(userId, session.id, "user", command);
 
-  const plan = await planCommand(command, opts.externalContent ?? []);
+  const plan = await planCommand(command, opts.externalContent ?? [], userId);
+  // The planning call itself is metered — Anthropic invocations count.
+  await store.incrementUsage(userId);
+
   const settings = await store.getTierSettings(userId);
 
   const actions: ActionRecord[] = [];
@@ -52,10 +71,17 @@ export async function runCommand(
     const tier = resolveTier(proposal.category, settings);
     let tierNote: string | null = null;
     if (proposal.requested_tier && proposal.requested_tier !== tier) {
-      tierNote =
-        proposal.requested_tier < tier
-          ? `The agent requested tier ${proposal.requested_tier}; the server enforced tier ${tier}. Agents cannot self-escalate or lower permissions.`
-          : `The agent suggested tier ${proposal.requested_tier}; the server assigned tier ${tier} from your settings.`;
+      if (proposal.requested_tier < tier) {
+        logSecurity("tier_clamped", {
+          userId,
+          category: proposal.category,
+          requested: proposal.requested_tier,
+          enforced: tier,
+        });
+        tierNote = `The agent requested tier ${proposal.requested_tier}; the server enforced tier ${tier}. Agents cannot self-escalate or lower permissions.`;
+      } else {
+        tierNote = `The agent suggested tier ${proposal.requested_tier}; the server assigned tier ${tier} from your settings.`;
+      }
     }
 
     const payload: Record<string, unknown> = { ...proposal.payload };

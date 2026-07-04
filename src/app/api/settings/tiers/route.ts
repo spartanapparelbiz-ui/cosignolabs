@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ApiError, errorResponse, requireUser } from "@/lib/api";
+import { parseStrict, readJsonBody, tierSettingSchema } from "@/lib/schemas";
 import { getStore } from "@/lib/store";
 import { isAllowedTierAssignment, resolveTier } from "@/lib/tiers";
 import { ActionCategory, CATEGORIES, CATEGORY_LIST, Tier } from "@/lib/types";
@@ -28,13 +29,10 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   try {
     const userId = await requireUser();
-    const body = await req.json().catch(() => ({}));
-    const category = body.category as ActionCategory;
-    const tier = Number(body.tier) as Tier;
+    const parsed = parseStrict(tierSettingSchema, await readJsonBody(req), "tier_setting");
+    const category = parsed.category as ActionCategory;
+    const tier = parsed.tier as Tier;
 
-    if (!category || !(category in CATEGORIES)) {
-      throw new ApiError(400, "bad_category", "Unknown action category.");
-    }
     if (!isAllowedTierAssignment(category, tier)) {
       throw new ApiError(
         403,

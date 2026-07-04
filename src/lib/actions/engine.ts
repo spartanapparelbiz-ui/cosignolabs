@@ -1,4 +1,5 @@
 import { getStore, type ActionInsert } from "../store";
+import { logSecurity } from "../log";
 import { executeAction } from "./executor";
 import { ActionRecord } from "../types";
 
@@ -10,7 +11,8 @@ export class EngineError extends Error {
       | "confirmation_required"
       | "confirmation_mismatch"
       | "usage_limit"
-      | "forbidden",
+      | "forbidden"
+      | "injection_blocked",
     message: string
   ) {
     super(message);
@@ -37,6 +39,10 @@ export async function proposeAction(input: ActionInsert): Promise<ActionRecord> 
     category: action.category,
   });
   if (action.injection_flag) {
+    logSecurity("injection_flagged", {
+      actionId: action.id,
+      category: action.category,
+    });
     await store.logEvent(input.user_id, action.id, "flagged", "system", {
       reason: "External content attempted to direct the agent.",
     });
@@ -88,6 +94,20 @@ export async function approveAction(
     throw new EngineError(
       "invalid_state",
       `Only proposed actions can be approved (current: ${action.status}).`
+    );
+  }
+
+  // Injection containment: flagged cards can never be approved into
+  // execution, regardless of tier or how many times approval is attempted.
+  // (The store layer and the Postgres trigger enforce this again.)
+  if (action.injection_flag) {
+    logSecurity("injection_approval_blocked", { actionId, tier: action.tier });
+    await store.logEvent(userId, actionId, "blocked", "system", {
+      reason: "injection_flag",
+    });
+    throw new EngineError(
+      "injection_blocked",
+      "This card was flagged: external content attempted to direct the agent. It cannot be executed — re-issue the command yourself if you want this done."
     );
   }
 

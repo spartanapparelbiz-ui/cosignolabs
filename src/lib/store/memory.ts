@@ -132,6 +132,11 @@ export class MemoryStore implements Store {
     if (!canTransition(action.status, to)) {
       throw new Error(`invalid_transition:${action.status}->${to}`);
     }
+    // State-machine-level injection containment: a flagged card can never
+    // start executing, regardless of tier, approvals, or caller bugs.
+    if ((to === "executing" || to === "approved") && action.injection_flag) {
+      throw new Error("injection_blocked");
+    }
     action.status = to;
     if (patch.result !== undefined) action.result = patch.result;
     if (patch.veto_reason !== undefined) action.veto_reason = patch.veto_reason;

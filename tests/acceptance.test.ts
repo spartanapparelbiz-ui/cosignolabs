@@ -128,15 +128,18 @@ describe("prompt injection", () => {
 });
 
 describe("usage limits", () => {
-  it("blocks execution past the limit but still allows proposals", async () => {
+  it("blocks approval-time execution at the limit; the card survives", async () => {
     const store = freshStore();
-    const usage = await store.getUsage(USER);
-    for (let i = 0; i < usage.limit; i++) await store.incrementUsage(USER);
-
-    // Proposing still works.
+    // Create the proposal while under the limit…
     const { actions } = await runCommand(USER, "reprice these products");
     const action = actions.find((a) => a.tier === 2)!;
     expect(action.status).toBe("proposed");
+
+    // …then exhaust the cycle.
+    let usage = await store.getUsage(USER);
+    while (usage.actions_executed < usage.limit) {
+      usage = await store.incrementUsage(USER);
+    }
 
     // Executing is blocked with the upgrade error.
     await expect(approveAction(USER, action.id)).rejects.toMatchObject({
@@ -150,10 +153,22 @@ describe("usage limits", () => {
     expect(events.some((e) => e.type === "blocked")).toBe(true);
   });
 
-  it("tier-1 auto-execution also respects the limit", async () => {
+  it("planning itself is metered and blocked at the limit (before the model)", async () => {
     const store = freshStore();
     const usage = await store.getUsage(USER);
     for (let i = 0; i < usage.limit; i++) await store.incrementUsage(USER);
+
+    await expect(runCommand(USER, "reprice these products")).rejects.toMatchObject({
+      code: "usage_limit",
+    });
+  });
+
+  it("tier-1 auto-execution also respects the limit", async () => {
+    const store = freshStore();
+    const usage = await store.getUsage(USER);
+    // Leave exactly one unit: the planning call consumes it, so the tier-1
+    // proposal is created but must NOT auto-execute.
+    for (let i = 0; i < usage.limit - 1; i++) await store.incrementUsage(USER);
 
     const { actions } = await runCommand(USER, "summarize my unread email");
     const auto = actions.find((a) => a.tier === 1)!;

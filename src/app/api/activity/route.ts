@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { errorResponse, requireUser } from "@/lib/api";
 import { getStore } from "@/lib/store";
+import { actionsQuerySchema, parseStrict } from "@/lib/schemas";
 import type { ActionStatus } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -14,15 +15,19 @@ function csvEscape(value: unknown): string {
 export async function GET(req: NextRequest) {
   try {
     const userId = await requireUser();
-    const params = req.nextUrl.searchParams;
+    const q = parseStrict(
+      actionsQuerySchema,
+      Object.fromEntries(req.nextUrl.searchParams),
+      "activity_query"
+    );
     const actions = await getStore().listActions(userId, {
-      status: (params.get("status") as ActionStatus) ?? undefined,
-      tier: params.get("tier") ? Number(params.get("tier")) : undefined,
-      category: params.get("category") ?? undefined,
+      status: q.status as ActionStatus | undefined,
+      tier: q.tier ? Number(q.tier) : undefined,
+      category: q.category,
       limit: 1000,
     });
 
-    if (params.get("format") === "csv") {
+    if (q.format === "csv") {
       const header = [
         "id",
         "created_at",

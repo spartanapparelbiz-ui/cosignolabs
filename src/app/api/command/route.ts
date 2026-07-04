@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runCommand } from "@/lib/agent/pipeline";
 import { ApiError, errorResponse, requireUser } from "@/lib/api";
+import { enforceGlobalPlanningBudget, enforceLimit } from "@/lib/ratelimit";
+import {
+  commandSchema,
+  MAX_COMMAND_LENGTH,
+  parseStrict,
+  readJsonBody,
+} from "@/lib/schemas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,29 +15,38 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const userId = await requireUser();
-    const body = await req.json().catch(() => ({}));
-    const command = typeof body.command === "string" ? body.command.trim() : "";
-    if (!command) {
+
+    // Cost gates run BEFORE anything touches the model:
+    // per-user sliding windows, then the global daily circuit breaker.
+    await enforceLimit("commandMinute", userId);
+    await enforceLimit("commandDay", userId);
+
+    const raw = await readJsonBody(req);
+
+    // Oversized commands are rejected with 413 before validation details.
+    if (
+      raw &&
+      typeof raw === "object" &&
+      typeof (raw as Record<string, unknown>).command === "string" &&
+      ((raw as Record<string, unknown>).command as string).length > MAX_COMMAND_LENGTH
+    ) {
+      throw new ApiError(
+        413,
+        "command_too_long",
+        `Commands are limited to ${MAX_COMMAND_LENGTH} characters.`
+      );
+    }
+
+    const body = parseStrict(commandSchema, raw, "command");
+    if (!body.command.trim()) {
       throw new ApiError(400, "empty_command", "Give the operator a command.");
     }
-    if (command.length > 4000) {
-      throw new ApiError(400, "command_too_long", "Commands are limited to 4000 characters.");
-    }
 
-    const externalContent = Array.isArray(body.externalContent)
-      ? body.externalContent
-          .filter(
-            (c: unknown): c is { source: string; content: string } =>
-              !!c &&
-              typeof (c as Record<string, unknown>).source === "string" &&
-              typeof (c as Record<string, unknown>).content === "string"
-          )
-          .slice(0, 10)
-      : [];
+    await enforceGlobalPlanningBudget();
 
-    const result = await runCommand(userId, command, {
-      sessionId: typeof body.sessionId === "string" ? body.sessionId : undefined,
-      externalContent,
+    const result = await runCommand(userId, body.command.trim(), {
+      sessionId: body.sessionId,
+      externalContent: body.externalContent,
     });
 
     return NextResponse.json(result);

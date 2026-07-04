@@ -1,45 +1,81 @@
 import { NextRequest, NextResponse } from "next/server";
-import { errorResponse } from "@/lib/api";
+import { ApiError, errorResponse } from "@/lib/api";
+import { isProduction } from "@/lib/env";
+import { logSecurity } from "@/lib/log";
+import { enforceLimit } from "@/lib/ratelimit";
+import { betaSchema, parseStrict, readJsonBody } from "@/lib/schemas";
 import { getStore } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Founding beta application — the only unauthenticated write in the app. */
+function clientIp(req: NextRequest): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  return (fwd ? fwd.split(",")[0] : "").trim() || "unknown";
+}
+
+/**
+ * Verify a Cloudflare Turnstile token server-side. Fail-closed in
+ * production: no secret configured → submissions are rejected outright.
+ * In development without a secret, verification is skipped so the form
+ * remains testable locally.
+ */
+async function verifyTurnstile(
+  token: string | undefined,
+  ip: string
+): Promise<void> {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (!secret) {
+    if (isProduction()) {
+      throw new ApiError(503, "not_configured", "Applications are temporarily closed.");
+    }
+    return; // development only
+  }
+  if (!token) {
+    logSecurity("turnstile_failed", { ip, reason: "missing_token" });
+    throw new ApiError(400, "captcha_required", "Please complete the human check.");
+  }
+  const res = await fetch(
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ secret, response: token, remoteip: ip }),
+    }
+  );
+  const data = (await res.json().catch(() => ({}))) as { success?: boolean };
+  if (!data.success) {
+    logSecurity("turnstile_failed", { ip, reason: "verification_failed" });
+    throw new ApiError(400, "captcha_failed", "Human check failed — try again.");
+  }
+}
+
+/**
+ * Founding beta application — the only unauthenticated write in the app.
+ * Guarded by Turnstile + a 3/hour/IP rate limit.
+ */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const name = clean(body.name, 120);
-    const email = clean(body.email, 200);
-    const tools = clean(body.tools, 500);
-    const workflow = clean(body.workflow, 1000);
+    const ip = clientIp(req);
+    await enforceLimit("betaHour", ip);
 
-    if (!name || !email || !tools || !workflow) {
-      return NextResponse.json(
-        { error: "missing_fields", message: "All four fields are required." },
-        { status: 400 }
-      );
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json(
-        { error: "bad_email", message: "That email doesn't look right." },
-        { status: 400 }
-      );
-    }
+    const body = parseStrict(betaSchema, await readJsonBody(req), "beta");
+    await verifyTurnstile(body.turnstileToken, ip);
 
-    await getStore().createBetaApplication({ name, email, tools, workflow });
+    await getStore().createBetaApplication({
+      name: body.name.trim(),
+      email: body.email.trim(),
+      tools: body.tools.trim(),
+      workflow: body.workflow.trim(),
+    });
     return NextResponse.json({
       ok: true,
       message:
         "Application received. We review applications weekly and onboard in small cohorts — you'll hear from us at " +
-        email +
+        body.email.trim() +
         ".",
     });
   } catch (err) {
     return errorResponse(err);
   }
-}
-
-function clean(v: unknown, max: number): string {
-  return typeof v === "string" ? v.trim().slice(0, max) : "";
 }

@@ -1,10 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export function BetaForm() {
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
+  const widgetRef = useRef<HTMLDivElement>(null);
+
+  // Cloudflare Turnstile: rendered only when a site key is configured.
+  // The server verifies the token; without it (in production) the
+  // submission is rejected.
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY || !widgetRef.current) return;
+    if (document.querySelector("script[data-cosigno-turnstile]")) return;
+    const script = document.createElement("script");
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+    script.async = true;
+    script.defer = true;
+    script.setAttribute("data-cosigno-turnstile", "1");
+    document.head.appendChild(script);
+  }, []);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -20,6 +37,9 @@ export function BetaForm() {
           email: form.get("email"),
           tools: form.get("tools"),
           workflow: form.get("workflow"),
+          ...(TURNSTILE_SITE_KEY
+            ? { turnstileToken: form.get("cf-turnstile-response") ?? "" }
+            : {}),
         }),
       });
       const body = await res.json();
@@ -82,6 +102,14 @@ export function BetaForm() {
         className={inputClass}
         aria-label="Your workflow"
       />
+      {TURNSTILE_SITE_KEY && (
+        <div
+          ref={widgetRef}
+          className="cf-turnstile"
+          data-sitekey={TURNSTILE_SITE_KEY}
+          data-theme="light"
+        />
+      )}
       {state === "error" && (
         <p className="rounded-lg border border-ink px-3 py-2 text-sm font-semibold">{message}</p>
       )}

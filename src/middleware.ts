@@ -1,23 +1,69 @@
 import { NextResponse } from "next/server";
 import type { NextFetchEvent, NextMiddleware, NextRequest } from "next/server";
 
-const hasClerk = Boolean(
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY
-);
-
 /**
- * With Clerk configured, /app and its APIs require a signed-in user.
- * Without Clerk (local dev / demo mode) requests pass through and the
- * server maps everything to a single demo user.
+ * Deny-by-default edge gate.
+ *
+ * Public allowlist (nothing else): the landing page, the beta application
+ * submit, the health check, and the Stripe webhook stub (which verifies its
+ * own signature / returns 501 unconfigured).
+ *
+ * Everything under /app and /api requires a Clerk session. In production
+ * with missing keys the middleware serves 503 for all protected surfaces —
+ * demo mode is unreachable.
  */
+
+const PUBLIC_PATHS = new Set(["/", "/api/health", "/api/beta", "/api/stripe/webhook"]);
+
+function isPublic(pathname: string): boolean {
+  return PUBLIC_PATHS.has(pathname);
+}
+
+function clerkConfigured(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY
+  );
+}
+
+function productionReady(): boolean {
+  return [
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+    "CLERK_SECRET_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "ANTHROPIC_API_KEY",
+  ].every((k) => process.env[k]);
+}
+
 async function buildMiddleware(): Promise<NextMiddleware> {
-  if (!hasClerk) {
+  const prod = process.env.NODE_ENV === "production";
+
+  if (prod && !productionReady()) {
+    // Fail closed: protected surfaces 503, never a silent demo fallback.
+    return (req: NextRequest) => {
+      if (isPublic(req.nextUrl.pathname) && req.nextUrl.pathname !== "/api/beta") {
+        return NextResponse.next();
+      }
+      return NextResponse.json(
+        { error: "not_configured", message: "Service temporarily unavailable." },
+        { status: 503 }
+      );
+    };
+  }
+
+  if (!clerkConfigured()) {
+    // Development demo mode only — production is handled above.
     return () => NextResponse.next();
   }
+
   const { clerkMiddleware, createRouteMatcher } = await import(
     "@clerk/nextjs/server"
   );
-  const isProtected = createRouteMatcher(["/app(.*)", "/api((?!/beta|/stripe).*)"]);
+  const isProtected = createRouteMatcher([
+    "/app(.*)",
+    "/api((?!/health$|/beta$|/stripe/webhook$).*)",
+  ]);
   return clerkMiddleware(async (auth, req) => {
     if (isProtected(req)) await auth.protect();
   }) as unknown as NextMiddleware;
