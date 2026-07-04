@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-cream text-ink font-sans antialiased;
+}
+
+::selection {
+  background: #ff4b1f33;
+}
+
+*:focus-visible {
+  outline: 2px solid #141414;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Used via inline animation shorthand in VoiceOrb, so declared here rather
+   than relying on Tailwind emitting the keyframes for a utility class. */
+@keyframes orb-listen {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

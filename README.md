@@ -1,0 +1,113 @@
+# cosigno
+
+**The AI operator that asks first.** Cosigno plans, drafts, and executes across
+your tools — and nothing moves without your signature.
+
+Live at [cosignolabs.com](https://cosignolabs.com).
+
+## The core loop
+
+1. You give the operator a command in natural language.
+2. The agent plans and produces **action cards** — structured proposals, never
+   executed actions. Each card shows what it will do in one plain-English
+   sentence, the exact payload it would execute, and a risk-tier badge.
+3. **Approve / Edit / Veto.** Nothing executes until you approve. Approval
+   fires the action server-side, logs it, and marks the card executed. Veto
+   kills it with a logged reason.
+4. Everything — proposed, approved, vetoed, executed, failed, blocked,
+   flagged — is permanently logged in the Activity timeline.
+
+## Three-tier permission model
+
+| Tier | Name    | Behavior |
+|------|---------|----------|
+| 1    | Auto    | Read-only / reversible (search, summarize, draft). Executes without approval, still logged. |
+| 2    | Approve | Anything that sends, posts, modifies, or spends. Requires explicit card approval. Default for all writes. |
+| 3    | Locked  | Destructive or financial (delete, refund, payment). Approval **plus** typed confirmation of the action name. Pinned — cannot be lowered. |
+
+Tiers are enforced server-side from the action **category**; the client cannot
+escalate and the agent cannot self-escalate. If the model requests a different
+tier than the server assigns, the server's tier wins and the mismatch is noted
+on the card (`tier_note`).
+
+## Prompt-injection resistance
+
+All external content the agent reads is wrapped in a labeled
+`<untrusted_external_data>` envelope before entering model context and scanned
+for instruction patterns. Instructions inside external content never create or
+approve actions. Suspected injection sets `injection_flag`, which:
+
+- surfaces the warning chip *"External content attempted to direct the agent"*
+  on affected cards,
+- disables auto-execution even for tier-1 actions,
+- writes a `flagged` row to the audit log.
+
+The operator's system prompt is server-side only and versioned
+(`src/lib/agent/systemPrompt.ts`).
+
+## Stack
+
+- **Next.js 15** (App Router, TypeScript) + Tailwind CSS
+- **Supabase** — Postgres with RLS on every table, realtime card updates
+- **Clerk** — auth (single user beta; orgs later)
+- **Anthropic API** — the operator agent (server-side only)
+- **Stripe** — billing stub for beta
+
+### Demo mode
+
+With no env vars set, the app runs fully offline: single demo user, in-memory
+store, deterministic planner. Same state machine, same guarantees — ideal for
+local development and for exercising the acceptance tests.
+
+```bash
+npm install
+npm run dev        # http://localhost:3000 (landing) and /app (workspace)
+npm test           # acceptance tests
+npm run build
+```
+
+Copy `.env.example` to `.env.local` and fill in keys to go from demo mode to
+production behavior (Clerk auth, Supabase persistence + realtime, Claude
+planner).
+
+### Supabase setup
+
+Apply `supabase/migrations/0001_init.sql`. Highlights:
+
+- RLS on every table; users see only their own rows.
+- `actions.status` can never be set by a client: no insert policy, update
+  policy restricted to `proposed` rows, **column-level grant** limited to
+  `payload, summary`, and a trigger that validates every status transition.
+- `transition_action()` / `increment_usage()` are `security definer` RPCs
+  callable only by the service role.
+
+## Acceptance guarantees (tested in `tests/acceptance.test.ts`)
+
+- A tier-2 action can never reach `executed` without a logged approval row.
+- A client request attempting to set `status` directly is rejected (HTTP 403
+  at the API, revoked at the database).
+- An injected instruction in external content produces a flagged card, not an
+  action.
+- At the usage limit, execution is blocked with an upgrade prompt while
+  proposals still work.
+- The landing page is a static, dependency-light render with a CSS demo loop
+  that autoplays above the fold on mobile.
+
+## Repository layout
+
+```
+src/lib/types.ts            categories, tiers, status state machine
+src/lib/tiers.ts            server-side tier resolution (pinned tier 3)
+src/lib/actions/engine.ts   approval state machine (approve/veto/edit/execute)
+src/lib/agent/              planner (Claude + offline mock), untrusted-content
+                            wrapping, injection detection, versioned prompt
+src/lib/store/              storage boundary: Supabase + in-memory backends
+src/app/api/                server routes — the only writers
+src/app/page.tsx            landing page
+src/app/app/                workspace, activity, settings
+supabase/migrations/        schema + RLS + transition functions
+```
+
+---
+
+cosignolabs.com · [@aethric.hq](https://instagram.com/aethric.hq)
