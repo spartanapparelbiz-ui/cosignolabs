@@ -6,6 +6,8 @@
  * call time so tests can exercise both modes.
  */
 
+import { plannerConfigured } from "./agent/provider";
+
 export function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
 }
@@ -16,11 +18,14 @@ const REQUIRED_PRODUCTION_KEYS = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
-  "PLANNER_API_KEY",
 ] as const;
 
 export function missingProductionKeys(): string[] {
-  return REQUIRED_PRODUCTION_KEYS.filter((k) => !process.env[k]);
+  const missing: string[] = REQUIRED_PRODUCTION_KEYS.filter((k) => !process.env[k]);
+  // The planner key is resolved through the provider (honors the legacy
+  // env name for one release) rather than a bare env read.
+  if (!plannerConfigured()) missing.push("PLANNER_API_KEY");
+  return missing;
 }
 
 /** True when every key production requires is present. */

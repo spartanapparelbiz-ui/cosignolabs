@@ -33,6 +33,9 @@ function clerkConfigured(): boolean {
 }
 
 function productionReady(): boolean {
+  // Coarse edge gate for /app pages. The authoritative fail-closed check is
+  // env.ts → provider (which honors the one-release legacy planner key); this
+  // page gate uses the current key name only, kept vendor-free + edge-safe.
   return [
     "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
     "CLERK_SECRET_KEY",

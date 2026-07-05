@@ -49,8 +49,8 @@ describe.skipIf(!existsSync(STATIC_DIR))("client bundle secret + vendor scan", (
 describe("no vendor/model names in user-facing source", () => {
   const VENDOR = /\b(anthropic|claude|haiku|sonnet|opus|openai|gpt-|gemini|mistral|llama)\b/i;
   const SRC = join(process.cwd(), "src");
-  // Server-only files that legitimately touch the vendor SDK / integration.
-  const EXEMPT = ["src/lib/agent/operator.ts"];
+  // The isolation layer is the ONLY file allowed to touch the vendor SDK.
+  const EXEMPT = ["src/lib/agent/provider.ts"];
 
   function walkTs(dir: string): string[] {
     const out: string[] = [];
