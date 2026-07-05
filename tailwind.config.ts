@@ -26,6 +26,14 @@ const config: Config = {
       boxShadow: {
         soft: "0 2px 16px rgba(20, 20, 20, 0.06)",
         lift: "0 10px 32px rgba(20, 20, 20, 0.10)",
+        // Layered card depth: a 1px inset top highlight over two stacked
+        // ambient shadows — reads as a physical, lifted surface.
+        depth:
+          "inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(20,20,20,0.05), 0 8px 24px rgba(20,20,20,0.09)",
+        "depth-lift":
+          "inset 0 1px 0 rgba(255,255,255,0.75), 0 2px 4px rgba(20,20,20,0.06), 0 16px 40px rgba(20,20,20,0.13)",
+        // Recessed payload well — content sits *inside* the card.
+        well: "inset 0 2px 5px rgba(20,20,20,0.10), inset 0 0 0 1px rgba(20,20,20,0.04)",
       },
       fontFamily: {
         sans: ["var(--font-nunito)", "system-ui", "sans-serif"],
@@ -115,6 +123,11 @@ const config: Config = {
           "0%": { transform: "rotate(0deg)" },
           "100%": { transform: "rotate(360deg)" },
         },
+        "orb-ring": {
+          "0%": { transform: "scale(0.7)", opacity: "0.55" },
+          "70%": { opacity: "0" },
+          "100%": { transform: "scale(1.9)", opacity: "0" },
+        },
         shimmer: {
           "0%": { opacity: "0.5" },
           "50%": { opacity: "1" },
@@ -135,6 +148,7 @@ const config: Config = {
         "orb-spin-slow": "orb-spin-slow 14s linear infinite",
         "orb-spin-rev": "orb-spin-rev 18s linear infinite",
         "orb-breathe": "orb-breathe 2.6s ease-in-out infinite",
+        "orb-ring": "orb-ring 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite",
         shimmer: "shimmer 1.6s ease-in-out infinite",
         "toast-in": "toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both",
         settle: "settle 500ms cubic-bezier(0.22, 1, 0.36, 1) both",

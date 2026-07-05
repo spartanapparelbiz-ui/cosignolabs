@@ -145,10 +145,17 @@ function ActionCardInner({ action, index = 0, onApprove, onVeto, onEdit }: Props
   return (
     <article
       style={enterDelay}
-      className={`animate-spring-in rounded-card bg-white/70 p-4 transition-shadow ${
-        pending ? "shadow-lift" : "shadow-soft"
+      className={`relative animate-spring-in overflow-hidden rounded-card bg-white/70 p-4 transition-shadow ${
+        pending ? "shadow-depth-lift" : "shadow-depth"
       } ${action.status === "vetoed" ? "opacity-70 grayscale" : ""}`}
     >
+      {/* Tier-3 (locked) cards wear a faint diagonal hazard band down the edge. */}
+      {action.tier === 3 && (
+        <span
+          className="tier3-texture pointer-events-none absolute inset-y-0 left-0 w-8"
+          aria-hidden="true"
+        />
+      )}
       <header className="flex flex-wrap items-center gap-2">
         <TierBadge tier={action.tier} />
         <span
@@ -202,7 +209,7 @@ function ActionCardInner({ action, index = 0, onApprove, onVeto, onEdit }: Props
           {payloadOpen ? "hide payload" : "show exact payload"}
         </button>
         {payloadOpen && mode !== "edit" && (
-          <pre className="mt-2 max-h-48 overflow-auto rounded-btn bg-cream-deep px-3 py-2.5 font-mono text-[11px] leading-relaxed text-ink">
+          <pre className="mt-2 max-h-48 overflow-auto rounded-btn bg-cream-deep px-3 py-2.5 font-mono text-[11px] leading-relaxed text-ink shadow-well">
             {JSON.stringify(action.payload, null, 2)}
           </pre>
         )}

@@ -6,6 +6,7 @@ import { BetaForm } from "@/components/landing/BetaForm";
 import { HeroMark } from "@/components/landing/HeroMark";
 import { StaggerHeadline } from "@/components/landing/StaggerHeadline";
 import { BenefitGlyph } from "@/components/landing/BenefitGlyphs";
+import { CheckDivider } from "@/components/landing/CheckDivider";
 import { Reveal } from "@/components/Reveal";
 
 // The sandbox is below the fold — lazy-loaded so it never touches LCP.
@@ -139,6 +140,8 @@ export default function LandingPage() {
             ))}
           </div>
         </section>
+
+        <CheckDivider />
 
         {/* How the loop works */}
         <section className="mx-auto w-full max-w-6xl px-4 py-16">

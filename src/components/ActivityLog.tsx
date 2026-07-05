@@ -6,6 +6,7 @@ import type { ActionRecord } from "@/lib/types";
 import { CATEGORY_LIST } from "@/lib/types";
 import { SkeletonRows } from "./Skeleton";
 import { TierBadge } from "./TierBadge";
+import { EmptyIllustration } from "./EmptyIllustration";
 
 const STATUSES = ["proposed", "approved", "executing", "executed", "vetoed", "failed"];
 
@@ -93,8 +94,9 @@ export function ActivityLog() {
           <SkeletonRows rows={5} />
         </div>
       ) : actions.length === 0 ? (
-        <div className="mt-8 rounded-card bg-white/40 p-8 text-center shadow-soft">
-          <p className="text-sm font-semibold text-ink-soft">
+        <div className="mt-8 flex flex-col items-center rounded-card bg-white/40 p-8 text-center shadow-soft">
+          <EmptyIllustration kind="activity" className="mb-3" />
+          <p className="max-w-md text-sm font-semibold text-ink-soft">
             nothing here yet. once the operator starts working, every proposal,
             approval, veto, and execution lands in this ledger — permanently.
           </p>

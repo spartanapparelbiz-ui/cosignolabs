@@ -67,8 +67,26 @@ under `prefers-reduced-motion` (globals.css + `useReveal` start-shown).
 - Card propose: `animate-card-in` / `animate-spring-in` — slide + fade.
 - Execute: `animate-check-pop` + `animate-check-draw` — the orange check
   draws itself once.
-- Orb: transform/opacity only (`animate-orb-pulse`, `orb-listen`,
-  `animate-orb-think`) — 60fps, never animates layout properties.
+- Orb v3: an SVG core disc with two counter-orbiting blobs. State drives
+  motion — idle drift (`orb-spin-slow`/`orb-spin-rev`), listening
+  (`orb-breathe`), thinking (faster orbit), awaiting-approval (signal disc +
+  drawn check + `orb-ring` pulse every 1.6s). Compositor-only, <1% idle CPU.
+- Hero scene: the 3D mark with four depth-blurred action cards; subtle
+  scroll parallax + ≤3° pointer tilt, both rAF-coalesced and gated behind
+  `pointer:fine` + `prefers-reduced-motion` (static otherwise).
+
+## Surface language
+
+- **Signature check motif**: `CheckDivider` (faint oversized section
+  dividers), `.check-list` (mini orange-check bullets), and the drawn-in
+  check on every executed surface (cards, orb, glyphs).
+- **Card depth**: `shadow-depth` / `shadow-depth-lift` (1px inset top
+  highlight over layered ambient shadows), `shadow-well` (recessed payload
+  block), and `.tier3-texture` (faint diagonal hazard band on locked cards).
+- **Empty states**: `EmptyIllustration` — flat ink line-work with one orange
+  accent, no people (`workspace` / `activity` / `integrations`).
+- **Favicon**: `favicon.svg` repaints the ink C cream on dark tabs via
+  `prefers-color-scheme`; `.ico` is the fallback.
 - Toasts: `animate-toast-in`, bottom-right, auto-dismiss, `aria-live`.
 - **`prefers-reduced-motion`**: globals.css collapses every animation and
   transition to an instant state change.

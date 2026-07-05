@@ -5,13 +5,13 @@ import {
   Boxes,
   Gauge,
   Lock,
-  Plug,
   ShieldCheck,
   SlidersHorizontal,
   UserRound,
 } from "lucide-react";
 import type { AccountAuditRecord, ActionRecord, CategoryMeta, Tier, UsageRecord } from "@/lib/types";
 import { SkeletonRows } from "@/components/Skeleton";
+import { EmptyIllustration } from "@/components/EmptyIllustration";
 import { UsageRing } from "./UsageRing";
 
 type CategoryWithTier = CategoryMeta & { tier: Tier };
@@ -584,8 +584,8 @@ function IntegrationsPanel() {
           })
         )}
         <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-line p-4 text-center">
-          <Plug size={18} strokeWidth={2} className="text-ink-soft" aria-hidden="true" />
-          <p className="mt-2 text-sm font-bold lowercase">more coming</p>
+          <EmptyIllustration kind="integrations" className="h-20 w-auto" />
+          <p className="mt-1 text-sm font-bold lowercase">more coming</p>
           <p className="mt-1 text-xs text-ink-soft">founding beta members vote on what&apos;s next. free plans connect one — pro connects unlimited.</p>
         </div>
       </div>

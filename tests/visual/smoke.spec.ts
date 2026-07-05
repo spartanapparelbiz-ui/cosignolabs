@@ -34,7 +34,14 @@ for (const vp of VIEWPORTS) {
       await expect(
         page.getByRole("heading", { name: "the AI operator that asks first." })
       ).toBeVisible();
-      // Scroll through so on-reveal sections animate in before capture.
+      // Hero viewport capture FIRST, while the composed scene is pristine at
+      // the top of the page — its floating cards use scroll-driven parallax,
+      // which the fullPage tiling below would otherwise disturb.
+      await page.waitForTimeout(700);
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `landing-${vp.name}.png`) });
+      // Then scroll through so on-reveal sections animate in, and capture the
+      // full page as a layout reference.
       await page.evaluate(async () => {
         for (let y = 0; y <= document.body.scrollHeight; y += 400) {
           window.scrollTo(0, y);
@@ -43,8 +50,7 @@ for (const vp of VIEWPORTS) {
         window.scrollTo(0, 0);
       });
       await page.waitForTimeout(400);
-      await noHorizontalScroll(page);
-      await page.screenshot({ path: join(OUT, `landing-${vp.name}.png`), fullPage: true });
+      await page.screenshot({ path: join(OUT, `landing-full-${vp.name}.png`), fullPage: true });
     });
 
     test("pricing", async ({ page }) => {
@@ -97,14 +103,43 @@ for (const vp of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `activity-${vp.name}.png`), fullPage: true });
     });
 
-    test("account center", async ({ page }) => {
+    test("account center — all five panels", async ({ page }) => {
       await page.goto("/app/account", { waitUntil: "networkidle" });
       await expect(page.getByRole("heading", { name: "account", exact: true })).toBeVisible();
-      // screenshot the plan & billing panel (the ring + upgrade card)
-      await page.getByRole("button", { name: "usage & plan" }).click();
-      await expect(page.getByText(/actions used this cycle/)).toBeVisible();
+
+      // profile (default panel)
+      await expect(page.getByRole("heading", { name: "profile" })).toBeVisible();
+      await page.waitForTimeout(250); // let the fade-through transition settle
       await noHorizontalScroll(page);
-      await page.screenshot({ path: join(OUT, `account-${vp.name}.png`), fullPage: true });
+      await page.screenshot({ path: join(OUT, `account-profile-${vp.name}.png`), fullPage: true });
+
+      // permissions — the three-column tier board
+      await page.getByRole("button", { name: "permissions" }).click();
+      await expect(page.getByRole("heading", { name: "permissions" })).toBeVisible();
+      await page.waitForTimeout(250);
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `account-permissions-${vp.name}.png`), fullPage: true });
+
+      // plan & usage — the usage ring + sparkline + plan card
+      await page.getByRole("button", { name: "plan & usage" }).click();
+      await expect(page.getByText(/actions used this cycle/)).toBeVisible();
+      await page.waitForTimeout(250);
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `account-usage-${vp.name}.png`), fullPage: true });
+
+      // integrations — status dots + the plug/socket upgrade slot
+      await page.getByRole("button", { name: "integrations" }).click();
+      await expect(page.getByRole("heading", { name: "integrations" })).toBeVisible();
+      await page.waitForTimeout(250);
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `account-integrations-${vp.name}.png`), fullPage: true });
+
+      // security — audit trail + injection tiles
+      await page.getByRole("button", { name: "security" }).click();
+      await expect(page.getByRole("heading", { name: "security" })).toBeVisible();
+      await page.waitForTimeout(250);
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `account-security-${vp.name}.png`), fullPage: true });
     });
   });
 }

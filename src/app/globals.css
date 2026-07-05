@@ -33,6 +33,47 @@ body {
   }
 }
 
+/* Signature check motif — shared surface language across the app. */
+
+/* Tier-3 (locked/destructive) cards wear a faint diagonal hazard band so a
+   consequential action is legible at a glance, never just by its label. */
+.tier3-texture {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 75, 31, 0.06) 0,
+    rgba(255, 75, 31, 0.06) 1px,
+    transparent 1px,
+    transparent 8px
+  );
+}
+
+/* Mini-check bullet: a small orange tick standing in for a list bullet,
+   echoing the brand mark. Applied to <li> inside a .check-list. */
+.check-list {
+  list-style: none;
+  padding-left: 0;
+}
+.check-list > li {
+  position: relative;
+  padding-left: 1.6em;
+}
+.check-list > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.32em;
+  width: 0.85em;
+  height: 0.85em;
+  background-color: #ff4b1f;
+  /* a check-shaped mask so the bullet is the brand tick, not a dot */
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4.5 12.5 10 18 20 6.5' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4.5 12.5 10 18 20 6.5' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
 /* Motion respects the visitor: every animation collapses to an instant
    state change under prefers-reduced-motion. */
 @media (prefers-reduced-motion: reduce) {

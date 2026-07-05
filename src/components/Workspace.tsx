@@ -7,6 +7,7 @@ import { ActionCard } from "./ActionCard";
 import { SkeletonCard } from "./Skeleton";
 import { useToast } from "./Toast";
 import { VoiceOrb, type OrbState } from "./VoiceOrb";
+import { EmptyIllustration } from "./EmptyIllustration";
 
 const EXAMPLES = [
   "clear my inbox of newsletters",
@@ -335,8 +336,9 @@ export function Workspace() {
         {thinking && <SkeletonCard />}
 
         {actions.length === 0 && !thinking && (
-          <div className="rounded-card bg-white/40 p-8 text-center shadow-soft">
-            <p className="text-sm font-semibold text-ink-soft">
+          <div className="flex flex-col items-center rounded-card bg-white/40 p-8 text-center shadow-soft">
+            <EmptyIllustration kind="workspace" className="mb-3" />
+            <p className="max-w-sm text-sm font-semibold text-ink-soft">
               nothing proposed yet. give the operator a command — every
               consequential step lands here as a card for your signature.
             </p>
