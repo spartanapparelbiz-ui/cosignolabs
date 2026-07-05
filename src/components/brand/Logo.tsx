@@ -1,26 +1,30 @@
 import { INK, SIGNAL } from "@/lib/brand";
 
 /**
- * The cosigno mark: a bold C with the signal check completing it —
- * approval is the brand. Flat vector version of the 3D logo; reads at 16px.
+ * The cosigno mark: a thick near-black C opening to the right, and a chunky
+ * orange check whose short tail overlaps inside the C's mouth and whose long
+ * arm extends up-right past the outer edge — the check completes the C.
+ * Geometry mirrors scripts/logo-geometry.mjs (viewBox 0 0 100 100). Reads at 16px.
  */
 export function CosignoMark({ size = 28 }: { size?: number }) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 48 48"
+      viewBox="0 0 100 100"
       fill="none"
       aria-hidden="true"
     >
       <path
-        d="M24 4a20 20 0 1 0 14.1 34.2l-6.4-6.4A11 11 0 1 1 35 24h9A20 20 0 0 0 24 4Z"
-        fill={INK}
+        d="M 76.0 66.9 A 31 31 0 1 1 76.0 33.1"
+        stroke={INK}
+        strokeWidth={26}
+        strokeLinecap="round"
       />
       <path
-        d="M23.5 26.5 29 32l11-12"
+        d="M 47 53 L 57 63 L 88 28"
         stroke={SIGNAL}
-        strokeWidth="6.5"
+        strokeWidth={17}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -40,7 +44,7 @@ export function CosignoWordmark({ className = "" }: { className?: string }) {
           ı
           <span
             aria-hidden="true"
-            className="absolute left-1/2 top-[0.06em] h-[0.14em] w-[0.14em] -translate-x-1/2 rounded-full bg-signal"
+            className="absolute left-1/2 top-[0.04em] h-[0.15em] w-[0.15em] -translate-x-1/2 rounded-full bg-signal"
           />
         </span>
       </span>

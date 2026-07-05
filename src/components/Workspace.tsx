@@ -227,7 +227,7 @@ export function Workspace() {
     <div className="mx-auto grid w-full max-w-6xl flex-1 gap-6 px-4 py-6 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)]">
       {/* Left: command input + session thread */}
       <section className="flex flex-col gap-4">
-        <div className="rounded-card bg-white/70 p-4 shadow-lift">
+        <div className={`rounded-card bg-white/70 p-4 shadow-lift ${thinking ? "animate-ring-flash" : ""}`}>
           <label
             htmlFor="command"
             className="text-xs font-extrabold lowercase tracking-widest text-ink-soft"
@@ -343,10 +343,11 @@ export function Workspace() {
           </div>
         )}
 
-        {pendingActions.map((a) => (
+        {pendingActions.map((a, i) => (
           <ActionCard
             key={a.id}
             action={a}
+            index={i}
             onApprove={onApprove}
             onVeto={onVeto}
             onEdit={onEdit}

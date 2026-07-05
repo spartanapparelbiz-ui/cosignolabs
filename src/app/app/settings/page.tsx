@@ -1,16 +1,6 @@
-import { SettingsPanel } from "@/components/SettingsPanel";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default function SettingsPage() {
-  return (
-    <div className="mx-auto w-full max-w-4xl flex-1 px-4 py-6">
-      <h1 className="text-xl font-extrabold lowercase">settings</h1>
-      <p className="mt-1 text-sm text-ink-soft">
-        tune the operator to your comfort. tier 3 stays locked no matter what
-        — that&apos;s the point.
-      </p>
-      <SettingsPanel />
-    </div>
-  );
+// Settings became the account center.
+export default function SettingsRedirect() {
+  redirect("/app/account");
 }

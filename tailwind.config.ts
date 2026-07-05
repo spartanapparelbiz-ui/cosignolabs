@@ -30,7 +30,70 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-nunito)", "system-ui", "sans-serif"],
       },
+      transitionTimingFunction: {
+        "brand-out": "cubic-bezier(0.22, 1, 0.36, 1)",
+        spring: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      },
+      transitionDuration: {
+        fast: "160ms",
+        base: "220ms",
+      },
       keyframes: {
+        settle: {
+          "0%": { opacity: "0", transform: "scale(0.96)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(-4px)" },
+          "50%": { transform: "translateY(4px)" },
+        },
+        "rise-in": {
+          "0%": { opacity: "0", transform: "translateY(12px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "word-in": {
+          "0%": { opacity: "0", transform: "translateY(0.3em)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "spring-in": {
+          "0%": { opacity: "0", transform: "translateY(16px)" },
+          "70%": { transform: "translateY(-3px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "ring-flash": {
+          "0%": { boxShadow: "0 0 0 0 rgba(255,75,31,0)" },
+          "30%": { boxShadow: "0 0 0 2px rgba(255,75,31,0.9)" },
+          "100%": { boxShadow: "0 0 0 0 rgba(255,75,31,0)" },
+        },
+        "chip-pulse": {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.06)" },
+        },
+        "shake-x": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "25%": { transform: "translateX(-4px)" },
+          "75%": { transform: "translateX(4px)" },
+        },
+        "orb-spin-slow": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
+        "orb-spin-rev": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(-360deg)" },
+        },
+        "orb-breathe": {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.1)" },
+        },
+        "modal-in": {
+          "0%": { opacity: "0", transform: "scale(0.92)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "fade-through": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
         "card-in": {
           "0%": { opacity: "0", transform: "translateY(14px) scale(0.98)" },
           "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
@@ -64,12 +127,25 @@ const config: Config = {
       },
       animation: {
         "card-in": "card-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "spring-in": "spring-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both",
         "check-pop": "check-pop 420ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "check-draw": "check-draw 360ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both",
         "orb-pulse": "orb-pulse 1.4s ease-in-out infinite",
         "orb-think": "orb-think 1.2s linear infinite",
+        "orb-spin-slow": "orb-spin-slow 14s linear infinite",
+        "orb-spin-rev": "orb-spin-rev 18s linear infinite",
+        "orb-breathe": "orb-breathe 2.6s ease-in-out infinite",
         shimmer: "shimmer 1.6s ease-in-out infinite",
         "toast-in": "toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        settle: "settle 500ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        float: "float 6s ease-in-out infinite",
+        "rise-in": "rise-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "word-in": "word-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "ring-flash": "ring-flash 600ms ease-out both",
+        "chip-pulse": "chip-pulse 480ms ease-in-out",
+        "shake-x": "shake-x 220ms ease-in-out",
+        "modal-in": "modal-in 220ms cubic-bezier(0.34, 1.56, 0.64, 1) both",
+        "fade-through": "fade-through 120ms ease-out both",
       },
     },
   },

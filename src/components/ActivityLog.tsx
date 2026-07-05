@@ -86,6 +86,8 @@ export function ActivityLog() {
         </a>
       </div>
 
+      {/* keyed by the active filter so the list fades through on change */}
+      <div key={query().toString()} className="animate-fade-through">
       {actions === null ? (
         <div className="mt-6">
           <SkeletonRows rows={5} />
@@ -175,6 +177,7 @@ export function ActivityLog() {
           </table>
         </div>
       )}
+      </div>
     </div>
   );
 }

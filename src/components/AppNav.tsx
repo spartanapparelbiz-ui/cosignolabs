@@ -2,28 +2,65 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const LINKS = [
   { href: "/app", label: "workspace" },
   { href: "/app/activity", label: "activity" },
-  { href: "/app/settings", label: "settings" },
+  { href: "/app/account", label: "account" },
 ];
+
+function activeIndex(pathname: string): number {
+  const i = LINKS.findIndex((l) =>
+    l.href === "/app" ? pathname === "/app" : pathname.startsWith(l.href)
+  );
+  return i < 0 ? 0 : i;
+}
 
 export function AppNav() {
   const pathname = usePathname();
+  const idx = activeIndex(pathname);
+  const refs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+
+  // The active-item pill slides between links (layout-animated) by tracking
+  // the active anchor's offset. Recomputes on route change and resize.
+  useLayoutEffect(() => {
+    const el = refs.current[idx];
+    if (el) setPill({ left: el.offsetLeft, width: el.offsetWidth });
+  }, [idx, pathname]);
+
+  useEffect(() => {
+    function onResize() {
+      const el = refs.current[idx];
+      if (el) setPill({ left: el.offsetLeft, width: el.offsetWidth });
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [idx]);
+
   return (
-    <nav className="flex items-center gap-1" aria-label="app">
-      {LINKS.map((l) => {
-        const active =
-          l.href === "/app" ? pathname === "/app" : pathname.startsWith(l.href);
+    <nav className="relative flex items-center gap-1" aria-label="app">
+      {pill && (
+        <span
+          aria-hidden="true"
+          className="absolute top-0 h-full rounded-btn bg-ink transition-[left,width] duration-base ease-brand-out"
+          style={{ left: pill.left, width: pill.width }}
+        />
+      )}
+      {LINKS.map((l, i) => {
+        const active = i === idx;
         return (
           <Link
             key={l.href}
             href={l.href}
             prefetch
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
             aria-current={active ? "page" : undefined}
-            className={`rounded-btn px-3.5 py-1.5 text-sm font-bold lowercase transition-colors ${
-              active ? "bg-ink text-cream" : "text-ink-soft hover:bg-cream-deep"
+            className={`relative z-10 rounded-btn px-3.5 py-1.5 text-sm font-bold lowercase transition-colors duration-base ${
+              active ? "text-cream" : "text-ink-soft hover:bg-cream-deep"
             }`}
           >
             {l.label}

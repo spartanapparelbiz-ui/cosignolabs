@@ -43,7 +43,28 @@ Rules:
 
 ## Motion
 
-- Card propose: `animate-card-in` — slide + fade, 240ms ease-out.
+**Tokens** (`src/lib/motion.ts` + Tailwind theme) — never hard-code timing:
+
+| Token | Value | Use |
+|---|---|---|
+| `DURATION.fast` / `duration-fast` | 160ms | button press, hover lift, focus ring, filter fade |
+| `DURATION.base` / `duration-base` | 220ms | fades, slides, nav indicator, modal-in, shake |
+| `DURATION.entrance` | 320ms | card slide-in, rise-in, word stagger |
+| `DURATION.slow` | 500ms | hero settle, showpiece moments |
+| `EASE.out` / `ease-brand-out` | `cubic-bezier(0.22,1,0.36,1)` | default UI easing |
+| `EASE.spring` / `ease-spring` | `cubic-bezier(0.34,1.56,0.64,1)` | card entrance / modal overshoot |
+| `STAGGER_MS.words` | 80ms | headline word stagger |
+| `STAGGER_MS.cards` | 60ms | card-stack stagger |
+
+Named animations (Tailwind `animate-*`): `settle`, `float`, `rise-in`,
+`word-in`, `spring-in`, `ring-flash`, `chip-pulse`, `shake-x`, `check-draw`,
+`check-pop`, `modal-in`, `fade-through`, `orb-*`, `toast-in`, `shimmer`.
+
+Rules: **transform/opacity only** (never animate layout properties), 60fps,
+capped element counts, and everything collapses to an instant state change
+under `prefers-reduced-motion` (globals.css + `useReveal` start-shown).
+
+- Card propose: `animate-card-in` / `animate-spring-in` — slide + fade.
 - Execute: `animate-check-pop` + `animate-check-draw` — the orange check
   draws itself once.
 - Orb: transform/opacity only (`animate-orb-pulse`, `orb-listen`,

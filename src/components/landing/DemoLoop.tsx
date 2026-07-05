@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CREAM } from "@/lib/brand";
+import { CREAM, INK } from "@/lib/brand";
 
 const COMMAND = "clear my inbox of newsletters";
 
@@ -50,7 +50,7 @@ export function DemoLoop() {
 
   return (
     <div
-      className="w-full max-w-lg rounded-card bg-white/70 p-4 shadow-lift"
+      className="relative w-full max-w-lg rounded-card bg-white/70 p-4 shadow-lift"
       aria-label="demo: a command becomes an action card, and nothing executes until it's approved"
     >
       {/* command line */}
@@ -155,6 +155,32 @@ export function DemoLoop() {
               signed &amp; executed — 47 emails archived
             </span>
           </div>
+        )}
+      </div>
+
+      {/* Faint cursor performing the click — appears as the card lands,
+          glides to the approve button, taps at phase 3. Transform/opacity. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute z-10 transition-all duration-500 ease-brand-out"
+        style={{
+          left: phase >= 3 ? "78px" : "150px",
+          bottom: phase >= 3 ? "58px" : "30px",
+          opacity: phase >= 2 && phase < 4 ? 1 : 0,
+          transform: phase === 3 ? "scale(0.82)" : "scale(1)",
+        }}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M5 3l14 7-6 1.6L9.5 18 5 3z"
+            fill={INK}
+            stroke={CREAM}
+            strokeWidth="1.2"
+            strokeLinejoin="round"
+          />
+        </svg>
+        {phase === 3 && (
+          <span className="absolute -left-1 -top-1 h-6 w-6 animate-ping rounded-full bg-signal/30" />
         )}
       </div>
     </div>

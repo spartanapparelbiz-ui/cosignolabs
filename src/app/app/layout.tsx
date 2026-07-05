@@ -43,8 +43,23 @@ export default async function AppLayout({
   if (clerkConfigured()) {
     const { ClerkProvider, UserButton, SignedIn, SignedOut, SignInButton } =
       await import("@clerk/nextjs");
+    // Map Clerk widgets to the cosigno tokens (never the default look).
+    const appearance = {
+      variables: {
+        colorPrimary: "#FF4B1F",
+        colorText: "#141414",
+        colorBackground: "#FBF4EA",
+        colorInputBackground: "#F3E9DA",
+        borderRadius: "10px",
+        fontFamily: "var(--font-nunito), system-ui, sans-serif",
+      },
+      elements: {
+        card: "shadow-soft",
+        formButtonPrimary: "bg-ink text-cream hover:bg-ink",
+      },
+    };
     return (
-      <ClerkProvider>
+      <ClerkProvider appearance={appearance}>
         <Chrome
           userSlot={
             <>

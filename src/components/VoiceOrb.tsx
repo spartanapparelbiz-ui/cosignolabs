@@ -1,6 +1,6 @@
 "use client";
 
-import { CREAM, INK, LINE } from "@/lib/brand";
+import { CREAM } from "@/lib/brand";
 
 export type OrbState = "idle" | "listening" | "thinking" | "awaiting-approval";
 
@@ -12,62 +12,28 @@ const LABELS: Record<OrbState, string> = {
 };
 
 /**
- * The voice orb: cosigno's status heartbeat. Four states —
- * idle (still ink dot), listening (soft bars), thinking (rotating arc),
- * awaiting-approval (signal pulse — the operator holding a pen out to you).
- * Transform/opacity animations only: no layout thrash, 60fps.
+ * Layered voice orb: two soft blurred blobs (one ink, one signal) counter-
+ * rotating around the center. Idle rotates slowly; listening breathes;
+ * thinking speeds the rotation; awaiting-approval swaps to a signal pulse
+ * with a soft glow ring — the signature moment. Four fixed elements,
+ * transform/opacity only, idles well below 1% CPU. Reduced motion freezes
+ * the rotation (globals.css) leaving a static, still-legible orb.
  */
 export function VoiceOrb({ state }: { state: OrbState }) {
+  const awaiting = state === "awaiting-approval";
+  const spin = state === "thinking" ? "[animation-duration:3.2s]" : "";
+
   return (
     <div
       className="flex items-center gap-2.5"
       role="status"
       aria-label={`operator status: ${LABELS[state]}`}
     >
-      <div className="relative flex h-9 w-9 items-center justify-center">
-        {state === "idle" && (
-          <span className="h-3.5 w-3.5 rounded-full bg-ink transition-transform" />
-        )}
-
-        {state === "listening" && (
-          <span className="flex h-5 items-end gap-[3px]">
-            {[0, 1, 2, 3].map((i) => (
-              <span
-                key={i}
-                className="w-[3px] rounded-full bg-ink"
-                style={{
-                  height: "100%",
-                  transformOrigin: "bottom",
-                  animation: `orb-listen 1s ease-in-out ${i * 0.15}s infinite`,
-                }}
-              />
-            ))}
-          </span>
-        )}
-
-        {state === "thinking" && (
-          <svg
-            width="26"
-            height="26"
-            viewBox="0 0 26 26"
-            className="animate-orb-think"
-            fill="none"
-            aria-hidden="true"
-          >
-            <circle cx="13" cy="13" r="10" stroke={LINE} strokeWidth="3" />
-            <path
-              d="M13 3a10 10 0 0 1 9.4 6.6"
-              stroke={INK}
-              strokeWidth="3"
-              strokeLinecap="round"
-            />
-          </svg>
-        )}
-
-        {state === "awaiting-approval" && (
+      <div className="relative h-9 w-9">
+        {awaiting ? (
           <>
             <span className="absolute inset-0 animate-orb-pulse rounded-full bg-signal/25" />
-            <span className="relative flex h-6 w-6 animate-orb-pulse items-center justify-center rounded-full bg-signal">
+            <span className="absolute inset-[6px] flex animate-orb-pulse items-center justify-center rounded-full bg-signal shadow-[0_0_12px_rgba(255,75,31,0.5)]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   d="M4.5 12.5 10 18 20 6.5"
@@ -79,6 +45,21 @@ export function VoiceOrb({ state }: { state: OrbState }) {
               </svg>
             </span>
           </>
+        ) : (
+          <div
+            className={`absolute inset-0 ${
+              state === "listening" ? "animate-orb-breathe" : ""
+            }`}
+          >
+            {/* counter-rotating blurred blobs */}
+            <div className={`absolute inset-0 animate-orb-spin-slow ${spin}`}>
+              <span className="absolute left-1/2 top-0 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-signal/60 blur-[3px]" />
+            </div>
+            <div className={`absolute inset-0 animate-orb-spin-rev ${spin}`}>
+              <span className="absolute bottom-0 left-1/2 h-4 w-4 -translate-x-1/2 rounded-full bg-ink/70 blur-[3px]" />
+            </div>
+            <span className="absolute inset-[11px] rounded-full bg-ink" />
+          </div>
         )}
       </div>
       <span className="hidden text-xs font-bold lowercase tracking-widest text-ink-soft sm:block">

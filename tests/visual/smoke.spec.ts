@@ -30,10 +30,19 @@ for (const vp of VIEWPORTS) {
     test.use({ viewport: { width: vp.width, height: vp.height } });
 
     test("landing", async ({ page }) => {
-      await page.goto("/");
+      await page.goto("/", { waitUntil: "networkidle" });
       await expect(
         page.getByRole("heading", { name: "the AI operator that asks first." })
       ).toBeVisible();
+      // Scroll through so on-reveal sections animate in before capture.
+      await page.evaluate(async () => {
+        for (let y = 0; y <= document.body.scrollHeight; y += 400) {
+          window.scrollTo(0, y);
+          await new Promise((r) => setTimeout(r, 60));
+        }
+        window.scrollTo(0, 0);
+      });
+      await page.waitForTimeout(400);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `landing-${vp.name}.png`), fullPage: true });
     });
@@ -71,12 +80,14 @@ for (const vp of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `activity-${vp.name}.png`), fullPage: true });
     });
 
-    test("settings", async ({ page }) => {
-      await page.goto("/app/settings");
-      await expect(page.getByRole("heading", { name: "settings" })).toBeVisible();
-      await expect(page.getByText("permission tiers")).toBeVisible();
+    test("account center", async ({ page }) => {
+      await page.goto("/app/account", { waitUntil: "networkidle" });
+      await expect(page.getByRole("heading", { name: "account", exact: true })).toBeVisible();
+      // land on the permissions panel and screenshot the tier board
+      await page.getByRole("button", { name: "permissions" }).click();
+      await expect(page.getByText(/how much rope the operator gets/)).toBeVisible();
       await noHorizontalScroll(page);
-      await page.screenshot({ path: join(OUT, `settings-${vp.name}.png`), fullPage: true });
+      await page.screenshot({ path: join(OUT, `account-${vp.name}.png`), fullPage: true });
     });
   });
 }

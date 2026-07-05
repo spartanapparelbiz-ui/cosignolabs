@@ -165,15 +165,22 @@ export function BetaForm() {
       <button
         type="submit"
         disabled={state === "busy"}
-        className="inline-flex items-center justify-center gap-2 rounded-btn bg-signal px-6 py-3.5 text-base font-extrabold text-ink transition-transform hover:scale-[1.01] active:scale-95 disabled:opacity-60"
+        className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-btn bg-ink px-6 py-3.5 text-base font-extrabold text-cream transition-transform duration-fast active:scale-95 disabled:opacity-60"
       >
-        {state === "busy" && (
-          <span
-            className="h-4 w-4 animate-orb-think rounded-full border-2 border-ink/30 border-t-ink"
-            aria-hidden="true"
-          />
-        )}
-        {state === "busy" ? "sending…" : "apply for the founding beta"}
+        {/* signal sweep fills left-to-right on hover */}
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-[280ms] ease-brand-out group-hover:scale-x-100"
+        />
+        <span className="relative inline-flex items-center gap-2 transition-colors duration-200 group-hover:text-ink">
+          {state === "busy" && (
+            <span
+              className="h-4 w-4 animate-orb-think rounded-full border-2 border-cream/40 border-t-cream"
+              aria-hidden="true"
+            />
+          )}
+          {state === "busy" ? "sending…" : "apply for the founding beta"}
+        </span>
       </button>
       <p className="text-center text-xs text-ink-soft">
         we&apos;re onboarding a small founding cohort. applications reviewed weekly.

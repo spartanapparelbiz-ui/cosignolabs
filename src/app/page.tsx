@@ -3,72 +3,52 @@ import Link from "next/link";
 import { LogoLockup, CosignoMark } from "@/components/brand/Logo";
 import { DemoLoop } from "@/components/landing/DemoLoop";
 import { BetaForm } from "@/components/landing/BetaForm";
-import { CREAM, INK, SIGNAL } from "@/lib/brand";
+import { HeroMark } from "@/components/landing/HeroMark";
+import { StaggerHeadline } from "@/components/landing/StaggerHeadline";
+import { BenefitGlyph } from "@/components/landing/BenefitGlyphs";
+import { Reveal } from "@/components/Reveal";
 
 // The sandbox is below the fold — lazy-loaded so it never touches LCP.
-const LivePreview = dynamic(
-  () => import("@/components/landing/LivePreview"),
-  { loading: () => <div className="mx-auto h-64 w-full max-w-2xl rounded-card bg-cream-deep" aria-hidden="true" /> }
-);
+const LivePreview = dynamic(() => import("@/components/landing/LivePreview"), {
+  loading: () => (
+    <div className="mx-auto h-64 w-full max-w-2xl rounded-card bg-cream-deep" aria-hidden="true" />
+  ),
+});
 
 const BENEFITS = [
   {
+    kind: "card" as const,
     title: "real execution, not chat",
     body: "cosigno doesn't hand you advice and wish you luck. it plans across your tools and does the work — archives, drafts, updates, sends — as concrete actions with exact payloads.",
-    icon: (
-      // action card glyph
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="3" y="5" width="18" height="14" rx="3" fill={INK} />
-        <path d="M7 10h10M7 13.5h6" stroke={CREAM} strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    ),
   },
   {
+    kind: "check" as const,
     title: "every action, your call",
     body: "anything that sends, posts, changes, or spends stops at an action card and waits for your signature. destructive moves need typed confirmation on top. the agent can never escalate its own permissions.",
-    icon: (
-      // the signature check glyph
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" fill={INK} />
-        <path
-          d="M7.5 12.5 10.8 16 17 8.5"
-          stroke={SIGNAL}
-          strokeWidth="2.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
   },
   {
+    kind: "ledger" as const,
     title: "total audit trail",
     body: 'every proposal, approval, veto, and execution is permanently logged with its payload — filterable, exportable, and yours. you can always answer "what did it do, and who said yes?"',
-    icon: (
-      // ledger glyph
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="4" y="3" width="16" height="18" rx="2.5" fill={INK} />
-        <path d="M8 8h8M8 12h8M8 16h5" stroke={CREAM} strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    ),
   },
 ];
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col overflow-x-hidden">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
         <LogoLockup size={30} textClass="text-2xl" />
         <nav className="flex items-center gap-3">
           <Link
             href="/app"
             prefetch
-            className="rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
+            className="rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink transition-all duration-fast ease-brand-out hover:-translate-y-px hover:bg-cream-deep"
           >
             open workspace
           </Link>
           <a
             href="#beta"
-            className="hidden rounded-btn bg-ink px-4 py-2 text-sm font-bold lowercase text-cream sm:block"
+            className="hidden rounded-btn bg-ink px-4 py-2 text-sm font-bold lowercase text-cream transition-transform duration-fast hover:-translate-y-px sm:block"
           >
             founding beta
           </a>
@@ -77,55 +57,62 @@ export default function LandingPage() {
 
       <main className="flex-1">
         {/* Hero */}
-        <section className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 pb-16 pt-8 lg:grid-cols-2 lg:pt-16">
+        <section className="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-4 pb-16 pt-8 lg:grid-cols-2 lg:pt-16">
+          {/* Subtle radial glow behind the mark — depth, not noise. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 top-0 -z-10 h-[520px] w-[520px] translate-x-1/4 rounded-full"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(255,75,31,0.06) 0%, rgba(255,75,31,0) 70%)",
+            }}
+          />
           <div>
-            <h1 className="text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-              the AI operator that asks first.
-            </h1>
-            <p className="mt-5 max-w-xl text-lg font-semibold text-ink-soft">
+            <StaggerHeadline
+              text="the AI operator that asks first."
+              className="text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl"
+            />
+            <p className="mt-5 max-w-xl text-lg font-semibold text-ink-soft animate-word-in [animation-delay:520ms]">
               cosigno plans, drafts, and executes across your tools — and
               nothing moves without your signature.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-3 animate-word-in [animation-delay:640ms]">
               <a
                 href="#beta"
-                className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform hover:scale-[1.02] active:scale-95"
+                className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95"
               >
                 apply for the founding beta
               </a>
               <a
                 href="#try"
-                className="rounded-btn px-7 py-3.5 text-base font-bold lowercase ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
+                className="rounded-btn px-7 py-3.5 text-base font-bold lowercase ring-1 ring-inset ring-ink transition-all duration-fast hover:-translate-y-px hover:bg-cream-deep"
               >
                 try it first
               </a>
             </div>
-            <p className="mt-4 text-sm text-ink-soft">
+            <p className="mt-4 text-sm text-ink-soft animate-word-in [animation-delay:760ms]">
               limited seats. we&apos;re onboarding a small founding cohort —
               applications reviewed weekly.
             </p>
           </div>
           <div className="flex justify-center lg:justify-end">
-            <DemoLoop />
+            <HeroMark />
           </div>
         </section>
 
-        {/* Benefits */}
-        <section className="bg-cream-deep/60">
-          <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-16 md:grid-cols-3">
-            {BENEFITS.map((b) => (
-              <div key={b.title}>
-                {b.icon}
-                <h2 className="mt-4 text-lg font-extrabold lowercase">{b.title}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-ink-soft">{b.body}</p>
-              </div>
-            ))}
-          </div>
+        {/* Demo loop */}
+        <section className="bg-cream-deep/50">
+          <Reveal className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 py-16">
+            <h2 className="text-center text-2xl font-extrabold lowercase sm:text-3xl">
+              one command. one signature. done.
+            </h2>
+            <DemoLoop />
+          </Reveal>
         </section>
 
         {/* Live preview sandbox */}
         <section id="try" className="mx-auto w-full max-w-6xl px-4 py-16">
-          <div className="text-center">
+          <Reveal className="text-center">
             <h2 className="text-2xl font-extrabold lowercase sm:text-3xl">
               try it — no account needed
             </h2>
@@ -133,40 +120,53 @@ export default function LandingPage() {
               the real approval loop against simulated tools. pick a command or
               type your own — nothing leaves your browser session.
             </p>
-          </div>
+          </Reveal>
           <div className="mt-8">
             <LivePreview />
           </div>
         </section>
 
-        {/* How the loop works */}
+        {/* Benefits */}
         <section className="bg-cream-deep/60">
-          <div className="mx-auto w-full max-w-6xl px-4 py-16">
+          <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-16 md:grid-cols-3">
+            {BENEFITS.map((b, i) => (
+              <Reveal key={b.title} delay={i * 90}>
+                <BenefitGlyph kind={b.kind} />
+                <h2 className="mt-4 text-lg font-extrabold lowercase">{b.title}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-ink-soft">{b.body}</p>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        {/* How the loop works */}
+        <section className="mx-auto w-full max-w-6xl px-4 py-16">
+          <Reveal>
             <h2 className="text-center text-2xl font-extrabold lowercase sm:text-3xl">
               one loop. no surprises.
             </h2>
-            <div className="mx-auto mt-10 grid max-w-4xl gap-6 sm:grid-cols-4">
-              {[
-                ["command", "tell it what you want in plain language."],
-                ["proposal", "it plans and lays out action cards — exact payloads, plain english, risk tier."],
-                ["signature", "you approve, edit, or veto. locked actions need typed confirmation."],
-                ["receipt", "approved actions execute server-side and land in your permanent audit trail."],
-              ].map(([title, body], i) => (
-                <div key={title} className="rounded-card bg-white/70 p-4 shadow-soft">
-                  <span className="text-xs font-extrabold text-signal">0{i + 1}</span>
-                  <h3 className="mt-1 font-extrabold lowercase">{title}</h3>
-                  <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{body}</p>
-                </div>
-              ))}
-            </div>
+          </Reveal>
+          <div className="mx-auto mt-10 grid max-w-4xl gap-6 sm:grid-cols-4">
+            {[
+              ["command", "tell it what you want in plain language."],
+              ["proposal", "it plans and lays out action cards — exact payloads, plain english, risk tier."],
+              ["signature", "you approve, edit, or veto. locked actions need typed confirmation."],
+              ["receipt", "approved actions execute server-side and land in your permanent audit trail."],
+            ].map(([title, body], i) => (
+              <Reveal key={title} delay={i * 80} className="rounded-card bg-white/70 p-4 shadow-soft">
+                <span className="text-xs font-extrabold text-signal">0{i + 1}</span>
+                <h3 className="mt-1 font-extrabold lowercase">{title}</h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{body}</p>
+              </Reveal>
+            ))}
           </div>
         </section>
 
         {/* Beta application */}
-        <section id="beta">
-          <div className="mx-auto w-full max-w-2xl px-4 py-16">
+        <section id="beta" className="bg-cream-deep/60">
+          <Reveal className="mx-auto w-full max-w-2xl px-4 py-16">
             <div className="text-center">
-              <CosignoMark size={40} />
+              <CosignoMark size={44} />
               <h2 className="mt-4 text-2xl font-extrabold lowercase sm:text-3xl">
                 hand your busywork to an operator that asks first.
               </h2>
@@ -179,7 +179,7 @@ export default function LandingPage() {
             <div className="mt-8">
               <BetaForm />
             </div>
-          </div>
+          </Reveal>
         </section>
       </main>
 

@@ -3,17 +3,22 @@
 Measured on the production build (`next build && next start`), Lighthouse
 mobile preset (simulated 4× CPU throttle + slow-4G), Chromium.
 
-## After the polish pass
+## After the visual upgrade pass
 
 | Metric | Result | Target | |
 |---|---|---|---|
 | **Performance** | **99** | ≥ 95 | ✅ |
 | First Contentful Paint | 0.8 s | — | ✅ |
-| Largest Contentful Paint | 2.0 s (simulated) | < 1.5 s | see note |
-| Cumulative Layout Shift | 0.005 | < 0.05 | ✅ |
-| Total Blocking Time | 50 ms | — | ✅ |
-| Speed Index | 0.8 s | — | ✅ |
+| Largest Contentful Paint | 2.1 s (simulated) | < 1.5 s | see note |
+| Cumulative Layout Shift | 0.000 | < 0.05 | ✅ |
+| Total Blocking Time | 40 ms | — | ✅ |
 | Render-blocking third-party scripts | none | none | ✅ |
+
+The richer hero + motion held the budget. One finding worth recording: a
+first cut of the hero used `next/image`, whose client runtime pushed TBT to
+230 ms and the score to 94. Swapping to a plain pre-optimized `<img>` (fixed
+width/height → no CLS) restored TBT to 40 ms and the score to 99 — the 3D
+mark is small (36 KB) so image optimization bought nothing but overhead.
 
 ### LCP note
 

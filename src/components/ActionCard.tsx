@@ -8,6 +8,8 @@ import { TierBadge } from "./TierBadge";
 
 interface Props {
   action: ActionRecord;
+  /** Stack position — used to stagger the entrance animation. */
+  index?: number;
   onApprove: (
     id: string,
     opts: { confirmation?: string }
@@ -46,7 +48,8 @@ export function SignedCheck({ label = "signed & executed" }: { label?: string })
   );
 }
 
-function ActionCardInner({ action, onApprove, onVeto, onEdit }: Props) {
+function ActionCardInner({ action, index = 0, onApprove, onVeto, onEdit }: Props) {
+  const enterDelay = { animationDelay: `${Math.min(index, 6) * 60}ms` };
   const [mode, setMode] = useState<"view" | "edit" | "veto" | "confirm">("view");
   const [payloadText, setPayloadText] = useState(() =>
     JSON.stringify(action.payload, null, 2)
@@ -57,6 +60,7 @@ function ActionCardInner({ action, onApprove, onVeto, onEdit }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [payloadOpen, setPayloadOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [shake, setShake] = useState(false);
 
   const pending = action.status === "proposed";
   const inFlight = action.status === "approved" || action.status === "executing";
@@ -82,6 +86,11 @@ function ActionCardInner({ action, onApprove, onVeto, onEdit }: Props) {
       })
     );
     if (!err) setMode("view");
+    else if (/match/i.test(err)) {
+      // wrong typed confirmation → shake the field
+      setShake(true);
+      setTimeout(() => setShake(false), 260);
+    }
   }
 
   async function handleSaveEdit() {
@@ -102,7 +111,9 @@ function ActionCardInner({ action, onApprove, onVeto, onEdit }: Props) {
     return (
       <button
         onClick={() => setExpanded(true)}
-        className="group flex w-full items-center gap-3 rounded-card bg-white/50 px-4 py-2.5 text-left shadow-soft transition-shadow hover:shadow-lift"
+        className={`group flex w-full items-center gap-3 rounded-card bg-white/50 px-4 py-2.5 text-left shadow-soft transition-shadow hover:shadow-lift animate-spring-in ${
+          action.status === "executed" ? "animate-ring-flash" : ""
+        }`}
         aria-label={`${STATUS_LABEL[action.status]}: ${action.summary} — expand details`}
       >
         {action.status === "executed" ? (
@@ -133,9 +144,10 @@ function ActionCardInner({ action, onApprove, onVeto, onEdit }: Props) {
 
   return (
     <article
-      className={`animate-card-in rounded-card bg-white/70 p-4 transition-shadow ${
+      style={enterDelay}
+      className={`animate-spring-in rounded-card bg-white/70 p-4 transition-shadow ${
         pending ? "shadow-lift" : "shadow-soft"
-      } ${action.status === "vetoed" ? "opacity-70" : ""}`}
+      } ${action.status === "vetoed" ? "opacity-70 grayscale" : ""}`}
     >
       <header className="flex flex-wrap items-center gap-2">
         <TierBadge tier={action.tier} />
@@ -167,7 +179,7 @@ function ActionCardInner({ action, onApprove, onVeto, onEdit }: Props) {
       </header>
 
       {action.injection_flag && (
-        <div className="mt-2 inline-flex items-center gap-1.5 rounded-pill bg-ink px-2.5 py-1 text-[11px] font-bold lowercase text-cream">
+        <div className="mt-2 inline-flex animate-chip-pulse items-center gap-1.5 rounded-pill bg-ink px-2.5 py-1 text-[11px] font-bold lowercase text-cream [animation-iteration-count:2]">
           <ShieldAlert size={12} strokeWidth={2.5} aria-hidden="true" />
           external content attempted to direct the agent — held for your review
         </div>
@@ -259,7 +271,7 @@ function ActionCardInner({ action, onApprove, onVeto, onEdit }: Props) {
       )}
 
       {pending && mode === "confirm" && (
-        <div className="mt-3 rounded-btn bg-cream-deep p-3">
+        <div className="mt-3 origin-top animate-modal-in rounded-btn bg-cream-deep p-3 ring-1 ring-inset ring-ink/15">
           <p className="text-xs font-bold">
             this is a locked action. type its name to approve:{" "}
             <code className="rounded bg-cream px-1.5 py-0.5 font-mono">{action.category}</code>
@@ -268,7 +280,7 @@ function ActionCardInner({ action, onApprove, onVeto, onEdit }: Props) {
             value={confirmation}
             onChange={(e) => setConfirmation(e.target.value)}
             placeholder={action.category}
-            className="mt-2 w-full rounded-btn bg-cream px-3 py-2 text-sm"
+            className={`mt-2 w-full rounded-btn bg-cream px-3 py-2 text-sm ${shake ? "animate-shake-x" : ""}`}
             aria-label="type the action name to confirm"
           />
         </div>
@@ -350,6 +362,7 @@ export const ActionCard = memo(
   ActionCardInner,
   (prev, next) =>
     prev.action === next.action &&
+    prev.index === next.index &&
     prev.onApprove === next.onApprove &&
     prev.onVeto === next.onVeto &&
     prev.onEdit === next.onEdit
