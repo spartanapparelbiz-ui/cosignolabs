@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ActionRecord, MessageRecord, SessionRecord } from "@/lib/types";
+import type { ActionRecord, ActionStatus, MessageRecord, SessionRecord } from "@/lib/types";
 import { getRealtimeClient } from "@/lib/client/realtime";
 import { ActionCard } from "./ActionCard";
+import { SkeletonCard } from "./Skeleton";
+import { useToast } from "./Toast";
 import { VoiceOrb, type OrbState } from "./VoiceOrb";
 
 const EXAMPLES = [
@@ -19,7 +21,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+    throw new Error(body.message || body.error || "something went wrong — try again.");
   }
   return body;
 }
@@ -33,17 +35,29 @@ export function Workspace() {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reasoningOpen, setReasoningOpen] = useState<Record<string, boolean>>({});
+  // Optimistic status overrides, rolled back if the server rejects.
+  const [optimistic, setOptimistic] = useState<Record<string, ActionStatus>>({});
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const sessionRef = useRef<string | null>(null);
   sessionRef.current = session?.id ?? null;
+  const toast = useToast();
 
+  const displayActions = useMemo(
+    () =>
+      actions.map((a) =>
+        optimistic[a.id] && a.status === "proposed"
+          ? { ...a, status: optimistic[a.id] }
+          : a
+      ),
+    [actions, optimistic]
+  );
   const pendingActions = useMemo(
-    () => actions.filter((a) => a.status === "proposed"),
-    [actions]
+    () => displayActions.filter((a) => a.status === "proposed"),
+    [displayActions]
   );
   const settledActions = useMemo(
-    () => actions.filter((a) => a.status !== "proposed"),
-    [actions]
+    () => displayActions.filter((a) => a.status !== "proposed"),
+    [displayActions]
   );
 
   const orbState: OrbState = thinking
@@ -61,6 +75,7 @@ export function Workspace() {
       const data = await jsonFetch(`/api/sessions/${id}`);
       setMessages(data.messages);
       setActions(data.actions);
+      setOptimistic({});
     } catch {
       // transient; next poll retries
     }
@@ -101,7 +116,7 @@ export function Workspace() {
     };
   }, [session, refresh]);
 
-  // "/" focuses the command box from anywhere.
+  // "/" focuses the command box from anywhere; Esc clears it.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (
@@ -130,69 +145,94 @@ export function Workspace() {
       });
       setSession(data.session);
       sessionRef.current = data.session.id;
-      await refreshWith(data.session.id);
+      await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Command failed.");
-      setCommand(cmd);
+      setError(err instanceof Error ? err.message : "the command didn't go through — try again.");
+      setCommand(cmd); // never lose the user's input
     } finally {
       setThinking(false);
     }
   }
 
-  async function refreshWith(id: string) {
-    const data = await jsonFetch(`/api/sessions/${id}`);
-    setMessages(data.messages);
-    setActions(data.actions);
-  }
+  const onApprove = useCallback(
+    async (id: string, opts: { confirmation?: string }) => {
+      setOptimistic((o) => ({ ...o, [id]: "executing" }));
+      try {
+        const data = await jsonFetch(`/api/actions/${id}/approve`, {
+          method: "POST",
+          body: JSON.stringify(opts),
+        });
+        await refresh();
+        toast(
+          data.action.status === "executed" ? "success" : "error",
+          data.action.status === "executed"
+            ? "signed & executed."
+            : "the action didn't complete — check the card."
+        );
+        return null;
+      } catch (err) {
+        setOptimistic((o) => {
+          const next = { ...o };
+          delete next[id];
+          return next;
+        });
+        await refresh();
+        return err instanceof Error ? err.message : "approval didn't go through — try again.";
+      }
+    },
+    [refresh, toast]
+  );
 
-  async function mutate(fn: () => Promise<unknown>): Promise<string | null> {
-    try {
-      await fn();
-      await refresh();
-      return null;
-    } catch (err) {
-      await refresh();
-      return err instanceof Error ? err.message : "Request failed.";
-    }
-  }
+  const onVeto = useCallback(
+    async (id: string, reason: string) => {
+      setOptimistic((o) => ({ ...o, [id]: "vetoed" }));
+      try {
+        await jsonFetch(`/api/actions/${id}/veto`, {
+          method: "POST",
+          body: JSON.stringify({ reason }),
+        });
+        await refresh();
+        toast("success", "vetoed — nothing was executed.");
+        return null;
+      } catch (err) {
+        setOptimistic((o) => {
+          const next = { ...o };
+          delete next[id];
+          return next;
+        });
+        await refresh();
+        return err instanceof Error ? err.message : "the veto didn't go through — try again.";
+      }
+    },
+    [refresh, toast]
+  );
 
-  const onApprove = (
-    id: string,
-    opts: { confirmation?: string; payload?: Record<string, unknown> }
-  ) =>
-    mutate(() =>
-      jsonFetch(`/api/actions/${id}/approve`, {
-        method: "POST",
-        body: JSON.stringify(opts),
-      })
-    );
-
-  const onVeto = (id: string, reason: string) =>
-    mutate(() =>
-      jsonFetch(`/api/actions/${id}/veto`, {
-        method: "POST",
-        body: JSON.stringify({ reason }),
-      })
-    );
-
-  const onEdit = (id: string, payload: Record<string, unknown>) =>
-    mutate(() =>
-      jsonFetch(`/api/actions/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ payload }),
-      })
-    );
+  const onEdit = useCallback(
+    async (id: string, payload: Record<string, unknown>) => {
+      try {
+        await jsonFetch(`/api/actions/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ payload }),
+        });
+        await refresh();
+        return null;
+      } catch (err) {
+        return err instanceof Error ? err.message : "the edit didn't save — try again.";
+      }
+    },
+    [refresh]
+  );
 
   return (
     <div className="mx-auto grid w-full max-w-6xl flex-1 gap-6 px-4 py-6 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)]">
       {/* Left: command input + session thread */}
       <section className="flex flex-col gap-4">
-        <div className="rounded-card border border-ink bg-white/60 p-4 shadow-sm">
+        <div className="rounded-card bg-white/70 p-4 shadow-lift">
           <label
             htmlFor="command"
-            className="text-xs font-extrabold uppercase tracking-widest text-ink-soft"
+            className="text-xs font-extrabold lowercase tracking-widest text-ink-soft"
           >
-            Command the operator
+            command the operator
           </label>
           <textarea
             id="command"
@@ -206,41 +246,45 @@ export function Workspace() {
                 e.preventDefault();
                 submit(command);
               }
+              if (e.key === "Escape") {
+                setCommand("");
+                e.currentTarget.blur();
+              }
             }}
-            placeholder={'Tell cosigno what to do…  (press "/" to focus)'}
+            placeholder={'tell cosigno what to do…  (press "/" to focus)'}
             rows={3}
-            className="mt-2 w-full resize-none rounded-lg border-0 bg-transparent text-lg font-semibold placeholder:text-ink-soft/50 focus:outline-none"
+            className="mt-2 w-full resize-none rounded-btn bg-transparent text-lg font-semibold placeholder:text-ink-soft/60 focus:outline-none"
           />
           <div className="mt-2 flex items-center justify-between">
             <span className="text-[11px] text-ink-soft">
-              Enter to send · Shift+Enter for a new line
+              enter to send · shift+enter for a new line · esc to clear
             </span>
             <button
               onClick={() => submit(command)}
               disabled={thinking || !command.trim()}
-              className="rounded-pill bg-ink px-5 py-2 text-sm font-extrabold text-cream transition-transform active:scale-95 disabled:opacity-40"
+              className="rounded-btn bg-ink px-5 py-2 text-sm font-extrabold text-cream transition-transform active:scale-95 disabled:opacity-40"
             >
-              {thinking ? "Planning…" : "Send"}
+              {thinking ? "planning…" : "send"}
             </button>
           </div>
         </div>
 
         {error && (
-          <p className="rounded-card border border-ink bg-cream-deep px-4 py-3 text-sm font-semibold">
+          <p className="rounded-card bg-cream-deep px-4 py-3 text-sm font-semibold shadow-soft" role="alert">
             {error}
           </p>
         )}
 
         <div className="flex flex-col gap-2">
           {messages.length === 0 && !thinking && (
-            <div className="rounded-card border border-dashed border-line p-5">
-              <p className="text-sm font-bold text-ink-soft">Try one of these:</p>
+            <div className="rounded-card bg-white/40 p-5 shadow-soft">
+              <p className="text-sm font-bold text-ink-soft">try one of these:</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {EXAMPLES.map((ex) => (
                   <button
                     key={ex}
                     onClick={() => submit(ex)}
-                    className="rounded-pill border border-ink bg-white/60 px-4 py-2 text-sm font-semibold transition-colors hover:bg-cream-deep"
+                    className="rounded-btn bg-cream-deep px-4 py-2 text-sm font-semibold transition-colors hover:bg-ink hover:text-cream"
                   >
                     {ex}
                   </button>
@@ -263,12 +307,13 @@ export function Workspace() {
                   onClick={() =>
                     setReasoningOpen((s) => ({ ...s, [m.id]: !s[m.id] }))
                   }
-                  className="text-xs font-bold text-ink-soft underline underline-offset-2"
+                  className="text-xs font-bold lowercase text-ink-soft underline underline-offset-2"
+                  aria-expanded={Boolean(reasoningOpen[m.id])}
                 >
                   {reasoningOpen[m.id] ? "hide reasoning" : "operator reasoning"}
                 </button>
                 {reasoningOpen[m.id] && (
-                  <p className="mt-1 max-w-md rounded-card rounded-bl-md border border-line bg-white/60 px-4 py-2.5 text-sm text-ink-soft">
+                  <p className="mt-1 max-w-md rounded-card rounded-bl-md bg-white/60 px-4 py-2.5 text-sm text-ink-soft shadow-soft">
                     {m.content}
                   </p>
                 )}
@@ -281,16 +326,18 @@ export function Workspace() {
       {/* Right: action card stack */}
       <section className="flex flex-col gap-3" aria-live="polite">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-extrabold uppercase tracking-widest text-ink-soft">
-            Action cards
+          <h2 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
+            action cards
           </h2>
           <VoiceOrb state={orbState} />
         </div>
 
-        {actions.length === 0 && (
-          <div className="rounded-card border border-dashed border-line p-8 text-center">
+        {thinking && <SkeletonCard />}
+
+        {actions.length === 0 && !thinking && (
+          <div className="rounded-card bg-white/40 p-8 text-center shadow-soft">
             <p className="text-sm font-semibold text-ink-soft">
-              Nothing proposed yet. Give the operator a command — every
+              nothing proposed yet. give the operator a command — every
               consequential step lands here as a card for your signature.
             </p>
           </div>
@@ -308,10 +355,10 @@ export function Workspace() {
 
         {settledActions.length > 0 && (
           <details className="mt-2" open={pendingActions.length === 0}>
-            <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest text-ink-soft">
-              Resolved ({settledActions.length})
+            <summary className="cursor-pointer text-xs font-bold lowercase tracking-widest text-ink-soft">
+              resolved ({settledActions.length})
             </summary>
-            <div className="mt-3 flex flex-col gap-3">
+            <div className="mt-3 flex flex-col gap-2">
               {settledActions.map((a) => (
                 <ActionCard
                   key={a.id}

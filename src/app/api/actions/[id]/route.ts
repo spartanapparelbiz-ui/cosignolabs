@@ -13,7 +13,7 @@ type Params = { params: Promise<{ id: string }> };
 async function validId(params: Params["params"]): Promise<string> {
   const { id } = await params;
   if (!idParamSchema.safeParse(id).success) {
-    throw new ApiError(400, "bad_id", "Invalid action id.");
+    throw new ApiError(400, "bad_id", "that action id isn't valid.");
   }
   return id;
 }
@@ -23,7 +23,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const userId = await requireUser();
     const id = await validId(params);
     const action = await getStore().getAction(userId, id);
-    if (!action) throw new ApiError(404, "not_found", "Action not found.");
+    if (!action) throw new ApiError(404, "not_found", "we couldn't find that action.");
     const events = await getStore().listEvents(userId, id);
     return NextResponse.json({ action, events });
   } catch (err) {

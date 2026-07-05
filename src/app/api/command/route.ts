@@ -33,13 +33,13 @@ export async function POST(req: NextRequest) {
       throw new ApiError(
         413,
         "command_too_long",
-        `Commands are limited to ${MAX_COMMAND_LENGTH} characters.`
+        `commands are limited to ${MAX_COMMAND_LENGTH} characters — trim it down and resend.`
       );
     }
 
     const body = parseStrict(commandSchema, raw, "command");
     if (!body.command.trim()) {
-      throw new ApiError(400, "empty_command", "Give the operator a command.");
+      throw new ApiError(400, "empty_command", "give the operator a command first.");
     }
 
     await enforceGlobalPlanningBudget();

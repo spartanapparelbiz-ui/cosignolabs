@@ -1,29 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
+import { ChevronDown, Pencil, ShieldAlert } from "lucide-react";
 import type { ActionRecord } from "@/lib/types";
+import { CREAM } from "@/lib/brand";
 import { TierBadge } from "./TierBadge";
 
 interface Props {
   action: ActionRecord;
   onApprove: (
     id: string,
-    opts: { confirmation?: string; payload?: Record<string, unknown> }
+    opts: { confirmation?: string }
   ) => Promise<string | null>;
   onVeto: (id: string, reason: string) => Promise<string | null>;
   onEdit: (id: string, payload: Record<string, unknown>) => Promise<string | null>;
 }
 
 const STATUS_LABEL: Record<ActionRecord["status"], string> = {
-  proposed: "Awaiting your sign-off",
-  approved: "Approved",
-  executing: "Executing…",
-  executed: "Executed",
-  failed: "Failed",
-  vetoed: "Vetoed",
+  proposed: "awaiting your sign-off",
+  approved: "approved",
+  executing: "executing…",
+  executed: "executed",
+  failed: "failed",
+  vetoed: "vetoed",
 };
 
-export function ActionCard({ action, onApprove, onVeto, onEdit }: Props) {
+/** The drawn-in brand check shown on executed cards. */
+export function SignedCheck({ label = "signed & executed" }: { label?: string }) {
+  return (
+    <div className="flex items-center gap-1.5 text-signal">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="animate-check-pop" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" fill="currentColor" />
+        <path
+          d="M6.5 12.5 10.5 16.5 17.5 8.5"
+          stroke={CREAM}
+          strokeWidth="2.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray="24"
+          className="animate-check-draw"
+        />
+      </svg>
+      <span className="text-xs font-extrabold lowercase tracking-wide">{label}</span>
+    </div>
+  );
+}
+
+function ActionCardInner({ action, onApprove, onVeto, onEdit }: Props) {
   const [mode, setMode] = useState<"view" | "edit" | "veto" | "confirm">("view");
   const [payloadText, setPayloadText] = useState(() =>
     JSON.stringify(action.payload, null, 2)
@@ -32,10 +55,12 @@ export function ActionCard({ action, onApprove, onVeto, onEdit }: Props) {
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [payloadOpen, setPayloadOpen] = useState(action.status === "proposed");
+  const [payloadOpen, setPayloadOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const pending = action.status === "proposed";
-  const done = ["executed", "failed", "vetoed"].includes(action.status);
+  const inFlight = action.status === "approved" || action.status === "executing";
+  const resolved = ["executed", "failed", "vetoed"].includes(action.status);
 
   async function run(fn: () => Promise<string | null>) {
     setBusy(true);
@@ -64,27 +89,62 @@ export function ActionCard({ action, onApprove, onVeto, onEdit }: Props) {
     try {
       parsed = JSON.parse(payloadText);
     } catch {
-      setError("Payload must be valid JSON.");
+      setError("the payload needs to be valid JSON.");
       return;
     }
     const err = await run(() => onEdit(action.id, parsed));
     if (!err) setMode("view");
   }
 
+  // Resolved cards collapse to a compact row: orange check for executed,
+  // muted strike for vetoed. Click to expand the full record.
+  if (resolved && !expanded) {
+    return (
+      <button
+        onClick={() => setExpanded(true)}
+        className="group flex w-full items-center gap-3 rounded-card bg-white/50 px-4 py-2.5 text-left shadow-soft transition-shadow hover:shadow-lift"
+        aria-label={`${STATUS_LABEL[action.status]}: ${action.summary} — expand details`}
+      >
+        {action.status === "executed" ? (
+          <SignedCheck label="" />
+        ) : action.status === "vetoed" ? (
+          <span className="h-4 w-4 shrink-0 rounded-full ring-1 ring-inset ring-ink/40" aria-hidden="true" />
+        ) : (
+          <span className="h-4 w-4 shrink-0 rounded-full bg-ink" aria-hidden="true" />
+        )}
+        <span
+          className={`min-w-0 flex-1 truncate text-sm font-semibold ${
+            action.status === "vetoed" ? "text-ink-soft line-through decoration-ink/40" : ""
+          } ${action.status === "failed" ? "text-ink-soft" : ""}`}
+        >
+          {action.summary}
+        </span>
+        <span className="text-[11px] lowercase text-ink-soft">
+          {STATUS_LABEL[action.status]}
+        </span>
+        <ChevronDown
+          size={14}
+          className="shrink-0 text-ink-soft transition-transform group-hover:translate-y-0.5"
+          aria-hidden="true"
+        />
+      </button>
+    );
+  }
+
   return (
     <article
-      className={`animate-card-in rounded-card border bg-white/60 p-4 shadow-sm transition-colors ${
-        pending ? "border-ink" : "border-line opacity-90"
-      } ${action.status === "vetoed" ? "opacity-60" : ""}`}
+      className={`animate-card-in rounded-card bg-white/70 p-4 transition-shadow ${
+        pending ? "shadow-lift" : "shadow-soft"
+      } ${action.status === "vetoed" ? "opacity-70" : ""}`}
     >
       <header className="flex flex-wrap items-center gap-2">
         <TierBadge tier={action.tier} />
         <span
-          className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
+          className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide ${
             action.status === "executed"
-              ? "bg-accent text-cream"
+              ? "bg-signal text-cream"
               : action.status === "vetoed" || action.status === "failed"
-                ? "border border-ink text-ink"
+                ? "ring-1 ring-inset ring-ink/40 text-ink"
                 : "bg-cream-deep text-ink-soft"
           }`}
         >
@@ -96,24 +156,25 @@ export function ActionCard({ action, onApprove, onVeto, onEdit }: Props) {
             minute: "2-digit",
           })}
         </span>
+        {resolved && (
+          <button
+            onClick={() => setExpanded(false)}
+            className="rounded-btn px-1.5 py-0.5 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep"
+          >
+            collapse
+          </button>
+        )}
       </header>
 
       {action.injection_flag && (
-        <div className="mt-2 inline-flex items-center gap-1.5 rounded-pill border border-ink bg-cream-deep px-2.5 py-1 text-[11px] font-bold text-ink">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 3 2.5 20h19L12 3Zm0 6v5m0 3v.5"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-            />
-          </svg>
-          External content attempted to direct the agent
+        <div className="mt-2 inline-flex items-center gap-1.5 rounded-pill bg-ink px-2.5 py-1 text-[11px] font-bold lowercase text-cream">
+          <ShieldAlert size={12} strokeWidth={2.5} aria-hidden="true" />
+          external content attempted to direct the agent — held for your review
         </div>
       )}
 
       {action.tier_note && (
-        <p className="mt-2 rounded-lg bg-cream-deep px-3 py-2 text-xs text-ink-soft">
+        <p className="mt-2 rounded-btn bg-cream-deep px-3 py-2 text-xs text-ink-soft">
           {action.tier_note}
         </p>
       )}
@@ -123,12 +184,13 @@ export function ActionCard({ action, onApprove, onVeto, onEdit }: Props) {
       <div className="mt-3">
         <button
           onClick={() => setPayloadOpen((v) => !v)}
-          className="text-xs font-bold text-ink-soft underline underline-offset-2"
+          className="text-xs font-bold lowercase text-ink-soft underline underline-offset-2"
+          aria-expanded={payloadOpen}
         >
           {payloadOpen ? "hide payload" : "show exact payload"}
         </button>
         {payloadOpen && mode !== "edit" && (
-          <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-ink px-3 py-2.5 text-[11px] leading-relaxed text-cream">
+          <pre className="mt-2 max-h-48 overflow-auto rounded-btn bg-cream-deep px-3 py-2.5 font-mono text-[11px] leading-relaxed text-ink">
             {JSON.stringify(action.payload, null, 2)}
           </pre>
         )}
@@ -138,36 +200,36 @@ export function ActionCard({ action, onApprove, onVeto, onEdit }: Props) {
               value={payloadText}
               onChange={(e) => setPayloadText(e.target.value)}
               rows={8}
-              className="w-full rounded-lg border border-ink bg-white/80 p-2.5 font-mono text-[11px] leading-relaxed"
-              aria-label="Edit action payload (JSON)"
+              className="w-full rounded-btn bg-cream-deep p-2.5 font-mono text-[11px] leading-relaxed"
+              aria-label="edit action payload (JSON)"
             />
             <div className="mt-2 flex gap-2">
               <button
                 onClick={handleSaveEdit}
                 disabled={busy}
-                className="rounded-pill bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:opacity-50"
+                className="rounded-btn bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:opacity-50"
               >
-                Save changes
+                save changes
               </button>
               <button
                 onClick={() => {
                   setMode("view");
                   setPayloadText(JSON.stringify(action.payload, null, 2));
                 }}
-                className="rounded-pill border border-ink px-4 py-1.5 text-xs font-bold"
+                className="rounded-btn px-4 py-1.5 text-xs font-bold text-ink-soft hover:bg-cream-deep"
               >
-                Cancel
+                cancel
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {action.result && done && (
+      {action.result && resolved && (
         <p
-          className={`mt-3 rounded-lg px-3 py-2 text-xs ${
+          className={`mt-3 rounded-btn px-3 py-2 text-xs ${
             action.status === "failed"
-              ? "border border-ink text-ink"
+              ? "ring-1 ring-inset ring-ink/40 text-ink"
               : "bg-cream-deep text-ink-soft"
           }`}
         >
@@ -180,30 +242,34 @@ export function ActionCard({ action, onApprove, onVeto, onEdit }: Props) {
       )}
 
       {action.status === "vetoed" && action.veto_reason && (
-        <p className="mt-3 text-xs text-ink-soft">
-          Veto reason: {action.veto_reason}
-        </p>
+        <p className="mt-3 text-xs text-ink-soft">veto reason: {action.veto_reason}</p>
       )}
 
       {error && (
-        <p className="mt-3 rounded-lg border border-ink px-3 py-2 text-xs font-semibold">
+        <p className="mt-3 rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold" role="alert">
           {error}
         </p>
       )}
 
+      {inFlight && (
+        <p className="mt-3 flex items-center gap-2 text-xs font-bold lowercase text-ink-soft">
+          <span className="h-2 w-2 animate-orb-pulse rounded-full bg-signal" aria-hidden="true" />
+          executing…
+        </p>
+      )}
+
       {pending && mode === "confirm" && (
-        <div className="mt-3 rounded-lg border border-ink p-3">
+        <div className="mt-3 rounded-btn bg-cream-deep p-3">
           <p className="text-xs font-bold">
-            Locked action. Type{" "}
-            <code className="rounded bg-cream-deep px-1.5 py-0.5">{action.category}</code>{" "}
-            to confirm.
+            this is a locked action. type its name to approve:{" "}
+            <code className="rounded bg-cream px-1.5 py-0.5 font-mono">{action.category}</code>
           </p>
           <input
             value={confirmation}
             onChange={(e) => setConfirmation(e.target.value)}
             placeholder={action.category}
-            className="mt-2 w-full rounded-lg border border-ink bg-white/80 px-3 py-2 text-sm"
-            aria-label="Type the action name to confirm"
+            className="mt-2 w-full rounded-btn bg-cream px-3 py-2 text-sm"
+            aria-label="type the action name to confirm"
           />
         </div>
       )}
@@ -213,9 +279,9 @@ export function ActionCard({ action, onApprove, onVeto, onEdit }: Props) {
           <button
             onClick={handleApprove}
             disabled={busy || (mode === "confirm" && !confirmation)}
-            className="inline-flex items-center gap-1.5 rounded-pill bg-accent px-5 py-2 text-sm font-extrabold text-cream shadow-sm transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="M4.5 12.5 10 18 20 6.5"
                 stroke="currentColor"
@@ -224,31 +290,32 @@ export function ActionCard({ action, onApprove, onVeto, onEdit }: Props) {
                 strokeLinejoin="round"
               />
             </svg>
-            {mode === "confirm" ? "Confirm & approve" : "Approve"}
+            {mode === "confirm" ? "confirm & approve" : "approve"}
           </button>
           <button
             onClick={() => setMode("edit")}
             disabled={busy}
-            className="rounded-pill border border-ink px-4 py-2 text-sm font-bold disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-btn px-4 py-2 text-sm font-bold text-ink-soft transition-colors hover:bg-cream-deep disabled:opacity-50"
           >
-            Edit
+            <Pencil size={13} strokeWidth={2.5} aria-hidden="true" />
+            edit
           </button>
           {mode !== "veto" ? (
             <button
               onClick={() => setMode("veto")}
               disabled={busy}
-              className="rounded-pill border border-ink px-4 py-2 text-sm font-bold disabled:opacity-50"
+              className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50"
             >
-              Veto
+              veto
             </button>
           ) : (
             <span className="flex w-full items-center gap-2 sm:w-auto">
               <input
                 value={vetoReason}
                 onChange={(e) => setVetoReason(e.target.value)}
-                placeholder="Why? (logged)"
-                className="w-40 rounded-pill border border-ink bg-white/80 px-3 py-1.5 text-xs"
-                aria-label="Veto reason"
+                placeholder="why? (logged)"
+                className="w-40 rounded-btn bg-cream-deep px-3 py-1.5 text-xs"
+                aria-label="veto reason"
               />
               <button
                 onClick={() =>
@@ -257,9 +324,9 @@ export function ActionCard({ action, onApprove, onVeto, onEdit }: Props) {
                   )
                 }
                 disabled={busy}
-                className="rounded-pill bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:opacity-50"
+                className="rounded-btn bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:opacity-50"
               >
-                Confirm veto
+                confirm veto
               </button>
             </span>
           )}
@@ -267,28 +334,23 @@ export function ActionCard({ action, onApprove, onVeto, onEdit }: Props) {
       )}
 
       {action.status === "executed" && (
-        <div className="mt-3 flex items-center gap-1.5 text-accent">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            className="animate-check-pop"
-          >
-            <circle cx="12" cy="12" r="11" fill="currentColor" />
-            <path
-              d="M6.5 12.5 10.5 16.5 17.5 8.5"
-              stroke="#FBF4EA"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <span className="text-xs font-extrabold uppercase tracking-wide">
-            Signed &amp; executed
-          </span>
+        <div className="mt-3">
+          <SignedCheck />
         </div>
       )}
     </article>
   );
 }
+
+/**
+ * Memoized so realtime updates re-render only the card whose record
+ * actually changed — the stack stays 60fps however long it gets.
+ */
+export const ActionCard = memo(
+  ActionCardInner,
+  (prev, next) =>
+    prev.action === next.action &&
+    prev.onApprove === next.onApprove &&
+    prev.onVeto === next.onVeto &&
+    prev.onEdit === next.onEdit
+);

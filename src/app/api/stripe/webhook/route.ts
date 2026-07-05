@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
     return NextResponse.json(
-      { error: "not_configured", message: "Billing is not enabled in beta." },
+      { error: "not_configured", message: "billing isn't enabled in beta." },
       { status: 501 }
     );
   }

@@ -1,4 +1,5 @@
 import { logInfo } from "../log";
+import { planWithMock } from "./mockPlanner";
 import { ActionCategory, CATEGORIES, Tier } from "../types";
 import { buildSystemPrompt, SYSTEM_PROMPT_VERSION } from "./systemPrompt";
 import { scanUntrusted, wrapUntrusted, type UntrustedBlock } from "./untrusted";
@@ -140,7 +141,7 @@ async function planWithClaude(
 
   const toolUse = response.content.find((b) => b.type === "tool_use");
   if (!toolUse || toolUse.type !== "tool_use") {
-    return { reasoning: "The operator could not produce a plan.", proposals: [] };
+    return { reasoning: "the operator couldn't produce a plan — try rephrasing.", proposals: [] };
   }
   const input = toolUse.input as {
     reasoning?: string;
@@ -159,121 +160,4 @@ async function planWithClaude(
       requested_tier: p.requested_tier,
     }));
   return { reasoning: input.reasoning ?? "", proposals };
-}
-
-/**
- * Deterministic planner used when no ANTHROPIC_API_KEY is configured
- * (local development / demo). Keyword-parses the command into plausible
- * proposals so the full approval loop is exercisable offline.
- */
-function planWithMock(command: string, blocks: UntrustedBlock[]): RawPlan {
-  const c = command.toLowerCase();
-  const proposals: ProposedAction[] = [];
-
-  if (/(newsletter|inbox|unsubscribe|clean|clear)/.test(c)) {
-    proposals.push(
-      {
-        category: "search",
-        summary: "Scan your inbox for newsletter and promotional senders from the last 30 days.",
-        payload: { query: "category:promotions OR list-unsubscribe", window_days: 30 },
-        requested_tier: 1,
-      },
-      {
-        category: "update_record",
-        summary: "Archive 47 matched newsletter emails and label them \"newsletters\".",
-        payload: { operation: "archive+label", label: "newsletters", match_count: 47 },
-        requested_tier: 2,
-      }
-    );
-  }
-  if (/(draft|reply|replies|respond|lead)/.test(c)) {
-    proposals.push({
-      category: "draft",
-      summary: "Draft replies to the 3 most recent unanswered leads — saved as drafts, nothing sent.",
-      payload: {
-        count: 3,
-        tone: "warm, direct",
-        drafts: [
-          { to: "lead-1", body: "(draft generated at execution)" },
-          { to: "lead-2", body: "(draft generated at execution)" },
-          { to: "lead-3", body: "(draft generated at execution)" },
-        ],
-      },
-      requested_tier: 1,
-    });
-  }
-  if (/(send)/.test(c) && !/(draft)/.test(c)) {
-    proposals.push({
-      category: "send_email",
-      summary: "Send the follow-up email to the recipient named in your command.",
-      payload: { to: "recipient@example.com", subject: "Follow-up", body: "(from your command)" },
-      requested_tier: 2,
-    });
-  }
-  if (/(reprice|price|pricing)/.test(c)) {
-    proposals.push({
-      category: "update_record",
-      summary: "Update prices on the matched products to the values you specified.",
-      payload: { operation: "reprice", products: "matched from command", strategy: "as specified" },
-      requested_tier: 2,
-    });
-  }
-  if (/(delete|remove permanently)/.test(c)) {
-    proposals.push({
-      category: "delete",
-      summary: "Permanently delete the items named in your command.",
-      payload: { target: "items from command" },
-      requested_tier: 3,
-    });
-  }
-  if (/(payment|pay\b|wire|transfer)/.test(c)) {
-    proposals.push({
-      category: "payment",
-      summary: "Send the payment named in your command.",
-      payload: { amount: "as specified", recipient: "from command" },
-      // Deliberately requests tier 1 — the dev mock simulates a compromised
-      // model attempting to de-escalate. The server must clamp to tier 3;
-      // the security suite asserts it.
-      requested_tier: 1,
-    });
-  }
-  if (/refund/.test(c)) {
-    proposals.push({
-      category: "refund",
-      summary: "Issue the refund named in your command.",
-      payload: { amount: "as specified", order: "from command" },
-      requested_tier: 3,
-    });
-  }
-  if (/(summar|digest)/.test(c)) {
-    proposals.push({
-      category: "summarize",
-      summary: "Summarize the referenced content into a short digest in this thread.",
-      payload: { sources: blocks.map((b) => b.source) },
-      requested_tier: 1,
-    });
-  }
-  if (proposals.length === 0) {
-    proposals.push(
-      {
-        category: "search",
-        summary: "Look up what's needed to carry out your command across connected tools.",
-        payload: { query: command.slice(0, 200) },
-        requested_tier: 1,
-      },
-      {
-        category: "draft",
-        summary: "Draft the output of your command for review — saved, not sent.",
-        payload: { command: command.slice(0, 200) },
-        requested_tier: 1,
-      }
-    );
-  }
-
-  const injected = blocks.some((b) => b.injectionSuspected);
-  const reasoning = injected
-    ? "I planned the steps below from your command only. Note: content I read from an external source contained instructions aimed at me — I ignored them and flagged the affected cards."
-    : "I broke your command into the smallest independently-approvable steps. Read-only steps run automatically; anything that changes the outside world waits for your sign-off.";
-
-  return { reasoning, proposals };
 }

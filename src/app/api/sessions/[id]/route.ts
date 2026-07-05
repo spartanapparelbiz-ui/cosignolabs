@@ -13,11 +13,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const userId = await requireUser();
     const { id } = await params;
     if (!idParamSchema.safeParse(id).success) {
-      throw new ApiError(400, "bad_id", "Invalid session id.");
+      throw new ApiError(400, "bad_id", "that session id isn't valid.");
     }
     const store = getStore();
     const session = await store.getSession(userId, id);
-    if (!session) throw new ApiError(404, "not_found", "Session not found.");
+    if (!session) throw new ApiError(404, "not_found", "we couldn't find that session.");
     const [messages, actions] = await Promise.all([
       store.listMessages(userId, id),
       store.listActions(userId, { session_id: id }),

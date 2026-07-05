@@ -80,7 +80,7 @@ export const editSchema = z
   })
   .strict()
   .refine((v) => v.payload !== undefined || v.summary !== undefined, {
-    message: "Nothing to update.",
+    message: "nothing to update.",
   });
 
 export const tierSettingSchema = z
@@ -120,17 +120,17 @@ export const idParamSchema = uuid;
 export async function readJsonBody(req: Request): Promise<unknown> {
   const declared = Number(req.headers.get("content-length") || 0);
   if (declared > MAX_BODY_BYTES) {
-    throw new ApiError(413, "body_too_large", "Request body exceeds 100 kB.");
+    throw new ApiError(413, "body_too_large", "that request is too large — the limit is 100 kB.");
   }
   const text = await req.text();
   if (text.length > MAX_BODY_BYTES) {
-    throw new ApiError(413, "body_too_large", "Request body exceeds 100 kB.");
+    throw new ApiError(413, "body_too_large", "that request is too large — the limit is 100 kB.");
   }
   if (!text) return {};
   try {
     return JSON.parse(text);
   } catch {
-    throw new ApiError(400, "bad_json", "Body must be valid JSON.");
+    throw new ApiError(400, "bad_json", "the request body needs to be valid JSON.");
   }
 }
 
@@ -158,7 +158,7 @@ export function parseStrict<T>(
     throw new ApiError(
       400,
       "privileged_field",
-      `Fields not accepted from the client: ${offending.join(", ")}.`
+      `these fields can't come from the client: ${offending.join(", ")}.`
     );
   }
 
@@ -167,6 +167,6 @@ export function parseStrict<T>(
   throw new ApiError(
     400,
     "invalid_input",
-    first ? `${first.path.join(".") || "body"}: ${first.message}` : "Invalid input."
+    first ? `${first.path.join(".") || "body"}: ${first.message}` : "that input didn't validate."
   );
 }

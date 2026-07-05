@@ -20,7 +20,12 @@ vi.mock("@/lib/auth", () => ({
 
 const API_DIR = join(process.cwd(), "src", "app", "api");
 const UUID = "11111111-1111-4111-8111-111111111111";
-const PUBLIC_ROUTES = new Set(["/api/health", "/api/beta", "/api/stripe/webhook"]);
+const PUBLIC_ROUTES = new Set([
+  "/api/health",
+  "/api/beta",
+  "/api/preview",
+  "/api/stripe/webhook",
+]);
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 
 function findRouteFiles(dir: string): string[] {

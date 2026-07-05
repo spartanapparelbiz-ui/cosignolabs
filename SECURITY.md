@@ -147,9 +147,11 @@ times in a row and direct store transitions refused; executor denies
 ## 6. Web hygiene
 
 - **Headers on every response** (`next.config.mjs`): CSP with **no
-  `unsafe-eval`**; `script-src`/`style-src 'unsafe-inline'` are the two
-  documented exceptions (required by Next.js App Router bootstrap scripts
-  and Next/Tailwind style injection). Sources are pinned to self, Clerk,
+  `unsafe-eval` in production**; `script-src`/`style-src 'unsafe-inline'`
+  are the two documented exceptions (required by Next.js App Router
+  bootstrap scripts and Next/Tailwind style injection). `'unsafe-eval'` is
+  added **only when `NODE_ENV !== 'production'`** (the dev server / Fast
+  Refresh needs it) and never ships. Sources are pinned to self, Clerk,
   Supabase (REST + websocket), and Cloudflare Turnstile.
   `X-Frame-Options: DENY`, `frame-ancestors 'none'`,
   `X-Content-Type-Options: nosniff`,

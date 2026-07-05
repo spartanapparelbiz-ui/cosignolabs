@@ -44,7 +44,7 @@ export async function runCommand(
     logSecurity("usage_limit_hit", { userId, at: "planning" });
     throw new EngineError(
       "usage_limit",
-      "You've used all actions in this cycle. Upgrade to keep going."
+      "you've used your plan's actions for this cycle. upgrade to keep going."
     );
   }
 
@@ -78,9 +78,9 @@ export async function runCommand(
           requested: proposal.requested_tier,
           enforced: tier,
         });
-        tierNote = `The agent requested tier ${proposal.requested_tier}; the server enforced tier ${tier}. Agents cannot self-escalate or lower permissions.`;
+        tierNote = `the agent requested tier ${proposal.requested_tier}; the server enforced tier ${tier}. agents cannot self-escalate or lower their permissions.`;
       } else {
-        tierNote = `The agent suggested tier ${proposal.requested_tier}; the server assigned tier ${tier} from your settings.`;
+        tierNote = `the agent suggested tier ${proposal.requested_tier}; the server assigned tier ${tier} from your settings.`;
       }
     }
 

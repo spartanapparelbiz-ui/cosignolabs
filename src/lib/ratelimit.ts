@@ -62,7 +62,18 @@ const WINDOWS = {
   commandDay: { max: 100, windowMs: 86_400_000, upstashWindow: "1 d" },
   transitionMinute: { max: 30, windowMs: 60_000, upstashWindow: "60 s" },
   betaHour: { max: 3, windowMs: 3_600_000, upstashWindow: "1 h" },
+  previewMinute: { max: 20, windowMs: 60_000, upstashWindow: "60 s" },
 } satisfies Record<string, Window>;
+
+const LIMIT_MESSAGES: Record<LimitName, string> = {
+  commandMinute:
+    "you're moving fast — planning is limited to 10 commands a minute.",
+  commandDay: "you've hit today's command limit. it resets tomorrow.",
+  transitionMinute: "you're moving fast — try that again in a few seconds.",
+  betaHour:
+    "a few applications already came from this connection — try again in an hour.",
+  previewMinute: "the sandbox needs a breather — try again in a minute.",
+};
 
 export type LimitName = keyof typeof WINDOWS;
 
@@ -129,11 +140,7 @@ export async function enforceLimit(name: LimitName, key: string): Promise<void> 
   const res = await limiter.limit(key);
   if (!res.success) {
     logSecurity("rate_limited", { limit: name, key });
-    throw new RateLimitError(
-      name,
-      res.retryAfter,
-      "Too many requests — slow down and try again shortly."
-    );
+    throw new RateLimitError(name, res.retryAfter, LIMIT_MESSAGES[name]);
   }
 }
 
@@ -166,7 +173,7 @@ export async function enforceGlobalPlanningBudget(): Promise<void> {
     throw new RateLimitError(
       "global_budget",
       3600,
-      "cosigno has reached today's beta capacity. Your commands are safe — try again tomorrow."
+      "cosigno reached today's beta capacity. your commands are safe — try again tomorrow."
     );
   }
 }

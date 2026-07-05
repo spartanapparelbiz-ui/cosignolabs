@@ -16,7 +16,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const { id } = await params;
     if (!idParamSchema.safeParse(id).success) {
-      throw new ApiError(400, "bad_id", "Invalid action id.");
+      throw new ApiError(400, "bad_id", "that action id isn't valid.");
     }
 
     const body = parseStrict(vetoSchema, await readJsonBody(req), "veto");

@@ -10,9 +10,14 @@
  *  - connect/frame/script sources cover exactly: self, Clerk, Supabase
  *    (REST + realtime websocket), and Cloudflare Turnstile.
  */
+// 'unsafe-eval' is added ONLY in development — Next.js's dev server / Fast
+// Refresh relies on eval. Production stays strict (no unsafe-eval), which is
+// what ships and what the security requirement covers.
+const devEval = process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+  `script-src 'self' 'unsafe-inline'${devEval} https://*.clerk.accounts.dev https://challenges.cloudflare.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://img.clerk.com",
   "font-src 'self' data:",

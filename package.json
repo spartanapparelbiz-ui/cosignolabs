@@ -8,7 +8,9 @@
     "build": "next build && node scripts/check-bundle.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:visual": "playwright test",
+    "assets": "node scripts/generate-assets.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
@@ -16,12 +18,14 @@
     "@supabase/supabase-js": "^2.49.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
+    "lucide-react": "^1.23.0",
     "next": "^15.3.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",

@@ -27,13 +27,13 @@ async function verifyTurnstile(
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
     if (isProduction()) {
-      throw new ApiError(503, "not_configured", "Applications are temporarily closed.");
+      throw new ApiError(503, "not_configured", "applications are briefly closed — try again soon.");
     }
     return; // development only
   }
   if (!token) {
     logSecurity("turnstile_failed", { ip, reason: "missing_token" });
-    throw new ApiError(400, "captcha_required", "Please complete the human check.");
+    throw new ApiError(400, "captcha_required", "please complete the human check.");
   }
   const res = await fetch(
     "https://challenges.cloudflare.com/turnstile/v0/siteverify",
@@ -46,7 +46,7 @@ async function verifyTurnstile(
   const data = (await res.json().catch(() => ({}))) as { success?: boolean };
   if (!data.success) {
     logSecurity("turnstile_failed", { ip, reason: "verification_failed" });
-    throw new ApiError(400, "captcha_failed", "Human check failed — try again.");
+    throw new ApiError(400, "captcha_failed", "the human check didn't pass — try again.");
   }
 }
 
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       message:
-        "Application received. We review applications weekly and onboard in small cohorts — you'll hear from us at " +
+        "application received — we review weekly and onboard in small cohorts. you'll hear from us at " +
         body.email.trim() +
         ".",
     });

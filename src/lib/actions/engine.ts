@@ -59,7 +59,7 @@ export async function autoExecute(
   action: ActionRecord
 ): Promise<ActionRecord> {
   if (action.tier !== 1) {
-    throw new EngineError("forbidden", "Only tier-1 actions can auto-execute.");
+    throw new EngineError("forbidden", "only tier-1 actions can auto-execute.");
   }
   // Injection-flagged content never auto-executes, regardless of tier.
   if (action.injection_flag) return action;
@@ -89,11 +89,11 @@ export async function approveAction(
 ): Promise<ActionRecord> {
   const store = getStore();
   const action = await store.getAction(userId, actionId);
-  if (!action) throw new EngineError("not_found", "Action not found.");
+  if (!action) throw new EngineError("not_found", "we couldn't find that action.");
   if (action.status !== "proposed") {
     throw new EngineError(
       "invalid_state",
-      `Only proposed actions can be approved (current: ${action.status}).`
+      `only proposed actions can be approved — this one is already ${action.status}.`
     );
   }
 
@@ -107,7 +107,7 @@ export async function approveAction(
     });
     throw new EngineError(
       "injection_blocked",
-      "This card was flagged: external content attempted to direct the agent. It cannot be executed — re-issue the command yourself if you want this done."
+      "this card was held: external content attempted to direct the agent. it can't be executed — re-issue the command yourself if you want this done."
     );
   }
 
@@ -115,13 +115,13 @@ export async function approveAction(
     if (!opts.confirmation) {
       throw new EngineError(
         "confirmation_required",
-        `Tier-3 action: type "${action.category}" to confirm.`
+        `this is a locked action. type its name to approve: "${action.category}".`
       );
     }
     if (opts.confirmation.trim().toLowerCase() !== action.category.toLowerCase()) {
       throw new EngineError(
         "confirmation_mismatch",
-        `Confirmation did not match. Type "${action.category}" exactly.`
+        `that didn't match. type "${action.category}" exactly to approve.`
       );
     }
   }
@@ -135,7 +135,7 @@ export async function approveAction(
     });
     throw new EngineError(
       "usage_limit",
-      "You've used all actions in this cycle. Upgrade to keep executing — proposals are still free."
+      "you've used your plan's actions for this cycle. upgrade to keep executing — proposals are still free."
     );
   }
 
@@ -163,15 +163,15 @@ export async function vetoAction(
 ): Promise<ActionRecord> {
   const store = getStore();
   const action = await store.getAction(userId, actionId);
-  if (!action) throw new EngineError("not_found", "Action not found.");
+  if (!action) throw new EngineError("not_found", "we couldn't find that action.");
   if (action.status !== "proposed") {
     throw new EngineError(
       "invalid_state",
-      `Only proposed actions can be vetoed (current: ${action.status}).`
+      `only proposed actions can be vetoed — this one is already ${action.status}.`
     );
   }
   const updated = await store.transitionAction(userId, actionId, "vetoed", {
-    veto_reason: reason || "No reason given",
+    veto_reason: reason || "no reason given",
   });
   await store.logEvent(userId, actionId, "vetoed", "user", { reason });
   return updated;
@@ -207,7 +207,7 @@ async function runExecution(userId: string, actionId: string): Promise<ActionRec
     return executed;
   } catch (err) {
     const failed = await store.transitionAction(userId, actionId, "failed", {
-      result: { error: err instanceof Error ? err.message : "Execution failed" },
+      result: { error: err instanceof Error ? err.message : "execution failed" },
     });
     await store.logEvent(userId, actionId, "failed", "system", {
       error: err instanceof Error ? err.message : String(err),

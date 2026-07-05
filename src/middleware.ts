@@ -13,7 +13,13 @@ import type { NextFetchEvent, NextMiddleware, NextRequest } from "next/server";
  * demo mode is unreachable.
  */
 
-const PUBLIC_PATHS = new Set(["/", "/api/health", "/api/beta", "/api/stripe/webhook"]);
+const PUBLIC_PATHS = new Set([
+  "/",
+  "/api/health",
+  "/api/beta",
+  "/api/preview",
+  "/api/stripe/webhook",
+]);
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.has(pathname);
@@ -62,7 +68,7 @@ async function buildMiddleware(): Promise<NextMiddleware> {
   );
   const isProtected = createRouteMatcher([
     "/app(.*)",
-    "/api((?!/health$|/beta$|/stripe/webhook$).*)",
+    "/api((?!/health$|/beta$|/preview$|/stripe/webhook$).*)",
   ]);
   return clerkMiddleware(async (auth, req) => {
     if (isProtected(req)) await auth.protect();

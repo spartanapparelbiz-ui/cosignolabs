@@ -29,16 +29,16 @@ function str(v: unknown): string | null {
 const HANDLERS: Readonly<Record<ActionCategory, Handler>> = Object.freeze({
   search: async (payload) => ({
     ok: true,
-    summary: `Search completed for "${str(payload.query) ?? "query"}".`,
-    detail: { matches: 0, note: "Connected read integrations are stubbed in beta." },
+    summary: `search completed for "${str(payload.query) ?? "query"}".`,
+    detail: { matches: 0, note: "connected read integrations are stubbed in beta." },
   }),
   summarize: async () => ({
     ok: true,
-    summary: "Summary generated and saved to the session thread.",
+    summary: "summary generated and saved to the session thread.",
   }),
   draft: async (payload) => ({
     ok: true,
-    summary: `Draft saved${payload.to ? ` for ${str(payload.to)}` : ""}. Nothing was sent.`,
+    summary: `draft saved${payload.to ? ` for ${str(payload.to)}` : ""}. nothing was sent.`,
     detail: { draft: payload.body ?? payload.draft ?? null },
   }),
   // Real Gmail integration must resolve recipients against the connected
@@ -46,39 +46,39 @@ const HANDLERS: Readonly<Record<ActionCategory, Handler>> = Object.freeze({
   // without the card being approved AND the target passing that check.
   send_email: async (payload) => ({
     ok: true,
-    summary: `Email queued to ${str(payload.to) ?? "recipient"} via Gmail (stub).`,
+    summary: `email queued to ${str(payload.to) ?? "recipient"} via Gmail (stub).`,
     detail: { integration: "gmail-stub", subject: payload.subject ?? null },
   }),
   post_content: async (payload) => ({
     ok: true,
-    summary: `Content posted to ${str(payload.destination) ?? "destination"} (stub).`,
+    summary: `content posted to ${str(payload.destination) ?? "destination"} (stub).`,
   }),
   update_record: async (payload) => ({
     ok: true,
-    summary: `Record ${str(payload.record_id) ?? ""} updated (stub).`.replace("  ", " "),
+    summary: `record ${str(payload.record_id) ?? ""} updated (stub).`.replace("  ", " "),
     detail: { changes: payload.changes ?? payload },
   }),
   spend: async (payload) => ({
     ok: true,
-    summary: `Spend of ${str(payload.amount) ?? "amount"} recorded (stub).`,
+    summary: `spend of ${str(payload.amount) ?? "amount"} recorded (stub).`,
   }),
   // Real webhook integration fires ONLY at the user-configured endpoint —
   // a URL inside the payload is display data, never the target.
   webhook: async () => ({
     ok: true,
-    summary: "Webhook fired to your configured endpoint (stub).",
+    summary: "webhook fired to your configured endpoint (stub).",
   }),
   delete: async (payload) => ({
     ok: true,
-    summary: `Deleted ${str(payload.target) ?? "target"} (stub).`,
+    summary: `deleted ${str(payload.target) ?? "target"} (stub).`,
   }),
   refund: async (payload) => ({
     ok: true,
-    summary: `Refund of ${str(payload.amount) ?? "amount"} issued (stub).`,
+    summary: `refund of ${str(payload.amount) ?? "amount"} issued (stub).`,
   }),
   payment: async (payload) => ({
     ok: true,
-    summary: `Payment of ${str(payload.amount) ?? "amount"} sent (stub).`,
+    summary: `payment of ${str(payload.amount) ?? "amount"} sent (stub).`,
   }),
 });
 
@@ -91,7 +91,7 @@ export async function executeAction(
     : undefined;
   if (!handler) {
     logSecurity("executor_category_denied", { category });
-    return { ok: false, summary: "Action category is not in the executor allowlist." };
+    return { ok: false, summary: "action category is not in the executor allowlist." };
   }
   const safePayload =
     payload && typeof payload === "object" && !Array.isArray(payload)

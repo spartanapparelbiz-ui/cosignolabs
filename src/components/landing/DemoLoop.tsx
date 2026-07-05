@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CREAM } from "@/lib/brand";
 
 const COMMAND = "clear my inbox of newsletters";
 
 /**
- * The above-the-fold looping demo: one command → an action card appears →
- * Approve is pressed → executed. Pure CSS/React animation (~16s loop),
- * autoplays everywhere including mobile, no video download.
+ * The above-the-fold looping demo: command typed → card slides in →
+ * Approve press (signal fill) → check draws in → executed, hold 2s, loop.
+ * Pure CSS/React, eased transitions only, autoplays everywhere including
+ * 390px viewports — no video download, no LCP cost.
  */
 export function DemoLoop() {
   const [phase, setPhase] = useState(0); // 0 typing, 1 thinking, 2 card, 3 approving, 4 executed
@@ -23,20 +25,20 @@ export function DemoLoop() {
       while (alive) {
         setPhase(0);
         setTyped("");
-        await wait(800);
+        await wait(700);
         for (let i = 1; i <= COMMAND.length && alive; i++) {
           setTyped(COMMAND.slice(0, i));
-          await wait(45);
+          await wait(42);
         }
         await wait(400);
         setPhase(1); // thinking
-        await wait(1600);
+        await wait(1500);
         setPhase(2); // card slides in
-        await wait(2600);
-        setPhase(3); // approve pressed
-        await wait(900);
-        setPhase(4); // executed
-        await wait(3800);
+        await wait(2400);
+        setPhase(3); // approve pressed — signal fill
+        await wait(700);
+        setPhase(4); // check draws in, executed
+        await wait(2000); // hold, then loop
       }
     }
     loop();
@@ -48,12 +50,12 @@ export function DemoLoop() {
 
   return (
     <div
-      className="w-full max-w-lg rounded-card border border-ink bg-cream p-4 shadow-[0_8px_0_0_#141414]"
-      aria-label="Demo: a command becomes an action card, and nothing executes until it's approved"
+      className="w-full max-w-lg rounded-card bg-white/70 p-4 shadow-lift"
+      aria-label="demo: a command becomes an action card, and nothing executes until it's approved"
     >
       {/* command line */}
-      <div className="rounded-lg border border-line bg-white/70 px-4 py-3">
-        <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
+      <div className="rounded-btn bg-cream-deep px-4 py-3">
+        <p className="text-[10px] font-extrabold lowercase tracking-widest text-ink-soft">
           command
         </p>
         <p className="min-h-[1.5rem] font-semibold">
@@ -67,13 +69,13 @@ export function DemoLoop() {
         {phase === 1 && (
           <>
             <span className="h-2 w-2 animate-orb-pulse rounded-full bg-ink" />
-            <span className="text-xs font-bold text-ink-soft">
+            <span className="text-xs font-bold lowercase text-ink-soft">
               operator planning…
             </span>
           </>
         )}
         {phase >= 2 && (
-          <span className="text-xs font-bold text-ink-soft">
+          <span className="text-xs font-bold lowercase text-ink-soft">
             1 action proposed — waiting for your signature
           </span>
         )}
@@ -81,37 +83,39 @@ export function DemoLoop() {
 
       {/* the card */}
       <div
-        className={`mt-2 rounded-card border border-ink bg-white/80 p-4 transition-all duration-300 ${
+        className={`mt-2 rounded-card bg-white/90 p-4 shadow-soft transition-all duration-300 ease-out ${
           phase >= 2 ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0"
         }`}
       >
         <div className="flex items-center gap-2">
-          <span className="rounded-pill border border-ink px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
-            Tier 2 · Approve
+          <span className="rounded-pill bg-ink/5 px-2 py-0.5 text-[10px] font-bold lowercase tracking-wide ring-1 ring-inset ring-ink/20">
+            tier 2 · approve
           </span>
           <span
-            className={`rounded-pill px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-              phase >= 4 ? "bg-accent text-cream" : "bg-cream-deep text-ink-soft"
+            className={`rounded-pill px-2 py-0.5 text-[10px] font-bold lowercase tracking-wide transition-colors duration-300 ${
+              phase >= 4 ? "bg-signal text-cream" : "bg-cream-deep text-ink-soft"
             }`}
           >
-            {phase >= 4 ? "Executed" : "Awaiting sign-off"}
+            {phase >= 4 ? "executed" : "awaiting sign-off"}
           </span>
         </div>
         <p className="mt-2.5 text-sm font-semibold">
-          Archive 47 newsletter emails and label them &quot;newsletters&quot;.
+          archive 47 newsletter emails and label them &quot;newsletters&quot;.
         </p>
-        <p className="mt-1 text-[11px] text-ink-soft">
+        <p className="mt-1 font-mono text-[11px] text-ink-soft">
           payload: archive+label · 47 matches · reversible
         </p>
 
         {phase < 4 ? (
           <div className="mt-3 flex gap-2">
             <span
-              className={`inline-flex items-center gap-1.5 rounded-pill bg-accent px-4 py-1.5 text-xs font-extrabold text-cream transition-transform ${
-                phase === 3 ? "scale-90" : ""
+              className={`inline-flex items-center gap-1.5 rounded-btn px-4 py-1.5 text-xs font-extrabold transition-all duration-200 ease-out ${
+                phase === 3
+                  ? "scale-90 bg-signal text-ink shadow-soft"
+                  : "bg-signal/90 text-ink"
               }`}
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   d="M4.5 12.5 10 18 20 6.5"
                   stroke="currentColor"
@@ -120,32 +124,35 @@ export function DemoLoop() {
                   strokeLinejoin="round"
                 />
               </svg>
-              Approve
+              approve
             </span>
-            <span className="rounded-pill border border-ink px-4 py-1.5 text-xs font-bold">
-              Veto
+            <span className="rounded-btn px-4 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink">
+              veto
             </span>
           </div>
         ) : (
-          <div className="mt-3 flex items-center gap-1.5 text-accent">
+          <div className="mt-3 flex items-center gap-1.5 text-signal">
             <svg
               width="16"
               height="16"
               viewBox="0 0 24 24"
               fill="none"
               className="animate-check-pop"
+              aria-hidden="true"
             >
               <circle cx="12" cy="12" r="11" fill="currentColor" />
               <path
                 d="M6.5 12.5 10.5 16.5 17.5 8.5"
-                stroke="#FBF4EA"
+                stroke={CREAM}
                 strokeWidth="2.8"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                strokeDasharray="24"
+                className="animate-check-draw"
               />
             </svg>
-            <span className="text-xs font-extrabold uppercase tracking-wide">
-              Signed &amp; executed — 47 emails archived
+            <span className="text-xs font-extrabold lowercase tracking-wide">
+              signed &amp; executed — 47 emails archived
             </span>
           </div>
         )}
