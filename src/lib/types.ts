@@ -187,6 +187,30 @@ export interface BetaApplication {
   workflow: string;
 }
 
+export type SubscriptionStatus =
+  | "active"
+  | "trialing"
+  | "past_due"
+  | "canceled"
+  | "incomplete"
+  | "unpaid";
+
+/** Written ONLY by the Stripe webhook (service role). */
+export interface SubscriptionRecord {
+  user_id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  plan: string; // PlanId
+  interval: string | null; // "monthly" | "annual"
+  status: SubscriptionStatus;
+  /** unix seconds of the current period end (grace + cancel logic key off this). */
+  current_period_end: number | null;
+  cancel_at_period_end: boolean;
+  /** unix seconds we first observed past_due, for the grace window. */
+  past_due_since: number | null;
+  updated_at: string;
+}
+
 export const BETA_ACTION_LIMIT = 200;
 
 /** Valid status transitions — enforced server-side and in Postgres. */

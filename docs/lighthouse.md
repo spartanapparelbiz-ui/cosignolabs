@@ -20,6 +20,23 @@ first cut of the hero used `next/image`, whose client runtime pushed TBT to
 width/height → no CLS) restored TBT to 40 ms and the score to 99 — the 3D
 mark is small (36 KB) so image optimization bought nothing but overhead.
 
+## After the billing pass
+
+Both public pages measured on the production build (Lighthouse mobile):
+
+| Page | Performance | LCP | CLS (observed) | TBT |
+|---|---|---|---|---|
+| `/` | 97 | 2.0 s (sim) | 0 | 100 ms |
+| `/pricing` | 97 | 1.6 s (sim) | 0 | 80 ms |
+
+Both clear the ≥95 target. Note on CLS: the `--preset=perf` *lantern
+simulation* estimated 0.08 for `/pricing`, but the full run with real
+devtools throttling (and a direct `layout-shift` PerformanceObserver probe)
+both report **0** — the simulation over-estimates font-reflow on the large
+pricing headline; there is no actual layout shift. Pricing is static /
+prerendered; the interactive `PricingCards` toggle is client-only and below
+the metric window.
+
 ### LCP note
 
 The LCP element is the static, server-rendered `<h1>` hero headline. Measured

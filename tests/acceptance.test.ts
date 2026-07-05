@@ -163,12 +163,13 @@ describe("usage limits", () => {
     });
   });
 
-  it("tier-1 auto-execution also respects the limit", async () => {
+  it("tier-1 auto-execution also respects the (plan) limit", async () => {
     const store = freshStore();
-    const usage = await store.getUsage(USER);
-    // Leave exactly one unit: the planning call consumes it, so the tier-1
-    // proposal is created but must NOT auto-execute.
-    for (let i = 0; i < usage.limit - 1; i++) await store.incrementUsage(USER);
+    // Effective limit is the free plan's (25). Leave exactly one unit: the
+    // planning call consumes it, so the tier-1 proposal is created but must
+    // NOT auto-execute.
+    const freeLimit = 25;
+    for (let i = 0; i < freeLimit - 1; i++) await store.incrementUsage(USER);
 
     const { actions } = await runCommand(USER, "summarize my unread email");
     const auto = actions.find((a) => a.tier === 1)!;

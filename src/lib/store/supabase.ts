@@ -9,6 +9,7 @@ import {
   canTransition,
   MessageRecord,
   SessionRecord,
+  SubscriptionRecord,
   TierSettingRecord,
   UsageRecord,
 } from "../types";
@@ -273,5 +274,57 @@ export class SupabaseStore implements Store {
   async createBetaApplication(app: BetaApplication): Promise<void> {
     const { error } = await this.client.from("beta_applications").insert(app);
     if (error) throw new Error(error.message);
+  }
+
+  async getSubscription(userId: string): Promise<SubscriptionRecord | null> {
+    const { data } = await this.client
+      .from("subscriptions")
+      .select()
+      .eq("user_id", userId)
+      .maybeSingle();
+    return data ?? null;
+  }
+
+  async upsertSubscription(sub: SubscriptionRecord): Promise<void> {
+    const { error } = await this.client
+      .from("subscriptions")
+      .upsert({ ...sub, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+    if (error) throw new Error(error.message);
+  }
+
+  async getSubscriptionByCustomer(
+    customerId: string
+  ): Promise<SubscriptionRecord | null> {
+    const { data } = await this.client
+      .from("subscriptions")
+      .select()
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle();
+    return data ?? null;
+  }
+
+  async listIntegrations(userId: string): Promise<string[]> {
+    const { data, error } = await this.client
+      .from("integrations")
+      .select("key")
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => r.key as string);
+  }
+
+  async setIntegration(userId: string, key: string, connected: boolean): Promise<void> {
+    if (connected) {
+      const { error } = await this.client
+        .from("integrations")
+        .upsert({ user_id: userId, key }, { onConflict: "user_id,key" });
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await this.client
+        .from("integrations")
+        .delete()
+        .eq("user_id", userId)
+        .eq("key", key);
+      if (error) throw new Error(error.message);
+    }
   }
 }

@@ -44,7 +44,8 @@ const MAX_TOKENS = 1024;
 export async function planCommand(
   command: string,
   externalContent: ExternalContentInput[] = [],
-  userId?: string
+  userId?: string,
+  model?: string
 ): Promise<PlanResult> {
   const blocks = externalContent.map((c) => scanUntrusted(c.source, c.content));
   const suspectedSources = blocks
@@ -56,7 +57,7 @@ export async function planCommand(
   }
 
   const plan = anthropicConfigured()
-    ? await planWithClaude(command, blocks, userId)
+    ? await planWithClaude(command, blocks, userId, model)
     : planWithMock(command, blocks);
 
   return {
@@ -72,7 +73,8 @@ type RawPlan = { reasoning: string; proposals: ProposedAction[] };
 async function planWithClaude(
   command: string,
   blocks: UntrustedBlock[],
-  userId?: string
+  userId?: string,
+  model?: string
 ): Promise<RawPlan> {
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -83,7 +85,7 @@ async function planWithClaude(
   ].join("\n\n");
 
   const response = await client.messages.create({
-    model: process.env.COSIGNO_OPERATOR_MODEL || "claude-sonnet-5",
+    model: model || process.env.COSIGNO_OPERATOR_MODEL || "claude-haiku-4-5-20251001",
     max_tokens: MAX_TOKENS,
     system: buildSystemPrompt(),
     messages: [{ role: "user", content: userContent }],

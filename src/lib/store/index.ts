@@ -6,6 +6,7 @@ import type {
   BetaApplication,
   MessageRecord,
   SessionRecord,
+  SubscriptionRecord,
   TierSettingRecord,
   UsageRecord,
 } from "../types";
@@ -93,6 +94,16 @@ export interface Store {
   incrementUsage(userId: string): Promise<UsageRecord>;
 
   createBetaApplication(app: BetaApplication): Promise<void>;
+
+  /** Subscription state — written only by the Stripe webhook (service role). */
+  getSubscription(userId: string): Promise<SubscriptionRecord | null>;
+  upsertSubscription(sub: SubscriptionRecord): Promise<void>;
+  /** Look up a subscription row by Stripe customer id (webhook path). */
+  getSubscriptionByCustomer(customerId: string): Promise<SubscriptionRecord | null>;
+
+  /** Connected integration keys for a user (enforced against the plan). */
+  listIntegrations(userId: string): Promise<string[]>;
+  setIntegration(userId: string, key: string, connected: boolean): Promise<void>;
 }
 
 export function supabaseConfigured(): boolean {

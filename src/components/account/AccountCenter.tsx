@@ -25,15 +25,28 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-export function AccountCenter() {
-  const [tab, setTab] = useState<TabId>("profile");
+export interface PlanInfo {
+  id: string;
+  name: string;
+  status: string;
+  interval: string | null;
+  activeUntil: number | null;
+  cancelAtPeriodEnd: boolean;
+  pastDue: boolean;
+  inGrace: boolean;
+  upgradeTo: string | null;
+}
+
+export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }) {
+  const [tab, setTab] = useState<TabId>(initialTab);
   const [categories, setCategories] = useState<CategoryWithTier[] | null>(null);
   const [usage, setUsage] = useState<UsageRecord | null>(null);
+  const [plan, setPlan] = useState<PlanInfo | null>(null);
   const [actions, setActions] = useState<ActionRecord[] | null>(null);
 
   useEffect(() => {
     fetch("/api/settings/tiers").then((r) => r.json()).then((d) => setCategories(d.categories ?? [])).catch(() => setCategories([]));
-    fetch("/api/usage").then((r) => r.json()).then((d) => setUsage(d.usage ?? null)).catch(() => {});
+    fetch("/api/usage").then((r) => r.json()).then((d) => { setUsage(d.usage ?? null); setPlan(d.plan ?? null); }).catch(() => {});
     fetch("/api/activity?limit=1000").then((r) => r.json()).then((d) => setActions(d.actions ?? [])).catch(() => setActions([]));
   }, []);
 
@@ -69,7 +82,7 @@ export function AccountCenter() {
         {tab === "permissions" && (
           <PermissionsPanel categories={categories} setCategories={setCategories} />
         )}
-        {tab === "usage" && <UsagePanel usage={usage} />}
+        {tab === "usage" && <UsagePanel usage={usage} plan={plan} />}
         {tab === "integrations" && <IntegrationsPanel />}
         {tab === "security" && <SecurityPanel actions={actions} />}
       </div>
@@ -232,7 +245,15 @@ function PermissionsPanel({
   );
 }
 
-function UsagePanel({ usage }: { usage: UsageRecord | null }) {
+function fmtDate(unixOrIso: number | string): string {
+  const d = typeof unixOrIso === "number" ? new Date(unixOrIso * 1000) : new Date(unixOrIso);
+  return d.toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" });
+}
+
+function UsagePanel({ usage, plan }: { usage: UsageRecord | null; plan: PlanInfo | null }) {
+  const [busy, setBusy] = useState<"upgrade" | "portal" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   const reset = useMemo(() => {
     if (!usage) return "";
     const d = new Date(usage.cycle_start);
@@ -240,38 +261,129 @@ function UsagePanel({ usage }: { usage: UsageRecord | null }) {
     return next.toLocaleDateString([], { month: "long", day: "numeric" });
   }, [usage]);
 
+  async function go(kind: "upgrade" | "portal") {
+    setError(null);
+    setBusy(kind);
+    try {
+      if (kind === "portal") {
+        const res = await fetch("/api/billing/portal", { method: "POST" });
+        const b = await res.json();
+        if (!res.ok) throw new Error(b.message || "couldn't open billing.");
+        window.location.href = b.url;
+      } else {
+        const target = plan?.upgradeTo ?? "pro";
+        const res = await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: target, interval: "monthly" }),
+        });
+        const b = await res.json();
+        if (res.status === 503) throw new Error("billing isn't enabled yet.");
+        if (!res.ok) throw new Error(b.message || "couldn't start checkout.");
+        window.location.href = b.url;
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "something went wrong.");
+      setBusy(null);
+    }
+  }
+
+  const isFree = !plan || plan.id === "free";
+  const hasBilling = Boolean(plan && plan.id !== "free");
+
   return (
     <section>
       <PanelHeading title="usage & plan" sub="what you've spent this cycle, and what's next." />
-      {!usage ? (
+
+      {plan?.pastDue && (
+        <div className="mb-4 rounded-card bg-ink px-4 py-3 text-sm font-semibold text-cream">
+          your payment didn&apos;t go through — update your card to keep {plan.name}.{" "}
+          <button onClick={() => go("portal")} className="underline decoration-signal underline-offset-2">
+            update card
+          </button>
+        </div>
+      )}
+
+      {!usage || !plan ? (
         <SkeletonRows rows={3} />
       ) : (
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
           <div className="rounded-card bg-white/60 p-6 text-center shadow-soft">
             <UsageRing used={usage.actions_executed} limit={usage.limit} />
-            <p className="mt-2 text-xs lowercase text-ink-soft">actions used</p>
+            <p className="mt-2 text-xs lowercase text-ink-soft">actions used this cycle</p>
           </div>
           <div className="flex-1">
             <div className="rounded-card bg-white/60 p-5 shadow-soft">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold lowercase">founding beta</span>
+                <span className="text-sm font-bold lowercase">{plan.name}</span>
                 <span className="rounded-pill bg-cream-deep px-3 py-1 text-[11px] font-bold lowercase text-ink-soft">
                   current plan
                 </span>
               </div>
               <p className="mt-2 text-sm text-ink-soft">
-                {usage.limit} actions / cycle · resets {reset}
+                {usage.limit.toLocaleString()} actions / cycle · usage resets {reset}
+                {plan.interval ? ` · ${plan.interval}` : ""}
               </p>
-              <button className="group relative mt-4 inline-flex overflow-hidden rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold text-cream">
-                <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-[280ms] ease-brand-out group-hover:scale-x-100" />
-                <span className="relative transition-colors group-hover:text-ink">
-                  upgrade — coming with billing
-                </span>
-              </button>
-              <p className="mt-2 text-[11px] text-ink-soft">
-                billing is a stub in beta. proposals are always free; execution
-                pauses at the limit and never charges surprise overage.
+              {plan.cancelAtPeriodEnd && plan.activeUntil && (
+                <p className="mt-1 text-sm font-semibold">
+                  {plan.name} until {fmtDate(plan.activeUntil)}, then free.
+                </p>
+              )}
+
+              {isFree ? (
+                <div className="mt-4 rounded-btn bg-cream-deep p-4">
+                  <p className="text-sm font-bold lowercase">pro unlocks more room</p>
+                  <ul className="mt-2 flex flex-col gap-1 text-xs text-ink-soft">
+                    <li>1,000 actions / month</li>
+                    <li>unlimited integrations</li>
+                    <li>CSV export &amp; priority planning</li>
+                  </ul>
+                  <button
+                    onClick={() => go("upgrade")}
+                    disabled={busy === "upgrade"}
+                    className="group relative mt-3 inline-flex overflow-hidden rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold text-cream disabled:opacity-60"
+                  >
+                    <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-[280ms] ease-brand-out group-hover:scale-x-100" />
+                    <span className="relative transition-colors group-hover:text-ink">
+                      {busy === "upgrade" ? "starting…" : "upgrade to pro — $29/mo"}
+                    </span>
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {plan.upgradeTo && (
+                    <button
+                      onClick={() => go("upgrade")}
+                      disabled={busy === "upgrade"}
+                      className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink transition-transform duration-fast hover:-translate-y-px disabled:opacity-60"
+                    >
+                      {busy === "upgrade" ? "starting…" : `upgrade to ${plan.upgradeTo}`}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => go("portal")}
+                    disabled={busy === "portal"}
+                    className="rounded-btn ring-1 ring-inset ring-ink px-5 py-2.5 text-sm font-bold lowercase transition-all duration-fast hover:-translate-y-px hover:bg-cream-deep disabled:opacity-60"
+                  >
+                    {busy === "portal" ? "opening…" : "manage billing"}
+                  </button>
+                </div>
+              )}
+
+              {error && (
+                <p className="mt-3 rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold" role="alert">
+                  {error}
+                </p>
+              )}
+              <p className="mt-3 text-[11px] text-ink-soft">
+                proposals are always free; execution pauses at the limit and
+                never charges surprise overage.
               </p>
+              {hasBilling && (
+                <p className="mt-1 text-[11px] text-ink-soft">
+                  billing, invoices, and cancellation live in the stripe portal.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -280,42 +392,88 @@ function UsagePanel({ usage }: { usage: UsageRecord | null }) {
   );
 }
 
-const INTEGRATIONS = [
-  { name: "Gmail", detail: "read, draft, send — sends always wait for approval.", connected: true },
-  { name: "generic webhook", detail: "POST a signed payload to an endpoint you configure.", connected: false },
-];
+interface IntegrationMeta {
+  key: string;
+  name: string;
+  detail: string;
+}
 
 function IntegrationsPanel() {
-  const [state, setState] = useState(INTEGRATIONS);
+  const [available, setAvailable] = useState<IntegrationMeta[] | null>(null);
+  const [connected, setConnected] = useState<string[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/integrations")
+      .then((r) => r.json())
+      .then((d) => {
+        setAvailable(d.available ?? []);
+        setConnected(d.connected ?? []);
+      })
+      .catch(() => setAvailable([]));
+  }, []);
+
+  async function toggle(key: string, connect: boolean) {
+    setError(null);
+    setBusy(key);
+    try {
+      const res = await fetch("/api/integrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, connected: connect }),
+      });
+      const b = await res.json();
+      if (!res.ok) throw new Error(b.message || "couldn't update that integration.");
+      setConnected(b.connected ?? []);
+    } catch (e) {
+      // 402 upgrade prompt surfaces here without a dark pattern.
+      setError(e instanceof Error ? e.message : "couldn't update that integration.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <section>
       <PanelHeading title="integrations" sub="the tools cosigno can act across." />
+      {error && (
+        <p className="mb-3 rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold" role="alert">
+          {error}
+        </p>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
-        {state.map((i, idx) => (
-          <div key={i.name} className="rounded-card bg-white/60 p-4 shadow-soft">
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${i.connected ? "bg-signal" : "bg-line"}`}
-                aria-hidden="true"
-              />
-              <span className="font-bold">{i.name}</span>
-              <span className="ml-auto rounded-pill bg-cream-deep px-2.5 py-0.5 text-[10px] font-bold lowercase text-ink-soft">
-                beta stub
-              </span>
-            </div>
-            <p className="mt-2 text-xs text-ink-soft">{i.detail}</p>
-            <button
-              onClick={() =>
-                setState((s) => s.map((x, j) => (j === idx ? { ...x, connected: !x.connected } : x)))
-              }
-              className={`mt-3 rounded-btn px-3.5 py-1.5 text-xs font-bold lowercase transition-all duration-fast hover:-translate-y-px ${
-                i.connected ? "ring-1 ring-inset ring-ink" : "bg-ink text-cream"
-              }`}
-            >
-              {i.connected ? "disconnect" : "connect"}
-            </button>
-          </div>
-        ))}
+        {available === null ? (
+          <SkeletonRows rows={2} />
+        ) : (
+          available.map((i) => {
+            const on = connected.includes(i.key);
+            return (
+              <div key={i.key} className="rounded-card bg-white/60 p-4 shadow-soft">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${on ? "bg-signal" : "bg-line"}`}
+                    aria-hidden="true"
+                  />
+                  <span className="font-bold">{i.name}</span>
+                  <span className="ml-auto rounded-pill bg-cream-deep px-2.5 py-0.5 text-[10px] font-bold lowercase text-ink-soft">
+                    beta stub
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-ink-soft">{i.detail}</p>
+                <button
+                  onClick={() => toggle(i.key, !on)}
+                  disabled={busy === i.key}
+                  className={`mt-3 rounded-btn px-3.5 py-1.5 text-xs font-bold lowercase transition-all duration-fast hover:-translate-y-px disabled:opacity-60 ${
+                    on ? "ring-1 ring-inset ring-ink" : "bg-ink text-cream"
+                  }`}
+                >
+                  {busy === i.key ? "…" : on ? "disconnect" : "connect"}
+                </button>
+              </div>
+            );
+          })
+        )}
         <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-line p-4 text-center">
           <p className="text-sm font-bold lowercase">more coming</p>
           <p className="mt-1 text-xs text-ink-soft">

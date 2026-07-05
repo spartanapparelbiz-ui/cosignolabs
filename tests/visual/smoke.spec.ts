@@ -47,6 +47,23 @@ for (const vp of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `landing-${vp.name}.png`), fullPage: true });
     });
 
+    test("pricing", async ({ page }) => {
+      await page.goto("/pricing", { waitUntil: "networkidle" });
+      await expect(page.getByText("most popular")).toBeVisible();
+      // toggle to annual to exercise the animated price swap
+      await page.getByRole("button", { name: /annual/ }).click();
+      await page.evaluate(async () => {
+        for (let y = 0; y <= document.body.scrollHeight; y += 400) {
+          window.scrollTo(0, y);
+          await new Promise((r) => setTimeout(r, 60));
+        }
+        window.scrollTo(0, 0);
+      });
+      await page.waitForTimeout(400);
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `pricing-${vp.name}.png`), fullPage: true });
+    });
+
     test("live preview with an executed card", async ({ page }) => {
       await page.goto("/", { waitUntil: "networkidle" });
       const preview = page.locator("#try");
@@ -83,9 +100,9 @@ for (const vp of VIEWPORTS) {
     test("account center", async ({ page }) => {
       await page.goto("/app/account", { waitUntil: "networkidle" });
       await expect(page.getByRole("heading", { name: "account", exact: true })).toBeVisible();
-      // land on the permissions panel and screenshot the tier board
-      await page.getByRole("button", { name: "permissions" }).click();
-      await expect(page.getByText(/how much rope the operator gets/)).toBeVisible();
+      // screenshot the plan & billing panel (the ring + upgrade card)
+      await page.getByRole("button", { name: "usage & plan" }).click();
+      await expect(page.getByText(/actions used this cycle/)).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-${vp.name}.png`), fullPage: true });
     });

@@ -1,5 +1,7 @@
 import { EngineError } from "../actions/engine";
 import { autoExecute, proposeAction } from "../actions/engine";
+import { getUserPlan } from "../billing";
+import { chooseModel, usageLimitMessage } from "../enforcement";
 import { logSecurity } from "../log";
 import { getStore } from "../store";
 import { resolveTier } from "../tiers";
@@ -38,14 +40,13 @@ export async function runCommand(
 ): Promise<CommandResult> {
   const store = getStore();
 
-  // Usage gate before the model is invoked.
+  // Usage gate before the model is invoked — the limit comes from the user's
+  // plan (fail-closed to free). Planning calls count against it.
+  const { plan: userPlan, planId } = await getUserPlan(userId);
   const usage = await store.getUsage(userId);
-  if (usage.actions_executed >= usage.limit) {
-    logSecurity("usage_limit_hit", { userId, at: "planning" });
-    throw new EngineError(
-      "usage_limit",
-      "you've used your plan's actions for this cycle. upgrade to keep going."
-    );
+  if (usage.actions_executed >= userPlan.actionLimit) {
+    logSecurity("usage_limit_hit", { userId, at: "planning", plan: planId });
+    throw new EngineError("usage_limit", usageLimitMessage(planId));
   }
 
   let session = opts.sessionId
@@ -60,7 +61,8 @@ export async function runCommand(
 
   const userMessage = await store.addMessage(userId, session.id, "user", command);
 
-  const plan = await planCommand(command, opts.externalContent ?? [], userId);
+  const model = chooseModel(planId, command, userId);
+  const plan = await planCommand(command, opts.externalContent ?? [], userId, model);
   // The planning call itself is metered — Anthropic invocations count.
   await store.incrementUsage(userId);
 

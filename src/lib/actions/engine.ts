@@ -1,4 +1,6 @@
 import { getStore, type ActionInsert } from "../store";
+import { getUserPlan } from "../billing";
+import { effectiveActionLimit, usageLimitMessage } from "../enforcement";
 import { logSecurity } from "../log";
 import { executeAction } from "./executor";
 import { ActionRecord } from "../types";
@@ -65,7 +67,7 @@ export async function autoExecute(
   if (action.injection_flag) return action;
   const store = getStore();
   const usage = await store.getUsage(userId);
-  if (usage.actions_executed >= usage.limit) return action;
+  if (usage.actions_executed >= (await effectiveActionLimit(userId))) return action;
 
   await store.transitionAction(userId, action.id, "approved");
   await store.logEvent(userId, action.id, "approved", "system", {
@@ -127,16 +129,14 @@ export async function approveAction(
   }
 
   const usage = await store.getUsage(userId);
-  if (usage.actions_executed >= usage.limit) {
+  const { planId, plan } = await getUserPlan(userId);
+  if (usage.actions_executed >= plan.actionLimit) {
     await store.logEvent(userId, actionId, "blocked", "system", {
       reason: "usage_limit",
       executed: usage.actions_executed,
-      limit: usage.limit,
+      limit: plan.actionLimit,
     });
-    throw new EngineError(
-      "usage_limit",
-      "you've used your plan's actions for this cycle. upgrade to keep executing — proposals are still free."
-    );
+    throw new EngineError("usage_limit", usageLimitMessage(planId));
   }
 
   if (opts.payload) {

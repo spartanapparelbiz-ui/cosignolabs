@@ -15,6 +15,7 @@ import type { NextFetchEvent, NextMiddleware, NextRequest } from "next/server";
 
 const PUBLIC_PATHS = new Set([
   "/",
+  "/pricing",
   "/api/health",
   "/api/beta",
   "/api/preview",

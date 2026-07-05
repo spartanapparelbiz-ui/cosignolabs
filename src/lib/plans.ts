@@ -1,0 +1,122 @@
+/**
+ * Plans — the ONLY place plan data lives. UI, server-side enforcement, and
+ * Stripe metadata all read from here so nothing can drift.
+ *
+ * "Actions" = planning calls + executions combined, counted by the usage
+ * meter. Fail closed: an unknown/missing plan is always treated as `free`.
+ */
+
+export type PlanId = "free" | "pro" | "max";
+export type Interval = "monthly" | "annual";
+
+export interface PlanPrice {
+  monthly: number; // USD/mo
+  annual: number; // USD/yr (2 months free)
+  /** env var names holding the Stripe Price IDs (never hardcode IDs). */
+  monthlyEnv?: string;
+  annualEnv?: string;
+}
+
+export interface Plan {
+  id: PlanId;
+  name: string;
+  tagline: string;
+  price: PlanPrice;
+  /** actions per cycle (planning + executions) */
+  actionLimit: number;
+  /** max connected integrations; Infinity = unlimited */
+  integrationLimit: number;
+  /** upgrade target shown at the limit, or null */
+  upgradeTo: PlanId | null;
+  /** feature bullets rendered on pricing + account (drawn from here only) */
+  features: string[];
+  /** gets the stronger planning model for complex plans */
+  strongerModel: boolean;
+  canExportCsv: boolean;
+}
+
+export const PLANS: Record<PlanId, Plan> = {
+  free: {
+    id: "free",
+    name: "free",
+    tagline: "try the operator on your own terms.",
+    price: { monthly: 0, annual: 0 },
+    actionLimit: 25,
+    integrationLimit: 1,
+    upgradeTo: "pro",
+    strongerModel: false,
+    canExportCsv: false,
+    features: ["25 actions / month", "1 integration", "live preview", "activity log"],
+  },
+  pro: {
+    id: "pro",
+    name: "pro",
+    tagline: "for operators running real workflows.",
+    price: {
+      monthly: 29,
+      annual: 290,
+      monthlyEnv: "STRIPE_PRICE_PRO_MONTHLY",
+      annualEnv: "STRIPE_PRICE_PRO_ANNUAL",
+    },
+    actionLimit: 1000,
+    integrationLimit: Infinity,
+    upgradeTo: "max",
+    strongerModel: false,
+    canExportCsv: true,
+    features: [
+      "1,000 actions / month",
+      "unlimited integrations",
+      "CSV export",
+      "priority planning",
+    ],
+  },
+  max: {
+    id: "max",
+    name: "max",
+    tagline: "for teams pushing the operator hard.",
+    price: {
+      monthly: 99,
+      annual: 990,
+      monthlyEnv: "STRIPE_PRICE_MAX_MONTHLY",
+      annualEnv: "STRIPE_PRICE_MAX_ANNUAL",
+    },
+    actionLimit: 10000,
+    integrationLimit: Infinity,
+    upgradeTo: null,
+    strongerModel: true,
+    canExportCsv: true,
+    features: [
+      "10,000 actions / month",
+      "unlimited integrations",
+      "stronger-model routing for complex plans",
+      "webhook / API access",
+      "priority support",
+    ],
+  },
+};
+
+export const PLAN_ORDER: PlanId[] = ["free", "pro", "max"];
+export const PAID_PLANS: PlanId[] = ["pro", "max"];
+
+export function getPlan(id: PlanId | string | null | undefined): Plan {
+  return (id && PLANS[id as PlanId]) || PLANS.free;
+}
+
+/** Days a past_due subscription keeps its paid access before dropping to free. */
+export const PAST_DUE_GRACE_DAYS = 7;
+
+/** Resolve the Stripe Price ID for a paid plan + interval from env. */
+export function priceIdFor(plan: PlanId, interval: Interval): string | null {
+  const p = PLANS[plan];
+  const envName = interval === "annual" ? p.price.annualEnv : p.price.monthlyEnv;
+  if (!envName) return null;
+  return process.env[envName] || null;
+}
+
+/** Human price label, e.g. "$29/mo" or "$290/yr". */
+export function priceLabel(plan: Plan, interval: Interval): string {
+  if (plan.price.monthly === 0) return "$0";
+  return interval === "annual"
+    ? `$${plan.price.annual}/yr`
+    : `$${plan.price.monthly}/mo`;
+}

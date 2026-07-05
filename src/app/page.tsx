@@ -40,18 +40,19 @@ export default function LandingPage() {
         <LogoLockup size={30} textClass="text-2xl" />
         <nav className="flex items-center gap-3">
           <Link
+            href="/pricing"
+            prefetch
+            className="hidden rounded-btn px-4 py-2 text-sm font-bold lowercase text-ink-soft transition-colors duration-fast hover:bg-cream-deep sm:block"
+          >
+            pricing
+          </Link>
+          <Link
             href="/app"
             prefetch
             className="rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink transition-all duration-fast ease-brand-out hover:-translate-y-px hover:bg-cream-deep"
           >
             open workspace
           </Link>
-          <a
-            href="#beta"
-            className="hidden rounded-btn bg-ink px-4 py-2 text-sm font-bold lowercase text-cream transition-transform duration-fast hover:-translate-y-px sm:block"
-          >
-            founding beta
-          </a>
         </nav>
       </header>
 
@@ -77,12 +78,13 @@ export default function LandingPage() {
               nothing moves without your signature.
             </p>
             <div className="mt-8 flex flex-wrap gap-3 animate-word-in [animation-delay:640ms]">
-              <a
-                href="#beta"
+              <Link
+                href="/app"
+                prefetch
                 className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95"
               >
-                apply for the founding beta
-              </a>
+                start free
+              </Link>
               <a
                 href="#try"
                 className="rounded-btn px-7 py-3.5 text-base font-bold lowercase ring-1 ring-inset ring-ink transition-all duration-fast hover:-translate-y-px hover:bg-cream-deep"
@@ -91,8 +93,7 @@ export default function LandingPage() {
               </a>
             </div>
             <p className="mt-4 text-sm text-ink-soft animate-word-in [animation-delay:760ms]">
-              limited seats. we&apos;re onboarding a small founding cohort —
-              applications reviewed weekly.
+              free forever to start. <Link href="/pricing" className="underline decoration-signal underline-offset-2 hover:text-ink">see pricing</Link> — pro is $29/mo.
             </p>
           </div>
           <div className="flex justify-center lg:justify-end">
@@ -187,6 +188,9 @@ export default function LandingPage() {
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-ink-soft">
           <LogoLockup size={20} textClass="text-base" />
           <div className="flex items-center gap-4 font-semibold">
+            <Link href="/pricing" className="hover:text-ink">
+              pricing
+            </Link>
             <a href="https://cosignolabs.com" className="hover:text-ink">
               cosignolabs.com
             </a>

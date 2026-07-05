@@ -9,6 +9,7 @@ import {
   canTransition,
   MessageRecord,
   SessionRecord,
+  SubscriptionRecord,
   TierSettingRecord,
   UsageRecord,
 } from "../types";
@@ -225,5 +226,37 @@ export class MemoryStore implements Store {
 
   async createBetaApplication(app: BetaApplication): Promise<void> {
     this.betaApplications.push({ ...app, created_at: nowIso() });
+  }
+
+  private subscriptions = new Map<string, SubscriptionRecord>();
+
+  async getSubscription(userId: string): Promise<SubscriptionRecord | null> {
+    return this.subscriptions.get(userId) ?? null;
+  }
+
+  async upsertSubscription(sub: SubscriptionRecord): Promise<void> {
+    this.subscriptions.set(sub.user_id, { ...sub, updated_at: nowIso() });
+  }
+
+  async getSubscriptionByCustomer(
+    customerId: string
+  ): Promise<SubscriptionRecord | null> {
+    for (const s of this.subscriptions.values()) {
+      if (s.stripe_customer_id === customerId) return s;
+    }
+    return null;
+  }
+
+  private integrations = new Map<string, Set<string>>();
+
+  async listIntegrations(userId: string): Promise<string[]> {
+    return Array.from(this.integrations.get(userId) ?? []);
+  }
+
+  async setIntegration(userId: string, key: string, connected: boolean): Promise<void> {
+    const set = this.integrations.get(userId) ?? new Set<string>();
+    if (connected) set.add(key);
+    else set.delete(key);
+    this.integrations.set(userId, set);
   }
 }

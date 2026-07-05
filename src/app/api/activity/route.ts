@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { errorResponse, requireUser } from "@/lib/api";
+import { ApiError, errorResponse, requireUser } from "@/lib/api";
+import { getUserPlan } from "@/lib/billing";
+import { logSecurity } from "@/lib/log";
 import { getStore } from "@/lib/store";
 import { actionsQuerySchema, parseStrict } from "@/lib/schemas";
 import type { ActionStatus } from "@/lib/types";
@@ -28,6 +30,16 @@ export async function GET(req: NextRequest) {
     });
 
     if (q.format === "csv") {
+      // CSV export is a pro+ feature.
+      const { plan, planId } = await getUserPlan(userId);
+      if (!plan.canExportCsv) {
+        logSecurity("usage_limit_hit", { userId, at: "csv_export", plan: planId });
+        throw new ApiError(
+          402,
+          "upgrade_required",
+          "CSV export is a pro feature. upgrade to export your audit log."
+        );
+      }
       const header = [
         "id",
         "created_at",
