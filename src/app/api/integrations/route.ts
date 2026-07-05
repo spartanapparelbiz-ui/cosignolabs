@@ -18,13 +18,15 @@ const bodySchema = z
 export async function GET() {
   try {
     const userId = await requireUser();
-    const [connected, { plan }] = await Promise.all([
+    const [connected, connectedAt, { plan }] = await Promise.all([
       getStore().listIntegrations(userId),
+      getStore().integrationConnectedAt(userId),
       getUserPlan(userId),
     ]);
     return NextResponse.json({
       available: AVAILABLE_INTEGRATIONS,
       connected,
+      connectedAt,
       limit: plan.integrationLimit === Infinity ? null : plan.integrationLimit,
     });
   } catch (err) {
@@ -61,6 +63,11 @@ export async function POST(req: NextRequest) {
     }
 
     await store.setIntegration(userId, key, connected);
+    await store.logAudit(
+      userId,
+      connected ? "integration_connected" : "integration_disconnected",
+      { key }
+    );
     const list = await store.listIntegrations(userId);
     return NextResponse.json({ connected: list });
   } catch (err) {

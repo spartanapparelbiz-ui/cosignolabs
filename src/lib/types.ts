@@ -187,6 +187,20 @@ export interface BetaApplication {
   workflow: string;
 }
 
+export type AccountAuditType =
+  | "tier_changed"
+  | "integration_connected"
+  | "integration_disconnected"
+  | "account_deleted";
+
+export interface AccountAuditRecord {
+  id: string;
+  user_id: string;
+  type: AccountAuditType;
+  detail: Record<string, unknown>;
+  created_at: string;
+}
+
 export type SubscriptionStatus =
   | "active"
   | "trialing"

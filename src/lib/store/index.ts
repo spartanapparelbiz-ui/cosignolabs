@@ -1,4 +1,5 @@
 import type {
+  AccountAuditRecord,
   ActionEventRecord,
   ActionEventType,
   ActionRecord,
@@ -104,6 +105,19 @@ export interface Store {
   /** Connected integration keys for a user (enforced against the plan). */
   listIntegrations(userId: string): Promise<string[]>;
   setIntegration(userId: string, key: string, connected: boolean): Promise<void>;
+  /** connected_at timestamps keyed by integration key. */
+  integrationConnectedAt(userId: string): Promise<Record<string, string>>;
+
+  /** Account audit trail (tier changes, integration changes, deletion). */
+  logAudit(
+    userId: string,
+    type: AccountAuditRecord["type"],
+    detail?: Record<string, unknown>
+  ): Promise<void>;
+  listAudit(userId: string, limit?: number): Promise<AccountAuditRecord[]>;
+
+  /** Cascade-delete everything owned by a user (account deletion). */
+  deleteAllUserData(userId: string): Promise<void>;
 }
 
 export function supabaseConfigured(): boolean {

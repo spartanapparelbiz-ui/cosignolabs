@@ -7,6 +7,7 @@ import {
   BETA_ACTION_LIMIT,
   BetaApplication,
   canTransition,
+  AccountAuditRecord,
   MessageRecord,
   SessionRecord,
   SubscriptionRecord,
@@ -316,7 +317,7 @@ export class SupabaseStore implements Store {
     if (connected) {
       const { error } = await this.client
         .from("integrations")
-        .upsert({ user_id: userId, key }, { onConflict: "user_id,key" });
+        .upsert({ user_id: userId, key }, { onConflict: "user_id,key", ignoreDuplicates: true });
       if (error) throw new Error(error.message);
     } else {
       const { error } = await this.client
@@ -324,6 +325,56 @@ export class SupabaseStore implements Store {
         .delete()
         .eq("user_id", userId)
         .eq("key", key);
+      if (error) throw new Error(error.message);
+    }
+  }
+
+  async integrationConnectedAt(userId: string): Promise<Record<string, string>> {
+    const { data, error } = await this.client
+      .from("integrations")
+      .select("key, connected_at")
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return Object.fromEntries((data ?? []).map((r) => [r.key as string, r.connected_at as string]));
+  }
+
+  async logAudit(
+    userId: string,
+    type: AccountAuditRecord["type"],
+    detail: Record<string, unknown> = {}
+  ): Promise<void> {
+    const { error } = await this.client
+      .from("account_audit")
+      .insert({ user_id: userId, type, detail });
+    if (error) throw new Error(error.message);
+  }
+
+  async listAudit(userId: string, limit = 20): Promise<AccountAuditRecord[]> {
+    const { data, error } = await this.client
+      .from("account_audit")
+      .select()
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
+  async deleteAllUserData(userId: string): Promise<void> {
+    // sessions cascade to messages/actions/action_events via FK ON DELETE
+    // CASCADE; the rest are deleted explicitly.
+    for (const table of [
+      "account_audit",
+      "integrations",
+      "tier_settings",
+      "usage",
+      "subscriptions",
+      "sessions",
+      "actions",
+      "action_events",
+      "messages",
+    ]) {
+      const { error } = await this.client.from(table).delete().eq("user_id", userId);
       if (error) throw new Error(error.message);
     }
   }

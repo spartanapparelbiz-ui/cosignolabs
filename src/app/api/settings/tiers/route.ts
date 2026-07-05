@@ -43,7 +43,9 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    await getStore().setTierSetting(userId, category, tier);
+    const store = getStore();
+    await store.setTierSetting(userId, category, tier);
+    await store.logAudit(userId, "tier_changed", { category, tier });
     return NextResponse.json({ ok: true, category, tier });
   } catch (err) {
     return errorResponse(err);

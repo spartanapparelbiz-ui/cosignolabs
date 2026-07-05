@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import {
+  AccountAuditRecord,
   ActionEventRecord,
   ActionEventType,
   ActionRecord,
@@ -247,16 +248,47 @@ export class MemoryStore implements Store {
     return null;
   }
 
-  private integrations = new Map<string, Set<string>>();
+  private integrations = new Map<string, Map<string, string>>();
 
   async listIntegrations(userId: string): Promise<string[]> {
-    return Array.from(this.integrations.get(userId) ?? []);
+    return Array.from(this.integrations.get(userId)?.keys() ?? []);
   }
 
   async setIntegration(userId: string, key: string, connected: boolean): Promise<void> {
-    const set = this.integrations.get(userId) ?? new Set<string>();
-    if (connected) set.add(key);
-    else set.delete(key);
-    this.integrations.set(userId, set);
+    const map = this.integrations.get(userId) ?? new Map<string, string>();
+    if (connected) {
+      if (!map.has(key)) map.set(key, nowIso());
+    } else map.delete(key);
+    this.integrations.set(userId, map);
+  }
+
+  async integrationConnectedAt(userId: string): Promise<Record<string, string>> {
+    return Object.fromEntries(this.integrations.get(userId) ?? []);
+  }
+
+  private audit: AccountAuditRecord[] = [];
+
+  async logAudit(
+    userId: string,
+    type: AccountAuditRecord["type"],
+    detail: Record<string, unknown> = {}
+  ): Promise<void> {
+    this.audit.unshift({ id: randomUUID(), user_id: userId, type, detail, created_at: nowIso() });
+  }
+
+  async listAudit(userId: string, limit = 20): Promise<AccountAuditRecord[]> {
+    return this.audit.filter((a) => a.user_id === userId).slice(0, limit);
+  }
+
+  async deleteAllUserData(userId: string): Promise<void> {
+    this.sessions = this.sessions.filter((s) => s.user_id !== userId);
+    this.messages = this.messages.filter((m) => m.user_id !== userId);
+    this.actions = this.actions.filter((a) => a.user_id !== userId);
+    this.events = this.events.filter((e) => e.user_id !== userId);
+    this.tierSettings = this.tierSettings.filter((t) => t.user_id !== userId);
+    this.usage.delete(userId);
+    this.integrations.delete(userId);
+    this.subscriptions.delete(userId);
+    this.audit = this.audit.filter((a) => a.user_id !== userId);
   }
 }

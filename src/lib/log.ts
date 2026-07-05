@@ -19,7 +19,8 @@ export type SecurityEvent =
   | "usage_limit_hit"
   | "global_budget_hit"
   | "turnstile_failed"
-  | "invalid_input";
+  | "invalid_input"
+  | "account_deleted";
 
 export function newRequestId(): string {
   return randomUUID().slice(0, 18);
