@@ -16,7 +16,7 @@ const REQUIRED_PRODUCTION_KEYS = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
-  "ANTHROPIC_API_KEY",
+  "PLANNER_API_KEY",
 ] as const;
 
 export function missingProductionKeys(): string[] {

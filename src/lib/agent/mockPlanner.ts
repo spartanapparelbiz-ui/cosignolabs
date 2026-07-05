@@ -4,7 +4,7 @@ import type { UntrustedBlock } from "./untrusted";
 /**
  * The deterministic offline planner. PURE by design: this module imports
  * only types and is imported by (a) the dev-mode operator and (b) the
- * public landing-page sandbox route. It cannot reach the Anthropic API,
+ * public landing-page sandbox route. It cannot reach the hosted planner,
  * the database, or the store — there is nothing here to tamper with.
  */
 

@@ -2,7 +2,7 @@
 
 Threat model for the beta: an attacker who has the site URL, the public JS
 bundle, and the Supabase **anon** key must be able to spend **$0** of our
-Anthropic/API money, read **0** rows of other users' data, and execute
+planner/API money, read **0** rows of other users' data, and execute
 **0** unauthorized actions.
 
 Every section below states how the control is enforced and which automated
@@ -18,11 +18,11 @@ build + bundle secret scan, `npm audit --audit-level=critical`, then
   doing anything — including read-only routes. No session → 401. Middleware
   (`src/middleware.ts`) enforces the same at the edge with Clerk; routes
   re-check it, so a middleware bypass still hits the 401.
-- **Public allowlist, nothing else**: `/` (landing), `POST /api/beta`
-  (Turnstile + IP-limited), `GET /api/health`, `POST /api/stripe/webhook`
-  (returns 501 until billing ships; will verify Stripe signatures).
+- **Public allowlist, nothing else**: `/` (landing), `/pricing`,
+  `POST /api/beta` (Turnstile + IP-limited), `GET /api/health`,
+  `POST /api/stripe/webhook` (Stripe-signature-verified; unsigned → 400).
 - **Demo mode is unreachable in production.** `servingAllowed()`
-  (`src/lib/env.ts`) requires Clerk + Supabase + Anthropic keys when
+  (`src/lib/env.ts`) requires Clerk + Supabase + planner keys when
   `NODE_ENV=production`; otherwise middleware and `requireUser` serve 503.
   Three more layers fail closed independently: `getUserId()` never returns
   the demo user in production, `getStore()` throws rather than serving the
@@ -52,7 +52,7 @@ throws, no demo user). *(Spec tests 1 and 12.)*
   (`src/lib/agent/pipeline.ts`) checks the cycle meter and returns 402
   *before* the model is invoked, and increments the meter for the planning
   call itself, not just executions.
-- **`max_tokens` capped** at 1024 on every Anthropic call; command input
+- **`max_tokens` capped** at 1024 on every planner call; command input
   capped at 2,000 chars (413 before the model), external content ≤10 items
   × 8,000 chars, body ≤100 kB.
 - **Global circuit breaker**: `enforceGlobalPlanningBudget()` counts total
@@ -60,10 +60,10 @@ throws, no demo user). *(Spec tests 1 and 12.)*
   default 1000). Past it, planning returns a friendly "beta capacity
   reached" 429 — bounding worst-case spend even if per-user limits were
   bypassed.
-- **Bundle secret gate**: `npm run build` runs
+- **Bundle secret + vendor gate**: `npm run build` runs
   `scripts/check-bundle.mjs`, which fails the build if `sk-ant`,
-  `sk_live`, `service_role`, or system-prompt text appears in
-  `.next/static` or any `NEXT_PUBLIC_` value.
+  `sk_live`, `service_role`, system-prompt text, or any AI vendor/model
+  name appears in `.next/static` or any `NEXT_PUBLIC_` value.
 
 **Proved by**: `tests/security/cost.test.ts` (11th command in a minute →
 429 with the planner spy untouched; 402 at the usage limit before any
@@ -183,8 +183,8 @@ checks, `validation.test.ts` GET-mutation check. *(Spec test 10.)*
   `injection_approval_blocked`, `executor_category_denied`,
   `usage_limit_hit`, `global_budget_hit`, `turnstile_failed`,
   `serving_blocked` — the attack signals.
-- **Per-user Anthropic token accounting**: every planning call logs
-  `anthropic_usage` with user id + input/output token counts, so a runaway
+- **Per-user planner token accounting**: every planning call logs
+  `planner_usage` with user id + input/output token counts, so a runaway
   user is visible same-day.
 - **`GET /api/health`**: public liveness check, returns `{ ok: true }`
   and nothing else.
@@ -195,16 +195,16 @@ checks, `validation.test.ts` GET-mutation check. *(Spec test 10.)*
 |---|---|---|
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | Auth | ✅ (503 without) |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` | Data | ✅ (503 without) |
-| `ANTHROPIC_API_KEY` | Operator planning | ✅ (503 without) |
+| `PLANNER_API_KEY` | Operator planning | ✅ (503 without) |
+| `PLANNER_MODEL_DEFAULT` / `PLANNER_MODEL_PREMIUM` | Planner model ids (config only) | ✅ default; premium for max routing |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Cross-instance rate limits | ✅ operationally (in-memory fallback is per-instance) |
 | `TURNSTILE_SECRET_KEY` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Beta form bot defense | ✅ (beta submissions 503 without secret) |
 | `COSIGNO_GLOBAL_DAILY_PLANS` | Circuit breaker cap | optional (default 1000) |
-| `COSIGNO_OPERATOR_MODEL` | Model override | optional |
-| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Billing (stub) | when billing ships |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_PRICE_*` | Billing (absent → everyone free) | for paid plans |
 
 Deploy checklist:
 
-1. **Anthropic console**: set a hard monthly spend cap on the API key.
+1. **Planner provider console**: set a hard monthly spend cap on the planner API key.
 2. **Vercel**: set every required env var above for the Production
    environment; confirm none of the secret values are prefixed
    `NEXT_PUBLIC_` (the build's bundle scan enforces this too).

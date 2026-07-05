@@ -26,19 +26,19 @@ export interface PlanResult {
   promptVersion: string;
 }
 
-export function anthropicConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+export function plannerConfigured(): boolean {
+  return Boolean(process.env.PLANNER_API_KEY);
 }
 
-/** Hard cap on model output per planning call — cost containment. */
+/** Hard cap on planner output per call — cost containment. */
 const MAX_TOKENS = 1024;
 
 /**
  * command → plan → proposals. External content is scanned + wrapped before
- * it reaches model context. The model's tier requests are recorded but the
- * caller resolves the real tier server-side — the agent cannot self-escalate.
- * The offline mock planner is development-only: production without an
- * Anthropic key fails closed (and is already blocked upstream by the
+ * it reaches planner context. The planner's tier requests are recorded but
+ * the caller resolves the real tier server-side — the agent cannot
+ * self-escalate. The offline mock planner is development-only: production
+ * without a planner key fails closed (and is already blocked upstream by the
  * production-readiness gate).
  */
 export async function planCommand(
@@ -52,12 +52,12 @@ export async function planCommand(
     .filter((b) => b.injectionSuspected)
     .map((b) => b.source);
 
-  if (!anthropicConfigured() && process.env.NODE_ENV === "production") {
-    throw new Error("anthropic_not_configured");
+  if (!plannerConfigured() && process.env.NODE_ENV === "production") {
+    throw new Error("planner_not_configured");
   }
 
-  const plan = anthropicConfigured()
-    ? await planWithClaude(command, blocks, userId, model)
+  const plan = plannerConfigured()
+    ? await planWithLLM(command, blocks, userId, model)
     : planWithMock(command, blocks);
 
   return {
@@ -70,14 +70,15 @@ export async function planCommand(
 
 type RawPlan = { reasoning: string; proposals: ProposedAction[] };
 
-async function planWithClaude(
+async function planWithLLM(
   command: string,
   blocks: UntrustedBlock[],
   userId?: string,
   model?: string
 ): Promise<RawPlan> {
-  const { default: Anthropic } = await import("@anthropic-ai/sdk");
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  // Server-only vendor SDK; the package + client never reach the browser.
+  const { default: LLM } = await import("@anthropic-ai/sdk");
+  const client = new LLM({ apiKey: process.env.PLANNER_API_KEY });
 
   const userContent = [
     `User command: ${command}`,
@@ -85,7 +86,8 @@ async function planWithClaude(
   ].join("\n\n");
 
   const response = await client.messages.create({
-    model: model || process.env.COSIGNO_OPERATOR_MODEL || "claude-haiku-4-5-20251001",
+    // The model id is config, never hardcoded (see PLANNER_MODEL_*).
+    model: model || process.env.PLANNER_MODEL_DEFAULT || "",
     max_tokens: MAX_TOKENS,
     system: buildSystemPrompt(),
     messages: [{ role: "user", content: userContent }],
@@ -134,11 +136,10 @@ async function planWithClaude(
   });
 
   // Per-user token accounting: a runaway user is visible same-day.
-  logInfo("anthropic_usage", {
+  logInfo("planner_usage", {
     userId: userId ?? "unknown",
     input_tokens: response.usage?.input_tokens,
     output_tokens: response.usage?.output_tokens,
-    model: response.model,
   });
 
   const toolUse = response.content.find((b) => b.type === "tool_use");

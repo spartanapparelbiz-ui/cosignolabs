@@ -2,7 +2,7 @@ import Stripe from "stripe";
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getUserPlan } from "../../src/lib/billing";
-import { chooseModel, defaultModel, strongModel } from "../../src/lib/enforcement";
+import { chooseModel } from "../../src/lib/enforcement";
 import { PAST_DUE_GRACE_DAYS } from "../../src/lib/plans";
 import { MemoryStore } from "../../src/lib/store/memory";
 import { resetRateLimitsForTests } from "../../src/lib/ratelimit";
@@ -158,12 +158,15 @@ describe("CSV export gated to pro+", () => {
   });
 });
 
-describe("model routing (server-side, logged)", () => {
-  it("free/pro always default; max gets stronger only for complex commands", () => {
-    expect(chooseModel("free", "delete everything and pay the invoice", "u")).toBe(defaultModel());
-    expect(chooseModel("pro", "delete everything and pay the invoice", "u")).toBe(defaultModel());
-    expect(chooseModel("max", "summarize", "u")).toBe(defaultModel());
-    expect(chooseModel("max", "delete these records and refund the order", "u")).toBe(strongModel());
+describe("model routing (server-side, config-driven, logged)", () => {
+  it("free/pro always default; max gets premium only for complex commands", () => {
+    // Model ids are config, never hardcoded — stub the env to distinguish tiers.
+    vi.stubEnv("PLANNER_MODEL_DEFAULT", "planner-fast");
+    vi.stubEnv("PLANNER_MODEL_PREMIUM", "planner-strong");
+    expect(chooseModel("free", "delete everything and pay the invoice", "u")).toBe("planner-fast");
+    expect(chooseModel("pro", "delete everything and pay the invoice", "u")).toBe("planner-fast");
+    expect(chooseModel("max", "summarize", "u")).toBe("planner-fast");
+    expect(chooseModel("max", "delete these records and refund the order", "u")).toBe("planner-strong");
   });
 });
 

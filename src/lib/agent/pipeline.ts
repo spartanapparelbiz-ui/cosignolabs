@@ -17,11 +17,11 @@ export interface CommandResult {
 
 /**
  * The full loop for one command:
- *   1. usage gate FIRST — planning calls (Anthropic invocations) count
+ *   1. usage gate FIRST — planning calls (planner invocations) count
  *      against the meter, so over-limit users get a 402 before any model
  *      call spends a cent,
  *   2. persist the user's message,
- *   3. plan (Anthropic or offline dev mock) with external content wrapped
+ *   3. plan (hosted planner or offline dev mock) with external content wrapped
  *      as untrusted data; the planning call is metered,
  *   4. resolve each proposal's tier SERVER-SIDE — the model's requested
  *      tier is advisory; a mismatch is clamped, recorded on the card
@@ -63,7 +63,7 @@ export async function runCommand(
 
   const model = chooseModel(planId, command, userId);
   const plan = await planCommand(command, opts.externalContent ?? [], userId, model);
-  // The planning call itself is metered — Anthropic invocations count.
+  // The planning call itself is metered — planner invocations count.
   await store.incrementUsage(userId);
 
   const settings = await store.getTierSettings(userId);

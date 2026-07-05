@@ -1,22 +1,27 @@
 #!/usr/bin/env node
 /**
- * Post-build secret scan. Fails the production build if any secret
- * material or server-only text is present in the CLIENT bundle
- * (.next/static) or in any NEXT_PUBLIC_ env value.
+ * Post-build client-bundle scan. Fails the production build if secret
+ * material, server-only text, OR any AI vendor/model name is present in the
+ * CLIENT bundle (.next/static) or in a NEXT_PUBLIC_ env value.
  *
- * Patterns: Anthropic keys (sk-ant), Stripe live keys (sk_live), the
- * Supabase service-role marker, Clerk secret keys (sk_test/sk_live via
- * CLERK_SECRET prefix), and a distinctive sentence from the operator's
- * server-only system prompt.
+ * Secret patterns: hosted-LLM key prefix (sk-ant), Stripe live keys
+ * (sk_live), the Supabase service-role marker, and a distinctive sentence
+ * from the operator's server-only system prompt.
+ *
+ * Vendor sweep (spec §6): no AI vendor or model names may reach the client —
+ * they live only in server config / env. The product refers to it only as
+ * "the planner" or "the operator".
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const FORBIDDEN = [
-  { name: "anthropic key", re: /sk-ant/ },
+  { name: "hosted-llm key", re: /sk-ant/ },
   { name: "stripe live key", re: /sk_live/ },
   { name: "supabase service role", re: /service_role/ },
   { name: "system prompt text", re: /You are the cosigno operator/ },
+  // AI vendor / model names — must never be user-facing or in the bundle.
+  { name: "vendor/model name", re: /\b(anthropic|claude|haiku|sonnet|opus|openai|gpt-|gemini|mistral|llama)\b/i },
 ];
 
 function* walk(dir) {

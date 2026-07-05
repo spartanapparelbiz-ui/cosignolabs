@@ -5,7 +5,7 @@ import { logSecurity } from "./log";
  * window) so limits hold across serverless instances. Without Upstash env
  * vars (local dev / CI) an in-memory sliding window with identical
  * semantics is used. Limits:
- *   command  10/min + 100/day per user   (each command is an Anthropic call)
+ *   command  10/min + 100/day per user   (each command is a planner call)
  *   transition 30/min per user           (approve / veto / edit)
  *   beta       3/hour per IP
  * plus a global daily planning budget as the circuit breaker.
@@ -145,7 +145,7 @@ export async function enforceLimit(name: LimitName, key: string): Promise<void> 
 }
 
 /**
- * Global circuit breaker: bounds total daily Anthropic invocations across
+ * Global circuit breaker: bounds total daily planner invocations across
  * ALL users, so even a per-user-limit bypass has a hard ceiling. Uses a
  * Redis daily counter when Upstash is configured, else process memory.
  */

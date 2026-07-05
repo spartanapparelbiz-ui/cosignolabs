@@ -21,25 +21,30 @@ export function usageLimitMessage(planId: string): string {
 
 const TIER3_HINT = /(delete|remove permanently|refund|payment|\bpay\b|wire|transfer)/i;
 
-/** Default = Haiku; stronger = Sonnet. Env-overridable. */
-export function defaultModel(): string {
-  return process.env.COSIGNO_MODEL_DEFAULT || "claude-haiku-4-5-20251001";
-}
-export function strongModel(): string {
-  return process.env.COSIGNO_MODEL_STRONG || process.env.COSIGNO_OPERATOR_MODEL || "claude-sonnet-5";
+export type PlannerTier = "default" | "premium";
+
+/**
+ * Planner model identifiers are CONFIG, never hardcoded in source: the
+ * default (fast) planner is PLANNER_MODEL_DEFAULT and the premium planner is
+ * PLANNER_MODEL_PREMIUM. Returns "" if unset — the caller only reaches this
+ * when the real planner runs, which requires the env to be configured.
+ */
+export function plannerModel(tier: PlannerTier): string {
+  return tier === "premium"
+    ? process.env.PLANNER_MODEL_PREMIUM || ""
+    : process.env.PLANNER_MODEL_DEFAULT || "";
 }
 
 /**
- * Server-side model routing. Only the max plan may reach the stronger model,
- * and only for commands that look complex (tier-3 categories or plausibly
- * multi-step). free/pro always use the default (Haiku). The decision is
- * logged per call.
+ * Server-side routing. Only the max plan may reach the premium planner, and
+ * only for commands that look complex (tier-3 categories or plausibly
+ * multi-step). free/pro always use the default fast planner. The decision is
+ * logged per call — by tier label, never the raw model id.
  */
 export function chooseModel(planId: string, command: string, userId: string): string {
   const plan = PLANS[planId as keyof typeof PLANS] ?? PLANS.free;
   const complex = TIER3_HINT.test(command) || command.length > 240 || /\band\b/i.test(command);
-  const useStrong = plan.strongerModel && complex;
-  const model = useStrong ? strongModel() : defaultModel();
-  logInfo("model_routing", { userId, plan: plan.id, complex, model });
-  return model;
+  const tier: PlannerTier = plan.strongerModel && complex ? "premium" : "default";
+  logInfo("model_routing", { userId, plan: plan.id, complex, tier });
+  return plannerModel(tier);
 }

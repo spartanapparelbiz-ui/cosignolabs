@@ -43,8 +43,9 @@ continues to `current_period_end`, then free.
 - **Integrations** — `POST /api/integrations` rejects a free user's 2nd
   connection with **402**.
 - **Model routing** — `chooseModel()` gives the **max** plan the stronger
-  model (Sonnet) only for complex commands (tier-3 categories / multi-step);
-  free/pro always use the default (Haiku). Logged per call (`model_routing`).
+  planner (`PLANNER_MODEL_PREMIUM`) only for complex commands (tier-3
+  categories / multi-step); free/pro always use the default fast planner
+  (`PLANNER_MODEL_DEFAULT`). Logged per call by tier, never the model id.
 - **CSV export** — `GET /api/activity?format=csv` requires pro+ → else 402.
 
 Plan is never read from client input. The `subscriptions` table has no client
@@ -64,7 +65,7 @@ updated_at)` — migration `supabase/migrations/0003_billing.sql`.
 - free user's 26th action → 402 with the `$29` upgrade copy
 - free user's 2nd integration → 402; pro unlimited
 - CSV export: free → 402, pro → 200
-- model routing: free/pro default, max+complex → stronger
+- model routing: free/pro default planner, max+complex → premium planner
 - webhook bad signature → 400 and nothing written; valid `payment_failed` →
   `past_due`
 
@@ -77,7 +78,7 @@ updated_at)` — migration `supabase/migrations/0003_billing.sql`.
 | `STRIPE_PRICE_PRO_MONTHLY` / `_ANNUAL` | pro price IDs |
 | `STRIPE_PRICE_MAX_MONTHLY` / `_ANNUAL` | max price IDs |
 | `NEXT_PUBLIC_APP_URL` | checkout/portal return URLs (defaults to cosignolabs.com) |
-| `COSIGNO_MODEL_DEFAULT` / `COSIGNO_MODEL_STRONG` | optional model overrides |
+| `PLANNER_MODEL_DEFAULT` / `PLANNER_MODEL_PREMIUM` | planner model ids (config only, never hardcoded) |
 
 ## Test-mode setup
 
@@ -102,7 +103,7 @@ updated_at)` — migration `supabase/migrations/0003_billing.sql`.
    (`https://cosignolabs.com/api/stripe/webhook`) and subscribe to the four
    events above.
 4. Set a **Stripe billing spend/volume alert** and, separately, the
-   **Anthropic console spend cap** (see SECURITY.md).
+   **planner provider spend cap** (see SECURITY.md).
 5. Apply migrations `0003` and `0004`; confirm RLS blocks anon writes to
    `subscriptions` and `integrations`.
 6. Verify a full test purchase in live mode with a real card, then refund it.

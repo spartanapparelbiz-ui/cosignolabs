@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 /**
  * The landing-page sandbox. Public and stateless BY CONSTRUCTION:
  *  - imports ONLY the pure mock planner + tier table — this module has no
- *    path to the Anthropic client, the store, or the database, so no
+ *    path to the planner client, the store, or the database, so no
  *    tampered parameter can reach them ($0 spend, zero persistence);
  *  - the returned cards live in the visitor's browser memory only;
  *  - per-IP rate limit (20/min) purely as abuse hygiene.
