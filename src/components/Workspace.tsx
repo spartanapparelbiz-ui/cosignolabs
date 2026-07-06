@@ -8,6 +8,13 @@ import { SkeletonCard } from "./Skeleton";
 import { useToast } from "./Toast";
 import { VoiceOrb, type OrbState } from "./VoiceOrb";
 import { EmptyIllustration } from "./EmptyIllustration";
+import { useKeyboardHints } from "@/lib/useKeyboardHints";
+
+/** Static keyword set for inline command autocomplete. */
+const COMMAND_KEYWORDS = [
+  "archive", "draft", "reply", "summarize", "reprice", "schedule",
+  "refund", "unsubscribe", "forward", "label", "follow up", "update",
+];
 
 const EXAMPLES = [
   "clear my inbox of newsletters",
@@ -38,7 +45,33 @@ export function Workspace() {
   const [reasoningOpen, setReasoningOpen] = useState<Record<string, boolean>>({});
   // Optimistic status overrides, rolled back if the server rejects.
   const [optimistic, setOptimistic] = useState<Record<string, ActionStatus>>({});
+  const [lastCommand, setLastCommand] = useState("");
+  const [keyHints] = useKeyboardHints();
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Inline keyword autocomplete on the current (last) token.
+  const suggestions = useMemo(() => {
+    const token = command.split(/\s+/).pop()?.toLowerCase() ?? "";
+    if (token.length < 2) return [];
+    return COMMAND_KEYWORDS.filter(
+      (k) => k.startsWith(token) && k !== token
+    ).slice(0, 3);
+  }, [command]);
+
+  function acceptSuggestion(word: string) {
+    setCommand((prev) => {
+      const parts = prev.split(/(\s+)/); // keep separators
+      // replace the final non-space token
+      for (let i = parts.length - 1; i >= 0; i--) {
+        if (parts[i].trim().length) {
+          parts[i] = word;
+          break;
+        }
+      }
+      return parts.join("") + " ";
+    });
+    inputRef.current?.focus();
+  }
   const sessionRef = useRef<string | null>(null);
   sessionRef.current = session?.id ?? null;
   const toast = useToast();
@@ -136,6 +169,7 @@ export function Workspace() {
   async function submit(text: string) {
     const cmd = text.trim();
     if (!cmd || thinking) return;
+    setLastCommand(cmd);
     setThinking(true);
     setError(null);
     setCommand("");
@@ -243,22 +277,54 @@ export function Workspace() {
             onFocus={() => setListening(true)}
             onBlur={() => setListening(false)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              // cmd/ctrl+enter always submits; plain enter submits (shift = newline)
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey || !e.shiftKey)) {
                 e.preventDefault();
                 submit(command);
+                return;
+              }
+              // Tab accepts the top inline suggestion
+              if (e.key === "Tab" && suggestions.length > 0) {
+                e.preventDefault();
+                acceptSuggestion(suggestions[0]);
+                return;
+              }
+              // up-arrow on an empty box recalls the last command
+              if (e.key === "ArrowUp" && !command.trim() && lastCommand) {
+                e.preventDefault();
+                setCommand(lastCommand);
+                return;
               }
               if (e.key === "Escape") {
                 setCommand("");
                 e.currentTarget.blur();
               }
             }}
-            placeholder={'tell cosigno what to do…  (press "/" to focus)'}
+            placeholder={'tell cosigno what to do…  (press "/" to focus, ↑ recalls)'}
             rows={3}
             className="mt-2 w-full resize-none rounded-btn bg-transparent text-lg font-semibold placeholder:text-ink-soft/60 focus:outline-none"
           />
+
+          {suggestions.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-bold lowercase text-ink-soft">
+                ↹ complete:
+              </span>
+              {suggestions.map((s, i) => (
+                <button
+                  key={s}
+                  onClick={() => acceptSuggestion(s)}
+                  className="rounded-pill bg-cream-deep px-2.5 py-1 text-xs font-semibold transition-colors hover:bg-ink hover:text-cream"
+                >
+                  {s}
+                  {i === 0 && <span className="ml-1 text-[9px] text-ink-soft">tab</span>}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="mt-2 flex items-center justify-between">
             <span className="text-[11px] text-ink-soft">
-              enter to send · shift+enter for a new line · esc to clear
+              enter (or ⌘/ctrl+enter) to send · shift+enter for a new line · esc to clear
             </span>
             <button
               onClick={() => submit(command)}
@@ -350,6 +416,7 @@ export function Workspace() {
             key={a.id}
             action={a}
             index={i}
+            showKeyHints={keyHints}
             onApprove={onApprove}
             onVeto={onVeto}
             onEdit={onEdit}

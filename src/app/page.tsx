@@ -1,12 +1,12 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { LogoLockup, CosignoMark } from "@/components/brand/Logo";
-import { DemoLoop } from "@/components/landing/DemoLoop";
 import { BetaForm } from "@/components/landing/BetaForm";
 import { HeroMark } from "@/components/landing/HeroMark";
 import { StaggerHeadline } from "@/components/landing/StaggerHeadline";
 import { BenefitGlyph } from "@/components/landing/BenefitGlyphs";
 import { CheckDivider } from "@/components/landing/CheckDivider";
+import { Island } from "@/components/landing/Island";
 import { Reveal } from "@/components/Reveal";
 
 // The sandbox is below the fold — lazy-loaded so it never touches LCP.
@@ -15,6 +15,28 @@ const LivePreview = dynamic(() => import("@/components/landing/LivePreview"), {
     <div className="mx-auto h-64 w-full max-w-2xl rounded-card bg-cream-deep" aria-hidden="true" />
   ),
 });
+
+// Interactive islands — each dynamically imported so they never touch LCP.
+const ApprovalStory = dynamic(() => import("@/components/landing/ApprovalStory"), {
+  loading: () => (
+    <div className="mx-auto h-72 w-full max-w-lg rounded-card bg-cream-deep" aria-hidden="true" />
+  ),
+});
+
+const TierBoard = dynamic(() => import("@/components/landing/TierBoard"), {
+  loading: () => (
+    <div className="mx-auto h-56 w-full max-w-3xl rounded-card bg-cream-deep" aria-hidden="true" />
+  ),
+});
+
+const HandoffCalculator = dynamic(
+  () => import("@/components/landing/HandoffCalculator"),
+  {
+    loading: () => (
+      <div className="mx-auto h-72 w-full max-w-2xl rounded-card bg-cream-deep" aria-hidden="true" />
+    ),
+  }
+);
 
 const BENEFITS = [
   {
@@ -102,13 +124,19 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Demo loop */}
+        {/* Interactive approval story */}
         <section className="bg-cream-deep/50">
           <Reveal className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 py-16">
             <h2 className="text-center text-2xl font-extrabold lowercase sm:text-3xl">
               one command. one signature. done.
             </h2>
-            <DemoLoop />
+            <p className="-mt-3 max-w-md text-center text-sm font-semibold text-ink-soft">
+              you be the operator. approve two actions — then catch the one an
+              injected email tried to slip past you.
+            </p>
+            <Island minHeight={300} className="w-full max-w-lg">
+              <ApprovalStory />
+            </Island>
           </Reveal>
         </section>
 
@@ -141,6 +169,24 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Playable permissions board */}
+        <section className="mx-auto w-full max-w-6xl px-4 py-16">
+          <Reveal className="flex flex-col items-center">
+            <h2 className="text-center text-2xl font-extrabold lowercase sm:text-3xl">
+              you set the rope. try it.
+            </h2>
+            <p className="mt-3 max-w-xl text-center text-sm font-semibold text-ink-soft">
+              every kind of action sits in a tier — auto, approve, or locked.
+              move one and see what changes. this is the real model.
+            </p>
+            <div className="mt-8 flex w-full justify-center">
+              <Island minHeight={240} className="w-full max-w-3xl">
+                <TierBoard />
+              </Island>
+            </div>
+          </Reveal>
+        </section>
+
         <CheckDivider />
 
         {/* How the loop works */}
@@ -166,8 +212,26 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* What would you hand off? calculator */}
+        <section className="bg-cream-deep/60">
+          <Reveal className="mx-auto flex w-full max-w-2xl flex-col items-center px-4 py-16">
+            <h2 className="text-center text-2xl font-extrabold lowercase sm:text-3xl">
+              what would you hand off?
+            </h2>
+            <p className="mt-3 max-w-xl text-center text-sm font-semibold text-ink-soft">
+              pick what eats your week. we&apos;ll size it — and show which plan
+              fits and how much time you get back.
+            </p>
+            <div className="mt-8 w-full">
+              <Island minHeight={320}>
+                <HandoffCalculator />
+              </Island>
+            </div>
+          </Reveal>
+        </section>
+
         {/* Beta application */}
-        <section id="beta" className="bg-cream-deep/60">
+        <section id="beta">
           <Reveal className="mx-auto w-full max-w-2xl px-4 py-16">
             <div className="text-center">
               <CosignoMark size={44} />

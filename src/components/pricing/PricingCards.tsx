@@ -1,24 +1,71 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { PLAN_ORDER, PLANS, type Interval, type PlanId } from "@/lib/plans";
+import { useCountUp } from "@/lib/useCountUp";
+import { track } from "@/lib/analytics";
 
 /**
- * Pricing cards + monthly/annual toggle. Feature lists come straight from
- * plans.ts so they can't drift from enforcement. Pro is visually featured.
- * CTAs: free → sign up; pro/max → checkout (sign-up-then-checkout when logged
- * out, preserving intent via the redirect target).
+ * Pricing cards + monthly/annual toggle + an interactive actions slider.
+ * Feature lists and limits come straight from plans.ts so they can't drift
+ * from enforcement. Two live interactions:
+ *   - the slider probes "which tier covers N actions" — covering tier
+ *     highlights, the rest dim;
+ *   - arriving from the handoff calculator (/pricing?plan=pro) pre-positions
+ *     the slider and badges the recommended plan "based on your estimate".
+ * Toggle numbers count between values instead of hard-swapping.
  */
+
+/** A representative monthly volume that lands squarely inside each plan. */
+const PLAN_PROBE: Record<PlanId, number> = { free: 20, pro: 500, max: 4000 };
+
+function coveringPlan(actions: number): PlanId {
+  for (const id of PLAN_ORDER) {
+    if (actions <= PLANS[id].actionLimit) return id;
+  }
+  return "max";
+}
+
+/** One card's price number, animated between monthly/annual values. */
+function PriceNumber({ plan, interval }: { plan: (typeof PLANS)[PlanId]; interval: Interval }) {
+  const target = plan.price.monthly === 0 ? 0 : interval === "annual" ? plan.price.annual : plan.price.monthly;
+  const shown = useCountUp(target, 420);
+  const suffix = plan.price.monthly === 0 ? "" : interval === "annual" ? "/yr" : "/mo";
+  return (
+    <div className="mt-4 flex items-baseline gap-1">
+      <span className="text-4xl font-extrabold tabular-nums">${shown}</span>
+      <span className="text-sm text-ink-soft">{suffix}</span>
+    </div>
+  );
+}
+
 export function PricingCards() {
   const [interval, setInterval] = useState<Interval>("monthly");
+  const [recommended, setRecommended] = useState<PlanId | null>(null);
+  const [probe, setProbe] = useState<number>(300);
   const [busy, setBusy] = useState<PlanId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Read the ?plan= handoff from the calculator AFTER mount (not via
+  // useSearchParams, which would defer the whole render behind Suspense and
+  // cause a layout shift). The cards render server-side at their real size;
+  // this only adds the recommendation badge + repositions the slider.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("plan");
+    if (p && PLAN_ORDER.includes(p as PlanId)) {
+      setRecommended(p as PlanId);
+      setProbe(PLAN_PROBE[p as PlanId]);
+    }
+  }, []);
+
+  const covering = coveringPlan(probe);
+
   async function choose(plan: PlanId) {
     setError(null);
+    track("pricing_choose", { plan, interval });
     if (plan === "free") {
       router.push("/app");
       return;
@@ -31,7 +78,6 @@ export function PricingCards() {
         body: JSON.stringify({ plan, interval }),
       });
       if (res.status === 401) {
-        // logged out → sign in, then resume intent
         router.push(`/app?checkout=${plan}&interval=${interval}`);
         return;
       }
@@ -68,6 +114,33 @@ export function PricingCards() {
         ))}
       </div>
 
+      {/* interactive actions probe */}
+      <div className="mx-auto mt-8 max-w-xl rounded-card bg-white/60 p-4 shadow-soft">
+        <div className="flex items-baseline justify-between">
+          <label htmlFor="probe" className="text-xs font-extrabold lowercase tracking-widest text-ink-soft">
+            drag: how many actions a month?
+          </label>
+          <span className="font-mono text-sm font-bold tabular-nums">
+            {probe.toLocaleString()}
+          </span>
+        </div>
+        <input
+          id="probe"
+          type="range"
+          min={10}
+          max={10000}
+          step={10}
+          value={probe}
+          onChange={(e) => setProbe(Number(e.target.value))}
+          onPointerUp={() => track("pricing_probe", { actions: probe })}
+          className="mt-2 h-11 w-full cursor-pointer accent-signal"
+        />
+        <p className="mt-1 text-sm font-semibold">
+          <span className="font-extrabold">{PLANS[covering].name}</span> covers{" "}
+          {probe.toLocaleString()} actions / month.
+        </p>
+      </div>
+
       {error && (
         <p className="mx-auto mt-4 w-fit rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold" role="alert">
           {error}
@@ -78,37 +151,29 @@ export function PricingCards() {
         {PLAN_ORDER.map((id) => {
           const plan = PLANS[id];
           const featured = id === "pro";
-          const amount =
-            plan.price.monthly === 0
-              ? "$0"
-              : interval === "annual"
-                ? `$${plan.price.annual}`
-                : `$${plan.price.monthly}`;
-          const suffix = plan.price.monthly === 0 ? "" : interval === "annual" ? "/yr" : "/mo";
+          const isCovering = covering === id;
+          const isRecommended = recommended === id;
+          const dim = !isCovering;
 
           return (
             <div
               key={id}
-              className={`relative flex flex-col rounded-card bg-white/70 p-6 shadow-soft transition-shadow hover:shadow-lift ${
-                featured ? "ring-2 ring-signal" : ""
-              }`}
+              className={`relative flex flex-col rounded-card bg-white/70 p-6 shadow-soft transition-all duration-base ${
+                isCovering ? "ring-2 ring-signal shadow-lift" : featured ? "ring-1 ring-signal/40" : ""
+              } ${dim ? "opacity-70" : "opacity-100"}`}
             >
-              {featured && (
+              {isRecommended ? (
+                <span className="absolute -top-3 left-6 rounded-pill bg-ink px-3 py-1 text-[11px] font-extrabold lowercase text-cream">
+                  based on your estimate
+                </span>
+              ) : featured ? (
                 <span className="absolute -top-3 left-6 rounded-pill bg-signal px-3 py-1 text-[11px] font-extrabold lowercase text-ink">
                   most popular
                 </span>
-              )}
+              ) : null}
               <h3 className="text-lg font-extrabold lowercase">{plan.name}</h3>
               <p className="mt-1 text-sm text-ink-soft">{plan.tagline}</p>
-              <div className="mt-4 flex items-baseline gap-1">
-                <span
-                  key={amount}
-                  className="animate-fade-through text-4xl font-extrabold tabular-nums"
-                >
-                  {amount}
-                </span>
-                <span className="text-sm text-ink-soft">{suffix}</span>
-              </div>
+              <PriceNumber plan={plan} interval={interval} />
               <ul className="mt-5 flex flex-1 flex-col gap-2.5">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm">
@@ -120,14 +185,14 @@ export function PricingCards() {
               <button
                 onClick={() => choose(id)}
                 disabled={busy === id}
-                className={`group relative mt-6 overflow-hidden rounded-btn px-5 py-3 text-sm font-extrabold lowercase transition-transform duration-fast active:scale-95 disabled:opacity-60 ${
-                  featured ? "bg-signal text-ink" : "bg-ink text-cream"
+                className={`group relative mt-6 min-h-[44px] overflow-hidden rounded-btn px-5 py-3 text-sm font-extrabold lowercase transition-transform duration-fast active:scale-95 disabled:opacity-60 ${
+                  featured || isCovering ? "bg-signal text-ink" : "bg-ink text-cream"
                 }`}
               >
-                {!featured && (
+                {!(featured || isCovering) && (
                   <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-[280ms] ease-brand-out group-hover:scale-x-100" />
                 )}
-                <span className={`relative ${!featured ? "transition-colors group-hover:text-ink" : ""}`}>
+                <span className={`relative ${!(featured || isCovering) ? "transition-colors group-hover:text-ink" : ""}`}>
                   {busy === id ? "starting…" : id === "free" ? "start free" : `choose ${plan.name}`}
                 </span>
               </button>

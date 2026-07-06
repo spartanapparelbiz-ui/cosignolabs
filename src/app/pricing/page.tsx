@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LogoLockup } from "@/components/brand/Logo";
 import { PricingCards } from "@/components/pricing/PricingCards";
-import { Reveal } from "@/components/Reveal";
+import { FaqAccordion } from "@/components/pricing/FaqAccordion";
 
 export const metadata: Metadata = {
   title: "pricing — cosigno",
@@ -13,22 +13,27 @@ export const metadata: Metadata = {
 
 const FAQ = [
   {
+    id: "what-counts-as-an-action",
     q: "what counts as an action?",
     a: "an action is one planning call or one execution. asking the operator to plan a command counts, and each card you approve that runs counts. vetoed and un-run proposals don't.",
   },
   {
+    id: "hitting-the-limit",
     q: "what happens when i hit the limit?",
     a: "planning pauses with an upgrade prompt, and new commands are blocked until your cycle resets or you upgrade. proposals already on screen can still be approved, and nothing is ever charged as surprise overage.",
   },
   {
+    id: "cancel-anytime",
     q: "can i cancel anytime?",
     a: "yes, from the billing portal. you keep your plan until the end of the period you've paid for, then drop to free — no lock-in.",
   },
   {
+    id: "approval-first-billing",
     q: "how does approval-first keep billing safe?",
     a: "the operator can never spend money or take a paid action on its own — every send, change, or payment stops at a card for your signature, and tier-3 actions need typed confirmation. your plan only meters the operator's planning and the actions you approve.",
   },
   {
+    id: "annual-refunds",
     q: "do you refund annual plans?",
     a: "annual refunds follow stripe's standard policy — manage cancellations and refunds from the billing portal, and reach out if anything looks off.",
   },
@@ -78,18 +83,7 @@ export default function PricingPage() {
             <h2 className="text-center text-2xl font-extrabold lowercase sm:text-3xl">
               questions, answered plainly
             </h2>
-            <div className="mt-8 flex flex-col gap-3">
-              {FAQ.map((item, i) => (
-                <Reveal
-                  key={item.q}
-                  delay={i * 60}
-                  className="rounded-card bg-white/70 p-5 shadow-soft"
-                >
-                  <h3 className="font-extrabold lowercase">{item.q}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{item.a}</p>
-                </Reveal>
-              ))}
-            </div>
+            <FaqAccordion items={FAQ} />
           </div>
         </section>
       </main>

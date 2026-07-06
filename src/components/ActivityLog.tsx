@@ -115,7 +115,19 @@ export function ActivityLog() {
             </thead>
             <tbody>
               {actions.map((a) => (
-                <tr key={a.id} className="border-b border-line/50 align-top last:border-0">
+                <tr
+                  key={a.id}
+                  onClick={() => setExpanded(expanded === a.id ? null : a.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setExpanded(expanded === a.id ? null : a.id);
+                    }
+                  }}
+                  tabIndex={0}
+                  aria-expanded={expanded === a.id}
+                  className="cursor-pointer border-b border-line/50 align-top transition-colors last:border-0 hover:bg-cream-deep/40 focus:outline-none focus-visible:bg-cream-deep/60"
+                >
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-ink-soft">
                     {new Date(a.created_at).toLocaleString([], {
                       month: "short",
@@ -156,13 +168,9 @@ export function ActivityLog() {
                     </span>
                   </td>
                   <td className="max-w-[220px] px-4 py-3">
-                    <button
-                      onClick={() => setExpanded(expanded === a.id ? null : a.id)}
-                      className="text-xs font-bold lowercase text-ink-soft underline underline-offset-2"
-                      aria-expanded={expanded === a.id}
-                    >
+                    <span className="text-xs font-bold lowercase text-ink-soft underline underline-offset-2">
                       {expanded === a.id ? "hide" : "view"}
-                    </button>
+                    </span>
                     {expanded === a.id && (
                       <pre className="mt-2 max-h-40 overflow-auto rounded-btn bg-cream-deep p-2.5 font-mono text-[10px] leading-relaxed text-ink">
                         {JSON.stringify(

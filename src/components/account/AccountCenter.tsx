@@ -12,6 +12,7 @@ import {
 import type { AccountAuditRecord, ActionRecord, CategoryMeta, Tier, UsageRecord } from "@/lib/types";
 import { SkeletonRows } from "@/components/Skeleton";
 import { EmptyIllustration } from "@/components/EmptyIllustration";
+import { useKeyboardHints } from "@/lib/useKeyboardHints";
 import { UsageRing } from "./UsageRing";
 
 type CategoryWithTier = CategoryMeta & { tier: Tier };
@@ -166,6 +167,7 @@ function ProfilePanel() {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keyHints, setKeyHints] = useKeyboardHints();
 
   async function del() {
     setBusy(true);
@@ -210,6 +212,32 @@ function ProfilePanel() {
         with the auth provider configured, this shows your real name, email, and
         avatar — themed to the cosigno tokens, not a default widget.
       </p>
+
+      {/* Preferences */}
+      <div className="mt-6 flex items-center gap-4 rounded-card bg-white/60 p-4 shadow-soft">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold lowercase">keyboard shortcut hints</p>
+          <p className="mt-0.5 text-xs text-ink-soft">
+            show the <kbd className="rounded bg-cream-deep px-1 font-mono">a</kbd> approve ·{" "}
+            <kbd className="rounded bg-cream-deep px-1 font-mono">v</kbd> veto footer on focused action cards.
+          </p>
+        </div>
+        <button
+          onClick={() => setKeyHints(!keyHints)}
+          role="switch"
+          aria-checked={keyHints}
+          aria-label="toggle keyboard shortcut hints"
+          className={`relative h-6 w-11 shrink-0 rounded-pill transition-colors duration-fast ${
+            keyHints ? "bg-signal" : "bg-line"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-5 w-5 rounded-full bg-cream shadow-soft transition-transform duration-fast ease-brand-out ${
+              keyHints ? "translate-x-[22px]" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
 
       {/* Danger zone */}
       <div className="mt-8 rounded-card ring-1 ring-inset ring-ink/30 p-5">
@@ -413,10 +441,15 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
   const [busy, setBusy] = useState<"upgrade" | "portal" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const reset = useMemo(() => {
-    if (!usage) return "";
+  const { reset, daysLeft } = useMemo(() => {
+    if (!usage) return { reset: "", daysLeft: undefined as number | undefined };
     const d = new Date(usage.cycle_start);
-    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)).toLocaleDateString([], { month: "long", day: "numeric" });
+    const resetDate = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
+    const days = Math.max(0, Math.ceil((resetDate.getTime() - Date.now()) / 86_400_000));
+    return {
+      reset: resetDate.toLocaleDateString([], { month: "long", day: "numeric" }),
+      daysLeft: days,
+    };
   }, [usage]);
 
   async function go(kind: "upgrade" | "portal") {
@@ -461,8 +494,8 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
             <div className="rounded-card bg-white/60 p-6 text-center shadow-soft">
-              <UsageRing used={usage.actions_executed} limit={usage.limit} />
-              <p className="mt-2 text-xs lowercase text-ink-soft">actions used this cycle</p>
+              <UsageRing used={usage.actions_executed} limit={usage.limit} daysLeft={daysLeft} resetLabel={reset} />
+              <p className="mt-2 text-xs lowercase text-ink-soft">actions used this cycle · hover for detail</p>
             </div>
             <div className="flex-1 rounded-card bg-white/60 p-5 shadow-soft">
               <div className="flex items-center justify-between">

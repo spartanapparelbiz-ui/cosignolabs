@@ -10,6 +10,8 @@ interface Props {
   action: ActionRecord;
   /** Stack position — used to stagger the entrance animation. */
   index?: number;
+  /** Show the a/v keyboard-shortcut footer (account preference). */
+  showKeyHints?: boolean;
   onApprove: (
     id: string,
     opts: { confirmation?: string }
@@ -48,7 +50,7 @@ export function SignedCheck({ label = "signed & executed" }: { label?: string })
   );
 }
 
-function ActionCardInner({ action, index = 0, onApprove, onVeto, onEdit }: Props) {
+function ActionCardInner({ action, index = 0, showKeyHints = false, onApprove, onVeto, onEdit }: Props) {
   const enterDelay = { animationDelay: `${Math.min(index, 6) * 60}ms` };
   const [mode, setMode] = useState<"view" | "edit" | "veto" | "confirm">("view");
   const [payloadText, setPayloadText] = useState(() =>
@@ -90,6 +92,19 @@ function ActionCardInner({ action, index = 0, onApprove, onVeto, onEdit }: Props
       // wrong typed confirmation → shake the field
       setShake(true);
       setTimeout(() => setShake(false), 260);
+    }
+  }
+
+  // a = approve, v = veto — only when the card itself holds focus (never when
+  // the visitor is typing in the payload editor / veto reason / confirm field).
+  function onCardKeyDown(e: React.KeyboardEvent<HTMLElement>) {
+    if (e.target !== e.currentTarget || !pending || busy) return;
+    if (e.key === "a" || e.key === "A") {
+      e.preventDefault();
+      handleApprove();
+    } else if (e.key === "v" || e.key === "V") {
+      e.preventDefault();
+      setMode("veto");
     }
   }
 
@@ -145,7 +160,9 @@ function ActionCardInner({ action, index = 0, onApprove, onVeto, onEdit }: Props
   return (
     <article
       style={enterDelay}
-      className={`relative animate-spring-in overflow-hidden rounded-card bg-white/70 p-4 transition-shadow ${
+      tabIndex={pending ? 0 : undefined}
+      onKeyDown={pending ? onCardKeyDown : undefined}
+      className={`relative animate-spring-in overflow-hidden rounded-card bg-white/70 p-4 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
         pending ? "shadow-depth-lift" : "shadow-depth"
       } ${action.status === "vetoed" ? "opacity-70 grayscale" : ""}`}
     >
@@ -352,6 +369,14 @@ function ActionCardInner({ action, index = 0, onApprove, onVeto, onEdit }: Props
         </footer>
       )}
 
+      {pending && showKeyHints && mode === "view" && (
+        <p className="mt-2 text-[10px] font-bold lowercase tracking-wide text-ink-soft/70">
+          focus a card, then press{" "}
+          <kbd className="rounded bg-cream-deep px-1 font-mono">a</kbd> to approve ·{" "}
+          <kbd className="rounded bg-cream-deep px-1 font-mono">v</kbd> to veto
+        </p>
+      )}
+
       {action.status === "executed" && (
         <div className="mt-3">
           <SignedCheck />
@@ -370,6 +395,7 @@ export const ActionCard = memo(
   (prev, next) =>
     prev.action === next.action &&
     prev.index === next.index &&
+    prev.showKeyHints === next.showKeyHints &&
     prev.onApprove === next.onApprove &&
     prev.onVeto === next.onVeto &&
     prev.onEdit === next.onEdit

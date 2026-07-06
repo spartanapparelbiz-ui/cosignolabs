@@ -56,8 +56,15 @@ for (const vp of VIEWPORTS) {
     test("pricing", async ({ page }) => {
       await page.goto("/pricing", { waitUntil: "networkidle" });
       await expect(page.getByText("most popular")).toBeVisible();
-      // toggle to annual to exercise the animated price swap
-      await page.getByRole("button", { name: /annual/ }).click();
+      // drive the actions slider — the covering tier should update live
+      const probe = page.locator("#probe");
+      await expect(probe).toBeVisible();
+      await probe.fill("5000");
+      await expect(page.getByText(/max covers 5,000 actions/i)).toBeVisible();
+      // open a FAQ item (deep-linkable accordion)
+      await page.getByRole("button", { name: /what counts as an action/i }).click();
+      // toggle to annual to exercise the animated price count
+      await page.getByRole("button", { name: /2 months free/ }).click();
       await page.evaluate(async () => {
         for (let y = 0; y <= document.body.scrollHeight; y += 400) {
           window.scrollTo(0, y);
@@ -70,19 +77,60 @@ for (const vp of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `pricing-${vp.name}.png`), fullPage: true });
     });
 
-    test("live preview with an executed card", async ({ page }) => {
+    test("live preview: command palette + executed card + audit row", async ({ page }) => {
       await page.goto("/", { waitUntil: "networkidle" });
       const preview = page.locator("#try");
       await preview.scrollIntoViewIfNeeded();
       // Wait for the lazy-loaded sandbox to hydrate.
       await expect(preview.getByText(/sandbox — simulated tools/)).toBeVisible();
-      await preview.getByRole("button", { name: "clear my inbox of newsletters" }).click();
+      // focusing the input opens the command palette; pick a grouped suggestion
+      await preview.getByPlaceholder(/type a command/).click();
+      await preview.getByRole("option", { name: "clear my inbox of newsletters" }).click();
       // A tier-1 card auto-executes; approve the tier-2 card too.
       await preview.getByRole("button", { name: "approve" }).first().click();
       await expect(preview.getByText(/simulated/i).first()).toBeVisible();
+      // reveal the audit row the toy "wrote"
+      await preview.getByRole("button", { name: /what just happened/i }).first().click();
+      await expect(preview.getByText(/audit_log/i)).toBeVisible();
       await noHorizontalScroll(page);
       await preview.scrollIntoViewIfNeeded();
       await preview.screenshot({ path: join(OUT, `preview-${vp.name}.png`) });
+    });
+
+    test("landing interactive widgets", async ({ page }) => {
+      await page.goto("/", { waitUntil: "networkidle" });
+
+      // --- approval story: approve the first card, then screenshot mid-story
+      const story = page.locator("section", {
+        hasText: "one command. one signature. done.",
+      });
+      await story.scrollIntoViewIfNeeded();
+      const approve = story.getByRole("button", { name: "approve" });
+      await expect(approve).toBeVisible();
+      await approve.click();
+      // card 1 executes and the second card slides in — a stable mid-story state
+      await expect(story.getByText(/draft replies to your 3 most recent leads/i)).toBeVisible();
+      await noHorizontalScroll(page);
+      await story.screenshot({ path: join(OUT, `story-${vp.name}.png`) });
+
+      // --- tier board: move "send email" into Auto → consequence warning
+      const board = page.locator("section", { hasText: "you set the rope" });
+      await board.scrollIntoViewIfNeeded();
+      await expect(board.getByRole("button", { name: "send email" })).toBeVisible();
+      await board.getByRole("button", { name: "send email" }).click();
+      await board.getByRole("button", { name: "move here" }).first().click();
+      await expect(board.getByText(/emails would now send without asking/i)).toBeVisible();
+      await noHorizontalScroll(page);
+      await board.screenshot({ path: join(OUT, `tierboard-${vp.name}.png`) });
+
+      // --- handoff calculator: has live output; toggle a task
+      const calc = page.locator("section", { hasText: "what would you hand off?" });
+      await calc.scrollIntoViewIfNeeded();
+      await calc.getByRole("button", { name: "reporting" }).click();
+      await expect(calc.getByText(/actions \/ month/i)).toBeVisible();
+      await expect(calc.getByText(/reclaimed \/ month/i)).toBeVisible();
+      await noHorizontalScroll(page);
+      await calc.screenshot({ path: join(OUT, `calculator-${vp.name}.png`) });
     });
 
     test("workspace with a proposed card", async ({ page }) => {

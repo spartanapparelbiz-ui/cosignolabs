@@ -128,6 +128,12 @@ const config: Config = {
           "70%": { opacity: "0" },
           "100%": { transform: "scale(1.9)", opacity: "0" },
         },
+        // Attention pulse that does NOT move the element (box-shadow only), so
+        // continuously-pulsing CTAs stay layout-stable.
+        "pulse-glow": {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(255,75,31,0)" },
+          "50%": { boxShadow: "0 0 0 5px rgba(255,75,31,0.30)" },
+        },
         shimmer: {
           "0%": { opacity: "0.5" },
           "50%": { opacity: "1" },
@@ -149,6 +155,7 @@ const config: Config = {
         "orb-spin-rev": "orb-spin-rev 18s linear infinite",
         "orb-breathe": "orb-breathe 2.6s ease-in-out infinite",
         "orb-ring": "orb-ring 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite",
+        "pulse-glow": "pulse-glow 1.6s ease-in-out infinite",
         shimmer: "shimmer 1.6s ease-in-out infinite",
         "toast-in": "toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both",
         settle: "settle 500ms cubic-bezier(0.22, 1, 0.36, 1) both",
