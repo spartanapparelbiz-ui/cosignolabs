@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "cosigno — the AI operator that asks first. cosignolabs.com",
+  "engines": {
+    "node": ">=18.18.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build && node scripts/check-bundle.mjs && node scripts/check-vendor.mjs",
