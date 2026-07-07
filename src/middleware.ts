@@ -41,14 +41,18 @@ const WARMING_HTML = `<!doctype html>
 <style>
   :root{color-scheme:light}
   *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;padding:2rem;
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.15rem;padding:2rem;
     background:#FBF4EA;color:#141414;text-align:center;
-    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-  svg{width:56px;height:56px}
-  h1{margin:0;font-size:1.6rem;font-weight:800;letter-spacing:-0.01em}
-  p{margin:0;max-width:24rem;color:#5C5650;font-weight:600;line-height:1.5}
-  a{margin-top:.4rem;color:#141414;font-weight:800;text-decoration:none;
-    border:1px solid #141414;border-radius:10px;padding:.6rem 1.2rem}
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+  svg{width:56px;height:56px;display:block}
+  h1{margin:0;font-size:1.7rem;font-weight:800;letter-spacing:-0.02em;line-height:1.15}
+  p{margin:0;max-width:26rem;color:#5C5650;font-weight:500;font-size:1rem;line-height:1.55}
+  a{margin-top:.5rem;color:#141414;font-weight:700;text-decoration:none;
+    border:1.5px solid #141414;border-radius:10px;padding:.65rem 1.3rem;
+    transition:background .15s ease,color .15s ease}
+  a:hover{background:#141414;color:#FBF4EA}
 </style></head>
 <body>
   <svg viewBox="0 0 100 100" aria-hidden="true">
@@ -56,7 +60,7 @@ const WARMING_HTML = `<!doctype html>
     <path d="M 47 53 L 57 63 L 88 28" fill="none" stroke="#FF4B1F" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
   <h1>cosigno is warming up</h1>
-  <p>the workspace is being configured — back shortly. the rest of the site works right now.</p>
+  <p>the workspace is being configured &mdash; back shortly.<br/>the rest of the site works right now.</p>
   <a href="/">back to home</a>
 </body></html>`;
 
