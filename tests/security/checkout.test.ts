@@ -23,7 +23,7 @@ vi.mock("@/lib/auth", () => ({
 // Controllable fake Stripe so the route can run without network/keys.
 const fakeStripe = vi.hoisted(() => {
   const subscriptions = {
-    create: vi.fn(async () => ({
+    create: vi.fn(async (_args: Record<string, unknown>) => ({
       id: "sub_new",
       latest_invoice: { payment_intent: { client_secret: "pi_secret_test_123" } },
     })),
@@ -85,7 +85,7 @@ describe("POST /api/billing/subscription", () => {
     expect(body.plan).toBe("pro");
 
     // it created the subscription as incomplete — payment isn't captured yet
-    const args = fakeStripe.subscriptions.create.mock.calls[0]![0] as {
+    const args = fakeStripe.subscriptions.create.mock.calls[0]![0] as unknown as {
       payment_behavior: string;
     };
     expect(args.payment_behavior).toBe("default_incomplete");

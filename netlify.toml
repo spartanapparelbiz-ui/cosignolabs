@@ -1,0 +1,28 @@
+# Netlify deployment config for cosigno (Next.js 15 App Router).
+#
+# The @netlify/plugin-nextjs runtime is what makes SSR routes, API routes,
+# and middleware work on Netlify. WITHOUT it, Netlify serves the raw build
+# output as static files and every server-rendered route errors — which is
+# the classic "error on all routes" symptom. Declaring it here guarantees it
+# runs regardless of auto-detection.
+
+[build]
+  command = "npm run check:env && npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Pin Node to the same major we build/test against (see .nvmrc + engines).
+  NODE_VERSION = "20"
+  # Fail the build loudly if a dependency is missing rather than silently.
+  NPM_FLAGS = "--no-audit"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Marketing pages are safe to cache at the edge briefly; everything dynamic
+# (app, api) sets its own no-store headers in code. The Next runtime plugin
+# manages per-route caching, so we keep this minimal.
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

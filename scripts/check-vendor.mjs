@@ -19,6 +19,9 @@ const EXCLUDE_FILES = new Set([
   "src/lib/agent/provider.ts",
   "scripts/check-vendor.mjs",
   "scripts/check-bundle.mjs",
+  // verify-deploy carries the same banned-word regex to scan the LIVE bundle,
+  // exactly like this file does — so it's excluded for the same reason.
+  "scripts/verify-deploy.mjs",
   "tests/security/bundle.test.ts",
   "tests/security/vendor.test.ts",
 ]);

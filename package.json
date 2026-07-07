@@ -13,7 +13,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:visual": "playwright test",
-    "assets": "node scripts/generate-assets.mjs"
+    "assets": "node scripts/generate-assets.mjs",
+    "check:env": "node scripts/check-env.mjs",
+    "verify:deploy": "node scripts/verify-deploy.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
@@ -31,6 +33,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.15.12",
     "@playwright/test": "^1.61.1",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
