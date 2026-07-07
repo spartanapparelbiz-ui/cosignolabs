@@ -116,6 +116,7 @@ async function buildMiddleware(): Promise<NextMiddleware> {
   );
   const isProtected = createRouteMatcher([
     "/app(.*)",
+    "/checkout(.*)",
     "/api((?!/health$|/beta$|/preview$|/stripe/webhook$).*)",
   ]);
   return clerkMiddleware(async (auth, req) => {

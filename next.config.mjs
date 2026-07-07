@@ -17,12 +17,15 @@ const devEval = process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
 
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${devEval} https://*.clerk.accounts.dev https://challenges.cloudflare.com`,
+  `script-src 'self' 'unsafe-inline'${devEval} https://*.clerk.accounts.dev https://challenges.cloudflare.com https://js.stripe.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://img.clerk.com",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.clerk.accounts.dev https://clerk-telemetry.com https://challenges.cloudflare.com",
-  "frame-src https://challenges.cloudflare.com https://*.clerk.accounts.dev",
+  // Stripe: js.stripe.com serves Stripe.js; api.stripe.com is the Elements
+  // tokenization endpoint; the frames host Elements' card iframes + the 3DS
+  // challenge. Card data lives only inside those Stripe-owned frames.
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.clerk.accounts.dev https://clerk-telemetry.com https://challenges.cloudflare.com https://api.stripe.com https://js.stripe.com",
+  "frame-src https://challenges.cloudflare.com https://*.clerk.accounts.dev https://js.stripe.com https://hooks.stripe.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",

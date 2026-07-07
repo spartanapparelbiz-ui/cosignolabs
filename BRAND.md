@@ -75,6 +75,26 @@ under `prefers-reduced-motion` (globals.css + `useReveal` start-shown).
   scroll parallax + ≤3° pointer tilt, both rAF-coalesced and gated behind
   `pointer:fine` + `prefers-reduced-motion` (static otherwise).
 
+### Checkout card choreography (`CheckoutCard`)
+
+The giant card reacts only to safe signals (focus, completion, brand
+detection, post-confirm last4) — never card digits. Timings:
+
+| stage | motion | timing |
+| --- | --- | --- |
+| idle | float ±4px + light-sweep | `card-float` 6s · `card-sweep` 8s |
+| name focus | tilt toward viewer (rotateX 8°) | 600ms `ease-brand-out` |
+| number fill | 16 dots fill by group | 160ms color per group |
+| brand detected | network glyph coin-flips in | `coin-flip` 520ms |
+| cvc focus | full 3D back-flip (rotateY 180°) + pulsing well | 600ms flip · `cvc-dot` 1.2s |
+| pay | card slides into reader + orange scan line | 600ms slide · `reader-scan` 1s |
+| success | pop back, orange check stamp + 20-particle confetti | `check-pop`/`check-draw` + `confetti-fall` 900ms |
+| failure | slot shake + gentle eject (no red) | `shake-x` 220ms |
+
+State-driven transforms carry a 600ms transition on an inner layer so the
+idle `card-float` (outer layer) never fights them; all collapse to static
+final states under `prefers-reduced-motion`.
+
 ## Surface language
 
 - **Signature check motif**: `CheckDivider` (faint oversized section

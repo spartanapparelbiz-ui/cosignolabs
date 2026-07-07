@@ -18,6 +18,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
     "@clerk/nextjs": "^6.20.0",
+    "@stripe/react-stripe-js": "^6.7.0",
+    "@stripe/stripe-js": "^9.9.0",
     "@supabase/supabase-js": "^2.49.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",

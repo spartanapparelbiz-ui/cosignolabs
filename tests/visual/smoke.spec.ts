@@ -151,6 +151,33 @@ for (const vp of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `activity-${vp.name}.png`), fullPage: true });
     });
 
+    test("checkout: giant card choreography (demo)", async ({ page }) => {
+      await page.goto("/checkout?plan=pro", { waitUntil: "networkidle" });
+      await expect(page.getByText(/name on card/i)).toBeVisible();
+      await expect(page.getByText(/you're upgrading to/i)).toBeVisible();
+      await noHorizontalScroll(page);
+      // idle
+      await page.screenshot({ path: join(OUT, `checkout-${vp.name}.png`), fullPage: true });
+
+      // fill the card (demo signals only — dots fill, brand flips in)
+      await page.locator("#cardholder").fill("alex operator");
+      await page.locator("#demo-num").fill("4242424242424242");
+      await page.getByLabel("expiry MMYY").fill("1230");
+      // CVC focus flips the card to its back — the signature moment
+      await page.getByLabel("CVC").click();
+      await page.getByLabel("CVC").fill("123");
+      await page.waitForTimeout(650);
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `checkout-cvc-${vp.name}.png`), fullPage: true });
+
+      // pay → the card slides to the reader, then pops back stamped
+      await page.getByRole("button", { name: /pay & cosign/i }).click();
+      await expect(page.getByText(/cosigned\. welcome to pro/i)).toBeVisible();
+      await page.waitForTimeout(500);
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `checkout-success-${vp.name}.png`), fullPage: true });
+    });
+
     test("account center — all five panels", async ({ page }) => {
       await page.goto("/app/account", { waitUntil: "networkidle" });
       await expect(page.getByRole("heading", { name: "account", exact: true })).toBeVisible();

@@ -457,19 +457,16 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
     setBusy(kind);
     try {
       if (kind === "portal") {
+        // Portal stays for managing an existing subscription (update card, etc).
         const res = await fetch("/api/billing/portal", { method: "POST" });
         const b = await res.json();
         if (!res.ok) throw new Error(b.message || "couldn't open billing.");
         window.location.href = b.url;
       } else {
-        const res = await fetch("/api/billing/checkout", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan: plan?.upgradeTo ?? "pro", interval: "monthly" }),
-        });
-        const b = await res.json();
-        if (res.status === 503) throw new Error("billing isn't enabled yet.");
-        if (!res.ok) throw new Error(b.message || "couldn't start checkout.");
-        window.location.href = b.url;
+        // First purchase / upgrade goes to the embedded checkout with the plan
+        // preselected — same giant-card experience as pricing.
+        const target = plan?.upgradeTo ?? "pro";
+        window.location.href = `/checkout?plan=${target}&interval=monthly`;
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "something went wrong.");

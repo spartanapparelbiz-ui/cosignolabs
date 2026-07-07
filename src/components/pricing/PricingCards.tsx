@@ -45,8 +45,7 @@ export function PricingCards() {
   const [interval, setInterval] = useState<Interval>("monthly");
   const [recommended, setRecommended] = useState<PlanId | null>(null);
   const [probe, setProbe] = useState<number>(300);
-  const [busy, setBusy] = useState<PlanId | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState<PlanId | null>(null);
   const router = useRouter();
 
   // Read the ?plan= handoff from the calculator AFTER mount (not via
@@ -63,32 +62,16 @@ export function PricingCards() {
 
   const covering = coveringPlan(probe);
 
-  async function choose(plan: PlanId) {
-    setError(null);
+  function choose(plan: PlanId) {
     track("pricing_choose", { plan, interval });
     if (plan === "free") {
       router.push("/app");
       return;
     }
-    setBusy(plan);
-    try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, interval }),
-      });
-      if (res.status === 401) {
-        router.push(`/app?checkout=${plan}&interval=${interval}`);
-        return;
-      }
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.message || "couldn't start checkout — try again.");
-      if (body.url) window.location.href = body.url;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't start checkout — try again.");
-    } finally {
-      setBusy(null);
-    }
+    // Shared-element feel: the chosen card scales/lifts, then we hand off to
+    // the embedded /checkout where its summary "continues" the same card.
+    setLeaving(plan);
+    setTimeout(() => router.push(`/checkout?plan=${plan}&interval=${interval}`), 250);
   }
 
   return (
@@ -141,12 +124,6 @@ export function PricingCards() {
         </p>
       </div>
 
-      {error && (
-        <p className="mx-auto mt-4 w-fit rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold" role="alert">
-          {error}
-        </p>
-      )}
-
       <div className="mt-8 grid gap-5 md:grid-cols-3">
         {PLAN_ORDER.map((id) => {
           const plan = PLANS[id];
@@ -154,13 +131,16 @@ export function PricingCards() {
           const isCovering = covering === id;
           const isRecommended = recommended === id;
           const dim = !isCovering;
+          const isLeaving = leaving === id;
 
           return (
             <div
               key={id}
               className={`relative flex flex-col rounded-card bg-white/70 p-6 shadow-soft transition-all duration-base ${
                 isCovering ? "ring-2 ring-signal shadow-lift" : featured ? "ring-1 ring-signal/40" : ""
-              } ${dim ? "opacity-70" : "opacity-100"}`}
+              } ${dim && !isLeaving ? "opacity-70" : "opacity-100"} ${
+                isLeaving ? "z-10 scale-[1.03] shadow-lift" : ""
+              }`}
             >
               {isRecommended ? (
                 <span className="absolute -top-3 left-6 rounded-pill bg-ink px-3 py-1 text-[11px] font-extrabold lowercase text-cream">
@@ -184,7 +164,7 @@ export function PricingCards() {
               </ul>
               <button
                 onClick={() => choose(id)}
-                disabled={busy === id}
+                disabled={isLeaving}
                 className={`group relative mt-6 min-h-[44px] overflow-hidden rounded-btn px-5 py-3 text-sm font-extrabold lowercase transition-transform duration-fast active:scale-95 disabled:opacity-60 ${
                   featured || isCovering ? "bg-signal text-ink" : "bg-ink text-cream"
                 }`}
@@ -193,7 +173,7 @@ export function PricingCards() {
                   <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-[280ms] ease-brand-out group-hover:scale-x-100" />
                 )}
                 <span className={`relative ${!(featured || isCovering) ? "transition-colors group-hover:text-ink" : ""}`}>
-                  {busy === id ? "starting…" : id === "free" ? "start free" : `choose ${plan.name}`}
+                  {isLeaving ? "opening…" : id === "free" ? "start free" : `choose ${plan.name}`}
                 </span>
               </button>
             </div>

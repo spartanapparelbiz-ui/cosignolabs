@@ -128,6 +128,33 @@ const config: Config = {
           "70%": { opacity: "0" },
           "100%": { transform: "scale(1.9)", opacity: "0" },
         },
+        // --- checkout card choreography ---
+        "card-float": {
+          "0%, 100%": { transform: "translateY(-4px)" },
+          "50%": { transform: "translateY(4px)" },
+        },
+        "card-sweep": {
+          "0%": { transform: "translateX(-120%) skewX(-18deg)", opacity: "0" },
+          "12%": { opacity: "0.55" },
+          "30%, 100%": { transform: "translateX(220%) skewX(-18deg)", opacity: "0" },
+        },
+        "cvc-dot": {
+          "0%, 100%": { transform: "scale(1)", opacity: "0.7" },
+          "50%": { transform: "scale(1.35)", opacity: "1" },
+        },
+        "reader-scan": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+        "coin-flip": {
+          "0%": { transform: "rotateY(90deg)", opacity: "0" },
+          "60%": { transform: "rotateY(-12deg)", opacity: "1" },
+          "100%": { transform: "rotateY(0deg)", opacity: "1" },
+        },
+        "confetti-fall": {
+          "0%": { transform: "translate(0,0) rotate(0deg)", opacity: "1" },
+          "100%": { transform: "translate(var(--dx), var(--dy)) rotate(var(--dr))", opacity: "0" },
+        },
         // Attention pulse that does NOT move the element (box-shadow only), so
         // continuously-pulsing CTAs stay layout-stable.
         "pulse-glow": {
@@ -156,6 +183,12 @@ const config: Config = {
         "orb-breathe": "orb-breathe 2.6s ease-in-out infinite",
         "orb-ring": "orb-ring 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite",
         "pulse-glow": "pulse-glow 1.6s ease-in-out infinite",
+        "card-float": "card-float 6s ease-in-out infinite",
+        "card-sweep": "card-sweep 8s ease-in-out infinite",
+        "cvc-dot": "cvc-dot 1.2s ease-in-out infinite",
+        "reader-scan": "reader-scan 1s ease-in-out infinite",
+        "coin-flip": "coin-flip 520ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "confetti-fall": "confetti-fall 900ms cubic-bezier(0.22, 1, 0.36, 1) both",
         shimmer: "shimmer 1.6s ease-in-out infinite",
         "toast-in": "toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both",
         settle: "settle 500ms cubic-bezier(0.22, 1, 0.36, 1) both",
