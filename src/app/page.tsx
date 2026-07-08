@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { LogoLockup, CosignoMark } from "@/components/brand/Logo";
+import { LivingLockup, LivingMark } from "@/components/brand/LivingLogo";
 import { BetaForm } from "@/components/landing/BetaForm";
 import { HeroMark } from "@/components/landing/HeroMark";
 import { StaggerHeadline } from "@/components/landing/StaggerHeadline";
@@ -60,7 +60,7 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
-        <LogoLockup size={30} textClass="text-2xl" />
+        <LivingLockup size={30} textClass="text-2xl" />
         <nav className="flex items-center gap-3">
           <Link
             href="/pricing"
@@ -233,8 +233,8 @@ export default function LandingPage() {
         {/* Beta application */}
         <section id="beta">
           <Reveal className="mx-auto w-full max-w-2xl px-4 py-16">
-            <div className="text-center">
-              <CosignoMark size={44} />
+            <div className="flex flex-col items-center text-center">
+              <LivingMark size={44} />
               <h2 className="mt-4 text-2xl font-extrabold lowercase sm:text-3xl">
                 hand your busywork to an operator that asks first.
               </h2>
@@ -253,7 +253,7 @@ export default function LandingPage() {
 
       <footer className="bg-cream-deep/60">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-ink-soft">
-          <LogoLockup size={20} textClass="text-base" />
+          <LivingLockup size={20} textClass="text-base" />
           <div className="flex items-center gap-4 font-semibold">
             <Link href="/pricing" className="hover:text-ink">
               pricing

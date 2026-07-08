@@ -6,7 +6,14 @@ import { INK, SIGNAL } from "@/lib/brand";
  * arm extends up-right past the outer edge — the check completes the C.
  * Geometry mirrors scripts/logo-geometry.mjs (viewBox 0 0 100 100). Reads at 16px.
  */
-export function CosignoMark({ size = 28 }: { size?: number }) {
+export function CosignoMark({
+  size = 28,
+  checkClassName = "",
+}: {
+  size?: number;
+  /** Applied to the orange check path — used by the living-logo breath. */
+  checkClassName?: string;
+}) {
   return (
     <svg
       width={size}
@@ -27,6 +34,7 @@ export function CosignoMark({ size = 28 }: { size?: number }) {
         strokeWidth={17}
         strokeLinecap="round"
         strokeLinejoin="round"
+        className={checkClassName}
       />
     </svg>
   );

@@ -9,6 +9,7 @@ import { useCountUp } from "@/lib/useCountUp";
 import { embeddedCheckoutEnabled } from "@/lib/stripeClient";
 import { track } from "@/lib/analytics";
 import { CheckoutCard, type CardState } from "./CheckoutCard";
+import { LivingMark } from "@/components/brand/LivingLogo";
 
 /**
  * Checkout orchestrator. Owns the shared UI — plan summary (with interval
@@ -180,9 +181,12 @@ export function CheckoutClient({
         {/* form or success receipt */}
         {succeeded ? (
           <div className="mt-4 animate-rise-in rounded-card bg-white/70 p-5 shadow-lift">
-            <p className="text-lg font-extrabold lowercase">
-              cosigned. welcome to {plan.name}.
-            </p>
+            <div className="mb-3 flex items-center gap-2.5">
+              <LivingMark size={30} />
+              <p className="text-lg font-extrabold lowercase">
+                cosigned. welcome to {plan.name}.
+              </p>
+            </div>
             <dl className="mt-3 flex flex-col gap-1.5 text-sm">
               <div className="flex justify-between">
                 <dt className="text-ink-soft">plan</dt>

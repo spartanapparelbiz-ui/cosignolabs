@@ -25,6 +25,22 @@ export const EASE = {
   inOut: "cubic-bezier(0.65, 0, 0.35, 1)",
 } as const;
 
+/**
+ * The living-logo "breath" — the ONE idle animation the cosigno mark may use
+ * anywhere (see BRAND.md → "Living logo"). A slow 5s scale oscillation on the
+ * whole mark, paired with the check's opacity drifting so the tick feels like
+ * it's the thing that's alive. Transform/opacity only; mirrored by the
+ * `logo-breath` / `logo-check` Tailwind animations. Exactly one mark breathes
+ * per viewport (see useBreathing) and it holds still under
+ * prefers-reduced-motion. This is the only variant — no per-page breaths.
+ */
+export const LOGO_BREATH = {
+  durationMs: 5000,
+  ease: "ease-in-out",
+  scale: { rest: 1, peak: 1.015 },
+  checkOpacity: { low: 0.92, high: 1 },
+} as const;
+
 /** Stagger step between sequential items (headline words, card stacks). */
 export const STAGGER_MS = { words: 80, cards: 60 } as const;
 

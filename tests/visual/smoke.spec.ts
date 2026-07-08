@@ -144,6 +144,30 @@ for (const vp of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `workspace-${vp.name}.png`), fullPage: true });
     });
 
+    test("living logo — one breather, and static under reduced motion", async ({
+      page,
+    }) => {
+      // Default motion: after idle registration + observation settles, at most
+      // ONE mark on the landing page carries the breath class.
+      await page.goto("/", { waitUntil: "networkidle" });
+      await page.waitForTimeout(900); // requestIdleCallback + IO callback
+      const breathing = page.locator(".animate-logo-breath");
+      expect(await breathing.count()).toBeLessThanOrEqual(1);
+      // The mark itself always renders (the breath is additive, never required).
+      await expect(page.locator("header svg").first()).toBeVisible();
+
+      // Reduced motion: the coordinator never activates — no mark breathes —
+      // but every logo still renders. This is the reduced-motion guarantee.
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForTimeout(900);
+      expect(await page.locator(".animate-logo-breath").count()).toBe(0);
+      await expect(page.locator("header svg").first()).toBeVisible();
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `logo-reduced-motion-${vp.name}.png`) });
+      await page.emulateMedia({ reducedMotion: null });
+    });
+
     test("activity", async ({ page }) => {
       await page.goto("/app/activity");
       await expect(page.getByRole("heading", { name: "activity" })).toBeVisible();

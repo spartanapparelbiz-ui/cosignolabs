@@ -3,6 +3,7 @@
 import type React from "react";
 import { useEffect, useRef } from "react";
 import { Check, Lock } from "lucide-react";
+import { useBreathing } from "@/lib/useBreathing";
 
 /**
  * The hero composed scene: the 3D mark anchored center, with four real
@@ -78,6 +79,9 @@ export function HeroMark() {
   const sceneRef = useRef<HTMLDivElement>(null);
   const tiltRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
+  // The hero mark joins the living-logo coordinator: it breathes only while
+  // it's the topmost mark on screen (the nav lockup wins until you scroll).
+  const { ref: breathRef, active: breathing } = useBreathing<HTMLDivElement>();
 
   useEffect(() => {
     if (
@@ -163,19 +167,26 @@ export function HeroMark() {
           }}
         />
 
-        {/* the mark — the LCP element, anchored center */}
+        {/* the mark — the LCP element, anchored center. Float is its constant
+            drift; the living-logo breath layers a subtle scale on top when the
+            coordinator hands it the breath. */}
         <div className="motion-safe:animate-float w-[44%]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/icon-3d.png"
-            alt="cosigno"
-            width={512}
-            height={512}
-            fetchPriority="high"
-            decoding="async"
-            className="h-auto w-full select-none"
-            draggable={false}
-          />
+          <div
+            ref={breathRef}
+            className={`[transform-origin:center] ${breathing ? "animate-logo-breath" : ""}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/icon-3d.png"
+              alt="cosigno"
+              width={512}
+              height={512}
+              fetchPriority="high"
+              decoding="async"
+              className="h-auto w-full select-none"
+              draggable={false}
+            />
+          </div>
         </div>
 
         {/* floating action cards */}

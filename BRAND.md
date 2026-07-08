@@ -58,7 +58,8 @@ Rules:
 
 Named animations (Tailwind `animate-*`): `settle`, `float`, `rise-in`,
 `word-in`, `spring-in`, `ring-flash`, `chip-pulse`, `shake-x`, `check-draw`,
-`check-pop`, `modal-in`, `fade-through`, `orb-*`, `toast-in`, `shimmer`.
+`check-pop`, `modal-in`, `fade-through`, `orb-*`, `toast-in`, `shimmer`,
+`logo-breath`, `logo-check`.
 
 Rules: **transform/opacity only** (never animate layout properties), 60fps,
 capped element counts, and everything collapses to an instant state change
@@ -74,6 +75,49 @@ under `prefers-reduced-motion` (globals.css + `useReveal` start-shown).
 - Hero scene: the 3D mark with four depth-blurred action cards; subtle
   scroll parallax + ≤3° pointer tilt, both rAF-coalesced and gated behind
   `pointer:fine` + `prefers-reduced-motion` (static otherwise).
+
+### Living logo
+
+The cosigno mark is quietly alive everywhere it appears — one consistent
+idle "breath," never a zoo of per-page effects. The token is
+`LOGO_BREATH` (`src/lib/motion.ts`), mirrored by two Tailwind animations:
+
+| animation | value | on |
+| --- | --- | --- |
+| `logo-breath` | `scale 1 → 1.015 → 1`, 5s `ease-in-out` | the whole mark |
+| `logo-check` | `opacity 0.92 → 1 → 0.92`, 5s `ease-in-out` | the orange check path |
+
+This is the **only** idle animation the logo may use — no per-placement
+variants. Discipline (all enforced in `src/lib/useBreathing.ts`):
+
+- **One breather per viewport.** Every living mark registers with a shared
+  `IntersectionObserver`; the coordinator grants the breath to the single
+  topmost mark on screen and holds the rest still, so a page never shows a
+  chorus of pulsing logos. (`pickBreatherIndex` is the pure rule; unit-tested.)
+- **Transform/opacity only**, 60fps, compositor-only — no layout thrash.
+- **Static under `prefers-reduced-motion`**: the coordinator never activates,
+  so the mark renders but does not breathe (asserted in the visual smoke).
+- **Nothing before first paint**: registration defers to `requestIdleCallback`
+  (setTimeout fallback), so the breath never competes with LCP.
+- Tiny footprint: one shared Set + one observer, well under budget.
+
+Components: `LivingMark` / `LivingLockup` (`src/components/brand/LivingLogo.tsx`)
+are the coordinated marks; plain `CosignoMark` / `LogoLockup` stay static for
+SVG assets, favicons, and dense lists. Placements: landing nav / hero / footer /
+beta CTA, app header, checkout success.
+
+Two spin-offs of the same idea:
+
+- **`LogoLoader`** (`src/components/brand/LogoLoader.tsx`) replaces every
+  spinner — the breathing mark with an optional label. It always breathes (it
+  signals active work, so it's exempt from the single-breather rule) and is the
+  route-level `loading.tsx` for `/app`.
+- **Favicon status-swap** (`src/lib/useFaviconStatus.ts`): while the workspace
+  holds actions awaiting a signature, the browser-tab icon gains a filled orange
+  badge — the orb's "waiting for you" signal, carried to the tab. Cleared the
+  moment the queue empties.
+- The warming-up **503** page breathes too, via inline CSS (edge-safe, with its
+  own reduced-motion guard) — the mark is alive even when the app isn't.
 
 ### Checkout card choreography (`CheckoutCard`)
 

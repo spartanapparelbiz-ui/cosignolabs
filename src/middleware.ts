@@ -53,11 +53,17 @@ const WARMING_HTML = `<!doctype html>
     border:1.5px solid #141414;border-radius:10px;padding:.65rem 1.3rem;
     transition:background .15s ease,color .15s ease}
   a:hover{background:#141414;color:#FBF4EA}
+  /* living logo: the mark breathes even here (transform/opacity only) */
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
+  @keyframes tick{0%,100%{opacity:.92}50%{opacity:1}}
+  svg{animation:breathe 5s ease-in-out infinite;transform-origin:center}
+  svg .tick{animation:tick 5s ease-in-out infinite}
+  @media (prefers-reduced-motion:reduce){svg,svg .tick{animation:none}}
 </style></head>
 <body>
   <svg viewBox="0 0 100 100" aria-hidden="true">
     <path d="M 76.0 66.9 A 31 31 0 1 1 76.0 33.1" fill="none" stroke="#141414" stroke-width="26" stroke-linecap="round"/>
-    <path d="M 47 53 L 57 63 L 88 28" fill="none" stroke="#FF4B1F" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+    <path class="tick" d="M 47 53 L 57 63 L 88 28" fill="none" stroke="#FF4B1F" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
   <h1>cosigno is warming up</h1>
   <p>the workspace is being configured &mdash; back shortly.<br/>the rest of the site works right now.</p>

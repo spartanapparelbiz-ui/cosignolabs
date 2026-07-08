@@ -10,6 +10,7 @@ import { VoiceOrb, type OrbState } from "./VoiceOrb";
 import { EmptyIllustration } from "./EmptyIllustration";
 import { OfferBanner } from "./OfferBanner";
 import { useKeyboardHints } from "@/lib/useKeyboardHints";
+import { useFaviconStatus } from "@/lib/useFaviconStatus";
 
 /** Static keyword set for inline command autocomplete. */
 const COMMAND_KEYWORDS = [
@@ -102,6 +103,9 @@ export function Workspace() {
       : listening
         ? "listening"
         : "idle";
+
+  // Living logo in the browser tab: badge the favicon while actions wait.
+  useFaviconStatus(pendingActions.length > 0);
 
   const refresh = useCallback(async () => {
     const id = sessionRef.current;

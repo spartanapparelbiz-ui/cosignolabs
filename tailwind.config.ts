@@ -170,6 +170,16 @@ const config: Config = {
           "0%": { opacity: "0", transform: "translateY(10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        // --- living logo: the one idle "breath" (see LOGO_BREATH in motion.ts).
+        // Scale on the mark; opacity on the check. Compositor-only.
+        "logo-breath": {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.015)" },
+        },
+        "logo-check": {
+          "0%, 100%": { opacity: "0.92" },
+          "50%": { opacity: "1" },
+        },
       },
       animation: {
         "card-in": "card-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both",
@@ -191,6 +201,8 @@ const config: Config = {
         "confetti-fall": "confetti-fall 900ms cubic-bezier(0.22, 1, 0.36, 1) both",
         shimmer: "shimmer 1.6s ease-in-out infinite",
         "toast-in": "toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "logo-breath": "logo-breath 5s ease-in-out infinite",
+        "logo-check": "logo-check 5s ease-in-out infinite",
         settle: "settle 500ms cubic-bezier(0.22, 1, 0.36, 1) both",
         float: "float 6s ease-in-out infinite",
         "rise-in": "rise-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both",
