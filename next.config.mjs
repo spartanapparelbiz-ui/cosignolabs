@@ -50,6 +50,13 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // instrumentation.ts imports scripts/env-services.mjs, which lives OUTSIDE
+  // the app source tree. Explicitly include it in the serverless function
+  // bundle so the boot diagnostic can load it on Netlify (belt-and-suspenders
+  // with the try/catch in instrumentation.ts).
+  outputFileTracingIncludes: {
+    "/**": ["./scripts/env-services.mjs"],
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

@@ -4,7 +4,7 @@
   "private": true,
   "description": "cosigno — the AI operator that asks first. cosignolabs.com",
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=20"
   },
   "scripts": {
     "dev": "next dev",
@@ -17,31 +17,34 @@
     "check:env": "node scripts/check-env.mjs",
     "verify:deploy": "node scripts/verify-deploy.mjs"
   },
+  "comments": {
+    "dependencies": "Everything `next build` and the Netlify Next runtime need to RUN lives here — NOT in devDependencies. Netlify (and any host that installs with NODE_ENV=production) skips devDependencies, so build tooling in the wrong bucket makes the whole build fail and every route 500s. Only test-only tools (playwright, vitest) may stay in devDependencies."
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
     "@clerk/nextjs": "^6.20.0",
+    "@netlify/plugin-nextjs": "^5.15.12",
     "@stripe/react-stripe-js": "^6.7.0",
     "@stripe/stripe-js": "^9.9.0",
     "@supabase/supabase-js": "^2.49.0",
-    "@upstash/ratelimit": "^2.0.8",
-    "@upstash/redis": "^1.38.0",
-    "lucide-react": "^1.23.0",
-    "next": "^15.3.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "stripe": "^22.3.0",
-    "zod": "^4.4.3"
-  },
-  "devDependencies": {
-    "@netlify/plugin-nextjs": "^5.15.12",
-    "@playwright/test": "^1.61.1",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "autoprefixer": "^10.4.21",
+    "lucide-react": "^1.23.0",
+    "next": "^15.3.3",
     "postcss": "^8.5.16",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "stripe": "^22.3.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "vitest": "^3.1.4"
   }
 }
