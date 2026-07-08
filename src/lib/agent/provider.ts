@@ -13,10 +13,71 @@
  * Backward-compat (one release, with a one-time deprecation warning): the
  * previous env names are still read if the new ones are unset.
  */
-import { logInfo } from "../log";
+import { logError, logInfo, newRequestId } from "../log";
 
 let warnedApiKey = false;
 let warnedModel = false;
+
+/**
+ * A planner call failed in a way worth telling the operator about (bad key,
+ * no runtime env, unknown model, no credit, provider outage). Carries a
+ * SAFE, human-readable message — never the API key, never a stack trace —
+ * so the API layer can show the real reason instead of a generic 500.
+ */
+export class PlannerError extends Error {
+  constructor(
+    public status: number | null,
+    message: string
+  ) {
+    super(message);
+    this.name = "PlannerError";
+  }
+}
+
+/** Pull a status + clean detail string out of a provider SDK error. */
+function describeFailure(err: unknown): { status: number | null; detail: string } {
+  const e = err as {
+    status?: number;
+    error?: { error?: { message?: string } };
+    message?: string;
+  };
+  const status = typeof e?.status === "number" ? e.status : null;
+  const detail =
+    e?.error?.error?.message ||
+    (typeof e?.message === "string" ? e.message : "") ||
+    "unknown error";
+  return { status, detail };
+}
+
+/**
+ * Turn a provider failure into a plain-language, actionable message. Exported
+ * for tests. Vendor-neutral by design: it names the cosigno env vars to check,
+ * never the provider. None of these strings can contain the API key.
+ */
+export function plannerErrorMessage(status: number | null, detail: string): string {
+  if (status === 401) {
+    return "the AI provider rejected the API key (401). Check PLANNER_API_KEY in Netlify — a wrong key or a stray space/newline is the usual cause — then redeploy.";
+  }
+  if (status === 403) {
+    return "the AI provider denied access (403). The key may not have access to the requested model, or billing isn't active on the provider account.";
+  }
+  if (status === 404) {
+    return `the AI provider didn't recognize the model (404). Check PLANNER_MODEL_DEFAULT and PLANNER_MODEL_PREMIUM are exact model ids. (${detail})`;
+  }
+  if (status === 400 && /credit|balance|billing|quota/i.test(detail)) {
+    return "the AI provider account is out of credit. Add credit/billing to the provider account, then try again.";
+  }
+  if (status === 400) {
+    return `the AI provider rejected the request (400): ${detail}`;
+  }
+  if (status === 429) {
+    return "the AI provider is rate-limiting requests right now (429). Wait a moment and try again.";
+  }
+  if (status !== null && status >= 500) {
+    return "the AI provider had a temporary server error. Try again in a moment.";
+  }
+  return `the AI planner call failed: ${detail}`;
+}
 
 /** Resolve the planner API key, honoring the deprecated name once. */
 export function plannerApiKey(): string | undefined {
@@ -83,21 +144,51 @@ export interface PlannerResult {
  * response shapes are handled here and never leak out.
  */
 export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
+  const apiKey = plannerApiKey();
+  if (!apiKey) {
+    // The single most common production failure: the variable exists in the
+    // Netlify dashboard but isn't exposed to the running function (its scope
+    // must include Functions/Runtime, not just Builds).
+    throw new PlannerError(
+      null,
+      "the AI planner key isn't visible to the server at runtime. In Netlify → Site configuration → Environment variables, make sure PLANNER_API_KEY is set and its scope includes Functions (and Runtime), then Clear cache and deploy."
+    );
+  }
+  if (!call.model) {
+    throw new PlannerError(
+      null,
+      "no planner model is configured. Set PLANNER_MODEL_DEFAULT (and PLANNER_MODEL_PREMIUM) in Netlify, then redeploy."
+    );
+  }
+
   // Dynamic import keeps the SDK out of any non-planner bundle path.
   const { default: Provider } = await import("@anthropic-ai/sdk");
   const client = new Provider({
-    apiKey: plannerApiKey(),
+    apiKey,
     ...(process.env.PLANNER_BASE_URL ? { baseURL: process.env.PLANNER_BASE_URL } : {}),
   });
 
-  const response = await client.messages.create({
-    model: call.model,
-    max_tokens: call.maxTokens,
-    system: call.system,
-    messages: [{ role: "user", content: call.userContent }],
-    tools: [call.tool as never],
-    tool_choice: { type: "tool", name: call.tool.name },
-  });
+  let response;
+  try {
+    response = await client.messages.create({
+      model: call.model,
+      max_tokens: call.maxTokens,
+      system: call.system,
+      messages: [{ role: "user", content: call.userContent }],
+      tools: [call.tool as never],
+      tool_choice: { type: "tool", name: call.tool.name },
+    });
+  } catch (err) {
+    // Log the FULL provider error server-side (status, body, stack) under a
+    // clear event, then rethrow a safe, plain-language version for the user.
+    const { status, detail } = describeFailure(err);
+    logError(newRequestId(), err, {
+      event: "planner_call_failed",
+      status,
+      model: call.model,
+    });
+    throw new PlannerError(status, plannerErrorMessage(status, detail));
+  }
 
   const toolUse = response.content.find((b) => b.type === "tool_use");
   const toolInput =

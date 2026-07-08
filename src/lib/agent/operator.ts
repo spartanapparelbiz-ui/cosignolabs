@@ -1,6 +1,6 @@
 import { logInfo } from "../log";
 import { planWithMock } from "./mockPlanner";
-import { callPlanner, plannerConfigured, plannerModel } from "./provider";
+import { callPlanner, plannerConfigured, plannerModel, PlannerError } from "./provider";
 import { ActionCategory, CATEGORIES, Tier } from "../types";
 import { buildSystemPrompt, SYSTEM_PROMPT_VERSION } from "./systemPrompt";
 import { scanUntrusted, wrapUntrusted, type UntrustedBlock } from "./untrusted";
@@ -53,7 +53,10 @@ export async function planCommand(
     .map((b) => b.source);
 
   if (!plannerConfigured() && process.env.NODE_ENV === "production") {
-    throw new Error("planner_not_configured");
+    throw new PlannerError(
+      null,
+      "the AI planner isn't configured on the server: PLANNER_API_KEY isn't visible at runtime. In Netlify, set PLANNER_API_KEY (scope must include Functions/Runtime) and redeploy."
+    );
   }
 
   const plan = plannerConfigured()

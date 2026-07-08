@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUserId } from "./auth";
 import { EngineError } from "./actions/engine";
+import { PlannerError } from "./agent/provider";
 import { servingAllowed } from "./env";
 import { logError, logSecurity, newRequestId } from "./log";
 import { RateLimitError } from "./ratelimit";
@@ -70,6 +71,17 @@ export function errorResponse(err: unknown): NextResponse {
     return NextResponse.json(
       { error: err.code, message: err.message },
       { status: ENGINE_STATUS[err.code] ?? 400 }
+    );
+  }
+  // The AI planner/provider failed. Unlike an unexpected internal error, this
+  // carries a safe, already-human-readable reason (bad key, no runtime env,
+  // unknown model, no credit, provider outage) — surface it so the operator
+  // can fix it without reading logs. Full detail is logged in the provider.
+  if (err instanceof PlannerError) {
+    const requestId = newRequestId();
+    return NextResponse.json(
+      { error: "planner_failed", message: err.message, requestId },
+      { status: 502 }
     );
   }
   const message = err instanceof Error ? err.message : "";
