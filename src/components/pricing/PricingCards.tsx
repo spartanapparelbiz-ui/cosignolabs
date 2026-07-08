@@ -124,6 +124,10 @@ export function PricingCards() {
         </p>
       </div>
 
+      <p className="mx-auto mt-4 w-fit text-center text-xs font-semibold text-ink-soft">
+        14-day money-back guarantee · full refund, one tap · first month of pro is $9.
+      </p>
+
       <div className="mt-8 grid gap-5 md:grid-cols-3">
         {PLAN_ORDER.map((id) => {
           const plan = PLANS[id];

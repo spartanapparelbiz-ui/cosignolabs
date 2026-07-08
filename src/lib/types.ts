@@ -191,7 +191,29 @@ export type AccountAuditType =
   | "tier_changed"
   | "integration_connected"
   | "integration_disconnected"
-  | "account_deleted";
+  | "account_deleted"
+  | "promo";
+
+/**
+ * Single-use promotional offers, tracked one row per (user, offer) so every
+ * offer is claimable exactly once per customer, ever. Eligibility is always
+ * server-validated against these rows (see src/lib/promos.ts).
+ */
+export type PromoOffer =
+  | "subscribed" // set the first time a subscription goes active (marks a returning customer)
+  | "intro_used" // first-month intro coupon applied at checkout
+  | "refund_used" // the one lifetime 14-day refund
+  | "usage_offer_shown" // the free-tier "you hit 25 — grab $9 first month" card
+  | "renewed_once" // set on the first successful renewal (unlocks the annual nudge)
+  | "annual_nudge_shown" // the post-renewal "switch to annual" prompt
+  | "retention_offered"; // the 50%-off-2-months cancel-flow save
+
+export interface PromoRecord {
+  user_id: string;
+  offer: PromoOffer;
+  detail: Record<string, unknown>;
+  created_at: string;
+}
 
 export interface AccountAuditRecord {
   id: string;
@@ -222,6 +244,8 @@ export interface SubscriptionRecord {
   cancel_at_period_end: boolean;
   /** unix seconds we first observed past_due, for the grace window. */
   past_due_since: number | null;
+  /** unix seconds the Stripe subscription was created — powers the 14-day refund window. */
+  started_at: number | null;
   updated_at: string;
 }
 

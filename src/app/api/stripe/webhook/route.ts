@@ -90,6 +90,16 @@ export async function POST(req: NextRequest) {
         }
         break;
       }
+      case "invoice.payment_succeeded": {
+        // A renewal (not the first invoice) unlocks the one-time annual nudge.
+        const invoice = event.data.object as Stripe.Invoice;
+        const reason = (invoice as unknown as { billing_reason?: string }).billing_reason;
+        if (reason === "subscription_cycle") {
+          const existing = await getStore().getSubscriptionByCustomer(String(invoice.customer));
+          if (existing) await getStore().claimPromo(existing.user_id, "renewed_once");
+        }
+        break;
+      }
       default:
         break;
     }
@@ -116,6 +126,7 @@ function emptyRow(userId: string): SubscriptionRecord {
     current_period_end: null,
     cancel_at_period_end: false,
     past_due_since: null,
+    started_at: null,
     updated_at: new Date().toISOString(),
   };
 }
@@ -190,7 +201,14 @@ async function writeSubscription(
       status === "past_due"
         ? existing?.past_due_since ?? Math.floor(Date.now() / 1000)
         : null,
+    started_at: existing?.started_at ?? sub.created ?? Math.floor(Date.now() / 1000),
     updated_at: new Date().toISOString(),
   });
+  // The first time a subscription is truly active, mark the customer as having
+  // subscribed — this is what makes them a "returning" customer for the
+  // first-timer-only intro coupon. Idempotent (single-use row).
+  if (status === "active" || status === "trialing") {
+    await getStore().claimPromo(userId, "subscribed", { plan });
+  }
   logInfo("subscription_updated", { userId, plan, status, interval });
 }

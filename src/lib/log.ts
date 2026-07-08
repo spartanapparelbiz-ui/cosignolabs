@@ -20,7 +20,9 @@ export type SecurityEvent =
   | "global_budget_hit"
   | "turnstile_failed"
   | "invalid_input"
-  | "account_deleted";
+  | "account_deleted"
+  | "refund_issued"
+  | "refund_failed";
 
 export function newRequestId(): string {
   return randomUUID().slice(0, 18);

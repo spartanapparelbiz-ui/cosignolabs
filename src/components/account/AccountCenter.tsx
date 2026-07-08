@@ -37,6 +37,8 @@ export interface PlanInfo {
   pastDue: boolean;
   inGrace: boolean;
   upgradeTo: string | null;
+  refundEligible?: boolean;
+  refundWindowDays?: number;
 }
 
 export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }) {
@@ -440,6 +442,40 @@ function Sparkline({ actions }: { actions: ActionRecord[] }) {
 function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan: PlanInfo | null; actions: ActionRecord[] | null }) {
   const [busy, setBusy] = useState<"upgrade" | "portal" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmRefund, setConfirmRefund] = useState(false);
+  const [refunding, setRefunding] = useState(false);
+  const [retention, setRetention] = useState<"idle" | "offer" | "saved">("idle");
+  const [retentionBusy, setRetentionBusy] = useState(false);
+
+  async function doRefund() {
+    setRefunding(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/billing/refund", { method: "POST" });
+      const b = await res.json();
+      if (!res.ok) throw new Error(b.message || "we couldn't process that refund.");
+      window.location.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "we couldn't process that refund.");
+      setRefunding(false);
+      setConfirmRefund(false);
+    }
+  }
+
+  async function takeRetention() {
+    setRetentionBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/billing/retention", { method: "POST" });
+      const b = await res.json();
+      if (!res.ok) throw new Error(b.message || "that offer isn't available.");
+      setRetention("saved");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "that offer isn't available.");
+    } finally {
+      setRetentionBusy(false);
+    }
+  }
 
   const { reset, daysLeft } = useMemo(() => {
     if (!usage) return { reset: "", daysLeft: undefined as number | undefined };
@@ -517,16 +553,71 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
                   </button>
                 </div>
               ) : (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {plan.upgradeTo && (
-                    <button onClick={() => go("upgrade")} disabled={busy === "upgrade"} className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink transition-transform duration-fast hover:-translate-y-px disabled:opacity-60">
-                      {busy === "upgrade" ? "starting…" : `upgrade to ${plan.upgradeTo}`}
+                <>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {plan.upgradeTo && (
+                      <button onClick={() => go("upgrade")} disabled={busy === "upgrade"} className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink transition-transform duration-fast hover:-translate-y-px disabled:opacity-60">
+                        {busy === "upgrade" ? "starting…" : `upgrade to ${plan.upgradeTo}`}
+                      </button>
+                    )}
+                    <button onClick={() => go("portal")} disabled={busy === "portal"} className="rounded-btn ring-1 ring-inset ring-ink px-5 py-2.5 text-sm font-bold lowercase transition-all duration-fast hover:-translate-y-px hover:bg-cream-deep disabled:opacity-60">
+                      {busy === "portal" ? "opening…" : "manage billing"}
                     </button>
+                    {retention === "idle" && (
+                      <button onClick={() => setRetention("offer")} className="rounded-btn px-4 py-2.5 text-sm font-bold lowercase text-ink-soft transition-colors hover:bg-cream-deep">
+                        cancel plan
+                      </button>
+                    )}
+                  </div>
+
+                  {/* cancel-flow retention: 50% off next 2 months before the portal */}
+                  {retention === "offer" && (
+                    <div className="mt-3 animate-modal-in rounded-card bg-cream-deep p-4">
+                      <p className="text-sm font-bold">before you go — keep {plan.name} at half price.</p>
+                      <p className="mt-1 text-xs text-ink-soft">50% off your next 2 months. one tap, stays on your card.</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button onClick={takeRetention} disabled={retentionBusy} className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:opacity-60">
+                          {retentionBusy ? "applying…" : "keep it — 50% off"}
+                        </button>
+                        <button onClick={() => go("portal")} disabled={busy === "portal"} className="rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-white/50">
+                          no thanks, cancel
+                        </button>
+                      </div>
+                    </div>
                   )}
-                  <button onClick={() => go("portal")} disabled={busy === "portal"} className="rounded-btn ring-1 ring-inset ring-ink px-5 py-2.5 text-sm font-bold lowercase transition-all duration-fast hover:-translate-y-px hover:bg-cream-deep disabled:opacity-60">
-                    {busy === "portal" ? "opening…" : "manage billing"}
-                  </button>
-                </div>
+                  {retention === "saved" && (
+                    <p className="mt-3 rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold text-signal">
+                      done — 50% off your next 2 months is applied. glad you&apos;re staying.
+                    </p>
+                  )}
+
+                  {/* 14-day refund guarantee */}
+                  {plan.refundEligible && (
+                    <div className="mt-3 border-t border-line pt-3">
+                      {!confirmRefund ? (
+                        <p className="text-xs text-ink-soft">
+                          within your first {plan.refundWindowDays ?? 14} days.{" "}
+                          <button onClick={() => setConfirmRefund(true)} className="font-bold underline decoration-signal underline-offset-2 hover:text-ink">
+                            request a full refund
+                          </button>{" "}
+                          — money back, plan ends immediately.
+                        </p>
+                      ) : (
+                        <div className="animate-fade-through rounded-btn bg-cream-deep p-3">
+                          <p className="text-sm font-bold">refund and end {plan.name} now? this can only be used once.</p>
+                          <div className="mt-2 flex gap-2">
+                            <button onClick={doRefund} disabled={refunding} className="rounded-btn bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:opacity-60">
+                              {refunding ? "processing…" : "yes, refund me"}
+                            </button>
+                            <button onClick={() => setConfirmRefund(false)} className="rounded-btn px-4 py-1.5 text-xs font-bold lowercase text-ink-soft hover:bg-white/50">
+                              keep my plan
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
               {error && <p className="mt-3 rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold" role="alert">{error}</p>}
             </div>
@@ -638,6 +729,7 @@ const AUDIT_LABEL: Record<string, string> = {
   integration_connected: "connected an integration",
   integration_disconnected: "disconnected an integration",
   account_deleted: "deleted the account",
+  promo: "a billing offer was applied",
 };
 
 function SecurityPanel({ actions }: { actions: ActionRecord[] | null }) {

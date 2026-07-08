@@ -6,6 +6,8 @@ import type {
   ActionStatus,
   BetaApplication,
   MessageRecord,
+  PromoOffer,
+  PromoRecord,
   SessionRecord,
   SubscriptionRecord,
   TierSettingRecord,
@@ -115,6 +117,17 @@ export interface Store {
     detail?: Record<string, unknown>
   ): Promise<void>;
   listAudit(userId: string, limit?: number): Promise<AccountAuditRecord[]>;
+
+  /**
+   * Single-use promotional offers. `claimPromo` records the offer atomically
+   * and returns false if the customer already claimed it — the one-time gate
+   * every offer relies on. `hasPromo`/`listPromos` are read-only checks.
+   */
+  hasPromo(userId: string, offer: PromoOffer): Promise<boolean>;
+  claimPromo(userId: string, offer: PromoOffer, detail?: Record<string, unknown>): Promise<boolean>;
+  listPromos(userId: string): Promise<PromoRecord[]>;
+  /** Earliest activity timestamp (unix seconds) — a stand-in for signup date. */
+  firstSeenAt(userId: string): Promise<number | null>;
 
   /** Cascade-delete everything owned by a user (account deletion). */
   deleteAllUserData(userId: string): Promise<void>;

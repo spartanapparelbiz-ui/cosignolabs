@@ -247,6 +247,9 @@ export function CheckoutClient({
               <Lock size={13} strokeWidth={2.5} aria-hidden="true" />
               payments handled by Stripe — cosigno never sees your card number.
             </p>
+            <p className="mt-1.5 text-xs text-ink-soft">
+              14-day money-back guarantee — full refund from your account, one tap.
+            </p>
           </div>
         )}
       </div>

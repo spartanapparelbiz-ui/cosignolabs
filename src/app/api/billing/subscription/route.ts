@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ApiError, errorResponse, requireUser } from "@/lib/api";
 import { getStripe } from "@/lib/stripe";
 import { getPlan, priceIdFor, type Interval } from "@/lib/plans";
+import { introCoupon, introEligible } from "@/lib/promos";
 import { enforceLimit } from "@/lib/ratelimit";
 import { parseStrict, readJsonBody } from "@/lib/schemas";
 import { getStore } from "@/lib/store";
@@ -56,14 +57,28 @@ export async function POST(req: NextRequest) {
       customerId = customer.id;
     }
 
+    // Intro pricing: $9 first month on pro-monthly, first-time subscribers
+    // only. "First-time" is server-truth — the customer has never had a live
+    // subscription (the `subscribed` promo is set by the webhook on activation),
+    // so a returning subscriber can never re-trigger it.
+    const coupon = introCoupon();
+    const firstTimer = !(await getStore().hasPromo(userId, "subscribed"));
+    const applyIntro = Boolean(coupon) && introEligible(plan, interval) && firstTimer;
+
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
       items: [{ price }],
       payment_behavior: "default_incomplete",
       payment_settings: { save_default_payment_method: "on_subscription" },
       expand: ["latest_invoice.payment_intent"],
+      ...(applyIntro ? { discounts: [{ coupon: coupon as string }] } : {}),
       metadata: { cosigno_user_id: userId, cosigno_plan: plan, cosigno_interval: interval },
     });
+
+    if (applyIntro) {
+      await getStore().claimPromo(userId, "intro_used", { coupon });
+      await getStore().logAudit(userId, "promo", { offer: "intro_used", plan, interval });
+    }
 
     const invoice = subscription.latest_invoice as Stripe.Invoice | null;
     const paymentIntent =
@@ -86,6 +101,7 @@ export async function POST(req: NextRequest) {
       plan,
       interval,
       amount,
+      introApplied: applyIntro,
     });
   } catch (err) {
     return errorResponse(err);

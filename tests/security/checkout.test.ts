@@ -58,6 +58,7 @@ function sub(partial: Partial<SubscriptionRecord>): SubscriptionRecord {
     current_period_end: Math.floor(Date.now() / 1000) + 86400 * 20,
     cancel_at_period_end: false,
     past_due_since: null,
+    started_at: Math.floor(Date.now() / 1000),
     updated_at: new Date().toISOString(),
     ...partial,
   };

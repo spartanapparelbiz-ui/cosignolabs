@@ -9,6 +9,8 @@ import {
   BetaApplication,
   canTransition,
   MessageRecord,
+  PromoOffer,
+  PromoRecord,
   SessionRecord,
   SubscriptionRecord,
   TierSettingRecord,
@@ -280,6 +282,34 @@ export class MemoryStore implements Store {
     return this.audit.filter((a) => a.user_id === userId).slice(0, limit);
   }
 
+  private promos: PromoRecord[] = [];
+
+  async hasPromo(userId: string, offer: PromoOffer): Promise<boolean> {
+    return this.promos.some((p) => p.user_id === userId && p.offer === offer);
+  }
+
+  async claimPromo(
+    userId: string,
+    offer: PromoOffer,
+    detail: Record<string, unknown> = {}
+  ): Promise<boolean> {
+    if (await this.hasPromo(userId, offer)) return false;
+    this.promos.push({ user_id: userId, offer, detail, created_at: nowIso() });
+    return true;
+  }
+
+  async listPromos(userId: string): Promise<PromoRecord[]> {
+    return this.promos.filter((p) => p.user_id === userId);
+  }
+
+  async firstSeenAt(userId: string): Promise<number | null> {
+    const times = this.sessions
+      .filter((s) => s.user_id === userId)
+      .map((s) => Date.parse(s.created_at));
+    if (times.length === 0) return null;
+    return Math.floor(Math.min(...times) / 1000);
+  }
+
   async deleteAllUserData(userId: string): Promise<void> {
     this.sessions = this.sessions.filter((s) => s.user_id !== userId);
     this.messages = this.messages.filter((m) => m.user_id !== userId);
@@ -290,5 +320,6 @@ export class MemoryStore implements Store {
     this.integrations.delete(userId);
     this.subscriptions.delete(userId);
     this.audit = this.audit.filter((a) => a.user_id !== userId);
+    this.promos = this.promos.filter((p) => p.user_id !== userId);
   }
 }

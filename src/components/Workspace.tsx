@@ -8,6 +8,7 @@ import { SkeletonCard } from "./Skeleton";
 import { useToast } from "./Toast";
 import { VoiceOrb, type OrbState } from "./VoiceOrb";
 import { EmptyIllustration } from "./EmptyIllustration";
+import { OfferBanner } from "./OfferBanner";
 import { useKeyboardHints } from "@/lib/useKeyboardHints";
 
 /** Static keyword set for inline command autocomplete. */
@@ -259,7 +260,9 @@ export function Workspace() {
   );
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl flex-1 gap-6 px-4 py-6 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)]">
+    <div className="flex-1 px-4 py-6">
+    <OfferBanner />
+    <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)]">
       {/* Left: command input + session thread */}
       <section className="flex flex-col gap-4">
         <div className={`rounded-card bg-white/70 p-4 shadow-lift ${thinking ? "animate-ring-flash" : ""}`}>
@@ -442,6 +445,7 @@ export function Workspace() {
           </details>
         )}
       </section>
+    </div>
     </div>
   );
 }

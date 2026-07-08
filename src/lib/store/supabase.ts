@@ -9,6 +9,8 @@ import {
   canTransition,
   AccountAuditRecord,
   MessageRecord,
+  PromoOffer,
+  PromoRecord,
   SessionRecord,
   SubscriptionRecord,
   TierSettingRecord,
@@ -360,11 +362,59 @@ export class SupabaseStore implements Store {
     return data ?? [];
   }
 
+  async hasPromo(userId: string, offer: PromoOffer): Promise<boolean> {
+    const { data } = await this.client
+      .from("promotions")
+      .select("offer")
+      .eq("user_id", userId)
+      .eq("offer", offer)
+      .maybeSingle();
+    return Boolean(data);
+  }
+
+  async claimPromo(
+    userId: string,
+    offer: PromoOffer,
+    detail: Record<string, unknown> = {}
+  ): Promise<boolean> {
+    // The (user_id, offer) unique constraint makes this the atomic single-use
+    // gate: a duplicate insert fails and we report "already claimed".
+    const { error } = await this.client
+      .from("promotions")
+      .insert({ user_id: userId, offer, detail });
+    if (error) {
+      if (error.code === "23505") return false; // unique_violation
+      throw new Error(error.message);
+    }
+    return true;
+  }
+
+  async listPromos(userId: string): Promise<PromoRecord[]> {
+    const { data, error } = await this.client
+      .from("promotions")
+      .select()
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
+  async firstSeenAt(userId: string): Promise<number | null> {
+    const { data } = await this.client
+      .from("sessions")
+      .select("created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    return data?.created_at ? Math.floor(Date.parse(data.created_at) / 1000) : null;
+  }
+
   async deleteAllUserData(userId: string): Promise<void> {
     // sessions cascade to messages/actions/action_events via FK ON DELETE
     // CASCADE; the rest are deleted explicitly.
     for (const table of [
       "account_audit",
+      "promotions",
       "integrations",
       "tier_settings",
       "usage",
