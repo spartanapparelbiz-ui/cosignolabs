@@ -79,10 +79,16 @@ export function plannerErrorMessage(status: number | null, detail: string): stri
   return `the AI planner call failed: ${detail}`;
 }
 
-/** Resolve the planner API key, honoring the deprecated name once. */
+/**
+ * Resolve the planner API key, honoring the deprecated name once.
+ * .trim() defends against the single most common deploy mistake: a stray
+ * space or newline pasted into the dashboard env var, which the provider
+ * would otherwise reject with a 401 "invalid key".
+ */
 export function plannerApiKey(): string | undefined {
-  if (process.env.PLANNER_API_KEY) return process.env.PLANNER_API_KEY;
-  const legacy = process.env.ANTHROPIC_API_KEY;
+  const primary = process.env.PLANNER_API_KEY?.trim();
+  if (primary) return primary;
+  const legacy = process.env.ANTHROPIC_API_KEY?.trim();
   if (legacy && !warnedApiKey) {
     warnedApiKey = true;
     logInfo("deprecated_env", {
@@ -90,7 +96,7 @@ export function plannerApiKey(): string | undefined {
       use: "PLANNER_API_KEY",
     });
   }
-  return legacy;
+  return legacy || undefined;
 }
 
 export function plannerConfigured(): boolean {
@@ -107,14 +113,14 @@ export function plannerModel(tier: PlannerTier): string {
       warnedModel = true;
       logInfo("deprecated_env", { old: "COSIGNO_MODEL_STRONG", use: "PLANNER_MODEL_PREMIUM" });
     }
-    return v || "";
+    return (v || "").trim();
   }
   const v = process.env.PLANNER_MODEL_DEFAULT || process.env.COSIGNO_MODEL_DEFAULT;
   if (!process.env.PLANNER_MODEL_DEFAULT && process.env.COSIGNO_MODEL_DEFAULT && !warnedModel) {
     warnedModel = true;
     logInfo("deprecated_env", { old: "COSIGNO_MODEL_DEFAULT", use: "PLANNER_MODEL_DEFAULT" });
   }
-  return v || "";
+  return (v || "").trim();
 }
 
 /** A JSON-schema tool definition, provider-agnostic. */

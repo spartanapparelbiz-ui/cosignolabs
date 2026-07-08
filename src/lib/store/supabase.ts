@@ -34,9 +34,11 @@ export class SupabaseStore implements Store {
   private client: SupabaseClient;
 
   constructor() {
+    // .trim() defends against a stray space/newline pasted into the dashboard
+    // env vars, which Supabase would otherwise reject with "Invalid API key".
     this.client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL!.trim(),
+      process.env.SUPABASE_SERVICE_ROLE_KEY!.trim(),
       { auth: { persistSession: false } }
     );
   }
