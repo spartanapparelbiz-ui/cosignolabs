@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Nunito_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -23,14 +23,19 @@ export const metadata: Metadata = {
   applicationName: "cosigno",
   alternates: { canonical: "https://cosignolabs.com" },
   icons: {
+    // Icon set = a bold ink tile (cream C + orange check) that reads on light
+    // AND dark tab bars. The ?v=2 query busts old cached (transparent) icons.
+    // SVG first (crispest where supported), then the multi-res .ico, then PNGs.
     icon: [
-      // SVG first: dark-tab-adaptive (prefers-color-scheme) where supported.
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
-      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+      { url: "/favicon.svg?v=2", type: "image/svg+xml" },
+      { url: "/favicon.ico?v=2", sizes: "any" },
+      { url: "/icon-16.png?v=2", type: "image/png", sizes: "16x16" },
+      { url: "/icon-32.png?v=2", type: "image/png", sizes: "32x32" },
+      { url: "/icon-192.png?v=2", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png?v=2", type: "image/png", sizes: "512x512" },
     ],
-    apple: "/apple-touch-icon.png",
+    apple: [{ url: "/apple-touch-icon.png?v=2", sizes: "180x180" }],
+    other: [{ rel: "mask-icon", url: "/mask-icon.svg", color: "#141414" }],
   },
   manifest: "/manifest.webmanifest",
   openGraph: {
@@ -47,6 +52,15 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     images: ["/og.png"],
   },
+};
+
+// Browser UI (mobile address bar / task switcher) tints to the surface the
+// visitor is actually looking at: cream in light, ink in dark.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FBF4EA" },
+    { media: "(prefers-color-scheme: dark)", color: "#141414" },
+  ],
 };
 
 export default function RootLayout({

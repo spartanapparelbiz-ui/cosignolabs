@@ -2,7 +2,7 @@ import Link from "next/link";
 import { clerkConfigured } from "@/lib/auth";
 import { AppNav } from "@/components/AppNav";
 import { ToastProvider } from "@/components/Toast";
-import { LivingLockup } from "@/components/brand/LivingLogo";
+import { LogoHome } from "@/components/brand/LivingLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +18,7 @@ function Chrome({
       <div className="flex min-h-dvh flex-col">
         <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
           <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-            <Link href="/app" aria-label="cosigno workspace" prefetch>
-              <LivingLockup size={26} textClass="text-xl" />
-            </Link>
+            <LogoHome href="/app" label="cosigno workspace" size={26} textClass="text-xl" />
             {/* On mobile the nav drops to its own full-width row (order-3);
                 on sm+ it sits inline between the logo and the user slot. */}
             <div className="order-3 w-full sm:order-none sm:w-auto">

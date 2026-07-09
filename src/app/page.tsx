@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { LivingLockup, LivingMark } from "@/components/brand/LivingLogo";
+import { LivingLockup, LivingMark, LogoHome } from "@/components/brand/LivingLogo";
 import { BetaForm } from "@/components/landing/BetaForm";
 import { HeroMark } from "@/components/landing/HeroMark";
 import { StaggerHeadline } from "@/components/landing/StaggerHeadline";
@@ -60,7 +60,7 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
-        <LivingLockup size={30} textClass="text-2xl" />
+        <LogoHome size={30} textClass="text-2xl" />
         <nav className="flex items-center gap-3">
           <Link
             href="/pricing"

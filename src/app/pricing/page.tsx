@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LogoLockup } from "@/components/brand/Logo";
+import { LivingLockup, LogoHome } from "@/components/brand/LivingLogo";
 import { PricingCards } from "@/components/pricing/PricingCards";
 import { FaqAccordion } from "@/components/pricing/FaqAccordion";
 
@@ -43,9 +43,7 @@ export default function PricingPage() {
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
-        <Link href="/" aria-label="cosigno home">
-          <LogoLockup size={30} textClass="text-2xl" />
-        </Link>
+        <LogoHome size={30} textClass="text-2xl" />
         <nav className="flex items-center gap-3">
           <Link
             href="/pricing"
@@ -90,7 +88,7 @@ export default function PricingPage() {
 
       <footer className="bg-cream-deep/60">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-ink-soft">
-          <LogoLockup size={20} textClass="text-base" />
+          <LivingLockup size={20} textClass="text-base" />
           <div className="flex items-center gap-4 font-semibold">
             <Link href="/pricing" className="hover:text-ink">pricing</Link>
             <a href="https://cosignolabs.com" className="hover:text-ink">cosignolabs.com</a>

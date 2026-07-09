@@ -17,15 +17,21 @@ import { INK, SIGNAL, C, CHECK } from "./logo-geometry.mjs";
 
 const CREAM = "#FBF4EA";
 const CREAM_DEEP = "#F3E9DA";
+const LINE = "#E4D9C8";
 const PUB = join(process.cwd(), "public");
 const BRAND = join(PUB, "brand");
 mkdirSync(BRAND, { recursive: true });
 
-/** Flat mark, viewBox 0 0 100 100. `flat=false` adds soft-3D shading. */
-function markInner(flat = true) {
+/**
+ * Flat mark, viewBox 0 0 100 100. `flat=false` adds soft-3D shading.
+ * `invert` draws the C in cream (for the dark-tile icon set); the check
+ * stays signal-orange in every variant.
+ */
+function markInner(flat = true, invert = false) {
   if (flat) {
+    const cStroke = invert ? CREAM : INK;
     return `
-  <path d="${C.d}" fill="none" stroke="${INK}" stroke-width="${C.stroke}" stroke-linecap="round"/>
+  <path d="${C.d}" fill="none" stroke="${cStroke}" stroke-width="${C.stroke}" stroke-linecap="round"/>
   <path d="${CHECK.d}" fill="none" stroke="${SIGNAL}" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>`;
   }
   // Soft-3D: vertical charcoal gradient on the C, warm gradient on the check,
@@ -54,11 +60,22 @@ function markInner(flat = true) {
   </g>`;
 }
 
-function markSvg({ size, flat = true, plate = false, pad = 8 }) {
-  const inner = markInner(flat);
+function markSvg({ size, flat = true, plate = false, pad = 8, border = false, invert = false }) {
+  const inner = markInner(flat, invert);
   const scale = (size - pad * 2) / 100;
+  // The icon set uses an INK tile (cream C + orange check): it pops on light
+  // tab bars (dark tile on light chrome) and the light mark carries it on
+  // dark tabs. Non-inverted plates (cream) keep a hairline border so their
+  // edge shows on light chrome. Border is inset by half its width.
+  const plateFill = invert ? INK : CREAM;
+  const bw = size * 0.035;
+  const plateRect = plate
+    ? border && !invert
+      ? `<rect x="${bw / 2}" y="${bw / 2}" width="${size - bw}" height="${size - bw}" rx="${size * 0.2 - bw / 2}" fill="${plateFill}" stroke="${LINE}" stroke-width="${bw}"/>`
+      : `<rect width="${size}" height="${size}" rx="${size * 0.2}" fill="${plateFill}"/>`
+    : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  ${plate ? `<rect width="${size}" height="${size}" rx="${size * 0.2}" fill="${CREAM}"/>` : ""}
+  ${plateRect}
   <g transform="translate(${pad},${pad}) scale(${scale})">${inner}</g>
 </svg>`;
 }
@@ -124,18 +141,25 @@ function ogSvg() {
 }
 
 /**
- * Dark-adaptive SVG favicon. The ink C vanishes on dark browser tab bars,
- * so an internal prefers-color-scheme rule repaints the C cream on dark; the
- * signal check reads on both. Supporting browsers prefer this over the .ico.
+ * SVG favicon — the format modern browsers prefer over the .ico. Previously
+ * this was TRANSPARENT with an ink C, so on a light tab bar it read as a weak
+ * dark blob and on dark tabs the C could vanish entirely. It now sits on the
+ * brand cream plate (matching the raster icons) with a hairline border and
+ * internal padding: theme-independent, bold, and clearly visible on any tab
+ * bar. The stroke widths (26/17) keep the silhouette bold at 16px.
  */
 function faviconSvg() {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-  <style>
-    .c { stroke: ${INK}; }
-    @media (prefers-color-scheme: dark) { .c { stroke: ${CREAM}; } }
-  </style>
-  <path class="c" d="${C.d}" fill="none" stroke-width="${C.stroke}" stroke-linecap="round"/>
-  <path d="${CHECK.d}" fill="none" stroke="${SIGNAL}" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>
+  return markSvg({ size: 100, plate: true, invert: true, pad: 20 });
+}
+
+/**
+ * Safari pinned-tab mask icon: a single-color silhouette Safari recolors.
+ * The whole mark is one color (black); Safari applies the mask-icon color.
+ */
+function maskIconSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <path d="${C.d}" fill="none" stroke="#000" stroke-width="${C.stroke}" stroke-linecap="round"/>
+  <path d="${CHECK.d}" fill="none" stroke="#000" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 }
 
@@ -144,6 +168,7 @@ async function main() {
   writeFileSync(join(PUB, "logo.svg"), markSvg({ size: 100, pad: 8 }));
   writeFileSync(join(PUB, "logo-lockup.svg"), lockupSvg(true));
   writeFileSync(join(PUB, "favicon.svg"), faviconSvg());
+  writeFileSync(join(PUB, "mask-icon.svg"), maskIconSvg());
 
   // Rich 3D rasters for hero + reference.
   await sharp(Buffer.from(markSvg({ size: 512, flat: false, pad: 40 })))
@@ -154,15 +179,22 @@ async function main() {
     .png()
     .toFile(join(BRAND, "logo-3d.png"));
 
-  // App icons (flat mark on a cream plate so it reads on any tab bg).
-  const icon = (s, pad) => sharp(Buffer.from(markSvg({ size: s, plate: true, pad }))).png();
-  await icon(192, 30).toFile(join(PUB, "icon-192.png"));
-  await icon(512, 82).toFile(join(PUB, "icon-512.png"));
-  await icon(180, 28).toFile(join(PUB, "apple-touch-icon.png"));
+  // Icon set — one consistent INK tile with a cream C + orange check, so the
+  // mark reads on any tab bar or home screen (light OR dark). The in-page
+  // logo and OG image stay on the brand cream field; the tile is the app/tab
+  // icon treatment.
+  const icon = (s, pad) =>
+    sharp(Buffer.from(markSvg({ size: s, plate: true, invert: true, pad }))).png();
+  await icon(192, 34).toFile(join(PUB, "icon-192.png"));
+  await icon(512, 90).toFile(join(PUB, "icon-512.png"));
+  await icon(180, 32).toFile(join(PUB, "apple-touch-icon.png"));
+  // Standalone tab-size PNGs (part of the modern set, referenced in <head>).
+  await icon(16, 2).toFile(join(PUB, "icon-16.png"));
+  await icon(32, 5).toFile(join(PUB, "icon-32.png"));
 
-  const f16 = await sharp(Buffer.from(markSvg({ size: 16, plate: true, pad: 1 }))).png().toBuffer();
-  const f32 = await sharp(Buffer.from(markSvg({ size: 32, plate: true, pad: 2 }))).png().toBuffer();
-  const f48 = await sharp(Buffer.from(markSvg({ size: 48, plate: true, pad: 4 }))).png().toBuffer();
+  const f16 = await sharp(Buffer.from(markSvg({ size: 16, plate: true, invert: true, pad: 2 }))).png().toBuffer();
+  const f32 = await sharp(Buffer.from(markSvg({ size: 32, plate: true, invert: true, pad: 5 }))).png().toBuffer();
+  const f48 = await sharp(Buffer.from(markSvg({ size: 48, plate: true, invert: true, pad: 8 }))).png().toBuffer();
   writeFileSync(join(PUB, "favicon.ico"), await pngToIco([f16, f32, f48]));
 
   await sharp(Buffer.from(ogSvg())).png().toFile(join(PUB, "og.png"));

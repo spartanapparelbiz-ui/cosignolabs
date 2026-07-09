@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LivingLockup } from "@/components/brand/LivingLogo";
+import { LivingLockup, LogoHome } from "@/components/brand/LivingLogo";
 
 /**
  * Shared shell for the legal pages (/terms, /privacy). Branded header +
@@ -23,9 +23,7 @@ export function LegalLayout({
     <div className="flex min-h-dvh flex-col bg-cream text-ink">
       <header className="border-b border-line/70">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-4 sm:px-6">
-          <Link href="/" aria-label="cosigno home" prefetch>
-            <LivingLockup size={22} textClass="text-lg" />
-          </Link>
+          <LogoHome size={22} textClass="text-lg" />
           <Link
             href="/"
             className="text-sm font-bold text-ink-soft transition hover:text-ink"
