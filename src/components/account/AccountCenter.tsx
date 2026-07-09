@@ -2,11 +2,14 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
+  AlertTriangle,
   Boxes,
   Gauge,
+  Keyboard,
   Lock,
   ShieldCheck,
   SlidersHorizontal,
+  Trash2,
   UserRound,
 } from "lucide-react";
 import type { AccountAuditRecord, ActionRecord, CategoryMeta, Tier, UsageRecord } from "@/lib/types";
@@ -101,6 +104,15 @@ export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }
         {tab === "security" && <SecurityPanel actions={actions} />}
       </div>
     </div>
+  );
+}
+
+/** A small 3D keycap — a physical-looking key for shortcut hints. */
+function Keycap({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-[5px] bg-cream px-1.5 font-mono text-[11px] font-bold text-ink ring-1 ring-inset ring-line shadow-[0_1px_0_1px_rgba(20,20,20,0.12)]">
+      {children}
+    </kbd>
   );
 }
 
@@ -258,11 +270,14 @@ function ProfilePanel() {
 
       {/* Preferences */}
       <div className="mt-6 flex items-center gap-4 rounded-card bg-surface/60 p-4 shadow-soft">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-btn bg-cream-deep text-ink-soft">
+          <Keyboard size={20} strokeWidth={2.2} aria-hidden="true" />
+        </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold lowercase">keyboard shortcut hints</p>
-          <p className="mt-0.5 text-xs text-ink-soft">
-            show the <kbd className="rounded bg-cream-deep px-1 font-mono">a</kbd> approve ·{" "}
-            <kbd className="rounded bg-cream-deep px-1 font-mono">v</kbd> veto footer on focused action cards.
+          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-ink-soft">
+            show the <Keycap>a</Keycap> approve <span aria-hidden="true">·</span>{" "}
+            <Keycap>v</Keycap> veto footer on focused action cards.
           </p>
         </div>
         <button
@@ -282,20 +297,28 @@ function ProfilePanel() {
         </button>
       </div>
 
-      {/* Danger zone */}
-      <div className="mt-8 rounded-card ring-1 ring-inset ring-ink/30 p-5">
-        <h3 className="text-sm font-extrabold lowercase">danger zone</h3>
-        <p className="mt-1 text-sm text-ink-soft">
-          deleting your account cancels any subscription and permanently erases
-          your sessions, actions, audit trail, and settings. this can&apos;t be undone.
-        </p>
+      {/* Danger zone — hazard-striped so a destructive area reads at a glance. */}
+      <div className="tier3-texture mt-8 overflow-hidden rounded-card p-5 ring-1 ring-inset ring-signal/30">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-btn bg-signal/15 text-signal">
+            <AlertTriangle size={20} strokeWidth={2.4} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-sm font-extrabold lowercase text-signal">danger zone</h3>
+            <p className="mt-1 text-sm text-ink-soft">
+              deleting your account cancels any subscription and permanently erases
+              your sessions, actions, audit trail, and settings. this can&apos;t be undone.
+            </p>
+          </div>
+        </div>
         {error && (
-          <p className="mt-2 rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold" role="alert">{error}</p>
+          <p className="mt-3 rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold" role="alert">{error}</p>
         )}
         <button
           onClick={() => setConfirming(true)}
-          className="mt-3 rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink transition-all duration-fast hover:-translate-y-px hover:bg-ink hover:text-cream"
+          className="mt-4 inline-flex items-center gap-2 rounded-btn px-4 py-2 text-sm font-bold lowercase text-signal ring-1 ring-inset ring-signal transition-all duration-fast hover:-translate-y-px hover:bg-signal hover:text-cream"
         >
+          <Trash2 size={14} strokeWidth={2.4} aria-hidden="true" />
           delete account
         </button>
       </div>
