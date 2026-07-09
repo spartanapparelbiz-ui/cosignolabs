@@ -15,7 +15,7 @@ function Chrome({
 }) {
   return (
     <ToastProvider>
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-dvh flex-col">
         <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
           <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
             <Link href="/app" aria-label="cosigno workspace" prefetch>

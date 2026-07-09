@@ -58,7 +58,7 @@ const BENEFITS = [
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden">
+    <div className="flex min-h-dvh flex-col overflow-x-hidden">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
         <LivingLockup size={30} textClass="text-2xl" />
         <nav className="flex items-center gap-3">
@@ -81,7 +81,9 @@ export default function LandingPage() {
 
       <main className="flex-1">
         {/* Hero */}
-        <section className="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-4 pb-16 pt-8 lg:grid-cols-2 lg:pt-16">
+        {/* The hero owns a comfortable slice of the viewport (content
+            vertically centered in it) rather than a short block up top. */}
+        <section className="relative mx-auto grid min-h-[62dvh] w-full max-w-6xl content-center items-center gap-10 px-4 pb-16 pt-8 lg:min-h-[calc(100dvh-160px)] lg:grid-cols-2 lg:pt-8">
           {/* Subtle radial glow behind the mark — depth, not noise. */}
           <div
             aria-hidden="true"

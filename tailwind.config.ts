@@ -180,6 +180,18 @@ const config: Config = {
           "0%, 100%": { opacity: "0.92" },
           "50%": { opacity: "1" },
         },
+        // --- LogoStatus: the mark as the live status indicator ---
+        // A short highlight segment travels the C's arc (normalized via
+        // pathLength=1); speed is overridden per state with animationDuration.
+        "logo-travel": {
+          "0%": { "stroke-dashoffset": "1" },
+          "100%": { "stroke-dashoffset": "-1" },
+        },
+        // Decisive check stroke-draw on execution (pathLength=1 space).
+        "logo-draw": {
+          "0%": { "stroke-dashoffset": "1" },
+          "100%": { "stroke-dashoffset": "0" },
+        },
       },
       animation: {
         "card-in": "card-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both",
@@ -203,6 +215,8 @@ const config: Config = {
         "toast-in": "toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "logo-breath": "logo-breath 5s ease-in-out infinite",
         "logo-check": "logo-check 5s ease-in-out infinite",
+        "logo-travel": "logo-travel 2.4s linear infinite",
+        "logo-draw": "logo-draw 360ms cubic-bezier(0.22, 1, 0.36, 1) both",
         settle: "settle 500ms cubic-bezier(0.22, 1, 0.36, 1) both",
         float: "float 6s ease-in-out infinite",
         "rise-in": "rise-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both",

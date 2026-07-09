@@ -24,7 +24,7 @@ export default async function CheckoutPage({
   const interval: Interval = intervalParam === "annual" ? "annual" : "monthly";
 
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden">
+    <div className="flex min-h-dvh flex-col overflow-x-hidden">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-5">
         <Link href="/" aria-label="cosigno home">
           <LogoLockup size={28} textClass="text-xl" />

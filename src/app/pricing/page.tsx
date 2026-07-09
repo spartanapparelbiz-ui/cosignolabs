@@ -41,7 +41,7 @@ const FAQ = [
 
 export default function PricingPage() {
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden">
+    <div className="flex min-h-dvh flex-col overflow-x-hidden">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
         <Link href="/" aria-label="cosigno home">
           <LogoLockup size={30} textClass="text-2xl" />

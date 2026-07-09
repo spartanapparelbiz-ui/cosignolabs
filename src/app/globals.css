@@ -6,6 +6,13 @@
   color-scheme: light;
 }
 
+/* Full-height shells: nothing between the viewport and a page's min-h-dvh
+   wrapper may cap height, or short pages sit crammed at the top. */
+html,
+body {
+  min-height: 100%;
+}
+
 body {
   @apply bg-cream text-ink font-sans antialiased;
 }
@@ -19,18 +26,6 @@ body {
   outline: 2px solid #ff4b1f;
   outline-offset: 2px;
   border-radius: 6px;
-}
-
-/* Used via inline animation shorthand in VoiceOrb, so declared here rather
-   than relying on Tailwind emitting the keyframes for a utility class. */
-@keyframes orb-listen {
-  0%,
-  100% {
-    transform: scaleY(0.35);
-  }
-  50% {
-    transform: scaleY(1);
-  }
 }
 
 /* Signature check motif — shared surface language across the app. */

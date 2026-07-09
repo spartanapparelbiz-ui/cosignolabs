@@ -18,7 +18,7 @@ const UPDATED = "July 8, 2026";
  */
 export default function TermsPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-cream text-ink">
+    <div className="flex min-h-dvh flex-col bg-cream text-ink">
       <header className="border-b border-line/70">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-4 sm:px-6">
           <Link href="/" aria-label="cosigno home" prefetch>

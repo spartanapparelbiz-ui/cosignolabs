@@ -5,9 +5,9 @@ import type { ActionRecord, ActionStatus, MessageRecord, SessionRecord } from "@
 import { getRealtimeClient } from "@/lib/client/realtime";
 import { ActionCard } from "./ActionCard";
 import { SkeletonCard } from "./Skeleton";
+import { LogoStatus, type LogoStatusState } from "./LogoStatus";
 import { ThinkingStatus, type PlanResolution } from "./ThinkingStatus";
 import { useToast } from "./Toast";
-import { VoiceOrb, type OrbState } from "./VoiceOrb";
 import { EmptyIllustration } from "./EmptyIllustration";
 import { OfferBanner } from "./OfferBanner";
 import { useKeyboardHints } from "@/lib/useKeyboardHints";
@@ -134,13 +134,38 @@ export function Workspace() {
   );
   const counts = useMemo(() => sessionCounts(displayActions), [displayActions]);
 
-  const orbState: OrbState = thinking
-    ? "thinking"
-    : awaitingCount > 0
-      ? "awaiting-approval"
-      : listening
-        ? "listening"
-        : "idle";
+  // Brief post-event beats (success settle / calm error dim) on the mark.
+  const [flash, setFlash] = useState<"success" | "error" | null>(null);
+  const flashTimer = useRef<number | null>(null);
+  const pulse = useCallback((kind: "success" | "error") => {
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    setFlash(kind);
+    flashTimer.current = window.setTimeout(() => setFlash(null), 1200);
+  }, []);
+
+  const executingNow = useMemo(
+    () =>
+      displayActions.some(
+        (a) => a.status === "approved" || a.status === "executing"
+      ),
+    [displayActions]
+  );
+
+  // The logo IS the status light. Real lifecycle, one state at a time:
+  // planning > executing > awaiting-signature > post-event beat > listening.
+  const logoState: LogoStatusState = thinking
+    ? "working"
+    : executingNow
+      ? "executing"
+      : awaitingCount > 0
+        ? "awaiting"
+        : flash
+          ? flash === "success"
+            ? "success"
+            : "error"
+          : listening
+            ? "listening"
+            : "idle";
 
   // Living logo in the browser tab: badge the favicon while actions wait.
   useFaviconStatus(awaitingCount > 0);
@@ -241,6 +266,7 @@ export function Workspace() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "the command didn't go through — try again.");
       setCommand(cmd); // never lose the user's input
+      pulse("error");
     } finally {
       setThinking(false);
     }
@@ -259,6 +285,7 @@ export function Workspace() {
         // lands — it tucks under the resolved divider a beat later.
         holdInStack([id]);
         await refresh();
+        pulse(data.action.status === "executed" ? "success" : "error");
         toast(
           data.action.status === "executed" ? "success" : "error",
           data.action.status === "executed"
@@ -326,9 +353,11 @@ export function Workspace() {
   );
 
   return (
-    <div className="flex-1 px-4 py-6">
+    <div className="flex flex-1 flex-col px-4 py-6">
     <OfferBanner />
-    <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)]">
+    {/* flex-1 + stretched row: both panels fill the viewport below the nav
+        instead of sitting content-height with a dead zone beneath. */}
+    <div className="mx-auto grid w-full max-w-6xl flex-1 gap-6 lg:min-h-0 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)]">
       {/* Left: command input + session thread */}
       <section className="flex min-w-0 flex-col gap-4">
         <div className={`rounded-card bg-white/70 p-4 shadow-lift ${thinking ? "animate-ring-flash" : ""}`}>
@@ -460,31 +489,19 @@ export function Workspace() {
         </div>
       </section>
 
-      {/* Right: action card stack */}
-      <section className="flex min-w-0 flex-col gap-3" aria-live="polite">
+      {/* Right: action card stack — fills the column and scrolls internally
+          when the stack outgrows the viewport (page never goes short). */}
+      <section
+        className="flex min-w-0 flex-col gap-3 lg:max-h-[calc(100dvh-8.5rem)] lg:overflow-y-auto"
+        aria-live="polite"
+      >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h2 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
             action cards
           </h2>
-          {/* live panel state: at a glance, is the operator waiting on you? */}
-          <span
-            className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide ${
-              thinking
-                ? "bg-ink text-cream"
-                : awaitingCount > 0
-                  ? "animate-pulse-glow bg-signal text-cream"
-                  : "bg-cream-deep text-ink-soft"
-            }`}
-            role="status"
-          >
-            {thinking
-              ? "working"
-              : awaitingCount > 0
-                ? `${awaitingCount} awaiting your approval`
-                : "idle"}
-          </span>
-          <span className="ml-auto">
-            <VoiceOrb state={orbState} />
+          {/* the living logo is the status light — the one live indicator */}
+          <span className="ml-auto min-w-0">
+            <LogoStatus state={logoState} awaiting={awaitingCount} />
           </span>
         </div>
         {sessionCountsLine(counts) && (
@@ -496,7 +513,9 @@ export function Workspace() {
         {thinking && <SkeletonCard />}
 
         {actions.length === 0 && !thinking && (
-          <div className="flex flex-col items-center rounded-card bg-white/40 p-8 text-center shadow-soft">
+          /* my-auto: the empty state sits centered in the panel's height,
+             not crammed at the top with a dead zone under it. */
+          <div className="my-auto flex flex-col items-center rounded-card bg-white/40 p-8 text-center shadow-soft">
             <EmptyIllustration kind="workspace" className="mb-3" />
             <p className="max-w-sm text-sm font-semibold text-ink-soft">
               nothing proposed yet. give the operator a command — every
