@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   Check,
+  Plug,
   Plus,
   RefreshCw,
   ShieldAlert,
@@ -72,6 +73,7 @@ async function api(url: string, init?: RequestInit) {
 export function ConnectionsPanel() {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -79,8 +81,13 @@ export function ConnectionsPanel() {
   async function load() {
     try {
       setData(await api("/api/connections"));
+      setUnavailable(false);
     } catch {
-      setError("couldn't load your connections.");
+      // The connections backend isn't fully provisioned on this deployment
+      // yet (login + database + per-app setup). Rather than show a scary
+      // error, present a calm "coming soon" state — nothing here is broken,
+      // the feature just isn't switched on for this site.
+      setUnavailable(true);
     }
   }
   useEffect(() => {
@@ -140,6 +147,9 @@ export function ConnectionsPanel() {
     }
   }
 
+  if (unavailable) {
+    return <ConnectionsComingSoon />;
+  }
   if (!data && !error) {
     return <ConnectionsSkeleton />;
   }
@@ -286,6 +296,39 @@ export function ConnectionsPanel() {
           />
         ))}
       </section>
+    </div>
+  );
+}
+
+/**
+ * Calm "coming soon" state, shown when the connections backend isn't fully
+ * provisioned for this deployment yet. Nothing is broken — the feature just
+ * isn't switched on — so we say exactly that, warmly, instead of an error.
+ */
+function ConnectionsComingSoon() {
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h3 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
+          connections
+        </h3>
+        <p className="mt-1 text-xs text-ink-soft">
+          the apps and MCP servers cosigno can act across — each stays off until
+          you connect it, and every action still waits for your signature.
+        </p>
+      </div>
+      <div className="rounded-card bg-white/60 p-8 text-center shadow-soft">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-btn bg-cream-deep">
+          <Plug size={22} className="text-ink-soft" />
+        </div>
+        <p className="text-sm font-extrabold">connections are coming soon</p>
+        <p className="mx-auto mt-1.5 max-w-md text-xs text-ink-soft">
+          this is where you&apos;ll link the apps cosigno can act across — like
+          GitHub, Google, and Slack — each one off until you connect it, and every
+          action still waiting for your signature. we&apos;re putting the final
+          pieces in place. check back shortly.
+        </p>
+      </div>
     </div>
   );
 }
