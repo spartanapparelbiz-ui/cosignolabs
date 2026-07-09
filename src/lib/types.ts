@@ -19,7 +19,8 @@ export type ActionCategory =
   | "webhook"
   | "delete"
   | "refund"
-  | "payment";
+  | "payment"
+  | "connection_call";
 
 export interface CategoryMeta {
   category: ActionCategory;
@@ -28,6 +29,13 @@ export interface CategoryMeta {
   defaultTier: Tier;
   /** Tier-3 categories are pinned: users and the agent can never lower them. */
   pinned: boolean;
+  /**
+   * Whether the PLANNER may propose this category. Integration/MCP execution
+   * (connection_call) is created by the integrations runtime after explicit
+   * user action — never selected by the model — so it's excluded from the
+   * planner's tool enum.
+   */
+  plannerSelectable?: boolean;
 }
 
 export const CATEGORIES: Record<ActionCategory, CategoryMeta> = {
@@ -107,6 +115,15 @@ export const CATEGORIES: Record<ActionCategory, CategoryMeta> = {
     description: "Move money out — requires typed confirmation",
     defaultTier: 3,
     pinned: true,
+  },
+  connection_call: {
+    category: "connection_call",
+    label: "Connected tool",
+    description:
+      "Run an action on a connected app or MCP tool. Created by the integrations runtime after explicit user action — never proposed by the planner.",
+    defaultTier: 2,
+    pinned: false,
+    plannerSelectable: false,
   },
 };
 

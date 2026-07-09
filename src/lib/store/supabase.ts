@@ -16,7 +16,15 @@ import {
   TierSettingRecord,
   UsageRecord,
 } from "../types";
-import type { ActionInsert, ActivityFilter, Store } from "./index";
+import type {
+  ActionInsert,
+  ActivityFilter,
+  ConnectionInsert,
+  ConnectionPatch,
+  OAuthStateRow,
+  Store,
+} from "./index";
+import type { ConnectionRecord, McpToolRecord } from "../integrations/types";
 
 function cycleStart(): string {
   const d = new Date();
@@ -342,6 +350,197 @@ export class SupabaseStore implements Store {
     return Object.fromEntries((data ?? []).map((r) => [r.key as string, r.connected_at as string]));
   }
 
+  /* --- connections v2 --- */
+  private rowToConnection(r: Record<string, unknown>): ConnectionRecord {
+    return {
+      id: r.id as string,
+      user_id: r.user_id as string,
+      provider_key: r.provider_key as string,
+      kind: r.kind as ConnectionRecord["kind"],
+      display_name: r.display_name as string,
+      status: r.status as ConnectionRecord["status"],
+      auth_type: r.auth_type as ConnectionRecord["auth_type"],
+      encrypted_credentials: (r.encrypted_credentials as string | null) ?? null,
+      scopes: (r.scopes as string | null) ?? null,
+      metadata: (r.metadata as Record<string, unknown>) ?? {},
+      created_at: r.created_at as string,
+      updated_at: r.updated_at as string,
+      last_health_at: (r.last_health_at as string | null) ?? null,
+    };
+  }
+
+  async createConnection(input: ConnectionInsert): Promise<ConnectionRecord> {
+    const row = await this.one<Record<string, unknown>>(
+      this.client
+        .from("connections")
+        .insert({
+          user_id: input.user_id,
+          provider_key: input.provider_key,
+          kind: input.kind,
+          display_name: input.display_name,
+          auth_type: input.auth_type,
+          encrypted_credentials: input.encrypted_credentials,
+          scopes: input.scopes ?? null,
+          metadata: input.metadata ?? {},
+          status: input.status ?? "connected",
+        })
+        .select()
+        .single()
+    );
+    return this.rowToConnection(row);
+  }
+
+  async getConnection(userId: string, id: string): Promise<ConnectionRecord | null> {
+    const { data, error } = await this.client
+      .from("connections")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? this.rowToConnection(data) : null;
+  }
+
+  async listConnections(userId: string): Promise<ConnectionRecord[]> {
+    const { data, error } = await this.client
+      .from("connections")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => this.rowToConnection(r));
+  }
+
+  async updateConnection(userId: string, id: string, patch: ConnectionPatch): Promise<void> {
+    const { error } = await this.client
+      .from("connections")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+  }
+
+  async deleteConnection(userId: string, id: string): Promise<void> {
+    const { error } = await this.client
+      .from("connections")
+      .delete()
+      .eq("user_id", userId)
+      .eq("id", id); // mcp_tools cascade via FK ON DELETE CASCADE
+    if (error) throw new Error(error.message);
+  }
+
+  async saveMcpTools(
+    userId: string,
+    connectionId: string,
+    tools: Omit<McpToolRecord, "connection_id">[]
+  ): Promise<void> {
+    // Preserve enabled/consent across a re-discovery.
+    const existing = await this.listMcpTools(userId, connectionId);
+    const prior = new Map(existing.map((t) => [t.name, t]));
+    await this.client.from("mcp_tools").delete().eq("connection_id", connectionId);
+    if (tools.length === 0) return;
+    const rows = tools.map((t) => {
+      const was = prior.get(t.name);
+      return {
+        connection_id: connectionId,
+        user_id: userId,
+        name: t.name,
+        description: t.description,
+        input_schema: t.input_schema,
+        sensitive: t.sensitive,
+        enabled: was?.enabled ?? t.enabled,
+        consented_at: was?.consented_at ?? t.consented_at,
+      };
+    });
+    const { error } = await this.client.from("mcp_tools").insert(rows);
+    if (error) throw new Error(error.message);
+  }
+
+  private rowToTool(r: Record<string, unknown>): McpToolRecord {
+    return {
+      connection_id: r.connection_id as string,
+      name: r.name as string,
+      description: (r.description as string) ?? "",
+      input_schema: (r.input_schema as Record<string, unknown>) ?? {},
+      enabled: Boolean(r.enabled),
+      sensitive: Boolean(r.sensitive),
+      consented_at: (r.consented_at as string | null) ?? null,
+    };
+  }
+
+  async listMcpTools(userId: string, connectionId: string): Promise<McpToolRecord[]> {
+    const { data, error } = await this.client
+      .from("mcp_tools")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("connection_id", connectionId);
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r) => this.rowToTool(r));
+  }
+
+  async getMcpTool(
+    userId: string,
+    connectionId: string,
+    name: string
+  ): Promise<McpToolRecord | null> {
+    const { data, error } = await this.client
+      .from("mcp_tools")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("connection_id", connectionId)
+      .eq("name", name)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? this.rowToTool(data) : null;
+  }
+
+  async setMcpTool(
+    userId: string,
+    connectionId: string,
+    name: string,
+    patch: { enabled?: boolean; consented_at?: string | null }
+  ): Promise<void> {
+    const { error } = await this.client
+      .from("mcp_tools")
+      .update(patch)
+      .eq("user_id", userId)
+      .eq("connection_id", connectionId)
+      .eq("name", name);
+    if (error) throw new Error(error.message);
+  }
+
+  async createOAuthState(row: OAuthStateRow): Promise<void> {
+    const { error } = await this.client.from("oauth_states").insert({
+      state: row.state,
+      user_id: row.user_id,
+      provider_key: row.provider_key,
+      code_verifier: row.code_verifier ?? null,
+      redirect_uri: row.redirect_uri,
+      expires_at: row.expires_at,
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  async consumeOAuthState(state: string): Promise<OAuthStateRow | null> {
+    const { data, error } = await this.client
+      .from("oauth_states")
+      .delete()
+      .eq("state", state)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) return null;
+    if (Date.parse(data.expires_at as string) < Date.now()) return null;
+    return {
+      state: data.state as string,
+      user_id: data.user_id as string,
+      provider_key: data.provider_key as string,
+      code_verifier: (data.code_verifier as string | null) ?? null,
+      redirect_uri: data.redirect_uri as string,
+      expires_at: data.expires_at as string,
+    };
+  }
+
   async logAudit(
     userId: string,
     type: AccountAuditRecord["type"],
@@ -418,6 +617,9 @@ export class SupabaseStore implements Store {
       "account_audit",
       "promotions",
       "integrations",
+      "mcp_tools",
+      "oauth_states",
+      "connections",
       "tier_settings",
       "usage",
       "subscriptions",

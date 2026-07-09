@@ -13,8 +13,44 @@ import type {
   TierSettingRecord,
   UsageRecord,
 } from "../types";
+import type {
+  ConnectionRecord,
+  ConnectionStatus,
+  McpToolRecord,
+} from "../integrations/types";
 import { MemoryStore } from "./memory";
 import { SupabaseStore } from "./supabase";
+
+/** New-connection insert — encrypted_credentials is already ciphertext. */
+export interface ConnectionInsert {
+  user_id: string;
+  provider_key: string;
+  kind: ConnectionRecord["kind"];
+  display_name: string;
+  auth_type: ConnectionRecord["auth_type"];
+  encrypted_credentials: string | null;
+  scopes?: string | null;
+  metadata?: Record<string, unknown>;
+  status?: ConnectionStatus;
+}
+
+export interface ConnectionPatch {
+  status?: ConnectionStatus;
+  encrypted_credentials?: string | null;
+  scopes?: string | null;
+  display_name?: string;
+  metadata?: Record<string, unknown>;
+  last_health_at?: string | null;
+}
+
+export interface OAuthStateRow {
+  state: string;
+  user_id: string;
+  provider_key: string;
+  code_verifier?: string | null;
+  redirect_uri: string;
+  expires_at: string;
+}
 
 export interface ActionInsert {
   session_id: string;
@@ -109,6 +145,32 @@ export interface Store {
   setIntegration(userId: string, key: string, connected: boolean): Promise<void>;
   /** connected_at timestamps keyed by integration key. */
   integrationConnectedAt(userId: string): Promise<Record<string, string>>;
+
+  /* --- Connections v2: third-party apps + custom MCP servers. Credentials
+     are stored ENCRYPTED (ciphertext in) and returned as-is (decryption is
+     the caller's job, in the runtime layer). --- */
+  createConnection(input: ConnectionInsert): Promise<ConnectionRecord>;
+  getConnection(userId: string, id: string): Promise<ConnectionRecord | null>;
+  listConnections(userId: string): Promise<ConnectionRecord[]>;
+  updateConnection(userId: string, id: string, patch: ConnectionPatch): Promise<void>;
+  deleteConnection(userId: string, id: string): Promise<void>;
+  /** Replace the cached tool list for an MCP connection (validated upstream). */
+  saveMcpTools(
+    userId: string,
+    connectionId: string,
+    tools: Omit<McpToolRecord, "connection_id">[]
+  ): Promise<void>;
+  listMcpTools(userId: string, connectionId: string): Promise<McpToolRecord[]>;
+  getMcpTool(userId: string, connectionId: string, name: string): Promise<McpToolRecord | null>;
+  setMcpTool(
+    userId: string,
+    connectionId: string,
+    name: string,
+    patch: { enabled?: boolean; consented_at?: string | null }
+  ): Promise<void>;
+  /** OAuth CSRF/PKCE state — created before redirect, consumed once on callback. */
+  createOAuthState(row: OAuthStateRow): Promise<void>;
+  consumeOAuthState(state: string): Promise<OAuthStateRow | null>;
 
   /** Account audit trail (tier changes, integration changes, deletion). */
   logAudit(

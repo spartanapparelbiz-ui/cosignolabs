@@ -9,6 +9,7 @@ import {
   Megaphone,
   Pencil,
   PenLine,
+  Plug,
   RotateCcw,
   Search,
   Send,
@@ -67,6 +68,7 @@ const CATEGORY_GLYPH: Record<ActionCategory, LucideIcon> = {
   delete: Trash2,
   refund: RotateCcw,
   payment: Banknote,
+  connection_call: Plug,
 };
 
 const CHIP_STYLE: Record<string, string> = {

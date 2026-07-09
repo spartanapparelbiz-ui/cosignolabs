@@ -16,7 +16,18 @@ import {
   TierSettingRecord,
   UsageRecord,
 } from "../types";
-import type { ActionInsert, ActivityFilter, Store } from "./index";
+import type {
+  ActionInsert,
+  ActivityFilter,
+  ConnectionInsert,
+  ConnectionPatch,
+  OAuthStateRow,
+  Store,
+} from "./index";
+import type {
+  ConnectionRecord,
+  McpToolRecord,
+} from "../integrations/types";
 
 function nowIso() {
   return new Date().toISOString();
@@ -268,6 +279,111 @@ export class MemoryStore implements Store {
     return Object.fromEntries(this.integrations.get(userId) ?? []);
   }
 
+  /* --- connections v2 --- */
+  private connections: ConnectionRecord[] = [];
+  private mcpTools: McpToolRecord[] = [];
+  private oauthStates = new Map<string, OAuthStateRow>();
+
+  async createConnection(input: ConnectionInsert): Promise<ConnectionRecord> {
+    const now = nowIso();
+    const rec: ConnectionRecord = {
+      id: randomUUID(),
+      user_id: input.user_id,
+      provider_key: input.provider_key,
+      kind: input.kind,
+      display_name: input.display_name,
+      status: input.status ?? "connected",
+      auth_type: input.auth_type,
+      scopes: input.scopes ?? null,
+      metadata: input.metadata ?? {},
+      encrypted_credentials: input.encrypted_credentials,
+      created_at: now,
+      updated_at: now,
+      last_health_at: null,
+    };
+    this.connections.push(rec);
+    return rec;
+  }
+
+  async getConnection(userId: string, id: string): Promise<ConnectionRecord | null> {
+    return this.connections.find((c) => c.id === id && c.user_id === userId) ?? null;
+  }
+
+  async listConnections(userId: string): Promise<ConnectionRecord[]> {
+    return this.connections
+      .filter((c) => c.user_id === userId)
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  }
+
+  async updateConnection(userId: string, id: string, patch: ConnectionPatch): Promise<void> {
+    const c = this.connections.find((x) => x.id === id && x.user_id === userId);
+    if (!c) return;
+    Object.assign(c, patch, { updated_at: nowIso() });
+  }
+
+  async deleteConnection(userId: string, id: string): Promise<void> {
+    this.connections = this.connections.filter((c) => !(c.id === id && c.user_id === userId));
+    this.mcpTools = this.mcpTools.filter((t) => t.connection_id !== id);
+  }
+
+  async saveMcpTools(
+    userId: string,
+    connectionId: string,
+    tools: Omit<McpToolRecord, "connection_id">[]
+  ): Promise<void> {
+    // Preserve existing enabled/consent state across a re-discovery.
+    const prior = new Map(
+      this.mcpTools.filter((t) => t.connection_id === connectionId).map((t) => [t.name, t])
+    );
+    this.mcpTools = this.mcpTools.filter((t) => t.connection_id !== connectionId);
+    for (const t of tools) {
+      const was = prior.get(t.name);
+      this.mcpTools.push({
+        ...t,
+        connection_id: connectionId,
+        enabled: was?.enabled ?? t.enabled,
+        consented_at: was?.consented_at ?? t.consented_at,
+      });
+    }
+    void userId;
+  }
+
+  async listMcpTools(userId: string, connectionId: string): Promise<McpToolRecord[]> {
+    void userId;
+    return this.mcpTools.filter((t) => t.connection_id === connectionId);
+  }
+
+  async getMcpTool(
+    userId: string,
+    connectionId: string,
+    name: string
+  ): Promise<McpToolRecord | null> {
+    void userId;
+    return this.mcpTools.find((t) => t.connection_id === connectionId && t.name === name) ?? null;
+  }
+
+  async setMcpTool(
+    userId: string,
+    connectionId: string,
+    name: string,
+    patch: { enabled?: boolean; consented_at?: string | null }
+  ): Promise<void> {
+    void userId;
+    const t = this.mcpTools.find((x) => x.connection_id === connectionId && x.name === name);
+    if (t) Object.assign(t, patch);
+  }
+
+  async createOAuthState(row: OAuthStateRow): Promise<void> {
+    this.oauthStates.set(row.state, row);
+  }
+
+  async consumeOAuthState(state: string): Promise<OAuthStateRow | null> {
+    const row = this.oauthStates.get(state) ?? null;
+    if (row) this.oauthStates.delete(state);
+    if (row && Date.parse(row.expires_at) < Date.now()) return null;
+    return row;
+  }
+
   private audit: AccountAuditRecord[] = [];
 
   async logAudit(
@@ -321,5 +437,10 @@ export class MemoryStore implements Store {
     this.subscriptions.delete(userId);
     this.audit = this.audit.filter((a) => a.user_id !== userId);
     this.promos = this.promos.filter((p) => p.user_id !== userId);
+    const gone = new Set(
+      this.connections.filter((c) => c.user_id === userId).map((c) => c.id)
+    );
+    this.connections = this.connections.filter((c) => c.user_id !== userId);
+    this.mcpTools = this.mcpTools.filter((t) => !gone.has(t.connection_id));
   }
 }

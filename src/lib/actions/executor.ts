@@ -1,5 +1,6 @@
 import { logSecurity } from "../log";
 import { ActionCategory } from "../types";
+import { runMcpTool, runProviderAction } from "../integrations/runtime/connections";
 
 export interface ExecutionResult {
   ok: boolean;
@@ -7,7 +8,15 @@ export interface ExecutionResult {
   detail?: Record<string, unknown>;
 }
 
-type Handler = (payload: Record<string, unknown>) => Promise<ExecutionResult>;
+/** Execution context threaded from the engine (who owns the action). */
+export interface ExecContext {
+  userId?: string;
+}
+
+type Handler = (
+  payload: Record<string, unknown>,
+  ctx: ExecContext
+) => Promise<ExecutionResult>;
 
 function str(v: unknown): string | null {
   return typeof v === "string" || typeof v === "number" ? String(v) : null;
@@ -80,11 +89,35 @@ const HANDLERS: Readonly<Record<ActionCategory, Handler>> = Object.freeze({
     ok: true,
     summary: `payment of ${str(payload.amount) ?? "amount"} sent (stub).`,
   }),
+  // The ONE mediated network handler. It does NOT let the model reach an
+  // arbitrary endpoint: connection_call is never planner-selectable, its
+  // payload is built by the integrations runtime, and it can only target a
+  // connection the USER registered and a tool/action the USER enabled +
+  // consented to — re-checked again inside runMcpTool / runProviderAction.
+  // Still gated by the same tier/approval flow as everything else.
+  connection_call: async (payload, ctx) => {
+    if (!ctx.userId) return { ok: false, summary: "no user context for this call." };
+    const connectionId = str(payload.connection_id);
+    if (!connectionId) return { ok: false, summary: "missing connection." };
+    const args =
+      payload.args && typeof payload.args === "object" && !Array.isArray(payload.args)
+        ? (payload.args as Record<string, unknown>)
+        : {};
+    if (payload.kind === "mcp") {
+      const tool = str(payload.tool);
+      if (!tool) return { ok: false, summary: "missing tool name." };
+      return runMcpTool(ctx.userId, connectionId, tool, args);
+    }
+    const action = str(payload.action);
+    if (!action) return { ok: false, summary: "missing action id." };
+    return runProviderAction(ctx.userId, connectionId, action, args);
+  },
 });
 
 export async function executeAction(
   category: ActionCategory,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  ctx: ExecContext = {}
 ): Promise<ExecutionResult> {
   const handler = Object.prototype.hasOwnProperty.call(HANDLERS, category)
     ? HANDLERS[category]
@@ -97,5 +130,5 @@ export async function executeAction(
     payload && typeof payload === "object" && !Array.isArray(payload)
       ? payload
       : {};
-  return handler(safePayload);
+  return handler(safePayload, ctx);
 }

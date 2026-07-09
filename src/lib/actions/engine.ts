@@ -195,7 +195,7 @@ async function runExecution(userId: string, actionId: string): Promise<ActionRec
   const approved = await store.transitionAction(userId, actionId, "executing");
   await store.logEvent(userId, actionId, "executing", "system", {});
   try {
-    const result = await executeAction(approved.category, approved.payload);
+    const result = await executeAction(approved.category, approved.payload, { userId });
     if (!result.ok) throw new Error(result.summary);
     const executed = await store.transitionAction(userId, actionId, "executed", {
       result: { summary: result.summary, ...result.detail },

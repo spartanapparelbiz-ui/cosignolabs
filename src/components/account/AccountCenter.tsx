@@ -11,9 +11,9 @@ import {
 } from "lucide-react";
 import type { AccountAuditRecord, ActionRecord, CategoryMeta, Tier, UsageRecord } from "@/lib/types";
 import { SkeletonRows } from "@/components/Skeleton";
-import { EmptyIllustration } from "@/components/EmptyIllustration";
 import { useKeyboardHints } from "@/lib/useKeyboardHints";
 import { UsageRing } from "./UsageRing";
+import { ConnectionsPanel } from "./ConnectionsPanel";
 
 type CategoryWithTier = CategoryMeta & { tier: Tier };
 
@@ -21,7 +21,7 @@ const TABS = [
   { id: "profile", label: "profile", icon: UserRound },
   { id: "permissions", label: "permissions", icon: SlidersHorizontal },
   { id: "usage", label: "plan & usage", icon: Gauge },
-  { id: "integrations", label: "integrations", icon: Boxes },
+  { id: "integrations", label: "connections", icon: Boxes },
   { id: "security", label: "security", icon: ShieldCheck },
 ] as const;
 
@@ -56,6 +56,13 @@ export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }
     fetch("/api/activity?limit=1000").then((r) => r.json()).then((d) => setActions(d.actions ?? [])).catch(() => setActions([]));
   }
   useEffect(load, []);
+
+  // Deep-link support: ?tab=<id> opens that tab (e.g. the OAuth callback
+  // returns to ?tab=integrations after a connect attempt).
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t && TABS.some((x) => x.id === t)) setTab(t as TabId);
+  }, []);
 
   return (
     <div className="mt-6 flex flex-col gap-5 md:flex-row md:gap-8">
@@ -633,95 +640,13 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
   );
 }
 
-interface IntegrationMeta { key: string; name: string; detail: string; scopes: string }
-
+/**
+ * The connections tab now renders the full Connections screen (third-party
+ * apps + custom MCP servers + the add-MCP flow). The panel is self-contained
+ * in ConnectionsPanel; this keeps the existing tab wiring stable.
+ */
 function IntegrationsPanel() {
-  const [available, setAvailable] = useState<IntegrationMeta[] | null>(null);
-  const [connected, setConnected] = useState<string[]>([]);
-  const [connectedAt, setConnectedAt] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [confirmKey, setConfirmKey] = useState<string | null>(null);
-
-  function load() {
-    setError(null);
-    fetch("/api/integrations").then((r) => r.json()).then((d) => {
-      setAvailable(d.available ?? []); setConnected(d.connected ?? []); setConnectedAt(d.connectedAt ?? {});
-    }).catch(() => setAvailable([]));
-  }
-  useEffect(load, []);
-
-  async function toggle(key: string, connect: boolean) {
-    setError(null);
-    setBusy(key);
-    try {
-      const res = await fetch("/api/integrations", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, connected: connect }),
-      });
-      const b = await res.json();
-      if (!res.ok) throw new Error(b.message || "couldn't update that integration.");
-      setConnected(b.connected ?? []);
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't update that integration.");
-    } finally {
-      setBusy(null);
-      setConfirmKey(null);
-    }
-  }
-
-  return (
-    <section>
-      <PanelHeading title="integrations" sub="the tools cosigno can act across." />
-      {error && <p className="mb-3 rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold" role="alert">{error}</p>}
-      <div className="grid gap-3 sm:grid-cols-2">
-        {available === null ? (
-          <SkeletonRows rows={2} />
-        ) : (
-          available.map((i) => {
-            const on = connected.includes(i.key);
-            return (
-              <div key={i.key} className="rounded-card bg-white/60 p-4 shadow-soft">
-                <div className="flex items-center gap-2">
-                  <span className={`h-2.5 w-2.5 rounded-full ${on ? "bg-signal" : "bg-line"}`} aria-hidden="true" />
-                  <span className="font-bold">{i.name}</span>
-                  <span className="ml-auto rounded-pill bg-cream-deep px-2.5 py-0.5 text-[10px] font-bold lowercase text-ink-soft">beta stub</span>
-                </div>
-                <p className="mt-2 text-xs text-ink-soft">{i.detail}</p>
-                <p className="mt-1 text-[11px] font-bold lowercase text-ink-soft">scopes: {i.scopes}</p>
-                {on && connectedAt[i.key] && (
-                  <p className="mt-0.5 text-[11px] text-ink-soft">connected {fmtDate(connectedAt[i.key])}</p>
-                )}
-                <button
-                  onClick={() => (on ? setConfirmKey(i.key) : toggle(i.key, true))}
-                  disabled={busy === i.key}
-                  className={`mt-3 rounded-btn px-3.5 py-1.5 text-xs font-bold lowercase transition-all duration-fast hover:-translate-y-px disabled:opacity-60 ${on ? "ring-1 ring-inset ring-ink" : "bg-ink text-cream"}`}
-                >
-                  {busy === i.key ? "…" : on ? "disconnect" : "connect"}
-                </button>
-              </div>
-            );
-          })
-        )}
-        <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-line p-4 text-center">
-          <EmptyIllustration kind="integrations" className="h-20 w-auto" />
-          <p className="mt-1 text-sm font-bold lowercase">more coming</p>
-          <p className="mt-1 text-xs text-ink-soft">founding beta members vote on what&apos;s next. free plans connect one — pro connects unlimited.</p>
-        </div>
-      </div>
-      {confirmKey && (
-        <ConfirmModal
-          title="disconnect"
-          body={`cosigno will stop acting through ${available?.find((a) => a.key === confirmKey)?.name ?? "this integration"}.`}
-          confirmWord="disconnect"
-          busy={busy === confirmKey}
-          onConfirm={() => toggle(confirmKey, false)}
-          onCancel={() => setConfirmKey(null)}
-        />
-      )}
-    </section>
-  );
+  return <ConnectionsPanel />;
 }
 
 const AUDIT_LABEL: Record<string, string> = {

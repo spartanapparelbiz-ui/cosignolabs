@@ -109,7 +109,15 @@ async function planWithLLM(
             items: {
               type: "object",
               properties: {
-                category: { type: "string", enum: Object.keys(CATEGORIES) },
+                category: {
+                  type: "string",
+                  // Only planner-selectable categories are advertised — the
+                  // integrations (connection_call) category is created by the
+                  // runtime, never chosen by the model.
+                  enum: Object.values(CATEGORIES)
+                    .filter((c) => c.plannerSelectable !== false)
+                    .map((c) => c.category),
+                },
                 summary: {
                   type: "string",
                   description:
@@ -145,7 +153,13 @@ async function planWithLLM(
     proposals?: ProposedAction[];
   };
   const proposals = (input.proposals ?? [])
-    .filter((p) => p && p.category in CATEGORIES && typeof p.summary === "string")
+    .filter(
+      (p) =>
+        p &&
+        p.category in CATEGORIES &&
+        CATEGORIES[p.category]?.plannerSelectable !== false &&
+        typeof p.summary === "string"
+    )
     .slice(0, 5)
     .map((p) => ({
       category: p.category,
