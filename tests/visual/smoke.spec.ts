@@ -226,10 +226,10 @@ for (const vp of VIEWPORTS) {
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-usage-${vp.name}.png`), fullPage: true });
 
-      // integrations — status dots + the plug/socket upgrade slot
-      await page.getByRole("button", { name: "integrations" }).click();
-      await expect(page.getByRole("heading", { name: "integrations" })).toBeVisible();
-      await page.waitForTimeout(250);
+      // connections — third-party apps + custom MCP servers
+      await page.getByRole("button", { name: "connections" }).click();
+      await expect(page.getByRole("heading", { name: "connections" })).toBeVisible();
+      await page.waitForTimeout(400);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-integrations-${vp.name}.png`), fullPage: true });
 
