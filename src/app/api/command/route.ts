@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runCommand } from "@/lib/agent/pipeline";
 import { EngineError } from "@/lib/actions/engine";
-import { PlannerError } from "@/lib/agent/provider";
 import { ApiError, errorResponse, requireUser } from "@/lib/api";
 import {
   enforceGlobalPlanningBudget,
@@ -51,6 +50,26 @@ function runtimeEnvSnapshot(): Record<string, string> {
   return snap;
 }
 
+/**
+ * Safe fingerprint of a secret env var: its length and last 4 chars only —
+ * never the secret itself. Lets us compare what's stored against a known-good
+ * value (e.g. the planner key should be len=108, last4=3wAA). Also flags if
+ * the raw value had surrounding whitespace.
+ */
+function keyFingerprint(name: string): string {
+  const raw = process.env[name];
+  if (!raw) return "MISSING";
+  const v = raw.trim();
+  const ws = v.length !== raw.length ? " +WHITESPACE" : "";
+  return `len=${v.length} last4=${v.slice(-4)}${ws}`;
+}
+
+const FINGERPRINT_KEYS = [
+  "PLANNER_API_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+] as const;
+
 /** Mask literal secrets so a leaked key in an error string isn't echoed back. */
 function maskSecrets(s: string): string {
   return s
@@ -80,13 +99,17 @@ function bluntErrorResponse(err: unknown): NextResponse {
     ? "PLANNER_API_KEY is MISSING from this running function at runtime (it may exist only at build time, or its Netlify variable scope excludes Functions/Runtime). "
     : "";
 
+  const fingerprints: Record<string, string> = {};
+  for (const k of FINGERPRINT_KEYS) fingerprints[k] = keyFingerprint(k);
+  const fpLine = FINGERPRINT_KEYS.map((k) => `${k}[${fingerprints[k]}]`).join(", ");
+
   const envLine = WATCHED_ENV.map((k) => `${k}=${env[k]}`).join(", ");
-  const message = `[DEBUG] ${lead}REAL ERROR — status ${status}, ${name}: ${rawMessage} :: runtime env → ${envLine}`;
+  const message = `[DEBUG] ${lead}REAL ERROR — status ${status}, ${name}: ${rawMessage} :: KEY CHECK → ${fpLine} :: runtime env → ${envLine}`;
 
   // Console logging too (in case logs are ever accessible).
   console.error(
     "[cosigno][command][DEBUG]",
-    JSON.stringify({ status, name, message: rawMessage, env, stack: e?.stack })
+    JSON.stringify({ status, name, message: rawMessage, env, fingerprints, stack: e?.stack })
   );
 
   return NextResponse.json(
@@ -98,6 +121,7 @@ function bluntErrorResponse(err: unknown): NextResponse {
         name,
         rawMessage,
         plannerKeyMissingAtRuntime: plannerKeyMissing,
+        keyFingerprints: fingerprints,
         runtimeEnv: env,
         stack: (e?.stack || "").split("\n").slice(0, 8),
       },
@@ -145,16 +169,15 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (err) {
-    // Meaningful, typed errors keep their correct status + real message
-    // (rate limit 429, usage limit 402, validation 4xx, planner 502 with the
-    // real provider reason). ONLY the genuinely-unexpected error — the one that
-    // was being hidden behind "something went wrong on our side" — gets the
-    // blunt raw dump, so the true cause is readable on the website.
+    // Meaningful, typed guard errors keep their correct status + message
+    // (rate limit 429, usage limit 402, validation 4xx). PlannerError is
+    // TEMPORARILY routed through the blunt dump too, so the KEY CHECK
+    // fingerprints (length + last4 of the stored keys) are visible on the
+    // website while we chase the 401.
     if (
       err instanceof ApiError ||
       err instanceof RateLimitError ||
-      err instanceof EngineError ||
-      err instanceof PlannerError
+      err instanceof EngineError
     ) {
       return errorResponse(err);
     }
