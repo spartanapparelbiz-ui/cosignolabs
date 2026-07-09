@@ -11,12 +11,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#141414",
-        cream: "#FBF4EA",
-        "cream-deep": "#F3E9DA",
-        signal: "#FF4B1F",
-        "ink-soft": "#5C5650",
-        line: "#E4D9C8",
+        // Theme tokens resolve to CSS variables (RGB channel triplets, so the
+        // /opacity modifiers still work) — see globals.css for the light and
+        // dark values. "ink" is always the foreground, "cream" the surface;
+        // dark mode swaps their brightness, so components need no dark: prefixes.
+        ink: "rgb(var(--c-ink) / <alpha-value>)",
+        cream: "rgb(var(--c-cream) / <alpha-value>)",
+        "cream-deep": "rgb(var(--c-cream-deep) / <alpha-value>)",
+        signal: "rgb(var(--c-signal) / <alpha-value>)",
+        "ink-soft": "rgb(var(--c-ink-soft) / <alpha-value>)",
+        line: "rgb(var(--c-line) / <alpha-value>)",
+        // Raised card surface (was literal white); themed so cards read in dark.
+        surface: "rgb(var(--c-surface) / <alpha-value>)",
       },
       borderRadius: {
         card: "14px",

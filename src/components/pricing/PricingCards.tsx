@@ -98,7 +98,7 @@ export function PricingCards() {
       </div>
 
       {/* interactive actions probe */}
-      <div className="mx-auto mt-8 max-w-xl rounded-card bg-white/60 p-4 shadow-soft">
+      <div className="mx-auto mt-8 max-w-xl rounded-card bg-surface/60 p-4 shadow-soft">
         <div className="flex items-baseline justify-between">
           <label htmlFor="probe" className="text-xs font-extrabold lowercase tracking-widest text-ink-soft">
             drag: how many actions a month?
@@ -140,7 +140,7 @@ export function PricingCards() {
           return (
             <div
               key={id}
-              className={`relative flex flex-col rounded-card bg-white/70 p-6 shadow-soft transition-all duration-base ${
+              className={`relative flex flex-col rounded-card bg-surface/70 p-6 shadow-soft transition-all duration-base ${
                 isCovering ? "ring-2 ring-signal shadow-lift" : featured ? "ring-1 ring-signal/40" : ""
               } ${dim && !isLeaving ? "opacity-70" : "opacity-100"} ${
                 isLeaving ? "z-10 scale-[1.03] shadow-lift" : ""

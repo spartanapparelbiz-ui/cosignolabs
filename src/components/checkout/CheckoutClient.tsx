@@ -134,7 +134,7 @@ export function CheckoutClient({
       {/* LEFT: summary + form (or success receipt) */}
       <div className="order-2 lg:order-1">
         {/* plan summary */}
-        <div className="rounded-card bg-white/70 p-5 shadow-soft">
+        <div className="rounded-card bg-surface/70 p-5 shadow-soft">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-extrabold lowercase tracking-widest text-ink-soft">
@@ -180,7 +180,7 @@ export function CheckoutClient({
 
         {/* form or success receipt */}
         {succeeded ? (
-          <div className="mt-4 animate-rise-in rounded-card bg-white/70 p-5 shadow-lift">
+          <div className="mt-4 animate-rise-in rounded-card bg-surface/70 p-5 shadow-lift">
             <div className="mb-3 flex items-center gap-2.5">
               <LivingMark size={30} />
               <p className="text-lg font-extrabold lowercase">

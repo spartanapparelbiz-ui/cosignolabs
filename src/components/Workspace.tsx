@@ -360,7 +360,7 @@ export function Workspace() {
     <div className="mx-auto grid w-full max-w-6xl flex-1 gap-6 lg:min-h-0 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)]">
       {/* Left: command input + session thread */}
       <section className="flex min-w-0 flex-col gap-4">
-        <div className={`rounded-card bg-white/70 p-4 shadow-lift ${thinking ? "animate-ring-flash" : ""}`}>
+        <div className={`rounded-card bg-surface/70 p-4 shadow-lift ${thinking ? "animate-ring-flash" : ""}`}>
           <label
             htmlFor="command"
             className="text-xs font-extrabold lowercase tracking-widest text-ink-soft"
@@ -443,7 +443,7 @@ export function Workspace() {
 
         <div className="flex flex-col gap-2">
           {messages.length === 0 && !thinking && (
-            <div className="rounded-card bg-white/40 p-5 shadow-soft">
+            <div className="rounded-card bg-surface/40 p-5 shadow-soft">
               <p className="text-sm font-bold text-ink-soft">try one of these:</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {EXAMPLES.map((ex) => (
@@ -479,7 +479,7 @@ export function Workspace() {
                   {reasoningOpen[m.id] ? "hide reasoning" : "operator reasoning"}
                 </button>
                 {reasoningOpen[m.id] && (
-                  <p className="mt-1 max-w-md rounded-card rounded-bl-md bg-white/60 px-4 py-2.5 text-sm text-ink-soft shadow-soft">
+                  <p className="mt-1 max-w-md rounded-card rounded-bl-md bg-surface/60 px-4 py-2.5 text-sm text-ink-soft shadow-soft">
                     {m.content}
                   </p>
                 )}
@@ -515,7 +515,7 @@ export function Workspace() {
         {actions.length === 0 && !thinking && (
           /* my-auto: the empty state sits centered in the panel's height,
              not crammed at the top with a dead zone under it. */
-          <div className="my-auto flex flex-col items-center rounded-card bg-white/40 p-8 text-center shadow-soft">
+          <div className="my-auto flex flex-col items-center rounded-card bg-surface/40 p-8 text-center shadow-soft">
             <EmptyIllustration kind="workspace" className="mb-3" />
             <p className="max-w-sm text-sm font-semibold text-ink-soft">
               nothing proposed yet. give the operator a command — every

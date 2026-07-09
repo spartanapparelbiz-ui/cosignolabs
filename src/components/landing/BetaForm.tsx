@@ -81,7 +81,7 @@ export function BetaForm() {
 
   if (state === "done") {
     return (
-      <div className="rounded-card bg-white/70 p-6 text-center shadow-soft">
+      <div className="rounded-card bg-surface/70 p-6 text-center shadow-soft">
         <div className="mx-auto flex h-10 w-10 animate-check-pop items-center justify-center rounded-full bg-signal">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
@@ -102,7 +102,7 @@ export function BetaForm() {
   }
 
   const inputClass =
-    "w-full rounded-btn bg-white/80 px-4 py-3 text-sm font-semibold placeholder:text-ink-soft/60 shadow-soft";
+    "w-full rounded-btn bg-surface/80 px-4 py-3 text-sm font-semibold placeholder:text-ink-soft/60 shadow-soft";
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-3" noValidate>

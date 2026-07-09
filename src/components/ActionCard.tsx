@@ -216,7 +216,7 @@ function ActionCardInner({
     return (
       <button
         onClick={() => setExpanded(true)}
-        className={`group flex w-full items-center gap-3 rounded-card bg-white/50 px-4 py-2.5 text-left shadow-soft transition-shadow hover:shadow-lift animate-card-in ${
+        className={`group flex w-full items-center gap-3 rounded-card bg-surface/50 px-4 py-2.5 text-left shadow-soft transition-shadow hover:shadow-lift animate-card-in ${
           action.status === "executed" ? "animate-ring-flash" : ""
         }`}
         aria-label={`${STATUS_LABEL[action.status]}: ${action.summary} — expand details`}
@@ -262,7 +262,7 @@ function ActionCardInner({
       style={enterDelay}
       tabIndex={pending ? 0 : undefined}
       onKeyDown={pending ? onCardKeyDown : undefined}
-      className={`relative animate-card-in overflow-hidden rounded-card bg-white/70 p-4 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
+      className={`relative animate-card-in overflow-hidden rounded-card bg-surface/70 p-4 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
         pending ? "shadow-depth-lift" : "shadow-depth"
       } ${action.status === "vetoed" ? "opacity-70 grayscale" : ""}`}
     >

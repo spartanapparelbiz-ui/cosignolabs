@@ -56,7 +56,7 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
           <div
             key={item.id}
             id={item.id}
-            className="scroll-mt-24 rounded-card bg-white/70 shadow-soft"
+            className="scroll-mt-24 rounded-card bg-surface/70 shadow-soft"
           >
             <button
               onClick={() => toggle(item.id)}

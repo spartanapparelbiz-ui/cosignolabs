@@ -3,6 +3,7 @@ import { clerkConfigured } from "@/lib/auth";
 import { AppNav } from "@/components/AppNav";
 import { ToastProvider } from "@/components/Toast";
 import { LogoHome } from "@/components/brand/LivingLogo";
+import { AccountChip } from "@/components/app/AccountChip";
 
 export const dynamic = "force-dynamic";
 
@@ -52,11 +53,15 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // One cosigno-branded account control everywhere — never Clerk's default
+  // widget. It shows the personalized name + monogram and a menu (settings,
+  // theme, sign out); sign out works with or without Clerk configured.
+  const userSlot = <AccountChip />;
+
   if (clerkConfigured()) {
-    const { ClerkProvider, UserButton, SignedIn, SignedOut } = await import(
-      "@clerk/nextjs"
-    );
-    // Map Clerk widgets to the cosigno tokens (never the default look).
+    // Keep Clerk for the session/auth, but only for its headless pieces — the
+    // visible UI is ours. The appearance still themes the sign-in/up routes.
+    const { ClerkProvider } = await import("@clerk/nextjs");
     const appearance = {
       variables: {
         colorPrimary: "#FF4B1F",
@@ -72,46 +77,11 @@ export default async function AppLayout({
       },
     };
     return (
-      <ClerkProvider
-        appearance={appearance}
-        signInUrl="/sign-in"
-        signUpUrl="/sign-up"
-      >
-        <Chrome
-          userSlot={
-            <>
-              <SignedIn>
-                <UserButton afterSignOutUrl="/" />
-              </SignedIn>
-              <SignedOut>
-                <Link
-                  href="/sign-in"
-                  className="rounded-btn bg-ink px-4 py-1.5 text-sm font-bold text-cream"
-                >
-                  sign in
-                </Link>
-              </SignedOut>
-            </>
-          }
-        >
-          {children}
-        </Chrome>
+      <ClerkProvider appearance={appearance} signInUrl="/sign-in" signUpUrl="/sign-up">
+        <Chrome userSlot={userSlot}>{children}</Chrome>
       </ClerkProvider>
     );
   }
 
-  return (
-    <Chrome
-      userSlot={
-        <span
-          className="rounded-pill bg-cream-deep px-3 py-1 text-[11px] font-bold lowercase tracking-wide text-ink-soft"
-          title="auth is not configured — running as a local demo user."
-        >
-          demo mode
-        </span>
-      }
-    >
-      {children}
-    </Chrome>
-  );
+  return <Chrome userSlot={userSlot}>{children}</Chrome>;
 }

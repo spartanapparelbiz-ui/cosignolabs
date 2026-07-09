@@ -199,7 +199,7 @@ export function HeroMark() {
             style={{ ...c.pos, filter: `blur(${(c.depth * 1.6).toFixed(2)}px)` }}
           >
             <div
-              className="w-[150px] rounded-btn bg-white/85 p-2.5 shadow-depth backdrop-blur-sm animate-spring-in sm:w-[168px]"
+              className="w-[150px] rounded-btn bg-surface/85 p-2.5 shadow-depth backdrop-blur-sm animate-spring-in sm:w-[168px]"
               style={{ animationDelay: `${c.delay}ms`, opacity: 1 - c.depth * 0.22 }}
             >
               <div className="flex items-center gap-1.5">

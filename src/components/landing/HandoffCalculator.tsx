@@ -76,7 +76,7 @@ export default function HandoffCalculator() {
   const empty = selected.size === 0;
 
   return (
-    <div className="mx-auto w-full max-w-2xl rounded-card bg-white/70 p-5 shadow-lift sm:p-6">
+    <div className="mx-auto w-full max-w-2xl rounded-card bg-surface/70 p-5 shadow-lift sm:p-6">
       {/* task chips */}
       <p className="text-xs font-extrabold lowercase tracking-widest text-ink-soft">
         what would you delegate?

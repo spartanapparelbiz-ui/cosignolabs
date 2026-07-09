@@ -134,7 +134,7 @@ export default function TierBoard() {
               } ${
                 canDrop
                   ? "border-signal bg-signal/5"
-                  : "border-line bg-white/50"
+                  : "border-line bg-surface/50"
               }`}
             >
               <div className="mb-2 flex items-baseline justify-between">
@@ -146,7 +146,7 @@ export default function TierBoard() {
               {canDrop && (
                 <button
                   onClick={() => move(selected!, col.id)}
-                  className="mb-2 min-h-[44px] rounded-btn border border-dashed border-signal bg-white/70 px-3 text-xs font-bold lowercase text-signal transition-colors hover:bg-signal/10"
+                  className="mb-2 min-h-[44px] rounded-btn border border-dashed border-signal bg-surface/70 px-3 text-xs font-bold lowercase text-signal transition-colors hover:bg-signal/10"
                 >
                   move here
                 </button>
@@ -196,7 +196,7 @@ export default function TierBoard() {
 
       {/* typed-confirmation micro-demo */}
       {lockDemo && (
-        <div className="mt-3 rounded-card bg-white/70 p-4 shadow-soft ring-1 ring-inset ring-ink/10 animate-modal-in">
+        <div className="mt-3 rounded-card bg-surface/70 p-4 shadow-soft ring-1 ring-inset ring-ink/10 animate-modal-in">
           {!locked ? (
             <>
               <p className="text-sm font-bold">

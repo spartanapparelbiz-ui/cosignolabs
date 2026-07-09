@@ -57,13 +57,13 @@ export function UsageRing({
         style={{ width: size, height: size }}
       >
         <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#F3E9DA" strokeWidth={stroke} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgb(var(--c-cream-deep))" strokeWidth={stroke} />
           <circle
             cx={size / 2}
             cy={size / 2}
             r={r}
             fill="none"
-            stroke={nearLimit ? "#FF4B1F" : "#141414"}
+            stroke={nearLimit ? "rgb(var(--c-signal))" : "rgb(var(--c-ink))"}
             strokeWidth={stroke}
             strokeLinecap="round"
             strokeDasharray={circ}

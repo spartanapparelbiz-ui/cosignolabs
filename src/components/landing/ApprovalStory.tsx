@@ -171,7 +171,7 @@ export default function ApprovalStory() {
 
   if (done) {
     return (
-      <div className="w-full max-w-lg rounded-card bg-white/70 p-6 text-center shadow-lift animate-spring-in">
+      <div className="w-full max-w-lg rounded-card bg-surface/70 p-6 text-center shadow-lift animate-spring-in">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-signal text-cream">
           <Check size={26} strokeWidth={3} aria-hidden="true" />
         </div>
@@ -216,7 +216,7 @@ export default function ApprovalStory() {
 
   return (
     <div
-      className="relative w-full max-w-lg rounded-card bg-white/70 p-4 shadow-lift"
+      className="relative w-full max-w-lg rounded-card bg-surface/70 p-4 shadow-lift"
       aria-label="interactive approval demo — you approve each action"
     >
       {/* progress + hint */}
@@ -238,7 +238,7 @@ export default function ApprovalStory() {
         )}
       </div>
 
-      <div key={index} className="animate-card-in rounded-card bg-white/90 p-4 shadow-soft">
+      <div key={index} className="animate-card-in rounded-card bg-surface/90 p-4 shadow-soft">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-pill bg-ink/5 px-2.5 py-0.5 text-[10px] font-bold lowercase tracking-wide ring-1 ring-inset ring-ink/20">
             tier {card.tier} · approve

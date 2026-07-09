@@ -12,6 +12,8 @@ import {
 import type { AccountAuditRecord, ActionRecord, CategoryMeta, Tier, UsageRecord } from "@/lib/types";
 import { SkeletonRows } from "@/components/Skeleton";
 import { useKeyboardHints } from "@/lib/useKeyboardHints";
+import { useDisplayName, initialsFor } from "@/lib/theme";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { UsageRing } from "./UsageRing";
 import { ConnectionsPanel } from "./ConnectionsPanel";
 
@@ -172,11 +174,18 @@ function ConfirmModal({
 }
 
 function ProfilePanel() {
-  const [me] = useState({ name: "operator", email: "you@cosignolabs.com", demo: true });
+  const [name, setName] = useDisplayName();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [keyHints, setKeyHints] = useKeyboardHints();
+  const display = name.trim() || "operator";
+
+  function signOut() {
+    const w = window as unknown as { Clerk?: { signOut: (o?: { redirectUrl?: string }) => Promise<void> } };
+    if (w.Clerk?.signOut) w.Clerk.signOut({ redirectUrl: "/" }).catch(() => (window.location.href = "/"));
+    else window.location.href = "/";
+  }
 
   async function del() {
     setBusy(true);
@@ -201,29 +210,54 @@ function ProfilePanel() {
 
   return (
     <section>
-      <PanelHeading title="profile" sub="who the operator acts for." />
-      <div className="flex items-center gap-4 rounded-card bg-white/60 p-5 shadow-soft">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-xl font-extrabold text-cream">
-          {me.name.slice(0, 1)}
+      <PanelHeading title="profile" sub="make cosigno yours — your name, your look." />
+
+      {/* Identity card */}
+      <div className="flex items-center gap-4 rounded-card bg-surface/60 p-5 shadow-soft">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-xl font-extrabold uppercase text-cream">
+          {initialsFor(display)}
         </div>
         <div className="min-w-0">
-          <p className="truncate font-bold lowercase">{me.name}</p>
-          <p className="truncate text-sm text-ink-soft">{me.email}</p>
+          <p className="truncate font-bold lowercase">{display}</p>
+          <p className="truncate text-sm text-ink-soft">your cosigno operator</p>
         </div>
         <button
-          onClick={() => (window.location.href = "/")}
+          onClick={signOut}
           className="ml-auto rounded-btn px-4 py-1.5 text-sm font-bold lowercase ring-1 ring-inset ring-ink transition-all duration-fast hover:-translate-y-px hover:bg-cream-deep"
         >
           sign out
         </button>
       </div>
-      <p className="mt-3 text-xs text-ink-soft">
-        with the auth provider configured, this shows your real name, email, and
-        avatar — themed to the cosigno tokens, not a default widget.
-      </p>
+
+      {/* Personalize: display name */}
+      <div className="mt-6 rounded-card bg-surface/60 p-5 shadow-soft">
+        <p className="text-sm font-bold lowercase">display name</p>
+        <p className="mt-0.5 text-xs text-ink-soft">
+          what cosigno calls you across the app. just for you — stored on this device.
+        </p>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={40}
+          placeholder="operator"
+          aria-label="display name"
+          className="mt-3 w-full max-w-xs rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold lowercase text-ink placeholder:text-ink-soft/60"
+        />
+      </div>
+
+      {/* Personalize: theme */}
+      <div className="mt-6 rounded-card bg-surface/60 p-5 shadow-soft">
+        <p className="text-sm font-bold lowercase">appearance</p>
+        <p className="mt-0.5 text-xs text-ink-soft">
+          light, dark, or match your device. changes instantly.
+        </p>
+        <div className="mt-3">
+          <ThemeToggle />
+        </div>
+      </div>
 
       {/* Preferences */}
-      <div className="mt-6 flex items-center gap-4 rounded-card bg-white/60 p-4 shadow-soft">
+      <div className="mt-6 flex items-center gap-4 rounded-card bg-surface/60 p-4 shadow-soft">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold lowercase">keyboard shortcut hints</p>
           <p className="mt-0.5 text-xs text-ink-soft">
@@ -346,7 +380,7 @@ function PermissionsPanel({
     return (
       <section>
         <PanelHeading title="permissions" sub="how much rope the operator gets." />
-        <div className="rounded-card bg-white/60 p-5 text-center shadow-soft">
+        <div className="rounded-card bg-surface/60 p-5 text-center shadow-soft">
           <p className="text-sm font-semibold text-ink-soft">couldn&apos;t load your settings.</p>
           <button onClick={retry} className="mt-3 rounded-btn bg-ink px-4 py-1.5 text-sm font-bold lowercase text-cream">retry</button>
         </div>
@@ -360,7 +394,7 @@ function PermissionsPanel({
       {msg && <p className="mb-3 rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold" role="alert">{msg}</p>}
       <div className="grid gap-3 sm:grid-cols-3">
         {COLUMNS.map((col) => (
-          <div key={col.tier} className="rounded-card bg-white/50 p-3 shadow-soft">
+          <div key={col.tier} className="rounded-card bg-surface/50 p-3 shadow-soft">
             <div className="flex items-center gap-1.5">
               {col.tier === 3 && <Lock size={12} strokeWidth={2.5} aria-hidden="true" />}
               <h3 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">{col.label}</h3>
@@ -437,9 +471,9 @@ function Sparkline({ actions }: { actions: ActionRecord[] }) {
     <div>
       <p className="text-xs font-bold lowercase text-ink-soft">last 30 days · {total} actions</p>
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="mt-1.5 w-full" preserveAspectRatio="none" aria-hidden="true">
-        <polyline points={pts} fill="none" stroke="#141414" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+        <polyline points={pts} fill="none" stroke="rgb(var(--c-ink))" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
         {counts.map((c, i) => c === max && max > 0 ? (
-          <circle key={i} cx={(i * step).toFixed(1)} cy={(H - (c / max) * H).toFixed(1)} r="2.4" fill="#FF4B1F" />
+          <circle key={i} cx={(i * step).toFixed(1)} cy={(H - (c / max) * H).toFixed(1)} r="2.4" fill="rgb(var(--c-signal))" />
         ) : null)}
       </svg>
     </div>
@@ -533,11 +567,11 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
       ) : (
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-            <div className="rounded-card bg-white/60 p-6 text-center shadow-soft">
+            <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
               <UsageRing used={usage.actions_executed} limit={usage.limit} daysLeft={daysLeft} resetLabel={reset} />
               <p className="mt-2 text-xs lowercase text-ink-soft">actions used this cycle · hover for detail</p>
             </div>
-            <div className="flex-1 rounded-card bg-white/60 p-5 shadow-soft">
+            <div className="flex-1 rounded-card bg-surface/60 p-5 shadow-soft">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-bold lowercase">{plan.name}</span>
                 <span className="rounded-pill bg-cream-deep px-3 py-1 text-[11px] font-bold lowercase text-ink-soft">current plan</span>
@@ -586,7 +620,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
                         <button onClick={takeRetention} disabled={retentionBusy} className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:opacity-60">
                           {retentionBusy ? "applying…" : "keep it — 50% off"}
                         </button>
-                        <button onClick={() => go("portal")} disabled={busy === "portal"} className="rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-white/50">
+                        <button onClick={() => go("portal")} disabled={busy === "portal"} className="rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-surface/50">
                           no thanks, cancel
                         </button>
                       </div>
@@ -616,7 +650,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
                             <button onClick={doRefund} disabled={refunding} className="rounded-btn bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:opacity-60">
                               {refunding ? "processing…" : "yes, refund me"}
                             </button>
-                            <button onClick={() => setConfirmRefund(false)} className="rounded-btn px-4 py-1.5 text-xs font-bold lowercase text-ink-soft hover:bg-white/50">
+                            <button onClick={() => setConfirmRefund(false)} className="rounded-btn px-4 py-1.5 text-xs font-bold lowercase text-ink-soft hover:bg-surface/50">
                               keep my plan
                             </button>
                           </div>
@@ -630,7 +664,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
             </div>
           </div>
           {actions && actions.length > 0 && (
-            <div className="rounded-card bg-white/60 p-5 shadow-soft">
+            <div className="rounded-card bg-surface/60 p-5 shadow-soft">
               <Sparkline actions={actions} />
             </div>
           )}
@@ -680,7 +714,7 @@ function SecurityPanel({ actions }: { actions: ActionRecord[] | null }) {
           { label: "actions executed", value: stats.executed, note: "each with a logged approval" },
           { label: "vetoed", value: stats.vetoed, note: "killed before execution" },
         ].map((t, i) => (
-          <div key={t.label} style={{ animationDelay: `${i * 70}ms` }} className="animate-rise-in rounded-card bg-white/60 p-4 shadow-soft">
+          <div key={t.label} style={{ animationDelay: `${i * 70}ms` }} className="animate-rise-in rounded-card bg-surface/60 p-4 shadow-soft">
             <p className="text-3xl font-extrabold">{actions === null ? "—" : t.value}</p>
             <p className="mt-1 text-xs font-bold lowercase">{t.label}</p>
             <p className="mt-0.5 text-[11px] text-ink-soft">{t.note}</p>
@@ -692,7 +726,7 @@ function SecurityPanel({ actions }: { actions: ActionRecord[] | null }) {
       </div>
 
       {/* Account changes log (auth events + tier/integration changes) */}
-      <div className="mt-4 rounded-card bg-white/60 p-4 shadow-soft">
+      <div className="mt-4 rounded-card bg-surface/60 p-4 shadow-soft">
         <h3 className="text-sm font-bold lowercase">recent account activity</h3>
         {audit === null ? (
           <div className="mt-2"><SkeletonRows rows={3} /></div>
@@ -715,7 +749,7 @@ function SecurityPanel({ actions }: { actions: ActionRecord[] | null }) {
       </div>
 
       {/* Explainer */}
-      <div className="mt-4 rounded-card bg-white/60 p-4 shadow-soft">
+      <div className="mt-4 rounded-card bg-surface/60 p-4 shadow-soft">
         <div className="flex items-center gap-2">
           <ShieldCheck size={16} strokeWidth={2.4} className="text-signal" aria-hidden="true" />
           <p className="text-sm font-bold lowercase">how approval-first protects this account</p>

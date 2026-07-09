@@ -94,7 +94,7 @@ export function ActivityLog() {
           <SkeletonRows rows={5} />
         </div>
       ) : actions.length === 0 ? (
-        <div className="mt-8 flex flex-col items-center rounded-card bg-white/40 p-8 text-center shadow-soft">
+        <div className="mt-8 flex flex-col items-center rounded-card bg-surface/40 p-8 text-center shadow-soft">
           <EmptyIllustration kind="activity" className="mb-3" />
           <p className="max-w-md text-sm font-semibold text-ink-soft">
             nothing here yet. once the operator starts working, every proposal,
@@ -102,7 +102,7 @@ export function ActivityLog() {
           </p>
         </div>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-card bg-white/60 shadow-soft">
+        <div className="mt-4 overflow-x-auto rounded-card bg-surface/60 shadow-soft">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-cream-deep text-[11px] lowercase tracking-wide text-ink-soft">
               <tr>

@@ -129,10 +129,16 @@ describe("source hygiene (§5/§6)", () => {
 
   it("no dangerouslySetInnerHTML anywhere (model text renders escaped)", () => {
     for (const file of srcFiles) {
-      expect(
-        readFileSync(file, "utf8").includes("dangerouslySetInnerHTML"),
-        file
-      ).toBe(false);
+      const content = readFileSync(file, "utf8");
+      if (!content.includes("dangerouslySetInnerHTML")) continue;
+      // The ONE sanctioned use: the pre-paint theme init script in the root
+      // layout, whose content is a compile-time constant (THEME_INIT_SCRIPT)
+      // with NO interpolation of model / user / request data. Any other use,
+      // or any other content in the layout, still fails.
+      const isAuditedThemeScript =
+        file.replace(/\\/g, "/").endsWith("src/app/layout.tsx") &&
+        /dangerouslySetInnerHTML=\{\{\s*__html:\s*THEME_INIT_SCRIPT\s*\}\}/.test(content);
+      expect(isAuditedThemeScript, `${file}: unexpected dangerouslySetInnerHTML`).toBe(true);
     }
   });
 

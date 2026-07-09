@@ -10,7 +10,7 @@ export function SkeletonBlock({ className = "" }: { className?: string }) {
 
 export function SkeletonCard() {
   return (
-    <div className="rounded-card bg-white/60 p-4 shadow-soft" aria-hidden="true">
+    <div className="rounded-card bg-surface/60 p-4 shadow-soft" aria-hidden="true">
       <div className="flex gap-2">
         <SkeletonBlock className="h-5 w-24" />
         <SkeletonBlock className="h-5 w-28" />

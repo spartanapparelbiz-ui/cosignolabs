@@ -205,7 +205,7 @@ export default function LandingPage() {
               ["signature", "you approve, edit, or veto. locked actions need typed confirmation."],
               ["receipt", "approved actions execute server-side and land in your permanent audit trail."],
             ].map(([title, body], i) => (
-              <Reveal key={title} delay={i * 80} className="rounded-card bg-white/70 p-4 shadow-soft">
+              <Reveal key={title} delay={i * 80} className="rounded-card bg-surface/70 p-4 shadow-soft">
                 <span className="text-xs font-extrabold text-signal">0{i + 1}</span>
                 <h3 className="mt-1 font-extrabold lowercase">{title}</h3>
                 <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{body}</p>

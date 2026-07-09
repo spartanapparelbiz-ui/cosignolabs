@@ -2,8 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme tokens as RGB channel triplets so Tailwind's /opacity modifiers work.
+   Light is the default; [data-theme="dark"] (set before paint by the inline
+   script in the root layout) swaps to the dark palette. "ink" is always the
+   foreground and "cream" the surface — dark mode inverts their brightness. */
 :root {
   color-scheme: light;
+  --c-ink: 20 20 20;
+  --c-cream: 251 244 234;
+  --c-cream-deep: 243 233 218;
+  --c-ink-soft: 92 86 80;
+  --c-line: 228 217 200;
+  --c-signal: 255 75 31;
+  --c-surface: 255 255 255;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --c-ink: 245 240 232; /* foreground flips to warm off-white */
+  --c-cream: 24 21 17; /* page surface flips to warm near-black */
+  --c-cream-deep: 38 33 26; /* subtle fills sit just above the page */
+  --c-ink-soft: 173 165 154; /* muted text */
+  --c-line: 58 52 43; /* hairline borders */
+  --c-signal: 255 99 64; /* the orange lifts a touch so it pops on dark */
+  --c-surface: 34 30 24; /* raised cards, one step above the page */
+}
+
+/* A smooth cross-fade when the theme is toggled (only fires on change, since
+   the initial theme is set before paint). Kept to color properties so it
+   never interferes with transform/opacity motion or animated SVG marks. */
+body {
+  transition: background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Full-height shells: nothing between the viewport and a page's min-h-dvh

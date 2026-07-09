@@ -193,7 +193,7 @@ export function ConnectionsPanel() {
             <div
               key={p.key}
               style={{ animationDelay: `${i * 70}ms` }}
-              className="rounded-card bg-white/60 p-4 shadow-soft transition-all duration-300 ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth"
+              className="rounded-card bg-surface/60 p-4 shadow-soft transition-all duration-300 ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={26} />
@@ -273,7 +273,7 @@ export function ConnectionsPanel() {
         {addOpen && <AddMcpForm onAdded={async () => { setAddOpen(false); await load(); }} />}
 
         {mcps.length === 0 && !addOpen && (
-          <p className="rounded-card bg-white/40 px-4 py-5 text-xs text-ink-soft shadow-soft">
+          <p className="rounded-card bg-surface/40 px-4 py-5 text-xs text-ink-soft shadow-soft">
             no custom servers yet. add a remote MCP endpoint to expose its tools
             to your operator — each tool stays off until you enable it.
           </p>
@@ -321,7 +321,7 @@ function ConnectionsComingSoon() {
           you connect it, and every action still waits for your signature.
         </p>
       </div>
-      <div className="group flex flex-1 flex-col items-center justify-center rounded-card bg-white/60 px-8 py-16 text-center shadow-soft transition-all duration-500 ease-brand-out animate-spring-in hover:-translate-y-0.5 hover:shadow-depth">
+      <div className="group flex flex-1 flex-col items-center justify-center rounded-card bg-surface/60 px-8 py-16 text-center shadow-soft transition-all duration-500 ease-brand-out animate-spring-in hover:-translate-y-0.5 hover:shadow-depth">
         {/* Icon badge: radiating signal rings behind a gently floating plug. */}
         <div
           className="relative mb-6 animate-rise-in"
@@ -375,7 +375,7 @@ function ConnectionsSkeleton() {
       <section className="flex flex-col gap-2.5">
         <div className="h-3 w-10 rounded-pill bg-cream-deep/70" />
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-card bg-white/60 p-4 shadow-soft">
+          <div key={i} className="rounded-card bg-surface/60 p-4 shadow-soft">
             <div className="flex items-center gap-2">
               <span className="h-[26px] w-[26px] shrink-0 rounded-btn bg-cream-deep" />
               <span className="h-3.5 w-24 rounded-pill bg-cream-deep" />
@@ -388,7 +388,7 @@ function ConnectionsSkeleton() {
       </section>
       <section className="flex flex-col gap-2.5">
         <div className="h-3 w-32 rounded-pill bg-cream-deep/70" />
-        <div className="rounded-card bg-white/40 px-4 py-5 shadow-soft">
+        <div className="rounded-card bg-surface/40 px-4 py-5 shadow-soft">
           <div className="h-2.5 w-4/5 rounded-pill bg-cream-deep/60" />
         </div>
       </section>
@@ -426,7 +426,7 @@ function McpCard({
   const url = String(conn.metadata?.url ?? "");
 
   return (
-    <div className="rounded-card bg-white/60 p-4 shadow-soft">
+    <div className="rounded-card bg-surface/60 p-4 shadow-soft">
       <div className="flex flex-wrap items-center gap-2">
         <ConnectorLogo
           kind="mcp"
@@ -588,7 +588,7 @@ function AddMcpForm({ onAdded }: { onAdded: () => Promise<void> }) {
   }
 
   return (
-    <div className="rounded-card bg-white/70 p-4 shadow-depth">
+    <div className="rounded-card bg-surface/70 p-4 shadow-depth">
       <p className="text-xs font-bold lowercase tracking-wide text-ink-soft">add a remote MCP server</p>
       <div className="mt-3 flex flex-col gap-3">
         <Labeled label="name">
