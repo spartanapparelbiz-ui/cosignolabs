@@ -206,6 +206,19 @@ export function AuthForm(props: AuthFormProps) {
           </form>
         )}
 
+        {mode === "sign-up" && !verifying && (
+          <p className="mt-5 text-center text-xs font-medium leading-relaxed text-ink-soft/80">
+            by creating an account you agree to our{" "}
+            <Link
+              href="/terms"
+              className="font-bold text-ink-soft underline decoration-signal decoration-1 underline-offset-2 hover:text-ink"
+            >
+              terms of service
+            </Link>
+            .
+          </p>
+        )}
+
         <p className="mt-6 text-center text-sm font-medium text-ink-soft">
           {copy.switchPrompt}{" "}
           <Link

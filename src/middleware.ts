@@ -18,6 +18,7 @@ import type { NextFetchEvent, NextMiddleware, NextRequest } from "next/server";
 const PUBLIC_PATHS = new Set([
   "/",
   "/pricing",
+  "/terms",
   "/sign-in",
   "/sign-up",
   "/sso-callback",

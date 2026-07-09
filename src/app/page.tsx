@@ -258,6 +258,9 @@ export default function LandingPage() {
             <Link href="/pricing" className="hover:text-ink">
               pricing
             </Link>
+            <Link href="/terms" className="hover:text-ink">
+              terms
+            </Link>
             <a href="https://cosignolabs.com" className="hover:text-ink">
               cosignolabs.com
             </a>
