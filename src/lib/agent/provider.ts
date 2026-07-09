@@ -13,36 +13,7 @@
  * Backward-compat (one release, with a one-time deprecation warning): the
  * previous env names are still read if the new ones are unset.
  */
-import { createHash } from "crypto";
 import { logError, logInfo, newRequestId } from "../log";
-
-/**
- * TEMPORARY in-runtime auth diagnostic. When the planner call fails, this
- * fires a raw request to the provider from INSIDE the running function and
- * reports the exact key hash used + the raw HTTP status. It isolates three
- * things at once: is the key the function uses actually the good one; does a
- * bare request from this runtime authenticate; and is a legacy env var set.
- */
-async function diagnoseAuth(apiKey: string, model: string): Promise<string> {
-  const keyShaUsed = createHash("sha256").update(apiKey).digest("hex").slice(0, 12);
-  const legacyEnvSet = process.env.ANTHROPIC_API_KEY ? "yes" : "no";
-  let rawFetch: string;
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: "user", content: "x" }] }),
-    });
-    rawFetch = String(res.status);
-  } catch (e) {
-    rawFetch = "threw:" + String(e).slice(0, 60);
-  }
-  return ` [diag: keyShaUsed=${keyShaUsed} rawFetch=${rawFetch} legacyEnvSet=${legacyEnvSet}]`;
-}
 
 let warnedApiKey = false;
 let warnedModel = false;
@@ -228,8 +199,7 @@ export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
       status,
       model: call.model,
     });
-    const diag = await diagnoseAuth(apiKey, call.model);
-    throw new PlannerError(status, plannerErrorMessage(status, detail) + diag);
+    throw new PlannerError(status, plannerErrorMessage(status, detail));
   }
 
   const toolUse = response.content.find((b) => b.type === "tool_use");
