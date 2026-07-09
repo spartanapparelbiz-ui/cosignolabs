@@ -208,6 +208,7 @@ export type AccountAuditType =
   | "tier_changed"
   | "integration_connected"
   | "integration_disconnected"
+  | "connector_action"
   | "account_deleted"
   | "promo";
 

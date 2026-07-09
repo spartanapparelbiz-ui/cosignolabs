@@ -1,4 +1,5 @@
 import type { McpTransport } from "../types";
+import { safeFetch, SsrfError } from "../net/ssrf";
 
 /**
  * A compact client for REMOTE MCP servers (Streamable HTTP + SSE) — no SDK,
@@ -49,20 +50,6 @@ interface JsonRpcResponse {
   error?: { code: number; message: string };
 }
 
-/** Only http(s) URLs are ever accepted (checked again at the route layer). */
-function assertSafeUrl(url: string): URL {
-  let u: URL;
-  try {
-    u = new URL(url);
-  } catch {
-    throw new McpError("protocol", "invalid server URL");
-  }
-  if (u.protocol !== "https:" && u.protocol !== "http:") {
-    throw new McpError("protocol", "server URL must be http(s)");
-  }
-  return u;
-}
-
 function authHeaders(cfg: McpConfig): Record<string, string> {
   const h: Record<string, string> = {};
   if (cfg.bearer) h.authorization = `Bearer ${cfg.bearer}`;
@@ -93,12 +80,13 @@ async function rpc(
   sessionId: string | undefined,
   timeoutMs: number
 ): Promise<{ result: unknown; sessionId?: string }> {
-  const u = assertSafeUrl(cfg.url);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const id = ++rpcId;
   try {
-    const res = await fetch(u, {
+    // safeFetch enforces SSRF protection (public host only) and DISABLES
+    // redirects — a 3xx to an internal address is the classic bypass.
+    const res = await safeFetch(cfg.url, {
       method: "POST",
       signal: controller.signal,
       headers: {
@@ -138,6 +126,7 @@ async function rpc(
     return { result: msg.result, sessionId: newSession ?? undefined };
   } catch (err) {
     if (err instanceof McpError) throw err;
+    if (err instanceof SsrfError) throw new McpError("protocol", err.message);
     if (err instanceof Error && err.name === "AbortError") {
       throw new McpError("timeout", "the MCP server timed out");
     }
@@ -149,8 +138,7 @@ async function rpc(
 
 /** Fire-and-forget notification (no id, no response expected). */
 async function notify(cfg: McpConfig, method: string, sessionId?: string): Promise<void> {
-  const u = assertSafeUrl(cfg.url);
-  await fetch(u, {
+  await safeFetch(cfg.url, {
     method: "POST",
     headers: {
       "content-type": "application/json",

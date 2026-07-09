@@ -653,6 +653,7 @@ const AUDIT_LABEL: Record<string, string> = {
   tier_changed: "moved a category between tiers",
   integration_connected: "connected an integration",
   integration_disconnected: "disconnected an integration",
+  connector_action: "ran a connected tool",
   account_deleted: "deleted the account",
   promo: "a billing offer was applied",
 };

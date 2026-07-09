@@ -3,6 +3,7 @@ import { z } from "zod";
 import { errorResponse, requireUser } from "@/lib/api";
 import { enforceLimit } from "@/lib/ratelimit";
 import { parseStrict, readJsonBody } from "@/lib/schemas";
+import { getStore } from "@/lib/store";
 import { runMcpTool } from "@/lib/integrations/runtime/connections";
 
 export const runtime = "nodejs";
@@ -32,6 +33,13 @@ export async function POST(
     const { id } = await params;
     const body = parseStrict(schema, await readJsonBody(req), "mcp_run");
     const result = await runMcpTool(userId, id, body.tool, body.args ?? {});
+    // Auditability: record what the connector did (tool + outcome), no args,
+    // no secrets — so "what did it do, and who said yes?" holds for connectors.
+    await getStore().logAudit(userId, "connector_action", {
+      connection_id: id,
+      tool: body.tool,
+      ok: result.ok,
+    });
     return NextResponse.json({ result });
   } catch (err) {
     return errorResponse(err);

@@ -6,6 +6,13 @@ import { sanitizeHeaders, validateMcpUrl } from "@/lib/integrations/mcp/register
 import { toView } from "@/lib/integrations/runtime/connections";
 import type { ConnectionRecord } from "@/lib/integrations/types";
 
+// The SSRF guard resolves the MCP host before connecting; pin it to a public
+// address so registration tests don't depend on real DNS for example.com.
+const dnsMock = vi.hoisted(() => ({
+  lookup: vi.fn(async () => [{ address: "140.82.113.4", family: 4 }]),
+}));
+vi.mock("node:dns/promises", () => dnsMock);
+
 /**
  * Integrations security surface: credentials encrypt at rest and never leak;
  * external MCP tool definitions are validated + clamped; sensitive tools need

@@ -3,6 +3,7 @@ import { encryptSecret } from "../crypto";
 import { isSensitiveTool } from "./consent";
 import { handshakeAndList, McpError, type McpConfig } from "./client";
 import { validateTools } from "./validate";
+import { assertPublicUrl, SsrfError } from "../net/ssrf";
 import type { McpTransport } from "../types";
 
 /**
@@ -87,6 +88,16 @@ export async function registerMcp(
 ): Promise<McpRegisterResult> {
   const urlCheck = validateMcpUrl(input.url);
   if (!urlCheck.ok) return { ok: false, error: urlCheck.reason };
+
+  // SSRF: reject before we ever open a socket if the host resolves internally.
+  try {
+    await assertPublicUrl(input.url);
+  } catch (err) {
+    if (err instanceof SsrfError) {
+      return { ok: false, error: "that address isn't allowed (internal/private hosts are blocked)." };
+    }
+    return { ok: false, error: "couldn't validate that URL." };
+  }
 
   const cfg = configFrom(input);
   let discovered;
