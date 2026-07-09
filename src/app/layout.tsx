@@ -23,18 +23,19 @@ export const metadata: Metadata = {
   applicationName: "cosigno",
   alternates: { canonical: "https://cosignolabs.com" },
   icons: {
-    // Icon set = a bold ink tile (cream C + orange check) that reads on light
-    // AND dark tab bars. The ?v=2 query busts old cached (transparent) icons.
-    // SVG first (crispest where supported), then the multi-res .ico, then PNGs.
+    // Icon set = the mark on a TRANSPARENT background. The SVG favicon adapts
+    // (ink C on light tabs, cream on dark); the rasters use a cream self-halo
+    // + the orange check so the mark still reads on dark chrome. ?v=3 busts the
+    // old cached icons. SVG first (crispest + adaptive), then .ico, then PNGs.
     icon: [
-      { url: "/favicon.svg?v=2", type: "image/svg+xml" },
-      { url: "/favicon.ico?v=2", sizes: "any" },
-      { url: "/icon-16.png?v=2", type: "image/png", sizes: "16x16" },
-      { url: "/icon-32.png?v=2", type: "image/png", sizes: "32x32" },
-      { url: "/icon-192.png?v=2", type: "image/png", sizes: "192x192" },
-      { url: "/icon-512.png?v=2", type: "image/png", sizes: "512x512" },
+      { url: "/favicon.svg?v=3", type: "image/svg+xml" },
+      { url: "/favicon.ico?v=3", sizes: "any" },
+      { url: "/icon-16.png?v=3", type: "image/png", sizes: "16x16" },
+      { url: "/icon-32.png?v=3", type: "image/png", sizes: "32x32" },
+      { url: "/icon-192.png?v=3", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png?v=3", type: "image/png", sizes: "512x512" },
     ],
-    apple: [{ url: "/apple-touch-icon.png?v=2", sizes: "180x180" }],
+    apple: [{ url: "/apple-touch-icon.png?v=3", sizes: "180x180" }],
     other: [{ rel: "mask-icon", url: "/mask-icon.svg", color: "#141414" }],
   },
   manifest: "/manifest.webmanifest",

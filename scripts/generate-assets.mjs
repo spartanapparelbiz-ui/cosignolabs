@@ -60,6 +60,29 @@ function markInner(flat = true, invert = false) {
   </g>`;
 }
 
+/**
+ * Transparent mark for the icon set (no plate). The ink C is given a soft
+ * cream self-halo so it still reads on dark surfaces (invisible on cream),
+ * and the orange check anchors recognition on any background. `adaptive`
+ * makes the C repaint via prefers-color-scheme (ink on light tabs, cream on
+ * dark) — used for the SVG favicon, the one format that can adapt.
+ */
+function transparentMarkSvg({ size, pad, adaptive = false }) {
+  const scale = (size - pad * 2) / 100;
+  const style = adaptive
+    ? `<style>.c{stroke:${INK}}@media (prefers-color-scheme:dark){.c{stroke:${CREAM}}}</style>`
+    : "";
+  const cAttrs = adaptive ? `class="c"` : `stroke="${INK}"`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+  ${style}
+  <g transform="translate(${pad},${pad}) scale(${scale})">
+  <path d="${C.d}" fill="none" stroke="${CREAM}" stroke-opacity="0.5" stroke-width="${C.stroke + 9}" stroke-linecap="round"/>
+  <path d="${C.d}" fill="none" ${cAttrs} stroke-width="${C.stroke}" stroke-linecap="round"/>
+  <path d="${CHECK.d}" fill="none" stroke="${SIGNAL}" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>`;
+}
+
 function markSvg({ size, flat = true, plate = false, pad = 8, border = false, invert = false }) {
   const inner = markInner(flat, invert);
   const scale = (size - pad * 2) / 100;
@@ -149,7 +172,9 @@ function ogSvg() {
  * bar. The stroke widths (26/17) keep the silhouette bold at 16px.
  */
 function faviconSvg() {
-  return markSvg({ size: 100, plate: true, invert: true, pad: 20 });
+  // Transparent + theme-adaptive: the C repaints ink→cream on dark tab bars,
+  // the orange check reads on both, the cream self-halo keeps the C legible.
+  return transparentMarkSvg({ size: 100, pad: 20, adaptive: true });
 }
 
 /**
@@ -179,22 +204,23 @@ async function main() {
     .png()
     .toFile(join(BRAND, "logo-3d.png"));
 
-  // Icon set — one consistent INK tile with a cream C + orange check, so the
-  // mark reads on any tab bar or home screen (light OR dark). The in-page
-  // logo and OG image stay on the brand cream field; the tile is the app/tab
-  // icon treatment.
+  // Icon set — TRANSPARENT background everywhere (no plate/matte). The ink C
+  // carries a soft cream self-halo so it stays legible on dark surfaces, and
+  // the orange check anchors recognition on any background. Note: static PNGs
+  // can't adapt like the SVG favicon, so on very dark tab bars the C leans on
+  // its halo + the orange check rather than full ink contrast (documented).
   const icon = (s, pad) =>
-    sharp(Buffer.from(markSvg({ size: s, plate: true, invert: true, pad }))).png();
-  await icon(192, 34).toFile(join(PUB, "icon-192.png"));
-  await icon(512, 90).toFile(join(PUB, "icon-512.png"));
-  await icon(180, 32).toFile(join(PUB, "apple-touch-icon.png"));
+    sharp(Buffer.from(transparentMarkSvg({ size: s, pad }))).png();
+  await icon(192, 30).toFile(join(PUB, "icon-192.png"));
+  await icon(512, 84).toFile(join(PUB, "icon-512.png"));
+  await icon(180, 28).toFile(join(PUB, "apple-touch-icon.png"));
   // Standalone tab-size PNGs (part of the modern set, referenced in <head>).
-  await icon(16, 2).toFile(join(PUB, "icon-16.png"));
-  await icon(32, 5).toFile(join(PUB, "icon-32.png"));
+  await icon(16, 1).toFile(join(PUB, "icon-16.png"));
+  await icon(32, 3).toFile(join(PUB, "icon-32.png"));
 
-  const f16 = await sharp(Buffer.from(markSvg({ size: 16, plate: true, invert: true, pad: 2 }))).png().toBuffer();
-  const f32 = await sharp(Buffer.from(markSvg({ size: 32, plate: true, invert: true, pad: 5 }))).png().toBuffer();
-  const f48 = await sharp(Buffer.from(markSvg({ size: 48, plate: true, invert: true, pad: 8 }))).png().toBuffer();
+  const f16 = await sharp(Buffer.from(transparentMarkSvg({ size: 16, pad: 1 }))).png().toBuffer();
+  const f32 = await sharp(Buffer.from(transparentMarkSvg({ size: 32, pad: 3 }))).png().toBuffer();
+  const f48 = await sharp(Buffer.from(transparentMarkSvg({ size: 48, pad: 5 }))).png().toBuffer();
   writeFileSync(join(PUB, "favicon.ico"), await pngToIco([f16, f32, f48]));
 
   await sharp(Buffer.from(ogSvg())).png().toFile(join(PUB, "og.png"));

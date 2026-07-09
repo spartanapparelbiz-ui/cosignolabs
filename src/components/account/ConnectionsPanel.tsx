@@ -5,12 +5,12 @@ import {
   AlertTriangle,
   Check,
   Loader2,
-  Plug,
   Plus,
   RefreshCw,
   ShieldAlert,
   X,
 } from "lucide-react";
+import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 
 /**
  * The Connections screen: available third-party apps, the user's connected
@@ -27,6 +27,7 @@ interface ProviderMeta {
   authType: string;
   scopeSummary: string;
   configured: boolean;
+  icon: string;
 }
 interface ConnectionView {
   id: string;
@@ -186,6 +187,7 @@ export function ConnectionsPanel() {
           return (
             <div key={p.key} className="rounded-card bg-white/60 p-4 shadow-soft">
               <div className="flex flex-wrap items-center gap-2">
+                <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={26} />
                 <span className="text-sm font-extrabold">{p.name}</span>
                 {conn && <StatusPill status={conn.status} />}
                 {!p.configured && !conn && (
@@ -325,7 +327,13 @@ function McpCard({
   return (
     <div className="rounded-card bg-white/60 p-4 shadow-soft">
       <div className="flex flex-wrap items-center gap-2">
-        <Plug size={14} className="text-ink-soft" />
+        <ConnectorLogo
+          kind="mcp"
+          providerKey="mcp"
+          displayName={conn.display_name}
+          customIcon={conn.metadata?.icon}
+          size={26}
+        />
         <span className="text-sm font-extrabold">{conn.display_name}</span>
         <StatusPill status={conn.status} />
         <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-[10px] font-bold lowercase text-ink-soft">

@@ -4,6 +4,7 @@ import { isSensitiveTool } from "./consent";
 import { handshakeAndList, McpError, type McpConfig } from "./client";
 import { validateTools } from "./validate";
 import { assertPublicUrl, SsrfError } from "../net/ssrf";
+import { fetchServerIcon } from "./icon";
 import type { McpTransport } from "../types";
 
 /**
@@ -126,6 +127,10 @@ export async function registerMcp(
     consented_at: null,
   }));
 
+  // Best-effort, SSRF-safe icon fetch (raster only, re-encoded to a data URI).
+  // Never blocks or fails registration; no icon → the UI shows a monogram.
+  const icon = await fetchServerIcon(input.url).catch(() => null);
+
   const store = getStore();
   const connection = await store.createConnection({
     user_id: userId,
@@ -141,6 +146,7 @@ export async function registerMcp(
       transport: input.transport,
       server_name: discovered.serverName ?? null,
       server_version: discovered.serverVersion ?? null,
+      ...(icon ? { icon } : {}),
     },
   });
   await store.saveMcpTools(userId, connection.id, tools);

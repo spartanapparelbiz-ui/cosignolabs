@@ -1,4 +1,5 @@
 import type { IntegrationProvider } from "./types";
+import { bundledLogo, GENERIC_MCP_LOGO } from "./logos";
 import { githubProvider } from "./providers/github";
 import {
   googleProvider,
@@ -41,6 +42,8 @@ export interface ProviderMeta {
   scopeSummary: string;
   /** Whether the server env is set so this can actually be connected. */
   configured: boolean;
+  /** Bundled, self-hosted logo path (never a vendor hotlink). */
+  icon: string;
   actions: { id: string; summary: string; mutates: boolean }[];
 }
 
@@ -52,6 +55,7 @@ export function providerMeta(p: IntegrationProvider): ProviderMeta {
     authType: p.authType,
     scopeSummary: p.scopeSummary,
     configured: p.isConfigured(),
+    icon: bundledLogo(p.key) ?? GENERIC_MCP_LOGO,
     actions: p.listActions(),
   };
 }

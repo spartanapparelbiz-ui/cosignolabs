@@ -4,6 +4,7 @@ import { validateTools } from "@/lib/integrations/mcp/validate";
 import { isSensitiveTool, isCallable, requiresConsent } from "@/lib/integrations/mcp/consent";
 import { sanitizeHeaders, validateMcpUrl } from "@/lib/integrations/mcp/register";
 import { toView } from "@/lib/integrations/runtime/connections";
+import { isSafeIcon, monogram, resolveLogo } from "@/lib/integrations/logos";
 import type { ConnectionRecord } from "@/lib/integrations/types";
 
 // The SSRF guard resolves the MCP host before connecting; pin it to a public
@@ -184,6 +185,57 @@ function mockFetchSequence(responses: MockRes[]) {
     } as unknown as Response;
   });
 }
+
+/* --------------------------------------------------- connector logos */
+describe("connector logos (safe, self-hosted, never remote markup)", () => {
+  it("isSafeIcon accepts only a generated raster data URI", () => {
+    expect(isSafeIcon("data:image/png;base64,iVBORw0KGgo=")).toBe(true);
+    expect(isSafeIcon("data:image/x-icon;base64,AAABAAEAEBA=")).toBe(true);
+    // SVG can carry script → never allowed, even as a data URI.
+    expect(isSafeIcon("data:image/svg+xml;base64,PHN2Zz4=")).toBe(false);
+    expect(isSafeIcon("data:image/svg+xml;utf8,<svg onload=alert(1)>")).toBe(false);
+    // remote URLs and other schemes are rejected outright.
+    expect(isSafeIcon("https://evil.example/icon.png")).toBe(false);
+    expect(isSafeIcon("javascript:alert(1)")).toBe(false);
+    expect(isSafeIcon(null)).toBe(false);
+    expect(isSafeIcon(123)).toBe(false);
+    // oversized payloads are dropped.
+    expect(isSafeIcon("data:image/png;base64," + "A".repeat(60_000))).toBe(false);
+  });
+
+  it("monogram is a self-built SVG data URI with the name's initials", () => {
+    const m = monogram("My Server");
+    expect(m.startsWith("data:image/svg+xml")).toBe(true);
+    expect(decodeURIComponent(m)).toContain(">MS<");
+    // it never echoes untrusted markup into the SVG.
+    expect(decodeURIComponent(monogram("<script>x"))).not.toContain("<script>x");
+  });
+
+  it("resolveLogo prefers a bundled provider SVG, else a monogram", () => {
+    expect(
+      resolveLogo({ kind: "app", providerKey: "github", displayName: "GitHub" })
+    ).toEqual({ src: "/logos/github.svg", monogram: false });
+
+    // A custom MCP with no safe icon falls back to a monogram, not a remote URL.
+    const mcp = resolveLogo({
+      kind: "mcp",
+      providerKey: "mcp",
+      displayName: "Acme Tools",
+      customIcon: "https://acme.example/logo.svg",
+    });
+    expect(mcp.monogram).toBe(true);
+    expect(mcp.src.startsWith("data:image/svg+xml")).toBe(true);
+
+    // A safe raster icon is used as-is.
+    const withIcon = resolveLogo({
+      kind: "mcp",
+      providerKey: "mcp",
+      displayName: "Acme",
+      customIcon: "data:image/png;base64,iVBORw0KGgo=",
+    });
+    expect(withIcon).toEqual({ src: "data:image/png;base64,iVBORw0KGgo=", monogram: false });
+  });
+});
 
 describe("MCP client + registration (mocked server)", () => {
   const realFetch = globalThis.fetch;
