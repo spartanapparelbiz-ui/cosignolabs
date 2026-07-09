@@ -200,7 +200,13 @@ export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
   const { default: Provider } = await import("@anthropic-ai/sdk");
   const client = new Provider({
     apiKey,
-    ...(process.env.PLANNER_BASE_URL ? { baseURL: process.env.PLANNER_BASE_URL } : {}),
+    // Pin auth + endpoint explicitly so STRAY environment variables can't
+    // hijack the request. The SDK otherwise auto-reads ANTHROPIC_AUTH_TOKEN
+    // (→ a conflicting bearer header) and ANTHROPIC_BASE_URL (→ silently
+    // routes the call to a wrong host, causing a 401/403 even with a valid
+    // key). Only a deliberate PLANNER_BASE_URL override is honored.
+    authToken: null,
+    baseURL: process.env.PLANNER_BASE_URL?.trim() || "https://api.anthropic.com",
   });
 
   let response;
