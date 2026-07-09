@@ -19,6 +19,7 @@ const PUBLIC_PATHS = new Set([
   "/",
   "/pricing",
   "/terms",
+  "/privacy",
   "/sign-in",
   "/sign-up",
   "/sso-callback",

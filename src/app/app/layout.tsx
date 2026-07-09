@@ -30,6 +30,20 @@ function Chrome({
           </div>
         </header>
         <main className="flex flex-1 flex-col">{children}</main>
+        <footer className="border-t border-line/60">
+          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-4 text-[11px] font-semibold lowercase tracking-wide text-ink-soft">
+            <span>© {new Date().getFullYear()} aethric llc</span>
+            <Link href="/privacy" className="hover:text-ink">
+              privacy
+            </Link>
+            <Link href="/terms" className="hover:text-ink">
+              terms
+            </Link>
+            <a href="mailto:hello@aethric.llc" className="hover:text-ink">
+              hello@aethric.llc
+            </a>
+          </div>
+        </footer>
       </div>
     </ToastProvider>
   );

@@ -61,7 +61,17 @@ export function ClerkAuthFlow({
   async function handleSignUp(email: string, password: string) {
     const { signUp } = signUpHook;
     if (!signUp) return;
-    await signUp.create({ emailAddress: email, password });
+    // The form only reaches here once the Terms + Privacy checkbox is ticked,
+    // so we stamp the consent onto the user record for our records.
+    await signUp.create({
+      emailAddress: email,
+      password,
+      unsafeMetadata: {
+        termsAcceptedAt: new Date().toISOString(),
+        termsVersion: "2026-07-08",
+        privacyVersion: "2026-07-09",
+      },
+    });
     await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
     setNotice(`we sent a 6-digit code to ${email}.`);
     setPhase("verify");

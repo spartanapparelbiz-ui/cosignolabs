@@ -76,10 +76,15 @@ export function AuthForm(props: AuthFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  // Required agreement gate — only meaningful on sign-up.
+  const [agreed, setAgreed] = useState(false);
+  const [consentError, setConsentError] = useState(false);
 
   const eProg = useMemo(() => emailProgress(email), [email]);
   const pProg = useMemo(() => passwordProgress(password), [password]);
-  const ready = isReadyToSubmit(email, password) && !busy;
+  // On sign-up the Terms/Privacy agreement is a hard prerequisite.
+  const consentOk = mode !== "sign-up" || agreed;
+  const ready = isReadyToSubmit(email, password) && consentOk && !busy;
   const copy = COPY[mode];
 
   const verifying = phase === "verify";
@@ -88,10 +93,24 @@ export function AuthForm(props: AuthFormProps) {
   const markPass = verifying ? 1 : pProg;
   const markReady = verifying || ready || stamped;
 
+  function requireConsent(): boolean {
+    if (consentOk) return true;
+    // Block and point the user at the checkbox — never silently submit.
+    setConsentError(true);
+    return false;
+  }
+
   function submitCredentials(e: React.FormEvent) {
     e.preventDefault();
     if (busy) return;
+    if (!requireConsent()) return;
     onSubmitCredentials(email, password);
+  }
+
+  function handleGoogle() {
+    if (busy) return;
+    if (!requireConsent()) return;
+    onGoogle();
   }
 
   function submitCode(e: React.FormEvent) {
@@ -161,7 +180,7 @@ export function AuthForm(props: AuthFormProps) {
               <>
                 <button
                   type="button"
-                  onClick={onGoogle}
+                  onClick={handleGoogle}
                   disabled={busy}
                   className="flex items-center justify-center gap-2.5 rounded-btn border-[1.5px] border-ink/85 bg-transparent px-4 py-2.5 text-sm font-bold text-ink transition hover:bg-ink hover:text-cream disabled:opacity-60"
                 >
@@ -198,25 +217,23 @@ export function AuthForm(props: AuthFormProps) {
               onChange={setPassword}
             />
 
+            {mode === "sign-up" && (
+              <ConsentCheckbox
+                checked={agreed}
+                error={consentError}
+                onChange={(v) => {
+                  setAgreed(v);
+                  if (v) setConsentError(false);
+                }}
+              />
+            )}
+
             {error && <ErrorLine>{error}</ErrorLine>}
 
             <SubmitButton lit={ready} busy={busy}>
               {copy.submit}
             </SubmitButton>
           </form>
-        )}
-
-        {mode === "sign-up" && !verifying && (
-          <p className="mt-5 text-center text-xs font-medium leading-relaxed text-ink-soft/80">
-            by creating an account you agree to our{" "}
-            <Link
-              href="/terms"
-              className="font-bold text-ink-soft underline decoration-signal decoration-1 underline-offset-2 hover:text-ink"
-            >
-              terms of service
-            </Link>
-            .
-          </p>
         )}
 
         <p className="mt-6 text-center text-sm font-medium text-ink-soft">
@@ -234,6 +251,67 @@ export function AuthForm(props: AuthFormProps) {
 }
 
 /* ---------- small building blocks ---------- */
+
+/**
+ * The required agreement gate. Account creation is blocked until this is
+ * checked (the submit button stays un-lit and both submit paths refuse). When
+ * the user tries to proceed without it, `error` turns the row signal-orange
+ * and nudges the checkbox — never a silent no-op.
+ */
+function ConsentCheckbox({
+  checked,
+  error,
+  onChange,
+}: {
+  checked: boolean;
+  error: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label
+      htmlFor="auth-consent"
+      className={`flex cursor-pointer items-start gap-2.5 rounded-btn p-0.5 text-xs font-medium leading-relaxed ${
+        error ? "text-signal motion-safe:animate-shake-x" : "text-ink-soft"
+      }`}
+    >
+      <input
+        id="auth-consent"
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        aria-invalid={error}
+        aria-describedby={error ? "auth-consent-error" : undefined}
+        className={`mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-signal ${
+          error ? "outline outline-2 outline-signal" : ""
+        }`}
+      />
+      <span>
+        I agree to the{" "}
+        <Link
+          href="/terms"
+          target="_blank"
+          className="font-bold text-ink underline decoration-signal decoration-1 underline-offset-2"
+        >
+          Terms
+        </Link>{" "}
+        and{" "}
+        <Link
+          href="/privacy"
+          target="_blank"
+          className="font-bold text-ink underline decoration-signal decoration-1 underline-offset-2"
+        >
+          Privacy Policy
+        </Link>
+        .
+        {error && (
+          <span id="auth-consent-error" className="mt-0.5 block font-semibold">
+            please agree to continue.
+          </span>
+        )}
+      </span>
+    </label>
+  );
+}
 
 function Field({
   id,

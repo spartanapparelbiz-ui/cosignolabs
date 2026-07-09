@@ -98,7 +98,7 @@ describe("branded auth routes stay public in middleware", () => {
 
   const event = undefined as never;
 
-  for (const path of ["/sign-in", "/sign-up", "/sso-callback"]) {
+  for (const path of ["/sign-in", "/sign-up", "/sso-callback", "/terms", "/privacy"]) {
     it(`${path} is not gated behind a 503`, async () => {
       const { default: middleware } = await import("../../src/middleware");
       const res = await middleware(
