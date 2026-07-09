@@ -58,7 +58,25 @@ const nextConfig = {
     "/**": ["./scripts/env-services.mjs"],
   },
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    // Long-lived, immutable caching for the brand-stable static assets the
+    // Connections UI leans on — bundled connector logos and app icons. These
+    // rarely change (and icons are query-versioned when they do), so the
+    // browser can serve them from cache with no re-fetch and no flash/CLS.
+    const immutable = [
+      {
+        key: "Cache-Control",
+        value: "public, max-age=31536000, immutable",
+      },
+    ];
+    return [
+      { source: "/(.*)", headers: securityHeaders },
+      { source: "/logos/:path*", headers: immutable },
+      {
+        source:
+          "/:icon(favicon.svg|favicon.ico|mask-icon.svg|apple-touch-icon.png|icon-16.png|icon-32.png|icon-192.png|icon-512.png)",
+        headers: immutable,
+      },
+    ];
   },
 };
 

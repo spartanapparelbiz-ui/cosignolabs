@@ -19,10 +19,17 @@ export async function GET() {
     const store = getStore();
     const connections = await store.listConnections(userId);
 
+    // Tool lists come from the per-connection cache (no live re-handshake on
+    // load). Fetch them in parallel rather than serially so many connected
+    // servers don't stack their round-trips.
+    const mcp = connections.filter((c) => c.kind === "mcp");
+    const toolLists = await Promise.all(
+      mcp.map((c) => store.listMcpTools(userId, c.id))
+    );
     const tools: Record<string, unknown[]> = {};
-    for (const c of connections) {
-      if (c.kind === "mcp") tools[c.id] = await store.listMcpTools(userId, c.id);
-    }
+    mcp.forEach((c, i) => {
+      tools[c.id] = toolLists[i];
+    });
 
     return NextResponse.json({
       providers: listProviderMeta(),

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   Check,
-  Loader2,
   Plus,
   RefreshCw,
   ShieldAlert,
@@ -142,11 +141,7 @@ export function ConnectionsPanel() {
   }
 
   if (!data && !error) {
-    return (
-      <div className="flex items-center gap-2 py-10 text-sm text-ink-soft">
-        <Loader2 size={16} className="animate-spin" /> loading connections…
-      </div>
-    );
+    return <ConnectionsSkeleton />;
   }
 
   return (
@@ -290,6 +285,43 @@ export function ConnectionsPanel() {
             onReload={load}
           />
         ))}
+      </section>
+    </div>
+  );
+}
+
+/**
+ * A layout-matched placeholder shown while the first load is in flight. It
+ * mirrors the real Connections shell — heading, four app-card rows with a
+ * fixed-size logo box, and the MCP section — so nothing shifts when the data
+ * arrives (no CLS, no flash from a spinner to a full page).
+ */
+function ConnectionsSkeleton() {
+  return (
+    <div className="flex flex-col gap-6" aria-busy="true" aria-label="loading connections">
+      <div>
+        <div className="h-3.5 w-28 rounded-pill bg-cream-deep" />
+        <div className="mt-2 h-3 w-3/4 rounded-pill bg-cream-deep/70" />
+      </div>
+      <section className="flex flex-col gap-2.5">
+        <div className="h-3 w-10 rounded-pill bg-cream-deep/70" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-card bg-white/60 p-4 shadow-soft">
+            <div className="flex items-center gap-2">
+              <span className="h-[26px] w-[26px] shrink-0 rounded-btn bg-cream-deep" />
+              <span className="h-3.5 w-24 rounded-pill bg-cream-deep" />
+              <span className="ml-auto h-7 w-20 rounded-btn bg-cream-deep" />
+            </div>
+            <div className="mt-2.5 h-2.5 w-2/3 rounded-pill bg-cream-deep/70" />
+            <div className="mt-1.5 h-2.5 w-1/3 rounded-pill bg-cream-deep/50" />
+          </div>
+        ))}
+      </section>
+      <section className="flex flex-col gap-2.5">
+        <div className="h-3 w-32 rounded-pill bg-cream-deep/70" />
+        <div className="rounded-card bg-white/40 px-4 py-5 shadow-soft">
+          <div className="h-2.5 w-4/5 rounded-pill bg-cream-deep/60" />
+        </div>
       </section>
     </div>
   );
