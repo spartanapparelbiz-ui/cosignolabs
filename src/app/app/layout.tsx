@@ -41,8 +41,9 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   if (clerkConfigured()) {
-    const { ClerkProvider, UserButton, SignedIn, SignedOut, SignInButton } =
-      await import("@clerk/nextjs");
+    const { ClerkProvider, UserButton, SignedIn, SignedOut } = await import(
+      "@clerk/nextjs"
+    );
     // Map Clerk widgets to the cosigno tokens (never the default look).
     const appearance = {
       variables: {
@@ -59,7 +60,11 @@ export default async function AppLayout({
       },
     };
     return (
-      <ClerkProvider appearance={appearance}>
+      <ClerkProvider
+        appearance={appearance}
+        signInUrl="/sign-in"
+        signUpUrl="/sign-up"
+      >
         <Chrome
           userSlot={
             <>
@@ -67,11 +72,12 @@ export default async function AppLayout({
                 <UserButton afterSignOutUrl="/" />
               </SignedIn>
               <SignedOut>
-                <SignInButton mode="modal">
-                  <button className="rounded-btn bg-ink px-4 py-1.5 text-sm font-bold text-cream">
-                    sign in
-                  </button>
-                </SignInButton>
+                <Link
+                  href="/sign-in"
+                  className="rounded-btn bg-ink px-4 py-1.5 text-sm font-bold text-cream"
+                >
+                  sign in
+                </Link>
               </SignedOut>
             </>
           }

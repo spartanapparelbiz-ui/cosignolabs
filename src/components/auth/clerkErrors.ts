@@ -1,0 +1,42 @@
+/**
+ * Map a Clerk failure to calm, brand-voice copy. We read only the stable error
+ * CODE — never the provider's raw message — so nothing internal leaks and the
+ * tone stays ours. Pure and total: any shape in, a safe sentence out. Kept
+ * separate from the client flow so it's unit-testable without Clerk loaded.
+ */
+
+interface ClerkApiError {
+  errors?: { code?: string; message?: string }[];
+}
+
+export function friendlyClerkError(
+  err: unknown,
+  mode: "sign-in" | "sign-up"
+): string {
+  const code = (err as ClerkApiError)?.errors?.[0]?.code ?? "";
+  switch (code) {
+    case "form_identifier_not_found":
+      return "we couldn't find an account with that email.";
+    case "form_password_incorrect":
+    case "form_password_validation_failed":
+      return "that password doesn't match — try again.";
+    case "form_identifier_exists":
+      return "an account with that email already exists — try signing in.";
+    case "form_param_format_invalid":
+      return "that email doesn't look right.";
+    case "form_password_length_too_short":
+      return "check your password — make it a little longer.";
+    case "form_password_pwned":
+      return "that password showed up in a breach — pick a stronger one.";
+    case "form_code_incorrect":
+    case "verification_failed":
+    case "verification_expired":
+      return "that code isn't right — check it and try again.";
+    case "too_many_requests":
+      return "a lot of tries just now — give it a moment.";
+    default:
+      return mode === "sign-in"
+        ? "we couldn't sign you in — check your details and try again."
+        : "we couldn't create your account — try again.";
+  }
+}

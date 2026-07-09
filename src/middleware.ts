@@ -18,6 +18,9 @@ import type { NextFetchEvent, NextMiddleware, NextRequest } from "next/server";
 const PUBLIC_PATHS = new Set([
   "/",
   "/pricing",
+  "/sign-in",
+  "/sign-up",
+  "/sso-callback",
   "/api/health",
   "/api/beta",
   "/api/preview",
@@ -130,7 +133,23 @@ async function buildMiddleware(): Promise<NextMiddleware> {
     "/api((?!/health$|/beta$|/preview$|/stripe/webhook$).*)",
   ]);
   return clerkMiddleware(async (auth, req) => {
-    if (isProtected(req)) await auth.protect();
+    if (!isProtected(req)) return;
+    const { userId } = await auth();
+    if (userId) return; // signed in → let it through
+
+    // Logged out on a protected surface. APIs get a clean JSON 401; page
+    // navigations go to our branded /sign-in with the destination preserved
+    // (never Clerk's hosted page).
+    const path = req.nextUrl.pathname;
+    if (path.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "unauthorized", message: "sign in to continue." },
+        { status: 401 }
+      );
+    }
+    const signIn = new URL("/sign-in", req.url);
+    signIn.searchParams.set("redirect_url", path + req.nextUrl.search);
+    return NextResponse.redirect(signIn);
   }) as unknown as NextMiddleware;
 }
 
