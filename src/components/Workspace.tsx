@@ -5,12 +5,14 @@ import type { ActionRecord, ActionStatus, MessageRecord, SessionRecord } from "@
 import { getRealtimeClient } from "@/lib/client/realtime";
 import { ActionCard } from "./ActionCard";
 import { SkeletonCard } from "./Skeleton";
+import { ThinkingStatus, type PlanResolution } from "./ThinkingStatus";
 import { useToast } from "./Toast";
 import { VoiceOrb, type OrbState } from "./VoiceOrb";
 import { EmptyIllustration } from "./EmptyIllustration";
 import { OfferBanner } from "./OfferBanner";
 import { useKeyboardHints } from "@/lib/useKeyboardHints";
 import { useFaviconStatus } from "@/lib/useFaviconStatus";
+import { sessionCounts, sessionCountsLine } from "@/lib/actionPresentation";
 
 /** Static keyword set for inline command autocomplete. */
 const COMMAND_KEYWORDS = [
@@ -48,8 +50,30 @@ export function Workspace() {
   // Optimistic status overrides, rolled back if the server rejects.
   const [optimistic, setOptimistic] = useState<Record<string, ActionStatus>>({});
   const [lastCommand, setLastCommand] = useState("");
+  // How the last plan resolved — drives the status line's final state.
+  const [resolution, setResolution] = useState<PlanResolution | null>(null);
+  // Cards that just finished stay in the main stack for a beat so the user
+  // SEES the result land before they tuck under the resolved divider.
+  const [justResolved, setJustResolved] = useState<Record<string, true>>({});
+  const holdInStack = useCallback((ids: string[], ms = 5000) => {
+    if (ids.length === 0) return;
+    setJustResolved((s) => {
+      const next = { ...s };
+      for (const id of ids) next[id] = true;
+      return next;
+    });
+    window.setTimeout(() => {
+      setJustResolved((s) => {
+        const next = { ...s };
+        for (const id of ids) delete next[id];
+        return next;
+      });
+    }, ms);
+  }, []);
   const [keyHints] = useKeyboardHints();
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  // Always-fresh submit for stable callbacks (same pattern as sessionRef).
+  const submitRef = useRef<((text: string) => void) | null>(null);
 
   // Inline keyword autocomplete on the current (last) token.
   const suggestions = useMemo(() => {
@@ -87,25 +111,39 @@ export function Workspace() {
       ),
     [actions, optimistic]
   );
+  // The main stack: awaiting cards, in-flight cards, and anything that just
+  // finished (held briefly so its result is seen before it tucks away).
   const pendingActions = useMemo(
-    () => displayActions.filter((a) => a.status === "proposed"),
-    [displayActions]
+    () =>
+      displayActions.filter(
+        (a) =>
+          a.status === "proposed" ||
+          a.status === "approved" ||
+          a.status === "executing" ||
+          justResolved[a.id]
+      ),
+    [displayActions, justResolved]
   );
   const settledActions = useMemo(
-    () => displayActions.filter((a) => a.status !== "proposed"),
+    () => displayActions.filter((a) => !pendingActions.includes(a)),
+    [displayActions, pendingActions]
+  );
+  const awaitingCount = useMemo(
+    () => displayActions.filter((a) => a.status === "proposed").length,
     [displayActions]
   );
+  const counts = useMemo(() => sessionCounts(displayActions), [displayActions]);
 
   const orbState: OrbState = thinking
     ? "thinking"
-    : pendingActions.length > 0
+    : awaitingCount > 0
       ? "awaiting-approval"
       : listening
         ? "listening"
         : "idle";
 
   // Living logo in the browser tab: badge the favicon while actions wait.
-  useFaviconStatus(pendingActions.length > 0);
+  useFaviconStatus(awaitingCount > 0);
 
   const refresh = useCallback(async () => {
     const id = sessionRef.current;
@@ -177,6 +215,7 @@ export function Workspace() {
     setLastCommand(cmd);
     setThinking(true);
     setError(null);
+    setResolution(null);
     setCommand("");
     try {
       const data = await jsonFetch("/api/command", {
@@ -185,6 +224,19 @@ export function Workspace() {
       });
       setSession(data.session);
       sessionRef.current = data.session.id;
+      const planned: ActionRecord[] = data.actions ?? [];
+      // Auto-executed (tier-1) cards arrive already done — hold them in the
+      // stack briefly so their results are actually seen.
+      holdInStack(
+        planned
+          .filter((a) => a.status === "executed" || a.status === "failed")
+          .map((a) => a.id),
+        6000
+      );
+      setResolution({
+        count: planned.length,
+        injected: planned.some((a) => a.injection_flag),
+      });
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "the command didn't go through — try again.");
@@ -193,6 +245,7 @@ export function Workspace() {
       setThinking(false);
     }
   }
+  submitRef.current = submit;
 
   const onApprove = useCallback(
     async (id: string, opts: { confirmation?: string }) => {
@@ -202,6 +255,9 @@ export function Workspace() {
           method: "POST",
           body: JSON.stringify(opts),
         });
+        // Keep the card in place while its executed state (check + result)
+        // lands — it tucks under the resolved divider a beat later.
+        holdInStack([id]);
         await refresh();
         toast(
           data.action.status === "executed" ? "success" : "error",
@@ -220,8 +276,14 @@ export function Workspace() {
         return err instanceof Error ? err.message : "approval didn't go through — try again.";
       }
     },
-    [refresh, toast]
+    [refresh, toast, holdInStack]
   );
+
+  // A failed card's "propose again": re-issue the action as a fresh command
+  // through the full pipeline (plan → propose → approve) — never a bypass.
+  const onRetry = useCallback((action: ActionRecord) => {
+    submitRef.current?.(action.summary);
+  }, []);
 
   const onVeto = useCallback(
     async (id: string, reason: string) => {
@@ -268,7 +330,7 @@ export function Workspace() {
     <OfferBanner />
     <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)]">
       {/* Left: command input + session thread */}
-      <section className="flex flex-col gap-4">
+      <section className="flex min-w-0 flex-col gap-4">
         <div className={`rounded-card bg-white/70 p-4 shadow-lift ${thinking ? "animate-ring-flash" : ""}`}>
           <label
             htmlFor="command"
@@ -341,6 +403,7 @@ export function Workspace() {
               {thinking ? "planning…" : "send"}
             </button>
           </div>
+          <ThinkingStatus thinking={thinking} resolution={resolution} />
         </div>
 
         {error && (
@@ -398,13 +461,37 @@ export function Workspace() {
       </section>
 
       {/* Right: action card stack */}
-      <section className="flex flex-col gap-3" aria-live="polite">
-        <div className="flex items-center justify-between">
+      <section className="flex min-w-0 flex-col gap-3" aria-live="polite">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h2 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
             action cards
           </h2>
-          <VoiceOrb state={orbState} />
+          {/* live panel state: at a glance, is the operator waiting on you? */}
+          <span
+            className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide ${
+              thinking
+                ? "bg-ink text-cream"
+                : awaitingCount > 0
+                  ? "animate-pulse-glow bg-signal text-cream"
+                  : "bg-cream-deep text-ink-soft"
+            }`}
+            role="status"
+          >
+            {thinking
+              ? "working"
+              : awaitingCount > 0
+                ? `${awaitingCount} awaiting your approval`
+                : "idle"}
+          </span>
+          <span className="ml-auto">
+            <VoiceOrb state={orbState} />
+          </span>
         </div>
+        {sessionCountsLine(counts) && (
+          <p className="-mt-1.5 text-[11px] font-semibold lowercase text-ink-soft/80">
+            {sessionCountsLine(counts)}
+          </p>
+        )}
 
         {thinking && <SkeletonCard />}
 
@@ -427,6 +514,7 @@ export function Workspace() {
             onApprove={onApprove}
             onVeto={onVeto}
             onEdit={onEdit}
+            onRetry={onRetry}
           />
         ))}
 
@@ -443,6 +531,7 @@ export function Workspace() {
                   onApprove={onApprove}
                   onVeto={onVeto}
                   onEdit={onEdit}
+                  onRetry={onRetry}
                 />
               ))}
             </div>

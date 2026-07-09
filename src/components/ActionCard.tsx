@@ -1,9 +1,32 @@
 "use client";
 
 import { memo, useState } from "react";
-import { ChevronDown, Pencil, ShieldAlert } from "lucide-react";
-import type { ActionRecord } from "@/lib/types";
+import {
+  AlignLeft,
+  Banknote,
+  ChevronDown,
+  Database,
+  Megaphone,
+  Pencil,
+  PenLine,
+  RotateCcw,
+  Search,
+  Send,
+  ShieldAlert,
+  Trash2,
+  Wallet,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
+import type { ActionCategory, ActionRecord } from "@/lib/types";
 import { CREAM } from "@/lib/brand";
+import {
+  effectLine,
+  extractDiff,
+  impactChips,
+  resultPreview,
+  reversibilityChip,
+} from "@/lib/actionPresentation";
 import { TierBadge } from "./TierBadge";
 
 interface Props {
@@ -18,6 +41,8 @@ interface Props {
   ) => Promise<string | null>;
   onVeto: (id: string, reason: string) => Promise<string | null>;
   onEdit: (id: string, payload: Record<string, unknown>) => Promise<string | null>;
+  /** Failed cards offer "propose again" — re-issues the action as a command. */
+  onRetry?: (action: ActionRecord) => void;
 }
 
 const STATUS_LABEL: Record<ActionRecord["status"], string> = {
@@ -28,6 +53,31 @@ const STATUS_LABEL: Record<ActionRecord["status"], string> = {
   failed: "failed",
   vetoed: "vetoed",
 };
+
+/** Category glyphs — every card answers "what kind of thing is this" at a glance. */
+const CATEGORY_GLYPH: Record<ActionCategory, LucideIcon> = {
+  search: Search,
+  summarize: AlignLeft,
+  draft: PenLine,
+  send_email: Send,
+  post_content: Megaphone,
+  update_record: Database,
+  spend: Wallet,
+  webhook: Zap,
+  delete: Trash2,
+  refund: RotateCcw,
+  payment: Banknote,
+};
+
+const CHIP_STYLE: Record<string, string> = {
+  neutral: "bg-cream-deep text-ink-soft",
+  safe: "bg-cream-deep text-ink-soft ring-1 ring-inset ring-ink/10",
+  external: "text-ink ring-1 ring-inset ring-ink/30",
+  permanent: "bg-ink text-cream",
+};
+
+const INJECTION_TOOLTIP =
+  "external content tried to direct this action, so approval is locked. re-issue the command yourself if you want this done.";
 
 /** The drawn-in brand check shown on executed cards. */
 export function SignedCheck({ label = "signed & executed" }: { label?: string }) {
@@ -45,12 +95,40 @@ export function SignedCheck({ label = "signed & executed" }: { label?: string })
           className="animate-check-draw"
         />
       </svg>
-      <span className="text-xs font-extrabold lowercase tracking-wide">{label}</span>
+      {label && (
+        <span className="text-xs font-extrabold lowercase tracking-wide">{label}</span>
+      )}
     </div>
   );
 }
 
-function ActionCardInner({ action, index = 0, showKeyHints = false, onApprove, onVeto, onEdit }: Props) {
+/** Smooth expand/collapse via grid-rows — never a height jump. */
+function Collapse({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return (
+    <div
+      className={`grid transition-[grid-template-rows] duration-base ease-brand-out ${
+        open ? "[grid-template-rows:1fr]" : "[grid-template-rows:0fr]"
+      }`}
+    >
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
+  );
+}
+
+function timeOf(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function ActionCardInner({
+  action,
+  index = 0,
+  showKeyHints = false,
+  onApprove,
+  onVeto,
+  onEdit,
+  onRetry,
+}: Props) {
   const enterDelay = { animationDelay: `${Math.min(index, 6) * 60}ms` };
   const [mode, setMode] = useState<"view" | "edit" | "veto" | "confirm">("view");
   const [payloadText, setPayloadText] = useState(() =>
@@ -60,13 +138,22 @@ function ActionCardInner({ action, index = 0, showKeyHints = false, onApprove, o
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [payloadOpen, setPayloadOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [resultOpen, setResultOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [shake, setShake] = useState(false);
 
   const pending = action.status === "proposed";
   const inFlight = action.status === "approved" || action.status === "executing";
   const resolved = ["executed", "failed", "vetoed"].includes(action.status);
+  const flagged = action.injection_flag;
+
+  const Glyph = CATEGORY_GLYPH[action.category] ?? PenLine;
+  const effect = effectLine(action);
+  const chips = impactChips(action);
+  const diff = extractDiff(action.payload);
+  const result = resultPreview(action.result);
+  const risk = reversibilityChip(action.category, action.tier);
 
   async function run(fn: () => Promise<string | null>) {
     setBusy(true);
@@ -78,6 +165,7 @@ function ActionCardInner({ action, index = 0, showKeyHints = false, onApprove, o
   }
 
   async function handleApprove() {
+    if (flagged) return; // held for review — server refuses too
     if (action.tier === 3 && mode !== "confirm") {
       setMode("confirm");
       return;
@@ -121,12 +209,12 @@ function ActionCardInner({ action, index = 0, showKeyHints = false, onApprove, o
   }
 
   // Resolved cards collapse to a compact row: orange check for executed,
-  // muted strike for vetoed. Click to expand the full record.
+  // muted strike for vetoed. The result summary stays readable on the row.
   if (resolved && !expanded) {
     return (
       <button
         onClick={() => setExpanded(true)}
-        className={`group flex w-full items-center gap-3 rounded-card bg-white/50 px-4 py-2.5 text-left shadow-soft transition-shadow hover:shadow-lift animate-spring-in ${
+        className={`group flex w-full items-center gap-3 rounded-card bg-white/50 px-4 py-2.5 text-left shadow-soft transition-shadow hover:shadow-lift animate-card-in ${
           action.status === "executed" ? "animate-ring-flash" : ""
         }`}
         aria-label={`${STATUS_LABEL[action.status]}: ${action.summary} — expand details`}
@@ -138,15 +226,25 @@ function ActionCardInner({ action, index = 0, showKeyHints = false, onApprove, o
         ) : (
           <span className="h-4 w-4 shrink-0 rounded-full bg-ink" aria-hidden="true" />
         )}
-        <span
-          className={`min-w-0 flex-1 truncate text-sm font-semibold ${
-            action.status === "vetoed" ? "text-ink-soft line-through decoration-ink/40" : ""
-          } ${action.status === "failed" ? "text-ink-soft" : ""}`}
-        >
-          {action.summary}
+        <span className="min-w-0 flex-1">
+          <span
+            className={`block truncate text-sm font-semibold ${
+              action.status === "vetoed" ? "text-ink-soft line-through decoration-ink/40" : ""
+            } ${action.status === "failed" ? "text-ink-soft" : ""}`}
+          >
+            {action.summary}
+          </span>
+          {action.status === "executed" && result?.summary && (
+            <span className="block truncate text-[11px] text-ink-soft">
+              {result.summary}
+            </span>
+          )}
         </span>
-        <span className="text-[11px] lowercase text-ink-soft">
+        <span className="shrink-0 text-right text-[11px] lowercase text-ink-soft">
           {STATUS_LABEL[action.status]}
+          {action.resolved_at && (
+            <span className="block">{timeOf(action.resolved_at)}</span>
+          )}
         </span>
         <ChevronDown
           size={14}
@@ -162,7 +260,7 @@ function ActionCardInner({ action, index = 0, showKeyHints = false, onApprove, o
       style={enterDelay}
       tabIndex={pending ? 0 : undefined}
       onKeyDown={pending ? onCardKeyDown : undefined}
-      className={`relative animate-spring-in overflow-hidden rounded-card bg-white/70 p-4 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
+      className={`relative animate-card-in overflow-hidden rounded-card bg-white/70 p-4 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
         pending ? "shadow-depth-lift" : "shadow-depth"
       } ${action.status === "vetoed" ? "opacity-70 grayscale" : ""}`}
     >
@@ -173,39 +271,69 @@ function ActionCardInner({ action, index = 0, showKeyHints = false, onApprove, o
           aria-hidden="true"
         />
       )}
-      <header className="flex flex-wrap items-center gap-2">
-        <TierBadge tier={action.tier} />
+
+      <header className="flex gap-3">
         <span
-          className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide ${
-            action.status === "executed"
-              ? "bg-signal text-cream"
-              : action.status === "vetoed" || action.status === "failed"
-                ? "ring-1 ring-inset ring-ink/40 text-ink"
-                : "bg-cream-deep text-ink-soft"
-          }`}
+          className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-btn bg-cream-deep text-ink"
+          aria-hidden="true"
         >
-          {STATUS_LABEL[action.status]}
+          <Glyph size={16} strokeWidth={2.4} />
         </span>
-        <span className="ml-auto text-[11px] text-ink-soft">
-          {new Date(action.created_at).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </span>
-        {resolved && (
-          <button
-            onClick={() => setExpanded(false)}
-            className="rounded-btn px-1.5 py-0.5 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep"
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <TierBadge tier={action.tier} />
+            <span
+              className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide ${
+                action.status === "executed"
+                  ? "bg-signal text-cream"
+                  : action.status === "vetoed" || action.status === "failed"
+                    ? "ring-1 ring-inset ring-ink/40 text-ink"
+                    : "bg-cream-deep text-ink-soft"
+              }`}
+            >
+              {STATUS_LABEL[action.status]}
+            </span>
+            <span className="ml-auto text-[11px] text-ink-soft">
+              {timeOf(action.resolved_at ?? action.created_at)}
+            </span>
+            {resolved && (
+              <button
+                onClick={() => setExpanded(false)}
+                className="rounded-btn px-1.5 py-0.5 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep"
+              >
+                collapse
+              </button>
+            )}
+          </div>
+          <p className="mt-2 text-[15px] font-semibold leading-snug">{action.summary}</p>
+          <p
+            className={`mt-1 text-xs ${
+              risk.grade === "permanent"
+                ? "font-bold text-ink"
+                : "font-semibold text-ink-soft"
+            }`}
           >
-            collapse
-          </button>
-        )}
+            {effect}
+          </p>
+        </div>
       </header>
 
-      {action.injection_flag && (
-        <div className="mt-2 inline-flex animate-chip-pulse items-center gap-1.5 rounded-pill bg-ink px-2.5 py-1 text-[11px] font-bold lowercase text-cream [animation-iteration-count:2]">
-          <ShieldAlert size={12} strokeWidth={2.5} aria-hidden="true" />
-          external content attempted to direct the agent — held for your review
+      {/* what it touches */}
+      <div className="mt-2.5 flex flex-wrap gap-1.5 pl-12">
+        {chips.map((chip) => (
+          <span
+            key={chip.label}
+            className={`rounded-pill px-2 py-0.5 text-[10px] font-bold lowercase tracking-wide ${CHIP_STYLE[chip.grade]}`}
+          >
+            {chip.label}
+          </span>
+        ))}
+      </div>
+
+      {flagged && (
+        <div className="mt-3 flex items-start gap-1.5 rounded-btn bg-signal/10 px-2.5 py-2 text-[11px] font-bold lowercase leading-snug text-signal ring-1 ring-inset ring-signal/30">
+          <ShieldAlert size={13} strokeWidth={2.5} className="mt-px shrink-0" aria-hidden="true" />
+          external content tried to direct the agent — held for your review.
         </div>
       )}
 
@@ -215,21 +343,47 @@ function ActionCardInner({ action, index = 0, showKeyHints = false, onApprove, o
         </p>
       )}
 
-      <p className="mt-3 text-[15px] font-semibold leading-snug">{action.summary}</p>
-
-      <div className="mt-3">
+      {/* exact payload / diff — collapsed by default */}
+      <div className="mt-2.5">
         <button
-          onClick={() => setPayloadOpen((v) => !v)}
-          className="text-xs font-bold lowercase text-ink-soft underline underline-offset-2"
-          aria-expanded={payloadOpen}
+          onClick={() => setDetailsOpen((v) => !v)}
+          className="inline-flex items-center gap-1 text-xs font-bold lowercase text-ink-soft underline underline-offset-2"
+          aria-expanded={detailsOpen}
         >
-          {payloadOpen ? "hide payload" : "show exact payload"}
+          <ChevronDown
+            size={12}
+            className={`transition-transform duration-base ${detailsOpen ? "rotate-180" : ""}`}
+            aria-hidden="true"
+          />
+          {detailsOpen ? "hide details" : "view details"}
         </button>
-        {payloadOpen && mode !== "edit" && (
-          <pre className="mt-2 max-h-48 overflow-auto rounded-btn bg-cream-deep px-3 py-2.5 font-mono text-[11px] leading-relaxed text-ink shadow-well">
-            {JSON.stringify(action.payload, null, 2)}
-          </pre>
-        )}
+        <Collapse open={detailsOpen && mode !== "edit"}>
+          {diff ? (
+            <div className="mt-2 overflow-hidden rounded-btn bg-cream-deep shadow-well">
+              <p className="px-3 pt-2 text-[10px] font-bold lowercase tracking-widest text-ink-soft">
+                before → after
+              </p>
+              <table className="w-full font-mono text-[11px] leading-relaxed">
+                <tbody>
+                  {diff.map((row) => (
+                    <tr key={row.field} className="border-t border-line/50 first:border-0">
+                      <td className="px-3 py-1.5 align-top font-bold text-ink-soft">{row.field}</td>
+                      <td className="px-2 py-1.5 align-top text-ink-soft line-through decoration-ink/40">
+                        {row.before}
+                      </td>
+                      <td className="px-1 py-1.5 align-top text-ink-soft" aria-hidden="true">→</td>
+                      <td className="px-3 py-1.5 align-top font-bold text-ink">{row.after}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <pre className="mt-2 max-h-48 overflow-auto rounded-btn bg-cream-deep px-3 py-2.5 font-mono text-[11px] leading-relaxed text-ink shadow-well">
+              {JSON.stringify(action.payload, null, 2)}
+            </pre>
+          )}
+        </Collapse>
         {mode === "edit" && (
           <div className="mt-2">
             <textarea
@@ -261,20 +415,57 @@ function ActionCardInner({ action, index = 0, showKeyHints = false, onApprove, o
         )}
       </div>
 
-      {action.result && resolved && (
-        <p
+      {/* what happened */}
+      {resolved && action.status !== "vetoed" && result && (
+        <div
           className={`mt-3 rounded-btn px-3 py-2 text-xs ${
             action.status === "failed"
               ? "ring-1 ring-inset ring-ink/40 text-ink"
               : "bg-cream-deep text-ink-soft"
           }`}
         >
-          {String(
-            (action.result as Record<string, unknown>).summary ??
-              (action.result as Record<string, unknown>).error ??
-              ""
+          <p className="font-semibold">{result.summary}</p>
+          {result.items.length > 0 && (
+            <>
+              <button
+                onClick={() => setResultOpen((v) => !v)}
+                className="mt-1 text-[11px] font-bold lowercase underline underline-offset-2"
+                aria-expanded={resultOpen}
+              >
+                {resultOpen ? "hide results" : `view results (${result.items.length + result.more})`}
+              </button>
+              <Collapse open={resultOpen}>
+                <ul className="mt-1.5 flex flex-col gap-1 font-mono text-[11px]">
+                  {result.items.map((item, i) => (
+                    <li key={i} className="truncate rounded bg-cream px-2 py-1">
+                      {item}
+                    </li>
+                  ))}
+                  {result.more > 0 && (
+                    <li className="px-2 text-ink-soft">…and {result.more} more</li>
+                  )}
+                </ul>
+              </Collapse>
+            </>
           )}
-        </p>
+        </div>
+      )}
+
+      {action.status === "failed" && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <p className="text-xs font-semibold text-ink-soft">
+            this didn&apos;t complete — nothing was left half-done.
+          </p>
+          {onRetry && (
+            <button
+              onClick={() => onRetry(action)}
+              className="inline-flex items-center gap-1 rounded-btn px-2.5 py-1 text-xs font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
+            >
+              <RotateCcw size={11} strokeWidth={2.5} aria-hidden="true" />
+              propose again
+            </button>
+          )}
+        </div>
       )}
 
       {action.status === "vetoed" && action.veto_reason && (
@@ -312,22 +503,38 @@ function ActionCardInner({ action, index = 0, showKeyHints = false, onApprove, o
 
       {pending && mode !== "edit" && (
         <footer className="mt-4 flex flex-wrap items-center gap-2">
-          <button
-            onClick={handleApprove}
-            disabled={busy || (mode === "confirm" && !confirmation)}
-            className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M4.5 12.5 10 18 20 6.5"
-                stroke="currentColor"
-                strokeWidth="3.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            {mode === "confirm" ? "confirm & approve" : "approve"}
-          </button>
+          <span title={flagged ? INJECTION_TOOLTIP : undefined}>
+            <button
+              onClick={handleApprove}
+              disabled={busy || flagged || (mode === "confirm" && !confirmation)}
+              aria-disabled={flagged || undefined}
+              title={flagged ? INJECTION_TOOLTIP : undefined}
+              className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:opacity-50"
+            >
+              {busy ? (
+                <>
+                  <span
+                    className="h-3.5 w-3.5 animate-orb-think rounded-full border-2 border-ink/30 border-t-ink"
+                    aria-hidden="true"
+                  />
+                  executing…
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M4.5 12.5 10 18 20 6.5"
+                      stroke="currentColor"
+                      strokeWidth="3.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  {mode === "confirm" ? "confirm & approve" : "approve"}
+                </>
+              )}
+            </button>
+          </span>
           <button
             onClick={() => setMode("edit")}
             disabled={busy}
@@ -369,7 +576,7 @@ function ActionCardInner({ action, index = 0, showKeyHints = false, onApprove, o
         </footer>
       )}
 
-      {pending && showKeyHints && mode === "view" && (
+      {pending && showKeyHints && mode === "view" && !flagged && (
         <p className="mt-2 text-[10px] font-bold lowercase tracking-wide text-ink-soft/70">
           focus a card, then press{" "}
           <kbd className="rounded bg-cream-deep px-1 font-mono">a</kbd> to approve ·{" "}
@@ -398,5 +605,6 @@ export const ActionCard = memo(
     prev.showKeyHints === next.showKeyHints &&
     prev.onApprove === next.onApprove &&
     prev.onVeto === next.onVeto &&
-    prev.onEdit === next.onEdit
+    prev.onEdit === next.onEdit &&
+    prev.onRetry === next.onRetry
 );
