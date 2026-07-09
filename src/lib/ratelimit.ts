@@ -150,7 +150,12 @@ export async function enforceLimit(name: LimitName, key: string): Promise<void> 
  * Redis daily counter when Upstash is configured, else process memory.
  */
 export async function enforceGlobalPlanningBudget(): Promise<void> {
-  const cap = Number(process.env.COSIGNO_GLOBAL_DAILY_PLANS || 1000);
+  // Hard daily ceiling on total planner (spend) calls across ALL users.
+  // DAILY_PLAN_CAP is the canonical env var; COSIGNO_GLOBAL_DAILY_PLANS is
+  // still read for backward-compat. Default 500 — a sane beta ceiling.
+  const cap = Number(
+    process.env.DAILY_PLAN_CAP || process.env.COSIGNO_GLOBAL_DAILY_PLANS || 500
+  );
   const day = new Date().toISOString().slice(0, 10);
 
   let count: number;

@@ -50,6 +50,17 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
+describe("unauthenticated block (test 3)", () => {
+  it("logged-out /api/command → 401 and ZERO planner calls (no spend)", async () => {
+    const auth = await import("@/lib/auth");
+    vi.mocked(auth.getUserId).mockResolvedValueOnce(null);
+    const { POST } = await import("../../src/app/api/command/route");
+    const res = await POST(commandRequest("spend the whole balance please"));
+    expect(res.status).toBe(401);
+    expect(planSpy.calls).toBe(0);
+  });
+});
+
 describe("per-user command rate limit (test 5)", () => {
   it("the 11th command inside a minute → 429 and the model is NOT called", async () => {
     const { POST } = await import("../../src/app/api/command/route");
@@ -108,8 +119,8 @@ describe("oversized command (test 11)", () => {
 });
 
 describe("global circuit breaker", () => {
-  it("planning stops for everyone past the daily budget", async () => {
-    vi.stubEnv("COSIGNO_GLOBAL_DAILY_PLANS", "3");
+  it("planning stops for everyone past the daily budget (DAILY_PLAN_CAP)", async () => {
+    vi.stubEnv("DAILY_PLAN_CAP", "3");
     const { POST } = await import("../../src/app/api/command/route");
 
     for (let i = 0; i < 3; i++) {
@@ -120,7 +131,7 @@ describe("global circuit breaker", () => {
     expect(res.status).toBe(429);
     const body = await res.json();
     expect(body.message).toMatch(/beta capacity/i);
-    expect(planSpy.calls).toBe(3);
+    expect(planSpy.calls).toBe(3); // planner not called past the cap → no spend
   });
 });
 

@@ -53,9 +53,11 @@ export async function planCommand(
     .map((b) => b.source);
 
   if (!plannerConfigured() && process.env.NODE_ENV === "production") {
+    // Operator cause is logged in callPlanner/provider; the user sees generic
+    // copy only — never env var names or infra hints.
     throw new PlannerError(
       null,
-      "the AI planner isn't configured on the server: PLANNER_API_KEY isn't visible at runtime. In Netlify, set PLANNER_API_KEY (scope must include Functions/Runtime) and redeploy."
+      "the AI operator is temporarily unavailable. we've been notified — please try again shortly."
     );
   }
 

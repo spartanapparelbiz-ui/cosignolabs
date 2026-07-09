@@ -50,33 +50,26 @@ function describeFailure(err: unknown): { status: number | null; detail: string 
 }
 
 /**
- * Turn a provider failure into a plain-language, actionable message. Exported
- * for tests. Vendor-neutral by design: it names the cosigno env vars to check,
- * never the provider. None of these strings can contain the API key.
+ * USER-FACING planner failure copy. Deliberately generic about the cause: the
+ * specific reason (bad key, no credit, unknown model, raw provider body) is
+ * operator/config information and is written to the server logs ONLY — never
+ * returned to the browser. `_detail` is accepted for call-site stability but is
+ * never surfaced. Exported for tests. No string here can contain the API key,
+ * an env var name, a model id, or a stack trace.
  */
-export function plannerErrorMessage(status: number | null, detail: string): string {
-  if (status === 401) {
-    return "the AI provider rejected the API key (401). Check PLANNER_API_KEY in Netlify — a wrong key or a stray space/newline is the usual cause — then redeploy.";
-  }
-  if (status === 403) {
-    return "the AI provider denied access (403). The key may not have access to the requested model, or billing isn't active on the provider account.";
-  }
-  if (status === 404) {
-    return `the AI provider didn't recognize the model (404). Check PLANNER_MODEL_DEFAULT and PLANNER_MODEL_PREMIUM are exact model ids. (${detail})`;
-  }
-  if (status === 400 && /credit|balance|billing|quota/i.test(detail)) {
-    return "the AI provider account is out of credit. Add credit/billing to the provider account, then try again.";
-  }
-  if (status === 400) {
-    return `the AI provider rejected the request (400): ${detail}`;
-  }
+const PLANNER_UNAVAILABLE =
+  "the AI operator is temporarily unavailable. we've been notified — please try again shortly.";
+
+export function plannerErrorMessage(status: number | null, _detail?: string): string {
   if (status === 429) {
-    return "the AI provider is rate-limiting requests right now (429). Wait a moment and try again.";
+    return "cosigno is handling a lot of requests right now — wait a moment and try again.";
   }
   if (status !== null && status >= 500) {
-    return "the AI provider had a temporary server error. Try again in a moment.";
+    return "the AI operator is briefly unavailable — please try again in a moment.";
   }
-  return `the AI planner call failed: ${detail}`;
+  // 400 / 401 / 403 / 404 and anything else are configuration/provider issues
+  // the user can't act on and must not see the internals of.
+  return PLANNER_UNAVAILABLE;
 }
 
 /**
@@ -151,20 +144,20 @@ export interface PlannerResult {
  */
 export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
   const apiKey = plannerApiKey();
+  // Misconfiguration (missing key / model at runtime) is logged with the exact
+  // cause for the operator, but the USER only ever sees generic copy — no env
+  // var names, no infra hints.
   if (!apiKey) {
-    // The single most common production failure: the variable exists in the
-    // Netlify dashboard but isn't exposed to the running function (its scope
-    // must include Functions/Runtime, not just Builds).
-    throw new PlannerError(
-      null,
-      "the AI planner key isn't visible to the server at runtime. In Netlify → Site configuration → Environment variables, make sure PLANNER_API_KEY is set and its scope includes Functions (and Runtime), then Clear cache and deploy."
-    );
+    logError(newRequestId(), new Error("planner_api_key_missing_at_runtime"), {
+      event: "planner_misconfigured",
+    });
+    throw new PlannerError(null, PLANNER_UNAVAILABLE);
   }
   if (!call.model) {
-    throw new PlannerError(
-      null,
-      "no planner model is configured. Set PLANNER_MODEL_DEFAULT (and PLANNER_MODEL_PREMIUM) in Netlify, then redeploy."
-    );
+    logError(newRequestId(), new Error("planner_model_missing_at_runtime"), {
+      event: "planner_misconfigured",
+    });
+    throw new PlannerError(null, PLANNER_UNAVAILABLE);
   }
 
   // Dynamic import keeps the SDK out of any non-planner bundle path.
