@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { runCommand } from "@/lib/agent/pipeline";
 import { EngineError } from "@/lib/actions/engine";
@@ -61,7 +62,10 @@ function keyFingerprint(name: string): string {
   if (!raw) return "MISSING";
   const v = raw.trim();
   const ws = v.length !== raw.length ? " +WHITESPACE" : "";
-  return `len=${v.length} last4=${v.slice(-4)}${ws}`;
+  // sha catches look-alike/invisible characters that len+last4 can't:
+  // the known-good planner key hashes to 4580554e5d43.
+  const sha = createHash("sha256").update(v).digest("hex").slice(0, 12);
+  return `len=${v.length} last4=${v.slice(-4)} sha=${sha}${ws}`;
 }
 
 const FINGERPRINT_KEYS = [
