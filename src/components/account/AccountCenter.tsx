@@ -65,7 +65,7 @@ export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }
   }, []);
 
   return (
-    <div className="mt-6 flex flex-col gap-5 md:flex-row md:gap-8">
+    <div className="mt-6 flex flex-1 flex-col gap-5 md:flex-row md:gap-8">
       <nav
         aria-label="account sections"
         className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:w-48 md:flex-col md:overflow-visible md:px-0 md:pb-0"
@@ -89,7 +89,7 @@ export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }
         })}
       </nav>
 
-      <div key={tab} className="min-w-0 flex-1 animate-fade-through">
+      <div key={tab} className="flex min-w-0 flex-1 flex-col animate-fade-through">
         {tab === "profile" && <ProfilePanel />}
         {tab === "permissions" && (
           <PermissionsPanel categories={categories} setCategories={setCategories} error={err} retry={load} />

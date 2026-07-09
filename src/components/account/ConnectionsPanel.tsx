@@ -155,7 +155,7 @@ export function ConnectionsPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <div>
         <h3 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
           connections
@@ -307,7 +307,7 @@ export function ConnectionsPanel() {
  */
 function ConnectionsComingSoon() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <div>
         <h3 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
           connections
@@ -317,12 +317,12 @@ function ConnectionsComingSoon() {
           you connect it, and every action still waits for your signature.
         </p>
       </div>
-      <div className="rounded-card bg-white/60 p-8 text-center shadow-soft">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-btn bg-cream-deep">
-          <Plug size={22} className="text-ink-soft" />
+      <div className="flex flex-1 flex-col items-center justify-center rounded-card bg-white/60 px-8 py-16 text-center shadow-soft">
+        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-card bg-cream-deep">
+          <Plug size={28} className="text-ink-soft" />
         </div>
-        <p className="text-sm font-extrabold">connections are coming soon</p>
-        <p className="mx-auto mt-1.5 max-w-md text-xs text-ink-soft">
+        <p className="text-lg font-extrabold">connections are coming soon</p>
+        <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
           this is where you&apos;ll link the apps cosigno can act across — like
           GitHub, Google, and Slack — each one off until you connect it, and every
           action still waiting for your signature. we&apos;re putting the final
