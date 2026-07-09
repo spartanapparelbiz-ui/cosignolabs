@@ -187,10 +187,14 @@ export function ConnectionsPanel() {
       {/* ---- third-party apps ---- */}
       <section className="flex flex-col gap-2.5">
         <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">apps</h4>
-        {data?.providers.map((p) => {
+        {data?.providers.map((p, i) => {
           const conn = connByProvider.get(p.key);
           return (
-            <div key={p.key} className="rounded-card bg-white/60 p-4 shadow-soft">
+            <div
+              key={p.key}
+              style={{ animationDelay: `${i * 70}ms` }}
+              className="rounded-card bg-white/60 p-4 shadow-soft transition-all duration-300 ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth"
+            >
               <div className="flex flex-wrap items-center gap-2">
                 <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={26} />
                 <span className="text-sm font-extrabold">{p.name}</span>
@@ -317,12 +321,34 @@ function ConnectionsComingSoon() {
           you connect it, and every action still waits for your signature.
         </p>
       </div>
-      <div className="flex flex-1 flex-col items-center justify-center rounded-card bg-white/60 px-8 py-16 text-center shadow-soft">
-        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-card bg-cream-deep">
-          <Plug size={28} className="text-ink-soft" />
+      <div className="group flex flex-1 flex-col items-center justify-center rounded-card bg-white/60 px-8 py-16 text-center shadow-soft transition-all duration-500 ease-brand-out animate-spring-in hover:-translate-y-0.5 hover:shadow-depth">
+        {/* Icon badge: radiating signal rings behind a gently floating plug. */}
+        <div
+          className="relative mb-6 animate-rise-in"
+          style={{ animationDelay: "80ms" }}
+        >
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 rounded-card ring-2 ring-signal/40 animate-orb-ring"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 rounded-card ring-2 ring-signal/30 animate-orb-ring [animation-delay:900ms]"
+          />
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-card bg-cream-deep shadow-soft transition-transform duration-500 ease-brand-out group-hover:scale-105">
+            <Plug size={28} className="text-ink animate-float" />
+          </div>
         </div>
-        <p className="text-lg font-extrabold">connections are coming soon</p>
-        <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
+        <p
+          className="text-lg font-extrabold animate-rise-in"
+          style={{ animationDelay: "160ms" }}
+        >
+          connections are coming soon
+        </p>
+        <p
+          className="mx-auto mt-2 max-w-md text-sm text-ink-soft animate-rise-in"
+          style={{ animationDelay: "240ms" }}
+        >
           this is where you&apos;ll link the apps cosigno can act across — like
           GitHub, Google, and Slack — each one off until you connect it, and every
           action still waiting for your signature. we&apos;re putting the final
