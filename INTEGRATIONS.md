@@ -26,6 +26,11 @@ src/lib/integrations/
     validate.ts   clamp + injection-scan advertised tools (untrusted input)
     consent.ts    sensitivity heuristics + per-tool consent gate
     register.ts   handshake → discover → validate → cache (disabled)
+    icon.ts       SSRF-safe, raster-only, re-encoded server-icon fetch
+  net/
+    ssrf.ts       DNS-resolve → classify → block private/internal hosts
+  logos.ts        bundled logo resolution + monogram fallback (no hotlinks)
+src/components/integrations/ConnectorLogo.tsx  fixed-box, lazy, safe <img>
 src/app/api/connections/…   the HTTP surface (see below)
 supabase/migrations/0007_connections.sql   connections / mcp_tools / oauth_states
 ```
@@ -49,6 +54,53 @@ stores anything; the runtime decrypts, refreshes, and calls.
   everything else (category `connection_call`), and the planner cannot select
   it — it is created only by explicit user action.
 
+## Untrusted-connector threat model
+
+A custom MCP server — and **everything it returns** (tool names, descriptions,
+schemas, results, its advertised icon) — is treated as fully untrusted input,
+never as instructions. This table is the map from each requirement to where it
+is enforced in code.
+
+| Requirement | How it's enforced | Where |
+| --- | --- | --- |
+| Tool metadata is **data, never instructions** | Names/descriptions/schemas are clamped, depth/size-capped, injection-scanned and flagged; they can't reach the planner as text | `mcp/validate.ts` |
+| A connector **can't reword an action card** away from its true payload | Action cards render from the server-resolved payload, not from connector text; the planner never sees raw tool descriptions | `mcp/validate.ts`, approval engine |
+| A connector **can't bypass a tier or self-escalate** | Every connector run is category `connection_call`, resolved server-side to a tier; the connector supplies no tier and can't mark an action auto | executor mediation, `mcp/[id]/run` |
+| A connector **can't trigger execution** | `connection_call` is **not planner-selectable**; runs are created only by explicit user action and re-check consent at call time | executor mediation |
+| Everything routes through **action-card → signature → receipt** | Connector runs use the same approval engine; destructive actions require typed confirmation; every step is audited | approval engine, `mcp/[id]/run` |
+| **Never render remote HTML/SVG/markup** | Icons are raster-only (magic-byte sniffed, **SVG rejected**), re-encoded to a self-contained data URI; the UI only ever accepts a generated raster/monogram, never a remote URL or remote markup | `mcp/icon.ts`, `logos.ts` (`isSafeIcon`), `ConnectorLogo.tsx` |
+| **SSRF** to internal/private/loopback/link-local/metadata | Every outbound URL is DNS-resolved and each address classified; private/loopback/link-local/ULA/CGNAT/cloud-metadata/unspecified are blocked; redirects fail closed; loopback only in dev | `net/ssrf.ts`, wired into `mcp/client.ts`, `mcp/register.ts`, `mcp/icon.ts` |
+| **Disabled by default, explicit opt-in** | Discovered tools are cached `enabled:false`; sensitive tools also need a consent step | `mcp/register.ts`, `consent.ts` |
+| **Isolation / limits, fail closed** | Handshake + call timeouts, response-size caps, icon byte cap (32 KB) + 5 s timeout; any failure returns null/generic error, never partial trust | `mcp/client.ts`, `mcp/icon.ts` |
+| **Credential safety** | AES-256-GCM at rest; secret column revoked from the client role; only a `fingerprint` is ever logged; disconnect revokes + hard-deletes | `crypto.ts`, RLS, `runtime/connections.ts` |
+| **Audit trail** | Registration and every connector run write to the permanent, filterable, exportable account audit log (`integration_connected`, `connector_action`) | `mcp/register.ts`, `mcp/[id]/run`, Account Center |
+
+## Connector logos & the transparent mark
+
+Each connected tool shows its **real logo**, rendered safely:
+
+- **Known apps** (GitHub/Google/Slack/Notion) use **bundled, self-hosted**
+  optimized SVGs in `public/logos/` — never a hotlink to the vendor.
+- **Custom MCP servers** may show a server-advertised icon, but only after it's
+  fetched SSRF-safely, **sniffed as a raster by magic bytes** (SVG is refused),
+  size-capped, and **re-encoded to a data URI**. Raw remote markup never renders.
+- Every connector **always** has a fallback: a generated **monogram** badge
+  (cream initials on the brand ink field), built from sanitized text as an SVG
+  data URI we produce ourselves.
+
+`ConnectorLogo` draws into a **fixed-size box** (no layout shift), lazy-loads the
+image, and on any load error falls back to the monogram, so a card never shows a
+broken image. Bundled logos and app icons are served with long-lived immutable
+cache headers.
+
+The cosigno wordmark/icon and favicon render with a **transparent** background
+everywhere (no matte). Because a fully transparent silhouette can vanish on a
+light tab bar, the mark carries its own contrast: the favicon SVG is adaptive
+(repaints ink↔cream by color scheme) and the static rasters place a cream
+self-halo under the ink "C" plus the orange check anchor. Assets are generated by
+`scripts/generate-assets.mjs` (`npm run assets`) and query-versioned for
+cache-busting.
+
 ## Setup you need to do
 
 1. **Generate the vault key** and set it in your host (Netlify → Environment):
@@ -69,7 +121,16 @@ stores anything; the runtime decrypts, refreshes, and calls.
 
 For **custom MCP** there's nothing to register — a user pastes a remote MCP URL
 (https, or http for localhost) and an optional bearer token in the "add server"
-form, and cosigno handshakes, discovers, and lists the tools.
+form, and cosigno handshakes, discovers, and lists the tools. The URL is
+DNS-resolved and rejected up front if it points anywhere internal
+(private/loopback/link-local/cloud-metadata), so a pasted address can't be used
+to reach the server's own network.
+
+**Assets & logos.** The bundled connector logos (`public/logos/`), app icons,
+and the transparent favicon set are committed and need no action. If you change
+the mark or add a bundled logo, regenerate with `npm run assets` and bump the
+`?v=` query in `src/app/layout.tsx` / `src/app/manifest.ts` to bust caches (the
+static assets are served `immutable`).
 
 ## The HTTP surface
 
