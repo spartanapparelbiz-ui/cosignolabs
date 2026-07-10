@@ -7,6 +7,28 @@ screen (Account → connections) and both obey the same rule as everything else
 in cosigno: nothing runs until the user connects it, and every action still
 waits for a signature.
 
+## Fake-vs-real audit (core loop)
+
+Honest inventory of the `command → plan → card → approve → execute → result →
+audit` loop as of this pass. The rule: real work is real; anything sandboxed is
+**labeled**, never silently faked.
+
+| Stage | Status |
+| --- | --- |
+| **command → plan** | **REAL** when a planner key is set (hosted LLM). Falls back to an **offline mock planner** with no key so the public sandbox works — that path is dev/sandbox only. |
+| **card creation** | **REAL** — persisted, per-user, tier assigned server-side. |
+| **approve / veto / edit** | **REAL** — server-owned state machine + audit rows; injection-flagged cards can't be approved; tier-3 needs typed confirmation. |
+| **execute — connected apps (Gmail) + MCP** | **REAL** — `connection_call` runs the actual Gmail / MCP request server-side with the user's decrypted token and returns the real outcome. |
+| **execute — generic categories** (`send_email`, `delete`, `refund`, …) | **SIMULATED (sandbox)** — for users with nothing connected. Each returns `simulated: true` and the card/audit shows a **"sandbox · simulated"** badge. Not faked silently. |
+| **result rendering** | **REAL** for connector actions ("sent an email to …", "archived 12 messages"); **labeled simulated** otherwise. |
+| **activity log / CSV** | **REAL** — real executed actions, results, timestamps; CSV carries real rows. |
+| **usage meter** | **REAL** — increments on planning + execution; enforces plan limits. |
+| **account center** (status / usage / plan) | **REAL** — live connection status, real usage, resolved plan. |
+
+To make a generic category real, implement it as a connector capability (it
+then flows through `connection_call`) — that's the clean seam for the next
+integration. Gmail is the reference.
+
 ## Architecture at a glance
 
 ```

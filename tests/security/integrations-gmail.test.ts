@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { approveAction } from "@/lib/actions/engine";
+import { executeAction } from "@/lib/actions/executor";
 import { gmailProvider } from "@/lib/integrations/providers/gmail";
 import { listProviderMeta } from "@/lib/integrations/registry";
 import { serverTier, resolveTier, mcpToolRisk } from "@/lib/integrations/tiers";
@@ -223,6 +224,17 @@ describe("the full connector loop works (propose → approve → real execute)",
     const executed = await approveAction("u1", proposed.action!.id);
     expect(executed.status).toBe("executed");
     expect(executed.result?.summary).toMatch(/sent an email to lead@acme\.com/i);
+    // A REAL connected-account action is NOT flagged as sandbox/simulated.
+    expect((executed.result as Record<string, unknown>).simulated).not.toBe(true);
+  });
+
+  it("sample mode (no connection) executes as clearly-labeled simulated", async () => {
+    // A generic category — what the planner proposes with nothing connected —
+    // runs in the sandbox and is flagged simulated so the UI can label it.
+    const res = await executeAction("delete", { target: "old files" }, { userId: "u1" });
+    expect(res.ok).toBe(true);
+    expect(res.detail?.simulated).toBe(true);
+    expect(res.summary).not.toMatch(/\(stub\)/i);
   });
 
   it("a tier-3 trash cannot execute without the typed confirmation", async () => {

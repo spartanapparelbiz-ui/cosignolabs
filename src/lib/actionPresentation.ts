@@ -243,6 +243,8 @@ export interface ResultPreview {
   items: string[];
   /** How many more items exist beyond the preview. */
   more: number;
+  /** True for a sandbox/simulated result (no real connected account was touched). */
+  simulated: boolean;
 }
 
 /** Compact, expandable preview of what an execution returned. */
@@ -252,6 +254,7 @@ export function resultPreview(
   if (!result || typeof result !== "object") return null;
   const summary =
     shortStr(result.summary, 200) ?? shortStr(result.error, 200) ?? "";
+  const simulated = result.simulated === true;
   let items: string[] = [];
   for (const [key, v] of Object.entries(result)) {
     if (key === "summary" || key === "error") continue;
@@ -261,11 +264,11 @@ export function resultPreview(
           ? display(item).slice(0, 80)
           : String(item).slice(0, 80)
       );
-      return { summary, items, more: Math.max(0, v.length - 5) };
+      return { summary, items, more: Math.max(0, v.length - 5), simulated };
     }
   }
   if (!summary) return null;
-  return { summary, items, more: 0 };
+  return { summary, items, more: 0, simulated };
 }
 
 /* -------------------------------------------------------- session counts */

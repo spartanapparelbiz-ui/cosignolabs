@@ -426,7 +426,14 @@ function ActionCardInner({
               : "bg-cream-deep text-ink-soft"
           }`}
         >
-          <p className="font-semibold">{result.summary}</p>
+          <p className="font-semibold">
+            {result.simulated && (
+              <span className="mr-1.5 rounded-pill bg-ink/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-ink-soft">
+                sandbox · simulated
+              </span>
+            )}
+            {result.summary}
+          </p>
           {result.items.length > 0 && (
             <>
               <button
