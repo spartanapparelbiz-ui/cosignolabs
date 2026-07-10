@@ -243,7 +243,7 @@ export function ConnectionsPanel() {
                 {conn && <StatusPill status={conn.status} />}
                 {!p.configured && !conn && (
                   <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-[10px] font-bold lowercase text-ink-soft">
-                    not set up on server
+                    coming soon
                   </span>
                 )}
                 <span className="ml-auto flex gap-2">

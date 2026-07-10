@@ -12,9 +12,11 @@ import { IntegrationHttpError, requestJson } from "../runtime/httpClient";
  * meant to be a small, declarative task: fill in this config and register it.
  * GitHub is hand-written as the fully-featured reference; the others use this.
  *
- * `usesPkce: true` makes it a public client (no secret sent, code_challenge in
- * the authorize URL, code_verifier in the exchange). Otherwise it's a
- * confidential client using the *_CLIENT_SECRET env.
+ * `usesPkce: true` adds PKCE (code_challenge in the authorize URL, code_verifier
+ * in the exchange). It is orthogonal to the client secret: if `clientSecretEnv`
+ * is set the provider is a CONFIDENTIAL client and the secret is always sent at
+ * exchange/refresh (Google "Web application" clients need PKCE *and* the secret).
+ * A provider with no `clientSecretEnv` is a public client (PKCE only).
  */
 export interface OAuthProviderConfig {
   key: string;
@@ -67,7 +69,12 @@ export function makeOAuthProvider(cfg: OAuthProviderConfig): IntegrationProvider
     usesPkce: cfg.usesPkce,
 
     isConfigured() {
-      return Boolean(id() && (cfg.usesPkce || secret()));
+      // A provider that declares a client-secret env is a CONFIDENTIAL client
+      // (e.g. a Google "Web application" OAuth client): it needs BOTH the id
+      // and the secret to complete a token exchange, regardless of PKCE. A
+      // pure public client (no secret env) needs only the id. Getting this
+      // wrong shows an enabled "connect" button that then fails at exchange.
+      return Boolean(id() && (!cfg.clientSecretEnv || secret()));
     },
 
     buildAuthUrl({ state, redirectUri, codeChallenge }) {
@@ -93,11 +100,13 @@ export function makeOAuthProvider(cfg: OAuthProviderConfig): IntegrationProvider
         code,
         redirect_uri: redirectUri,
       };
-      if (cfg.usesPkce) {
-        if (codeVerifier) body.code_verifier = codeVerifier;
-      } else if (secret()) {
-        body.client_secret = secret() as string;
-      }
+      // Send the PKCE verifier (if this flow used PKCE) AND the client secret
+      // (if configured). Google "Web application" clients are confidential and
+      // REQUIRE the secret at the token endpoint even when PKCE is in use —
+      // sending only the verifier fails with invalid_client. Sending both is
+      // correct for confidential+PKCE and harmless for a plain confidential flow.
+      if (cfg.usesPkce && codeVerifier) body.code_verifier = codeVerifier;
+      if (secret()) body.client_secret = secret() as string;
       const res = await requestJson<Record<string, unknown>>(cfg.tokenUrl, {
         method: "POST",
         form: true,
@@ -125,7 +134,9 @@ export function makeOAuthProvider(cfg: OAuthProviderConfig): IntegrationProvider
         grant_type: "refresh_token",
         refresh_token: creds.refresh_token,
       };
-      if (!cfg.usesPkce && secret()) body.client_secret = secret() as string;
+      // Confidential clients (Google web app included) must present the secret
+      // to refresh, PKCE or not.
+      if (secret()) body.client_secret = secret() as string;
       const res = await requestJson<Record<string, unknown>>(cfg.tokenUrl, {
         method: "POST",
         form: true,
