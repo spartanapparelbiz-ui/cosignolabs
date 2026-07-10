@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { approveAction } from "@/lib/actions/engine";
 import { gmailProvider } from "@/lib/integrations/providers/gmail";
 import { listProviderMeta } from "@/lib/integrations/registry";
 import { serverTier, resolveTier, mcpToolRisk } from "@/lib/integrations/tiers";
@@ -181,6 +182,68 @@ describe("the planner is told what's connected, and to suggest connecting", () =
     const prompt = buildSystemPrompt(summary);
     expect(prompt).toContain("send_message(write)");
     expect(prompt).toMatch(/you never select that category|cannot run these yourself/i);
+  });
+});
+
+/* --------------------------------- end-to-end: propose → approve → execute */
+describe("the full connector loop works (propose → approve → real execute)", () => {
+  const realFetch = globalThis.fetch;
+  function okJson(body: unknown) {
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      text: async () => JSON.stringify(body),
+    } as unknown as Response;
+  }
+  beforeEach(() => {
+    globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+      const u = String(url);
+      if (u.includes("/messages/send")) return okJson({ id: "sent-1" });
+      if (u.includes("/trash")) return okJson({ id: "trashed-1" });
+      if (u.includes("/messages?")) return okJson({ messages: [{ id: "m1" }], resultSizeEstimate: 1 });
+      if (u.includes("oauth2.googleapis.com/token")) return okJson({ access_token: "fresh" });
+      return okJson({});
+    }) as unknown as typeof fetch;
+  });
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  it("a proposed Gmail send, once approved, executes and records a REAL result", async () => {
+    const id = await connectGmail();
+    const proposed = await proposeConnectorAction("u1", "s1", {
+      connectionId: id,
+      capability: "send_message",
+      args: { to: "lead@acme.com", subject: "hi", body: "hello" },
+    });
+    expect(proposed.action!.status).toBe("proposed");
+
+    // Approve through the real engine → runs the executor → hits (mocked) Gmail.
+    const executed = await approveAction("u1", proposed.action!.id);
+    expect(executed.status).toBe("executed");
+    expect(executed.result?.summary).toMatch(/sent an email to lead@acme\.com/i);
+  });
+
+  it("a tier-3 trash cannot execute without the typed confirmation", async () => {
+    const id = await connectGmail();
+    const proposed = await proposeConnectorAction("u1", "s1", {
+      connectionId: id,
+      capability: "trash",
+      args: { ids: ["m1"] },
+    });
+    // No confirmation → blocked by the state machine.
+    await expect(approveAction("u1", proposed.action!.id)).rejects.toMatchObject({
+      code: "confirmation_required",
+    });
+    // Wrong word → still blocked.
+    await expect(
+      approveAction("u1", proposed.action!.id, { confirmation: "yes" })
+    ).rejects.toMatchObject({ code: "confirmation_mismatch" });
+    // Correct typed confirmation → executes.
+    const executed = await approveAction("u1", proposed.action!.id, { confirmation: "connection_call" });
+    expect(executed.status).toBe("executed");
+    expect(executed.result?.summary).toMatch(/trash/i);
   });
 });
 
