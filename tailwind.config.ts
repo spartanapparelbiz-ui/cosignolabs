@@ -43,6 +43,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-nunito)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Georgia", "serif"],
       },
       transitionTimingFunction: {
         "brand-out": "cubic-bezier(0.22, 1, 0.36, 1)",

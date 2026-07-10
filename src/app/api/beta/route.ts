@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     await verifyTurnstile(body.turnstileToken, ip);
 
     await getStore().createBetaApplication({
-      name: body.name.trim(),
+      name: (body.name ?? "").trim(),
       email: body.email.trim(),
       tools: body.tools.trim(),
       workflow: body.workflow.trim(),

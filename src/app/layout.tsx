@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Nunito_Sans } from "next/font/google";
+import { Fraunces, Nunito_Sans } from "next/font/google";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -11,6 +11,18 @@ const nunito = Nunito_Sans({
   weight: ["400", "600", "700", "800", "900"],
   display: "swap",
   fallback: ["system-ui", "sans-serif"],
+  adjustFontFallback: true,
+});
+
+// Display face for headlines — a characterful soft-serif that differentiates
+// cosigno from the sans-everything indie-AI-SaaS default. Payloads stay in mono
+// (the product's exact, auditable voice); body stays in the sans above.
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["600", "700"],
+  display: "swap",
+  fallback: ["Georgia", "serif"],
   adjustFontFallback: true,
 });
 
@@ -71,7 +83,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={nunito.variable} suppressHydrationWarning>
+    <html lang="en" className={`${nunito.variable} ${fraunces.variable}`} suppressHydrationWarning>
       <head>
         {/* Set the theme before first paint so there's no flash of the wrong
             palette. Reads the saved preference (or the OS setting). */}

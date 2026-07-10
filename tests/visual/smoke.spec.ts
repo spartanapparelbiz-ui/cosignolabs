@@ -52,7 +52,7 @@ for (const vp of VIEWPORTS) {
     test("landing", async ({ page }) => {
       await page.goto("/", { waitUntil: "networkidle" });
       await expect(
-        page.getByRole("heading", { name: "get your week back." })
+        page.getByRole("heading", { name: "hand off the work that sends, posts, and spends." })
       ).toBeVisible();
       // Hero viewport capture FIRST, while the composed scene is pristine at
       // the top of the page — its floating cards use scroll-driven parallax,
@@ -120,16 +120,19 @@ for (const vp of VIEWPORTS) {
     test("landing interactive widgets", async ({ page }) => {
       await page.goto("/", { waitUntil: "networkidle" });
 
-      // --- approval story: approve the first card, then screenshot mid-story
+      // --- approval story (§3 script): approve card 1, then the tier-3 refund
+      // (typed-confirm) card slides in — a stable, filmable mid-story state.
       const story = page.locator("section", {
         hasText: "one command. one signature. done.",
       });
       await story.scrollIntoViewIfNeeded();
+      await expect(story.getByText(/draft replies to your 3 most recent leads/i)).toBeVisible();
       const approve = story.getByRole("button", { name: "approve" });
       await expect(approve).toBeVisible();
       await approve.click();
-      // card 1 executes and the second card slides in — a stable mid-story state
-      await expect(story.getByText(/draft replies to your 3 most recent leads/i)).toBeVisible();
+      // the locked tier-3 refund card appears and asks for typed confirmation
+      await expect(story.getByText(/refund \$48\.00/i)).toBeVisible();
+      await expect(story.getByText(/type .*confirm.* to authorize/i)).toBeVisible();
       await noHorizontalScroll(page);
       await story.screenshot({ path: join(OUT, `story-${vp.name}.png`) });
 

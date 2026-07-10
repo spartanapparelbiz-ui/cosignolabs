@@ -63,6 +63,9 @@ const WINDOWS = {
   transitionMinute: { max: 30, windowMs: 60_000, upstashWindow: "60 s" },
   betaHour: { max: 3, windowMs: 3_600_000, upstashWindow: "1 h" },
   previewMinute: { max: 20, windowMs: 60_000, upstashWindow: "60 s" },
+  // Analytics beacon (§9) — its own window so a burst of events can never
+  // starve the sandbox's budget (or vice versa). Generous; drops silently.
+  trackMinute: { max: 60, windowMs: 60_000, upstashWindow: "60 s" },
 } satisfies Record<string, Window>;
 
 const LIMIT_MESSAGES: Record<LimitName, string> = {
@@ -73,6 +76,7 @@ const LIMIT_MESSAGES: Record<LimitName, string> = {
   betaHour:
     "a few applications already came from this connection — try again in an hour.",
   previewMinute: "the sandbox needs a breather — try again in a minute.",
+  trackMinute: "", // beacon is silent — this message is never surfaced.
 };
 
 export type LimitName = keyof typeof WINDOWS;

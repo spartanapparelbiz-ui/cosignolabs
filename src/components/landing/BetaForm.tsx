@@ -1,27 +1,34 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { track } from "@/lib/analytics";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
+// §8 — three fields, each earning its place by doubling as customer discovery.
 const FIELDS = {
-  name: { label: "your name", hint: "tell us your name so we know who's applying." },
   email: { label: "email", hint: "that email doesn't look right — check for typos." },
-  tools: { label: "tools", hint: "name at least one tool you'd connect." },
-  workflow: { label: "workflow", hint: "one sentence is enough — what would you hand off?" },
+  workflow: {
+    label: "the one task",
+    hint: "one sentence is enough — what eats your week?",
+  },
+  tools: { label: "tools", hint: "pick or name at least one tool it would touch." },
 } as const;
 
 type FieldName = keyof typeof FIELDS;
+
+const TOOL_CHIPS = ["gmail", "shopify", "calendar", "slack", "other"] as const;
 
 export function BetaForm() {
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldName, string>>>({});
+  const [tools, setTools] = useState("");
+  const [chips, setChips] = useState<Set<string>>(new Set());
   const widgetRef = useRef<HTMLDivElement>(null);
 
-  // Cloudflare Turnstile: rendered only when a site key is configured.
-  // The server verifies the token; without it (in production) the
-  // submission is rejected.
+  // Cloudflare Turnstile: rendered only when a site key is configured. The
+  // server verifies the token; without it (in production) submits are rejected.
   useEffect(() => {
     if (!TURNSTILE_SITE_KEY || !widgetRef.current) return;
     if (document.querySelector("script[data-cosigno-turnstile]")) return;
@@ -33,15 +40,25 @@ export function BetaForm() {
     document.head.appendChild(script);
   }, []);
 
-  function validate(form: FormData): boolean {
+  function toggleChip(chip: string) {
+    setChips((prev) => {
+      const next = new Set(prev);
+      if (next.has(chip)) next.delete(chip);
+      else next.add(chip);
+      return next;
+    });
+  }
+
+  // The tools value the server sees = selected chips + any free text.
+  function toolsValue(): string {
+    return [...chips, tools.trim()].filter(Boolean).join(", ");
+  }
+
+  function validate(email: string, workflow: string, toolsStr: string): boolean {
     const errors: Partial<Record<FieldName, string>> = {};
-    for (const name of Object.keys(FIELDS) as FieldName[]) {
-      const value = String(form.get(name) ?? "").trim();
-      if (!value) errors[name] = FIELDS[name].hint;
-      else if (name === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-        errors.email = FIELDS.email.hint;
-      }
-    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = FIELDS.email.hint;
+    if (!workflow.trim()) errors.workflow = FIELDS.workflow.hint;
+    if (!toolsStr.trim()) errors.tools = FIELDS.tools.hint;
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -49,7 +66,10 @@ export function BetaForm() {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    if (!validate(form)) return;
+    const email = String(form.get("email") ?? "").trim();
+    const workflow = String(form.get("workflow") ?? "").trim();
+    const toolsStr = toolsValue();
+    if (!validate(email, workflow, toolsStr)) return;
     setState("busy");
     setMessage("");
     try {
@@ -57,10 +77,9 @@ export function BetaForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.get("name"),
-          email: form.get("email"),
-          tools: form.get("tools"),
-          workflow: form.get("workflow"),
+          email,
+          workflow,
+          tools: toolsStr,
           ...(TURNSTILE_SITE_KEY
             ? { turnstileToken: form.get("cf-turnstile-response") ?? "" }
             : {}),
@@ -68,6 +87,7 @@ export function BetaForm() {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.message || "that didn't go through — try again in a moment.");
+      track("apply_submitted");
       setState("done");
       setMessage(body.message);
     } catch (err) {
@@ -95,60 +115,89 @@ export function BetaForm() {
             />
           </svg>
         </div>
-        <p className="mt-3 font-bold">application received — we review weekly.</p>
-        <p className="mt-1 text-sm text-ink-soft">{message}</p>
+        <p className="mt-3 font-bold">application received.</p>
+        <p className="mt-1 text-sm text-ink-soft">
+          reviewed weekly — we build the first integrations around this
+          cohort&apos;s workflows. {message}
+        </p>
       </div>
     );
   }
 
   const inputClass =
-    "w-full rounded-btn bg-surface/80 px-4 py-3 text-sm font-semibold placeholder:text-ink-soft/60 shadow-soft";
+    "w-full rounded-btn bg-surface/80 px-4 py-3 text-sm font-semibold placeholder:text-ink-soft/60 shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal";
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3" noValidate>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <input name="name" placeholder="your name" className={inputClass} aria-label="your name" />
-          {fieldErrors.name && (
-            <p className="mt-1 text-xs font-semibold text-ink-soft">{fieldErrors.name}</p>
-          )}
-        </div>
-        <div>
-          <input
-            name="email"
-            type="email"
-            placeholder="you@company.com"
-            className={inputClass}
-            aria-label="email"
-          />
-          {fieldErrors.email && (
-            <p className="mt-1 text-xs font-semibold text-ink-soft">{fieldErrors.email}</p>
-          )}
-        </div>
-      </div>
+    <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
       <div>
+        <label htmlFor="beta-email" className="text-xs font-bold lowercase tracking-wide text-ink-soft">
+          email
+        </label>
         <input
-          name="tools"
-          placeholder="what tools would you connect first? (gmail, shopify, stripe…)"
-          className={inputClass}
-          aria-label="tools you'd connect first"
+          id="beta-email"
+          name="email"
+          type="email"
+          placeholder="you@company.com"
+          className={`mt-1 ${inputClass}`}
         />
-        {fieldErrors.tools && (
-          <p className="mt-1 text-xs font-semibold text-ink-soft">{fieldErrors.tools}</p>
+        {fieldErrors.email && (
+          <p className="mt-1 text-xs font-semibold text-ink-soft">{fieldErrors.email}</p>
         )}
       </div>
+
       <div>
+        <label htmlFor="beta-workflow" className="text-xs font-bold lowercase tracking-wide text-ink-soft">
+          what&apos;s the one task that eats your week?
+        </label>
         <textarea
+          id="beta-workflow"
           name="workflow"
           rows={2}
-          placeholder="one sentence on the workflow you'd hand to an operator"
-          className={inputClass}
-          aria-label="your workflow"
+          placeholder="e.g. triaging support email and issuing small refunds"
+          className={`mt-1 ${inputClass}`}
         />
         {fieldErrors.workflow && (
           <p className="mt-1 text-xs font-semibold text-ink-soft">{fieldErrors.workflow}</p>
         )}
       </div>
+
+      <div>
+        <span className="text-xs font-bold lowercase tracking-wide text-ink-soft">
+          what tools would it need to touch?
+        </span>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {TOOL_CHIPS.map((chip) => {
+            const on = chips.has(chip);
+            return (
+              <button
+                key={chip}
+                type="button"
+                aria-pressed={on}
+                onClick={() => toggleChip(chip)}
+                className={`min-h-[36px] rounded-pill px-3.5 py-1.5 text-xs font-bold lowercase transition-colors duration-fast ${
+                  on
+                    ? "bg-signal text-ink shadow-soft"
+                    : "bg-surface/80 text-ink-soft ring-1 ring-inset ring-ink/20 hover:bg-cream-deep"
+                }`}
+              >
+                {chip}
+              </button>
+            );
+          })}
+        </div>
+        <input
+          name="tools-free"
+          value={tools}
+          onChange={(e) => setTools(e.target.value)}
+          placeholder="or name another tool"
+          className={`mt-2 ${inputClass}`}
+          aria-label="other tools"
+        />
+        {fieldErrors.tools && (
+          <p className="mt-1 text-xs font-semibold text-ink-soft">{fieldErrors.tools}</p>
+        )}
+      </div>
+
       {TURNSTILE_SITE_KEY && (
         <div
           ref={widgetRef}
@@ -167,7 +216,6 @@ export function BetaForm() {
         disabled={state === "busy"}
         className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-btn bg-ink px-6 py-3.5 text-base font-extrabold text-cream transition-transform duration-fast active:scale-95 disabled:opacity-60"
       >
-        {/* signal sweep fills left-to-right on hover */}
         <span
           aria-hidden="true"
           className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-[280ms] ease-brand-out group-hover:scale-x-100"
@@ -183,7 +231,7 @@ export function BetaForm() {
         </span>
       </button>
       <p className="text-center text-xs text-ink-soft">
-        we&apos;re onboarding a small founding cohort. applications reviewed weekly.
+        the founding cohort locks pro at $29/mo. applications reviewed weekly.
       </p>
     </form>
   );

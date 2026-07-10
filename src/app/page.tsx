@@ -8,6 +8,7 @@ import { StaggerHeadline } from "@/components/landing/StaggerHeadline";
 import { BenefitGlyph } from "@/components/landing/BenefitGlyphs";
 import { CheckDivider } from "@/components/landing/CheckDivider";
 import { Island } from "@/components/landing/Island";
+import { ApplyViewTracker, PricingLink } from "@/components/landing/Track";
 import { Reveal } from "@/components/Reveal";
 
 // The sandbox is below the fold — lazy-loaded so it never touches LCP.
@@ -48,13 +49,9 @@ export default function LandingPage() {
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
         <LogoHome size={30} textClass="text-2xl" />
         <nav className="flex items-center gap-3">
-          <Link
-            href="/pricing"
-            prefetch
-            className="hidden rounded-btn px-4 py-2 text-sm font-bold lowercase text-ink-soft transition-colors duration-fast hover:bg-cream-deep sm:block"
-          >
+          <PricingLink className="hidden rounded-btn px-4 py-2 text-sm font-bold lowercase text-ink-soft transition-colors duration-fast hover:bg-cream-deep sm:block">
             pricing
-          </Link>
+          </PricingLink>
           <a
             href="#beta"
             className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-all duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
@@ -69,17 +66,12 @@ export default function LandingPage() {
         <section className="relative mx-auto grid min-h-[62dvh] w-full max-w-6xl content-center items-center gap-10 px-4 pb-16 pt-8 lg:min-h-[calc(100dvh-160px)] lg:grid-cols-2 lg:pt-8">
           <div>
             <StaggerHeadline
-              text="get your week back."
-              className="text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl"
+              text="hand off the work that sends, posts, and spends."
+              className="font-display text-4xl font-bold leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.4rem]"
             />
-            <p className="mt-4 max-w-xl text-xl font-extrabold leading-tight animate-word-in [animation-delay:420ms] sm:text-2xl">
-              hand off the busywork that sends, posts, updates, and spends —
-              while you stay the one who says yes.
-            </p>
-            <p className="mt-5 max-w-xl text-base font-semibold text-ink-soft animate-word-in [animation-delay:560ms]">
-              cosigno is the AI operator that asks first. it plans, drafts, and
-              executes across your tools — and nothing moves without your
-              signature.
+            <p className="mt-5 max-w-xl text-lg font-semibold text-ink-soft animate-word-in [animation-delay:520ms]">
+              cosigno plans and executes across your tools — and nothing moves
+              without your signature.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 animate-word-in [animation-delay:700ms]">
               <ApplyButton />
@@ -102,7 +94,7 @@ export default function LandingPage() {
         <section id="try" className="bg-cream-deep/50">
           <div className="mx-auto w-full max-w-6xl px-4 py-16">
             <Reveal className="text-center">
-              <h2 className="text-2xl font-extrabold lowercase sm:text-3xl">
+              <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
                 try it — no account needed
               </h2>
               <p className="mx-auto mt-3 max-w-xl text-sm font-semibold text-ink-soft">
@@ -142,7 +134,7 @@ export default function LandingPage() {
         {/* 3 · Proof band — receipt · video · builder */}
         <section className="mx-auto w-full max-w-6xl px-4 py-16">
           <Reveal className="text-center">
-            <h2 className="text-2xl font-extrabold lowercase sm:text-3xl">
+            <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
               proof, not promises
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm font-semibold text-ink-soft">
@@ -162,7 +154,7 @@ export default function LandingPage() {
               <BenefitGlyph kind="card" />
             </Reveal>
             <Reveal delay={80}>
-              <h2 className="text-2xl font-extrabold lowercase sm:text-3xl">
+              <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
                 real execution, not chat
               </h2>
               <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
@@ -209,7 +201,7 @@ export default function LandingPage() {
               <BenefitGlyph kind="ledger" />
             </Reveal>
             <Reveal delay={80}>
-              <h2 className="text-2xl font-extrabold lowercase sm:text-3xl">
+              <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
                 total audit trail
               </h2>
               <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
@@ -249,6 +241,7 @@ export default function LandingPage() {
 
         {/* 8 · Application close — the one thing to do */}
         <section id="beta" className="bg-cream-deep/60">
+          <ApplyViewTracker />
           <Reveal className="mx-auto w-full max-w-2xl px-4 py-16">
             <div className="flex flex-col items-center text-center">
               <LivingMark size={44} />
@@ -267,9 +260,9 @@ export default function LandingPage() {
             {/* the single, de-emphasised pricing mention on the page */}
             <p className="mt-5 text-center text-xs font-semibold text-ink-soft">
               the founding cohort locks pro at $29/mo.{" "}
-              <Link href="/pricing" className="underline decoration-signal underline-offset-2 hover:text-ink">
+              <PricingLink className="underline decoration-signal underline-offset-2 hover:text-ink">
                 see what&apos;s included
-              </Link>
+              </PricingLink>
               .
             </p>
           </Reveal>
@@ -280,9 +273,7 @@ export default function LandingPage() {
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-ink-soft">
           <LivingLockup size={20} textClass="text-base" />
           <div className="flex items-center gap-4 font-semibold">
-            <Link href="/pricing" className="hover:text-ink">
-              pricing
-            </Link>
+            <PricingLink className="hover:text-ink">pricing</PricingLink>
             <Link href="/privacy" className="hover:text-ink">
               privacy
             </Link>

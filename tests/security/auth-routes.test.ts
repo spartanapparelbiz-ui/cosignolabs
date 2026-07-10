@@ -25,6 +25,9 @@ const PUBLIC_ROUTES = new Set([
   "/api/beta",
   "/api/preview",
   "/api/stripe/webhook",
+  // §9 analytics beacon — landing visitors have no session by design; it is
+  // rate-limited, allowlist-validated, and writes only coarse event names.
+  "/api/track",
 ]);
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 

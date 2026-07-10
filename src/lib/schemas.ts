@@ -92,7 +92,10 @@ export const tierSettingSchema = z
 
 export const betaSchema = z
   .object({
-    name: z.string().min(1).max(120),
+    // name is no longer collected by the founding-beta form (§8 trims fields
+    // to the three that double as customer discovery). Kept optional for
+    // backward-compat with any older client / stored rows.
+    name: z.string().max(120).optional(),
     email: z.string().email().max(200),
     tools: z.string().min(1).max(500),
     workflow: z.string().min(1).max(1000),
