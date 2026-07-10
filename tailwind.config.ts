@@ -51,6 +51,8 @@ const config: Config = {
       transitionDuration: {
         fast: "160ms",
         base: "220ms",
+        entrance: "320ms",
+        slow: "500ms",
       },
       keyframes: {
         settle: {

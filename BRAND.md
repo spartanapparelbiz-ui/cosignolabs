@@ -49,8 +49,8 @@ Rules:
 |---|---|---|
 | `DURATION.fast` / `duration-fast` | 160ms | button press, hover lift, focus ring, filter fade |
 | `DURATION.base` / `duration-base` | 220ms | fades, slides, nav indicator, modal-in, shake |
-| `DURATION.entrance` | 320ms | card slide-in, rise-in, word stagger |
-| `DURATION.slow` | 500ms | hero settle, showpiece moments |
+| `DURATION.entrance` / `duration-entrance` | 320ms | card slide-in, rise-in, word stagger |
+| `DURATION.slow` / `duration-slow` | 500ms | hero settle, showpiece moments |
 | `EASE.out` / `ease-brand-out` | `cubic-bezier(0.22,1,0.36,1)` | default UI easing |
 | `EASE.spring` / `ease-spring` | `cubic-bezier(0.34,1.56,0.64,1)` | card entrance / modal overshoot |
 | `STAGGER_MS.words` | 80ms | headline word stagger |

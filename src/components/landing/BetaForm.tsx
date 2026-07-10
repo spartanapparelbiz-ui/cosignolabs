@@ -86,7 +86,7 @@ export function BetaForm() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
               d="M4.5 12.5 10 18 20 6.5"
-              stroke="#FBF4EA"
+              stroke="rgb(var(--c-cream))"
               strokeWidth="3.4"
               strokeLinecap="round"
               strokeLinejoin="round"

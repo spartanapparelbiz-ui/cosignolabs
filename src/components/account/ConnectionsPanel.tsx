@@ -235,7 +235,7 @@ export function ConnectionsPanel() {
             <div
               key={p.key}
               style={{ animationDelay: `${i * 70}ms` }}
-              className="rounded-card bg-surface/60 p-4 shadow-soft transition-all duration-300 ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth"
+              className="rounded-card bg-surface/60 p-4 shadow-soft transition-all duration-base ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={26} />
@@ -398,7 +398,7 @@ function ConnectionsComingSoon() {
           you connect it, and every action still waits for your signature.
         </p>
       </div>
-      <div className="group flex flex-1 flex-col items-center justify-center rounded-card bg-surface/60 px-8 py-16 text-center shadow-soft transition-all duration-500 ease-brand-out animate-spring-in hover:-translate-y-0.5 hover:shadow-depth">
+      <div className="group flex flex-1 flex-col items-center justify-center rounded-card bg-surface/60 px-8 py-16 text-center shadow-soft transition-all duration-slow ease-brand-out animate-spring-in hover:-translate-y-0.5 hover:shadow-depth">
         {/* Icon badge: radiating signal rings behind a gently floating plug. */}
         <div
           className="relative mb-6 animate-rise-in"
@@ -412,7 +412,7 @@ function ConnectionsComingSoon() {
             aria-hidden="true"
             className="absolute inset-0 rounded-card ring-2 ring-signal/30 animate-orb-ring [animation-delay:900ms]"
           />
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-card bg-cream-deep shadow-soft transition-transform duration-500 ease-brand-out group-hover:scale-105">
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-card bg-cream-deep shadow-soft transition-transform duration-slow ease-brand-out group-hover:scale-105">
             <Plug size={28} className="text-ink animate-float" />
           </div>
         </div>
