@@ -4,6 +4,7 @@ import { getStore } from "@/lib/store";
 import { listProviderMeta } from "@/lib/integrations/registry";
 import { toView } from "@/lib/integrations/runtime/connections";
 import { vaultConfigured } from "@/lib/integrations/crypto";
+import { mcpToolRisk, RISK_TIER } from "@/lib/integrations/tiers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +29,9 @@ export async function GET() {
     );
     const tools: Record<string, unknown[]> = {};
     mcp.forEach((c, i) => {
-      tools[c.id] = toolLists[i];
+      // Attach the SERVER-assigned tier each tool would be proposed at, so the
+      // UI can show it. Derived from the tool's risk — never client-supplied.
+      tools[c.id] = toolLists[i].map((t) => ({ ...t, tier: RISK_TIER[mcpToolRisk(t)] }));
     });
 
     return NextResponse.json({

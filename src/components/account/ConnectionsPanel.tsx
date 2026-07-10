@@ -20,6 +20,12 @@ import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
  * All secrets stay server-side; this only ever sees status + non-secret views.
  */
 
+interface Capability {
+  id: string;
+  summary: string;
+  mutates: boolean;
+  tier: 1 | 2 | 3;
+}
 interface ProviderMeta {
   key: string;
   name: string;
@@ -28,6 +34,26 @@ interface ProviderMeta {
   scopeSummary: string;
   configured: boolean;
   icon: string;
+  actions: Capability[];
+}
+
+const TIER_META: Record<number, { label: string; cls: string }> = {
+  1: { label: "auto", cls: "bg-cream-deep text-ink-soft" },
+  2: { label: "approve", cls: "ring-1 ring-inset ring-signal/50 text-signal" },
+  3: { label: "confirm", cls: "bg-signal text-cream" },
+};
+
+/** A small badge showing the tier a capability would be proposed at. */
+function TierBadge({ tier }: { tier: number }) {
+  const t = TIER_META[tier] ?? TIER_META[2];
+  return (
+    <span
+      className={`rounded-pill px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${t.cls}`}
+      title={`tier ${tier} — ${t.label}`}
+    >
+      t{tier} · {t.label}
+    </span>
+  );
 }
 interface ConnectionView {
   id: string;
@@ -45,6 +71,7 @@ interface McpTool {
   enabled: boolean;
   sensitive: boolean;
   consented_at: string | null;
+  tier?: 1 | 2 | 3;
 }
 interface Data {
   providers: ProviderMeta[];
@@ -142,6 +169,21 @@ export function ConnectionsPanel() {
     try {
       await api(`/api/connections/${id}/health`, { method: "POST" });
       await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function propose(connectionId: string, capability: string) {
+    setBusy(`${connectionId}:${capability}`);
+    setError(null);
+    try {
+      await api(`/api/connections/${connectionId}/propose`, {
+        method: "POST",
+        body: JSON.stringify({ capability }),
+      });
+      setNotice("proposed — review and approve it in your workspace.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "couldn't propose that action.");
     } finally {
       setBusy(null);
     }
@@ -249,6 +291,41 @@ export function ConnectionsPanel() {
                   : ""}
                 {p.scopeSummary}
               </p>
+
+              {/* What it can do + the tier each capability is proposed at. */}
+              {p.actions.length > 0 && (
+                <details className="group mt-2">
+                  <summary className="cursor-pointer list-none text-xs font-bold lowercase text-ink-soft underline underline-offset-2 marker:content-['']">
+                    <span className="group-open:hidden">what it can do ({p.actions.length})</span>
+                    <span className="hidden group-open:inline">hide capabilities</span>
+                  </summary>
+                  <div className="mt-2 flex flex-col gap-1.5">
+                    {p.actions.map((a) => (
+                      <div key={a.id} className="flex items-center gap-2 rounded-btn bg-cream-deep/60 px-3 py-1.5">
+                        <span className="font-mono text-[11px] font-bold">{a.id}</span>
+                        <TierBadge tier={a.tier} />
+                        <span className="min-w-0 flex-1 truncate text-[11px] text-ink-soft" title={a.summary}>
+                          {a.summary}
+                        </span>
+                        {conn && conn.status === "connected" && (
+                          <button
+                            onClick={() => propose(conn.id, a.id)}
+                            disabled={busy === `${conn.id}:${a.id}`}
+                            className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50"
+                            title="propose this action to your workspace"
+                          >
+                            {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <p className="mt-0.5 text-[10px] text-ink-soft/70">
+                      tiers are set by cosigno, not the app — t1 runs automatically, t2 waits for
+                      your signature, t3 needs typed confirmation.
+                    </p>
+                  </div>
+                </details>
+              )}
             </div>
           );
         })}
@@ -512,6 +589,7 @@ function ToolRow({
     <div className="rounded-btn bg-cream-deep/60 px-3 py-2">
       <div className="flex items-center gap-2">
         <span className="font-mono text-[12px] font-bold">{tool.name}</span>
+        {tool.tier && <TierBadge tier={tool.tier} />}
         {tool.sensitive && (
           <span className="inline-flex items-center gap-1 rounded-pill bg-signal/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-signal">
             <ShieldAlert size={9} /> sensitive

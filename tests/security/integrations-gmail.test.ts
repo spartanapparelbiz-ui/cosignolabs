@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { gmailProvider } from "@/lib/integrations/providers/gmail";
+import { listProviderMeta } from "@/lib/integrations/registry";
 import { serverTier, resolveTier, mcpToolRisk } from "@/lib/integrations/tiers";
 import { proposeConnectorAction } from "@/lib/integrations/runtime/propose";
 import { assertIntegrationCapacity } from "@/lib/enforcement";
@@ -61,6 +62,17 @@ describe("Gmail capabilities are server-tiered by risk", () => {
     expect(resolveTier(cap("send_message"), 1)).toEqual({ tier: 2, clamped: true });
     // asking for a MORE restrictive tier is allowed (not clamped).
     expect(resolveTier(cap("send_message"), 3)).toEqual({ tier: 3, clamped: false });
+  });
+});
+
+/* --------------------------------------- capability tiers surfaced to UI */
+describe("provider metadata exposes the per-capability tier", () => {
+  it("Gmail's capabilities carry their server tier for the account panel", () => {
+    const gmail = listProviderMeta().find((p) => p.key === "google")!;
+    const byId = Object.fromEntries(gmail.actions.map((a) => [a.id, a.tier]));
+    expect(byId.search_messages).toBe(1);
+    expect(byId.send_message).toBe(2);
+    expect(byId.trash).toBe(3);
   });
 });
 

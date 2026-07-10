@@ -1,5 +1,7 @@
+import type { Tier } from "../types";
 import type { IntegrationProvider } from "./types";
 import { bundledLogo, GENERIC_MCP_LOGO } from "./logos";
+import { serverTier } from "./tiers";
 import { githubProvider } from "./providers/github";
 import { gmailProvider } from "./providers/gmail";
 import { notionProvider, slackProvider } from "./providers/oauth";
@@ -41,7 +43,8 @@ export interface ProviderMeta {
   configured: boolean;
   /** Bundled, self-hosted logo path (never a vendor hotlink). */
   icon: string;
-  actions: { id: string; summary: string; mutates: boolean }[];
+  /** Each capability with the SERVER-assigned tier it would be proposed at. */
+  actions: { id: string; summary: string; mutates: boolean; tier: Tier }[];
 }
 
 export function providerMeta(p: IntegrationProvider): ProviderMeta {
@@ -53,7 +56,12 @@ export function providerMeta(p: IntegrationProvider): ProviderMeta {
     scopeSummary: p.scopeSummary,
     configured: p.isConfigured(),
     icon: bundledLogo(p.key) ?? GENERIC_MCP_LOGO,
-    actions: p.listActions(),
+    actions: p.listActions().map((a) => ({
+      id: a.id,
+      summary: a.summary,
+      mutates: a.mutates,
+      tier: serverTier(a),
+    })),
   };
 }
 
