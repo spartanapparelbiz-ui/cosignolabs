@@ -285,13 +285,15 @@ function ProfilePanel() {
           role="switch"
           aria-checked={keyHints}
           aria-label="toggle keyboard shortcut hints"
-          className={`relative h-6 w-11 shrink-0 rounded-pill transition-colors duration-fast ${
+          className={`inline-flex h-6 w-11 shrink-0 items-center rounded-pill p-0.5 transition-colors duration-fast ${
             keyHints ? "bg-signal" : "bg-line"
           }`}
         >
+          {/* Flex + padding keeps the knob inside the track at both ends —
+              travel is exactly the free space, so it never overflows. */}
           <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-cream shadow-soft transition-transform duration-fast ease-brand-out ${
-              keyHints ? "translate-x-[22px]" : "translate-x-0.5"
+            className={`h-5 w-5 rounded-full bg-surface shadow-soft transition-transform duration-fast ease-brand-out ${
+              keyHints ? "translate-x-5" : "translate-x-0"
             }`}
           />
         </button>

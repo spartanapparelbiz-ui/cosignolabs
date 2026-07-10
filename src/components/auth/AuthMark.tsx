@@ -77,14 +77,16 @@ export function AuthMark({
         viewBox="0 0 100 100"
         fill="none"
         aria-hidden="true"
+        className="overflow-visible"
       >
-        {/* faint always-present outlines — the mark is never fully dark */}
+        {/* Always-present outlines so the mark reads clearly as cosigno even
+            before typing — it then brightens to full as the fields fill. */}
         <path
           d={C_PATH}
           stroke={INK}
           strokeWidth={26}
           strokeLinecap="round"
-          opacity={0.22}
+          opacity={0.32}
         />
         <path
           d={CHECK_PATH}
@@ -92,7 +94,7 @@ export function AuthMark({
           strokeWidth={17}
           strokeLinecap="round"
           strokeLinejoin="round"
-          opacity={0.16}
+          opacity={0.28}
         />
 
         {/* the C fills along its arc as the email fills */}
@@ -109,7 +111,7 @@ export function AuthMark({
               : "calc(1 - var(--email-progress))",
             opacity: reducedMotion
               ? 1
-              : "calc(0.35 + 0.65 * var(--email-progress))",
+              : "calc(0.55 + 0.45 * var(--email-progress))",
             transition,
           }}
         />
@@ -134,7 +136,7 @@ export function AuthMark({
               : "calc(1 - var(--pass-progress))",
             opacity: reducedMotion
               ? 1
-              : "calc(0.4 + 0.6 * var(--pass-progress))",
+              : "calc(0.5 + 0.5 * var(--pass-progress))",
             transition,
           }}
         />
