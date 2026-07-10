@@ -24,7 +24,7 @@ export function AuthScreen({
   const switchHref = withRedirect(other, dest);
 
   return (
-    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-cream px-5 py-12 sm:px-6">
+    <main className="relative flex min-h-screen [min-height:100dvh] flex-col items-center justify-center overflow-hidden bg-cream px-5 py-12 sm:px-6">
       {/* soft brand wash so the cream field isn't flat */}
       <div
         aria-hidden="true"

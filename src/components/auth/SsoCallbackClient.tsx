@@ -13,7 +13,7 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 export function SsoCallbackClient() {
   const reducedMotion = useReducedMotion();
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-cream px-6 text-center">
+    <main className="flex min-h-screen [min-height:100dvh] flex-col items-center justify-center gap-5 bg-cream px-6 text-center">
       <AuthMark
         emailProgress={1}
         passProgress={1}

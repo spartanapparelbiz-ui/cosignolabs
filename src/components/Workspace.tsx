@@ -357,7 +357,7 @@ export function Workspace() {
     <OfferBanner />
     {/* flex-1 + stretched row: both panels fill the viewport below the nav
         instead of sitting content-height with a dead zone beneath. */}
-    <div className="mx-auto grid w-full max-w-6xl flex-1 gap-6 lg:min-h-0 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)]">
+    <div className="mx-auto grid w-full max-w-6xl flex-1 grid-rows-[auto_minmax(0,1fr)] gap-6 lg:min-h-0 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)] lg:grid-rows-[minmax(0,1fr)]">
       {/* Left: command input + session thread */}
       <section className="flex min-w-0 flex-col gap-4">
         <div className={`rounded-card bg-surface/70 p-4 shadow-lift ${thinking ? "animate-ring-flash" : ""}`}>
@@ -492,7 +492,7 @@ export function Workspace() {
       {/* Right: action card stack — fills the column and scrolls internally
           when the stack outgrows the viewport (page never goes short). */}
       <section
-        className="flex min-w-0 flex-col gap-3 lg:max-h-[calc(100dvh-8.5rem)] lg:overflow-y-auto"
+        className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto lg:max-h-[calc(100dvh-8.5rem)]"
         aria-live="polite"
       >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

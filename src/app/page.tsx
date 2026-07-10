@@ -58,7 +58,7 @@ const BENEFITS = [
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-dvh flex-col overflow-x-hidden">
+    <div className="flex min-h-screen [min-height:100dvh] flex-col overflow-x-hidden">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
         <LogoHome size={30} textClass="text-2xl" />
         <nav className="flex items-center gap-3">
