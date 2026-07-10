@@ -29,6 +29,26 @@ for (const vp of VIEWPORTS) {
   test.describe(`${vp.name} (${vp.width}px)`, () => {
     test.use({ viewport: { width: vp.width, height: vp.height } });
 
+    // §5 QA harness: walk the core surfaces and assert nothing threw an
+    // uncaught error and nothing overflows horizontally. Dev-server noise
+    // (React DevTools banner, favicon/resource 404s, source maps, dev-only
+    // hydration warnings) is filtered; real app errors + pageerrors are not.
+    test("no uncaught errors + no overflow across surfaces", async ({ page }) => {
+      const errors: string[] = [];
+      const IGNORE =
+        /(React DevTools|ResizeObserver loop|favicon|\/_next\/|hydrat|Extra attributes from the server|Failed to load resource|net::ERR|status of 4|status of 5)/i;
+      page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+      page.on("console", (m) => {
+        if (m.type() === "error" && !IGNORE.test(m.text())) errors.push(`console: ${m.text()}`);
+      });
+      for (const path of ["/", "/pricing", "/app", "/app/activity", "/app/account", "/sign-in"]) {
+        await page.goto(path, { waitUntil: "networkidle" });
+        await page.waitForTimeout(300);
+        await noHorizontalScroll(page);
+      }
+      expect(errors, errors.join("\n")).toEqual([]);
+    });
+
     test("landing", async ({ page }) => {
       await page.goto("/", { waitUntil: "networkidle" });
       await expect(
