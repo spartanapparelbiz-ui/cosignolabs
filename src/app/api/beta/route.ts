@@ -35,15 +35,24 @@ async function verifyTurnstile(
     logSecurity("turnstile_failed", { ip, reason: "missing_token" });
     throw new ApiError(400, "captcha_required", "please complete the human check.");
   }
-  const res = await fetch(
-    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ secret, response: token, remoteip: ip }),
-    }
-  );
-  const data = (await res.json().catch(() => ({}))) as { success?: boolean };
+  let data: { success?: boolean };
+  try {
+    const res = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ secret, response: token, remoteip: ip }),
+        // Bound the external call so a slow/unreachable Cloudflare can't hang
+        // the function; a timeout fails closed as a retryable captcha error.
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+    data = (await res.json().catch(() => ({}))) as { success?: boolean };
+  } catch {
+    logSecurity("turnstile_failed", { ip, reason: "verify_unreachable" });
+    throw new ApiError(503, "captcha_unavailable", "the human check timed out — try again in a moment.");
+  }
   if (!data.success) {
     logSecurity("turnstile_failed", { ip, reason: "verification_failed" });
     throw new ApiError(400, "captcha_failed", "the human check didn't pass — try again.");

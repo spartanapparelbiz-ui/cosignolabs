@@ -19,6 +19,14 @@ let warnedApiKey = false;
 let warnedModel = false;
 
 /**
+ * Hard per-call wall for the planner request. Sits comfortably under a
+ * serverless function's execution budget so a slow provider fails as a clean,
+ * catchable timeout (→ calm "busy, try again" copy) rather than hanging the
+ * function until the platform kills it. Override with PLANNER_TIMEOUT_MS.
+ */
+const PLANNER_TIMEOUT_MS = Number(process.env.PLANNER_TIMEOUT_MS || 20_000);
+
+/**
  * A planner call failed in a way worth telling the operator about (bad key,
  * no runtime env, unknown model, no credit, provider outage). Carries a
  * SAFE, human-readable message — never the API key, never a stack trace —
@@ -171,6 +179,14 @@ export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
     // key). Only a deliberate PLANNER_BASE_URL override is honored.
     authToken: null,
     baseURL: process.env.PLANNER_BASE_URL?.trim() || "https://api.anthropic.com",
+    // Bound every planner call so a slow/hung provider can't tie up a
+    // serverless function. The SDK default is a 10-MINUTE timeout with 2
+    // retries — catastrophic under load (functions pile up, then the platform
+    // kills them with a raw 502). We cap the request well under any function
+    // budget and allow a single retry; on timeout the SDK throws, we catch it
+    // below, and the user gets calm "busy, try again" copy instead of a hang.
+    timeout: PLANNER_TIMEOUT_MS,
+    maxRetries: 1,
   });
 
   let response;
