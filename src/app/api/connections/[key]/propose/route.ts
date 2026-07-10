@@ -36,8 +36,13 @@ export async function POST(
     const body = parseStrict(schema, await readJsonBody(req), "propose_connector");
 
     const store = getStore();
-    // Use the given session or the newest one, else open a fresh one.
-    let sessionId = body.sessionId;
+    // Resolve the session server-side: a client-supplied id is only honored if
+    // it actually belongs to this user (never trust it as a foreign key); else
+    // fall back to the newest session or open a fresh one.
+    let sessionId: string | undefined;
+    if (body.sessionId && (await store.getSession(userId, body.sessionId))) {
+      sessionId = body.sessionId;
+    }
     if (!sessionId) {
       const sessions = await store.listSessions(userId);
       sessionId = sessions[0]?.id ?? (await store.createSession(userId, "connector action")).id;
