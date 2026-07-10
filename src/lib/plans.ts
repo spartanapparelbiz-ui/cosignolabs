@@ -26,6 +26,8 @@ export interface Plan {
   actionLimit: number;
   /** max connected integrations; Infinity = unlimited */
   integrationLimit: number;
+  /** may add user-defined custom MCP servers (a power feature, pro+ only) */
+  customMcp: boolean;
   /** upgrade target shown at the limit, or null */
   upgradeTo: PlanId | null;
   /** feature bullets rendered on pricing + account (drawn from here only) */
@@ -43,6 +45,7 @@ export const PLANS: Record<PlanId, Plan> = {
     price: { monthly: 0, annual: 0 },
     actionLimit: 25,
     integrationLimit: 1,
+    customMcp: false,
     upgradeTo: "pro",
     strongerModel: false,
     canExportCsv: false,
@@ -60,6 +63,7 @@ export const PLANS: Record<PlanId, Plan> = {
     },
     actionLimit: 1000,
     integrationLimit: Infinity,
+    customMcp: true,
     upgradeTo: "max",
     strongerModel: false,
     canExportCsv: true,
@@ -82,6 +86,7 @@ export const PLANS: Record<PlanId, Plan> = {
     },
     actionLimit: 10000,
     integrationLimit: Infinity,
+    customMcp: true,
     upgradeTo: null,
     strongerModel: true,
     canExportCsv: true,

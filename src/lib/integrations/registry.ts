@@ -1,11 +1,8 @@
 import type { IntegrationProvider } from "./types";
 import { bundledLogo, GENERIC_MCP_LOGO } from "./logos";
 import { githubProvider } from "./providers/github";
-import {
-  googleProvider,
-  notionProvider,
-  slackProvider,
-} from "./providers/oauth";
+import { gmailProvider } from "./providers/gmail";
+import { notionProvider, slackProvider } from "./providers/oauth";
 
 /**
  * The provider registry — the single discoverable list of third-party apps.
@@ -17,8 +14,8 @@ import {
  * kind "mcp" and live in their own module (./mcp).
  */
 const PROVIDERS: IntegrationProvider[] = [
+  gmailProvider,
   githubProvider,
-  googleProvider,
   slackProvider,
   notionProvider,
 ];

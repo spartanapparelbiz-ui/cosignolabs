@@ -1,0 +1,54 @@
+import type { Tier } from "../types";
+import type { CapabilityRisk, ProviderAction } from "./types";
+
+/**
+ * Capability → approval tier. This is the SERVER's rule, and it is the only
+ * authority: a connector never sets its own tier. Read is auto-eligible (tier
+ * 1), anything that writes waits for a signature (tier 2), anything
+ * destructive requires typed confirmation (tier 3).
+ */
+export const RISK_TIER: Record<CapabilityRisk, Tier> = {
+  read: 1,
+  write: 2,
+  destructive: 3,
+};
+
+/** The risk class of a capability — explicit, else derived from `mutates`. */
+export function capabilityRisk(action: Pick<ProviderAction, "mutates" | "risk">): CapabilityRisk {
+  return action.risk ?? (action.mutates ? "write" : "read");
+}
+
+/** The tier the server assigns a capability. */
+export function serverTier(action: Pick<ProviderAction, "mutates" | "risk">): Tier {
+  return RISK_TIER[capabilityRisk(action)];
+}
+
+/**
+ * Resolve the effective tier for a connector action. A caller may ask for a
+ * MORE restrictive tier (that's fine), but a request for a LOWER tier than the
+ * server rule is clamped up and flagged — a connector can never talk its way
+ * into a weaker approval than its risk class demands.
+ */
+export function resolveTier(
+  action: Pick<ProviderAction, "mutates" | "risk">,
+  requested?: number | null
+): { tier: Tier; clamped: boolean } {
+  const floor = serverTier(action);
+  if (requested == null || !Number.isFinite(requested)) return { tier: floor, clamped: false };
+  const req = Math.max(1, Math.min(3, Math.round(requested))) as Tier;
+  if (req < floor) return { tier: floor, clamped: true };
+  return { tier: req, clamped: false };
+}
+
+/** MCP tools carry a sensitive flag + name; map to a safe default risk class. */
+export function mcpToolRisk(tool: { name: string; sensitive: boolean }): CapabilityRisk {
+  // Normalize snake_case / kebab-case so word boundaries match each segment
+  // ("wipe_database" → "wipe database").
+  const n = tool.name.toLowerCase().replace(/[_-]+/g, " ").trim();
+  if (/\b(delete|remove|destroy|drop|purge|trash|wipe|erase|revoke|cancel|refund|pay|transfer|charge)\b/.test(n))
+    return "destructive";
+  // Anything not clearly read-only defaults to write (approval) — the safe floor.
+  if (!tool.sensitive && /^(get|list|search|read|fetch|find|show|view|lookup|query)\b/.test(n))
+    return "read";
+  return "write";
+}

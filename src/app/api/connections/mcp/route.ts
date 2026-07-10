@@ -3,9 +3,7 @@ import { z } from "zod";
 import { ApiError, errorResponse, requireUser } from "@/lib/api";
 import { enforceLimit } from "@/lib/ratelimit";
 import { parseStrict, readJsonBody } from "@/lib/schemas";
-import { getUserPlan } from "@/lib/billing";
-import { getStore } from "@/lib/store";
-import { logSecurity } from "@/lib/log";
+import { assertIntegrationCapacity } from "@/lib/enforcement";
 import { vaultConfigured } from "@/lib/integrations/crypto";
 import { registerMcp } from "@/lib/integrations/mcp/register";
 
@@ -36,19 +34,9 @@ export async function POST(req: NextRequest) {
     }
     const input = parseStrict(schema, await readJsonBody(req), "mcp");
 
-    // Connection limit (custom MCPs count against it like apps do).
-    const { plan, planId } = await getUserPlan(userId);
-    const existing = await getStore().listConnections(userId);
-    if (existing.length >= plan.integrationLimit) {
-      logSecurity("usage_limit_hit", { userId, at: "mcp_connect", plan: planId });
-      throw new ApiError(
-        402,
-        "upgrade_required",
-        planId === "free"
-          ? "free connects one integration. pro is $29/mo for unlimited."
-          : "you've reached your plan's connection limit."
-      );
-    }
+    // Custom MCP is a pro+ power feature, and it counts against the plan's
+    // connection limit like apps do — both enforced server-side here.
+    await assertIntegrationCapacity(userId, { customMcp: true });
 
     const result = await registerMcp(userId, input);
     if (!result.ok) {

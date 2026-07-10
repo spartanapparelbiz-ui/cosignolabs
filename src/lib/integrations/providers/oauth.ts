@@ -207,20 +207,5 @@ export const notionProvider = makeOAuthProvider({
   actions: [{ id: "whoami", summary: "confirm the Notion workspace.", mutates: false }],
 });
 
-export const googleProvider = makeOAuthProvider({
-  key: "google",
-  name: "Google",
-  detail: "Gmail, Calendar and Drive — reads by default; sends/edits wait for approval.",
-  scopeSummary: "gmail · calendar · drive (read)",
-  authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
-  tokenUrl: "https://oauth2.googleapis.com/token",
-  scopes:
-    "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/gmail.readonly",
-  usesPkce: true,
-  extraAuthParams: { access_type: "offline", prompt: "consent" },
-  clientIdEnv: "GOOGLE_CLIENT_ID",
-  clientSecretEnv: "GOOGLE_CLIENT_SECRET",
-  healthUrl: "https://www.googleapis.com/oauth2/v3/userinfo",
-  healthLabel: (j) => (typeof j.email === "string" ? j.email : undefined),
-  actions: [{ id: "whoami", summary: "confirm the Google account.", mutates: false }],
-});
+// Google/Gmail is a hand-written connector with real capabilities — see
+// ./gmail.ts (it still uses makeOAuthProvider for the standard OAuth flow).

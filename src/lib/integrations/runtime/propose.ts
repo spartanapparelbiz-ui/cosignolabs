@@ -1,0 +1,92 @@
+import { autoExecute, proposeAction } from "../../actions/engine";
+import { logSecurity } from "../../log";
+import { getStore } from "../../store";
+import type { ActionRecord } from "../../types";
+import { getProvider } from "../registry";
+import { isCallable } from "../mcp/consent";
+import { mcpToolRisk, resolveTier } from "../tiers";
+import type { ProviderAction } from "../types";
+
+export interface ProposeConnectorInput {
+  connectionId: string;
+  /** Provider action id (apps) or MCP tool name. */
+  capability: string;
+  args?: Record<string, unknown>;
+  /** Advisory only — clamped up to the server rule, never down. */
+  requestedTier?: number | null;
+}
+
+export interface ProposeConnectorResult {
+  ok: boolean;
+  action?: ActionRecord;
+  error?: string;
+}
+
+/**
+ * Turn a connector capability into a PROPOSED action card — the single door
+ * through which any integration reaches the outside world. The server assigns
+ * the tier from the capability's risk class (read→1 / write→2 / destructive→3);
+ * a requested lower tier is clamped and flagged. The card then flows through
+ * the exact same approval → signature → execute engine as everything else, so
+ * a connector can propose but never bypass the signature loop.
+ */
+export async function proposeConnectorAction(
+  userId: string,
+  sessionId: string,
+  input: ProposeConnectorInput
+): Promise<ProposeConnectorResult> {
+  const store = getStore();
+  const conn = await store.getConnection(userId, input.connectionId);
+  if (!conn) return { ok: false, error: "connection not found." };
+  if (conn.status === "revoked") return { ok: false, error: "this connection was disconnected." };
+
+  let risk: Parameters<typeof resolveTier>[0];
+  let summary: string;
+  let payload: Record<string, unknown>;
+
+  if (conn.kind === "app") {
+    const provider = getProvider(conn.provider_key);
+    const cap = provider?.listActions().find((a) => a.id === input.capability);
+    if (!provider || !cap) return { ok: false, error: "that capability isn't available on this connection." };
+    risk = cap as ProviderAction;
+    summary = `${conn.display_name}: ${cap.summary}`;
+    payload = { kind: "app", connection_id: conn.id, action: cap.id, args: input.args ?? {} };
+  } else {
+    const tool = await store.getMcpTool(userId, conn.id, input.capability);
+    if (!tool) return { ok: false, error: "that tool isn't on this server anymore." };
+    // A tool can only be proposed once the user has enabled (and, if
+    // sensitive, consented to) it — enforced again at execute time.
+    if (!isCallable(tool)) return { ok: false, error: "enable this tool before it can be used." };
+    risk = { mutates: true, risk: mcpToolRisk(tool) };
+    summary = `${conn.display_name}: run ${tool.name}`;
+    payload = { kind: "mcp", connection_id: conn.id, tool: tool.name, args: input.args ?? {} };
+  }
+
+  const { tier, clamped } = resolveTier(risk, input.requestedTier);
+  let tierNote: string | null = null;
+  if (clamped) {
+    logSecurity("tier_clamped", {
+      userId,
+      category: "connection_call",
+      requested: input.requestedTier,
+      enforced: tier,
+      connection: conn.id,
+    });
+    tierNote = `the connector asked for tier ${input.requestedTier}; the server enforced tier ${tier} from the capability's risk. connectors cannot lower their own approval level.`;
+  }
+
+  let action = await proposeAction({
+    session_id: sessionId,
+    user_id: userId,
+    category: "connection_call",
+    tier,
+    summary,
+    payload,
+    injection_flag: false,
+    tier_note: tierNote,
+  });
+
+  // Tier-1 (read-only) connector actions auto-run, exactly like any tier-1.
+  if (tier === 1) action = await autoExecute(userId, action);
+  return { ok: true, action };
+}

@@ -17,6 +17,7 @@ export type SecurityEvent =
   | "injection_approval_blocked"
   | "executor_category_denied"
   | "usage_limit_hit"
+  | "upgrade_required"
   | "global_budget_hit"
   | "turnstile_failed"
   | "invalid_input"

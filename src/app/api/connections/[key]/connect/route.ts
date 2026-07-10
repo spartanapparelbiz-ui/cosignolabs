@@ -4,6 +4,7 @@ import { enforceLimit } from "@/lib/ratelimit";
 import { getProvider } from "@/lib/integrations/registry";
 import { startOAuth } from "@/lib/integrations/oauthFlow";
 import { vaultConfigured } from "@/lib/integrations/crypto";
+import { assertIntegrationCapacity } from "@/lib/enforcement";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,9 @@ export async function GET(
     if (!provider.isConfigured()) {
       throw new ApiError(400, "not_configured", `${provider.name} isn't set up on this server yet.`);
     }
+    // Plan gate BEFORE the OAuth round-trip, so a free user at their limit is
+    // told to upgrade instead of finishing a flow that would be rejected.
+    await assertIntegrationCapacity(userId);
 
     const url = await startOAuth(userId, provider);
     return NextResponse.json({ url });

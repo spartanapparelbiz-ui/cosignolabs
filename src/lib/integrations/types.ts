@@ -19,6 +19,13 @@ export type ConnectionKind = "app" | "mcp";
 export type McpTransport = "http" | "sse";
 
 /** A typed action a provider exposes to the rest of the app. */
+/**
+ * The risk class a capability declares. The SERVER maps this to an approval
+ * tier (read→1, write→2, destructive→3); a connector cannot pick its own tier,
+ * and if it declares one lower than the server's rule it is clamped + flagged.
+ */
+export type CapabilityRisk = "read" | "write" | "destructive";
+
 export interface ProviderAction {
   /** Stable id, unique within the provider (e.g. "create_issue"). */
   id: string;
@@ -26,6 +33,11 @@ export interface ProviderAction {
   summary: string;
   /** Does it change the outside world? Drives the default approval tier. */
   mutates: boolean;
+  /**
+   * Risk class → server tier. If omitted it's derived from `mutates`
+   * (read when false, write when true) so existing providers keep working.
+   */
+  risk?: CapabilityRisk;
 }
 
 export interface ActionResult {
