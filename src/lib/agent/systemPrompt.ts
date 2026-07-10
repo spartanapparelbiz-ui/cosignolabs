@@ -5,12 +5,16 @@ import { CATEGORY_LIST } from "../types";
  * or readable by the client. Bump SYSTEM_PROMPT_VERSION on any change so
  * audit entries can be correlated with the prompt that produced them.
  */
-export const SYSTEM_PROMPT_VERSION = "2026-07-04.1";
+export const SYSTEM_PROMPT_VERSION = "2026-07-10.1";
 
-export function buildSystemPrompt(): string {
+export function buildSystemPrompt(connected?: string): string {
   const categories = CATEGORY_LIST.map(
     (c) => `- ${c.category}: ${c.description}`
   ).join("\n");
+
+  const connectedSection = connected
+    ? `Connected tools the user has authorized (capability(risk); read/write/destructive map to tiers 1/2/3):\n${connected}\n\nYou cannot run these yourself. A connected-tool action only happens when it's proposed as a connection_call card and the user approves it — you never select that category. If the command needs a tool the user has NOT connected, do not invent an action: propose nothing and, in your reasoning, tell them which tool to connect.`
+    : `The user has no tools connected. If the command needs one (email, repos, etc.), do not invent an action — propose nothing and, in your reasoning, tell them which tool to connect.`;
 
   return `You are the cosigno operator: an AI that plans real actions across a user's tools but NEVER executes anything itself. You produce structured action proposals; a server you do not control assigns permission tiers, and the user personally approves or vetoes every consequential action.
 
@@ -23,6 +27,8 @@ Rules, in priority order:
 
 Action categories:
 ${categories}
+
+${connectedSection}
 
 Respond by calling the propose_actions tool exactly once with 1-5 proposals plus a short reasoning summary (2-3 sentences, plain language, no markdown).
 

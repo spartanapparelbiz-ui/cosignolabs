@@ -4,6 +4,8 @@ import { serverTier, resolveTier, mcpToolRisk } from "@/lib/integrations/tiers";
 import { proposeConnectorAction } from "@/lib/integrations/runtime/propose";
 import { assertIntegrationCapacity } from "@/lib/enforcement";
 import { toView } from "@/lib/integrations/runtime/connections";
+import { connectedCapabilitiesSummary } from "@/lib/integrations/runtime/summary";
+import { buildSystemPrompt } from "@/lib/agent/systemPrompt";
 import { encryptSecret } from "@/lib/integrations/crypto";
 import { MemoryStore } from "../../src/lib/store/memory";
 
@@ -112,7 +114,7 @@ describe("custom MCP output can't self-execute or self-escalate", () => {
       metadata: { url: "https://mcp.example.com" },
     });
     await store.saveMcpTools("u1", c.id, [
-      { name: tool.name, description: "x", enabled: tool.enabled, sensitive: tool.sensitive, consented_at: tool.consented_at },
+      { name: tool.name, description: "x", input_schema: {}, enabled: tool.enabled, sensitive: tool.sensitive, consented_at: tool.consented_at },
     ]);
     return c.id;
   }
@@ -146,6 +148,27 @@ describe("plan gating is enforced server-side", () => {
 
   it("custom MCP is a pro+ feature — blocked on free even with no connections", async () => {
     await expect(assertIntegrationCapacity("u1", { customMcp: true })).rejects.toMatchObject({ status: 402 });
+  });
+});
+
+/* ------------------------------------------------ planner awareness (§5) */
+describe("the planner is told what's connected, and to suggest connecting", () => {
+  it("summary is empty with nothing connected; the prompt says to suggest connecting", async () => {
+    expect(await connectedCapabilitiesSummary("u1")).toBe("");
+    const prompt = buildSystemPrompt("");
+    expect(prompt).toMatch(/no tools connected/i);
+    expect(prompt).toMatch(/tell them which tool to connect/i);
+  });
+
+  it("lists connected capabilities with their risk, and forbids self-running them", async () => {
+    await connectGmail();
+    const summary = await connectedCapabilitiesSummary("u1");
+    expect(summary).toContain("Gmail");
+    expect(summary).toContain("send_message(write)");
+    expect(summary).toContain("trash(destructive)");
+    const prompt = buildSystemPrompt(summary);
+    expect(prompt).toContain("send_message(write)");
+    expect(prompt).toMatch(/you never select that category|cannot run these yourself/i);
   });
 });
 

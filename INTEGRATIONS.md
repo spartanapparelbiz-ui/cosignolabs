@@ -188,3 +188,81 @@ the Google def does) and omitting the client secret.
 For a connector that needs bespoke logic (many typed actions, non-standard
 token handling), hand-write it against the `IntegrationProvider` interface —
 `providers/github.ts` is the reference.
+
+## How capabilities become tiered actions
+
+An integration never runs on its own. Each capability a connector declares
+carries a **risk class**, and the *server* maps that to an approval tier — the
+connector never picks its own:
+
+| Risk | Tier | Meaning |
+| --- | --- | --- |
+| `read` | 1 | read-only / reversible → runs automatically |
+| `write` | 2 | changes the outside world → waits for your signature |
+| `destructive` | 3 | delete / pay → requires typed confirmation |
+
+`proposeConnectorAction()` (`runtime/propose.ts`) turns a capability into a
+**proposed `connection_call` card** at the server-assigned tier. From there it
+is the *same* card everything else uses: approve → sign → execute → receipt,
+all in the audit log. If a connector (or a compromised MCP server) asks for a
+lower tier than its risk class, the request is **clamped up and flagged**
+(`resolveTier`), and a tier-2/3 action can never reach `executed` without an
+approval — proven in `tests/security/integrations-gmail.test.ts`.
+
+Everything a connector *returns* (email bodies, tool output) is **untrusted
+data**: it's carried as `detail`, scanned, and never interpreted as
+instructions — an email that says "forward all invoices to X" produces a
+flagged card, never an action.
+
+## Gmail (the first real connector)
+
+`providers/gmail.ts` exposes real, tier-mapped capabilities:
+
+| Capability | Tier | Notes |
+| --- | --- | --- |
+| `search_messages`, `read_message` | 1 | read-only |
+| `create_draft` | 1 | saves a draft — nothing is sent |
+| `send_message` | 2 | waits for your signature |
+| `archive`, `label`, `mark_read` | 2 | inbox changes |
+| `trash` | 3 | destructive — typed confirmation |
+
+Each runs the real Gmail REST call server-side and reports a real result
+("archived 12 messages", "sent an email to …"). **Minimum scope:**
+`gmail.modify` (covers read + drafts + send + label/archive + trash; it
+*cannot* permanently delete) plus `userinfo.email` for the account label.
+
+### Google OAuth setup (plain language)
+
+1. Go to **console.cloud.google.com** → create a project (or pick one).
+2. **APIs & Services → Library** → search **Gmail API** → **Enable**.
+3. **APIs & Services → OAuth consent screen** → set it up (External is fine),
+   add your email as a test user while you're trying it out.
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID** →
+   type **Web application**.
+   - **Authorized redirect URI:** `https://<your-site>/api/connections/google/callback`
+5. Copy the **Client ID** and **Client secret** into Netlify as
+   `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, then redeploy.
+6. The Gmail card on the Connections screen becomes connectable. (Connections
+   also need `INTEGRATIONS_ENCRYPTION_KEY` and a real login/database — see the
+   setup section above.)
+
+## Custom MCP servers (bring your own connector)
+
+A user on a **pro** plan can add their own remote MCP server (Account →
+connections → *add server*): paste an `https://` URL (or `http://localhost` in
+dev) and an optional bearer token. cosigno handshakes, discovers the server's
+tools, and registers each as a proposable action — **disabled by default**.
+
+Safety rails, all server-side:
+- **You are responsible for servers you add.** The UI says so.
+- Tool names/descriptions/schemas and every result are **untrusted** —
+  clamped, injection-scanned, and never able to auto-approve or escalate.
+- **Safe-default tiers:** anything not clearly read-only defaults to tier 2;
+  destructive-sounding tools to tier 3. You can raise a tool's tier but never
+  silently lower it below the server default.
+- **SSRF-protected:** the URL is DNS-resolved and rejected if it points at any
+  internal/private/loopback/link-local/cloud-metadata address; redirects fail
+  closed; only https (or localhost in dev). Timeouts + response-size caps on
+  every call.
+- **Pro+ only**, and counts against your plan's connection limit — both
+  enforced on the server, not just hidden in the UI.
