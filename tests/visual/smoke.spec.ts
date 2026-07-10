@@ -52,7 +52,7 @@ for (const vp of VIEWPORTS) {
     test("landing", async ({ page }) => {
       await page.goto("/", { waitUntil: "networkidle" });
       await expect(
-        page.getByRole("heading", { name: "the AI operator that asks first." })
+        page.getByRole("heading", { name: "get your week back." })
       ).toBeVisible();
       // Hero viewport capture FIRST, while the composed scene is pristine at
       // the top of the page — its floating cards use scroll-driven parallax,
@@ -99,7 +99,7 @@ for (const vp of VIEWPORTS) {
 
     test("live preview: command palette + executed card + audit row", async ({ page }) => {
       await page.goto("/", { waitUntil: "networkidle" });
-      const preview = page.locator("#try");
+      const preview = page.locator("#sandbox");
       await preview.scrollIntoViewIfNeeded();
       // Wait for the lazy-loaded sandbox to hydrate.
       await expect(preview.getByText(/sandbox — simulated tools/)).toBeVisible();
@@ -142,15 +142,6 @@ for (const vp of VIEWPORTS) {
       await expect(board.getByText(/emails would now send without asking/i)).toBeVisible();
       await noHorizontalScroll(page);
       await board.screenshot({ path: join(OUT, `tierboard-${vp.name}.png`) });
-
-      // --- handoff calculator: has live output; toggle a task
-      const calc = page.locator("section", { hasText: "what would you hand off?" });
-      await calc.scrollIntoViewIfNeeded();
-      await calc.getByRole("button", { name: "reporting" }).click();
-      await expect(calc.getByText(/actions \/ month/i)).toBeVisible();
-      await expect(calc.getByText(/reclaimed \/ month/i)).toBeVisible();
-      await noHorizontalScroll(page);
-      await calc.screenshot({ path: join(OUT, `calculator-${vp.name}.png`) });
     });
 
     test("workspace with a proposed card", async ({ page }) => {

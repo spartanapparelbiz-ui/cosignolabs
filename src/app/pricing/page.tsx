@@ -53,11 +53,10 @@ export default function PricingPage() {
             pricing
           </Link>
           <Link
-            href="/app"
-            prefetch
-            className="rounded-btn bg-ink px-4 py-2 text-sm font-bold lowercase text-cream transition-transform duration-fast hover:-translate-y-px"
+            href="/#beta"
+            className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold lowercase text-ink shadow-soft transition-transform duration-fast hover:-translate-y-px"
           >
-            open workspace
+            apply for the beta
           </Link>
         </nav>
       </header>

@@ -2,7 +2,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { LivingLockup, LivingMark, LogoHome } from "@/components/brand/LivingLogo";
 import { BetaForm } from "@/components/landing/BetaForm";
-import { HeroMark } from "@/components/landing/HeroMark";
+import { HeroSignatureCard } from "@/components/landing/HeroSignatureCard";
+import { ProofBand } from "@/components/landing/ProofBand";
 import { StaggerHeadline } from "@/components/landing/StaggerHeadline";
 import { BenefitGlyph } from "@/components/landing/BenefitGlyphs";
 import { CheckDivider } from "@/components/landing/CheckDivider";
@@ -16,7 +17,6 @@ const LivePreview = dynamic(() => import("@/components/landing/LivePreview"), {
   ),
 });
 
-// Interactive islands — each dynamically imported so they never touch LCP.
 const ApprovalStory = dynamic(() => import("@/components/landing/ApprovalStory"), {
   loading: () => (
     <div className="mx-auto h-72 w-full max-w-lg rounded-card bg-cream-deep" aria-hidden="true" />
@@ -29,32 +29,18 @@ const TierBoard = dynamic(() => import("@/components/landing/TierBoard"), {
   ),
 });
 
-const HandoffCalculator = dynamic(
-  () => import("@/components/landing/HandoffCalculator"),
-  {
-    loading: () => (
-      <div className="mx-auto h-72 w-full max-w-2xl rounded-card bg-cream-deep" aria-hidden="true" />
-    ),
-  }
-);
-
-const BENEFITS = [
-  {
-    kind: "card" as const,
-    title: "real execution, not chat",
-    body: "cosigno doesn't hand you advice and wish you luck. it plans across your tools and does the work — archives, drafts, updates, sends — as concrete actions with exact payloads.",
-  },
-  {
-    kind: "check" as const,
-    title: "every action, your call",
-    body: "anything that sends, posts, changes, or spends stops at an action card and waits for your signature. destructive moves need typed confirmation on top. the agent can never escalate its own permissions.",
-  },
-  {
-    kind: "ledger" as const,
-    title: "total audit trail",
-    body: 'every proposal, approval, veto, and execution is permanently logged with its payload — filterable, exportable, and yours. you can always answer "what did it do, and who said yes?"',
-  },
-];
+// Primary CTA — the ONE conversion on this page, everywhere. Apply for the
+// founding beta (an application, reviewed weekly). No self-serve "start free".
+function ApplyButton({ className = "" }: { className?: string }) {
+  return (
+    <a
+      href="#beta"
+      className={`rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95 ${className}`}
+    >
+      apply for the founding beta
+    </a>
+  );
+}
 
 export default function LandingPage() {
   return (
@@ -69,119 +55,146 @@ export default function LandingPage() {
           >
             pricing
           </Link>
-          <Link
-            href="/app"
-            prefetch
-            className="rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink transition-all duration-fast ease-brand-out hover:-translate-y-px hover:bg-cream-deep"
+          <a
+            href="#beta"
+            className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-all duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
           >
-            open workspace
-          </Link>
+            apply for the beta
+          </a>
         </nav>
       </header>
 
       <main className="flex-1">
-        {/* Hero */}
-        {/* The hero owns a comfortable slice of the viewport (content
-            vertically centered in it) rather than a short block up top. */}
+        {/* 1 · Hero — outcome first. The result, not the mechanism. */}
         <section className="relative mx-auto grid min-h-[62dvh] w-full max-w-6xl content-center items-center gap-10 px-4 pb-16 pt-8 lg:min-h-[calc(100dvh-160px)] lg:grid-cols-2 lg:pt-8">
-          {/* Subtle radial glow behind the mark — depth, not noise. */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute right-0 top-0 -z-10 h-[520px] w-[520px] translate-x-1/4 rounded-full"
-            style={{
-              background:
-                "radial-gradient(circle, rgba(255,75,31,0.06) 0%, rgba(255,75,31,0) 70%)",
-            }}
-          />
           <div>
             <StaggerHeadline
-              text="the AI operator that asks first."
+              text="get your week back."
               className="text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl"
             />
-            <p className="mt-5 max-w-xl text-lg font-semibold text-ink-soft animate-word-in [animation-delay:520ms]">
-              cosigno plans, drafts, and executes across your tools — and
-              nothing moves without your signature.
+            <p className="mt-4 max-w-xl text-xl font-extrabold leading-tight animate-word-in [animation-delay:420ms] sm:text-2xl">
+              hand off the busywork that sends, posts, updates, and spends —
+              while you stay the one who says yes.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3 animate-word-in [animation-delay:640ms]">
-              <Link
-                href="/app"
-                prefetch
-                className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95"
-              >
-                start free
-              </Link>
+            <p className="mt-5 max-w-xl text-base font-semibold text-ink-soft animate-word-in [animation-delay:560ms]">
+              cosigno is the AI operator that asks first. it plans, drafts, and
+              executes across your tools — and nothing moves without your
+              signature.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-4 animate-word-in [animation-delay:700ms]">
+              <ApplyButton />
               <a
                 href="#try"
-                className="rounded-btn px-7 py-3.5 text-base font-bold lowercase ring-1 ring-inset ring-ink transition-all duration-fast hover:-translate-y-px hover:bg-cream-deep"
+                className="text-base font-bold lowercase text-ink underline decoration-signal decoration-2 underline-offset-4 transition-colors hover:text-signal"
               >
-                try it first
+                see it work ↓
               </a>
             </div>
-            <p className="mt-4 text-sm text-ink-soft animate-word-in [animation-delay:760ms]">
-              free forever to start. <Link href="/pricing" className="underline decoration-signal underline-offset-2 hover:text-ink">see pricing</Link> — pro is $29/mo.
-            </p>
           </div>
           <div className="flex justify-center lg:justify-end">
-            <HeroMark />
+            <HeroSignatureCard />
           </div>
         </section>
 
-        {/* Interactive approval story */}
-        <section className="bg-cream-deep/50">
-          <Reveal className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 py-16">
-            <h2 className="text-center text-2xl font-extrabold lowercase sm:text-3xl">
-              one command. one signature. done.
-            </h2>
-            <p className="-mt-3 max-w-md text-center text-sm font-semibold text-ink-soft">
-              you be the operator. approve two actions — then catch the one an
-              injected email tried to slip past you.
-            </p>
-            <Island minHeight={300} className="w-full max-w-lg">
-              <ApprovalStory />
-            </Island>
-          </Reveal>
+        {/* 2 · The demo — promoted directly under the hero. The differentiator.
+            The guided injected-email catch is the centerpiece "aha"; the open
+            sandbox lives just below it. */}
+        <section id="try" className="bg-cream-deep/50">
+          <div className="mx-auto w-full max-w-6xl px-4 py-16">
+            <Reveal className="text-center">
+              <h2 className="text-2xl font-extrabold lowercase sm:text-3xl">
+                try it — no account needed
+              </h2>
+              <p className="mx-auto mt-3 max-w-xl text-sm font-semibold text-ink-soft">
+                this is the real approval model, running locally in your tab.
+                nothing leaves your browser session; the tools are simulated —
+                the decisions are yours.
+              </p>
+            </Reveal>
+
+            <Reveal className="mt-10 flex flex-col items-center gap-4">
+              <p className="max-w-md text-center text-sm font-bold lowercase text-ink">
+                one command. one signature. done.
+              </p>
+              <p className="-mt-2 max-w-md text-center text-sm font-semibold text-ink-soft">
+                you&apos;re the operator. approve two actions — then catch the
+                one an injected email tried to slip past you.
+              </p>
+              <Island minHeight={300} className="w-full max-w-lg">
+                <ApprovalStory />
+              </Island>
+            </Reveal>
+          </div>
         </section>
 
-        {/* Live preview sandbox */}
-        <section id="try" className="mx-auto w-full max-w-6xl px-4 py-16">
+        {/* the open sandbox — drive it yourself */}
+        <section id="sandbox" className="mx-auto w-full max-w-6xl px-4 py-16">
           <Reveal className="text-center">
-            <h2 className="text-2xl font-extrabold lowercase sm:text-3xl">
-              try it — no account needed
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm font-semibold text-ink-soft">
-              the real approval loop against simulated tools. pick a command or
-              type your own — nothing leaves your browser session.
+            <p className="text-sm font-bold lowercase text-ink-soft">
+              or drive it yourself — type any command
             </p>
           </Reveal>
-          <div className="mt-8">
+          <div className="mt-6">
             <LivePreview />
           </div>
         </section>
 
-        {/* Benefits */}
-        <section className="bg-cream-deep/60">
-          <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-16 md:grid-cols-3">
-            {BENEFITS.map((b, i) => (
-              <Reveal key={b.title} delay={i * 90}>
-                <BenefitGlyph kind={b.kind} />
-                <h2 className="mt-4 text-lg font-extrabold lowercase">{b.title}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-ink-soft">{b.body}</p>
-              </Reveal>
-            ))}
+        {/* 3 · Proof band — receipt · video · builder */}
+        <section className="mx-auto w-full max-w-6xl px-4 py-16">
+          <Reveal className="text-center">
+            <h2 className="text-2xl font-extrabold lowercase sm:text-3xl">
+              proof, not promises
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm font-semibold text-ink-soft">
+              we don&apos;t fake receipts. here&apos;s the real thing as it
+              lands, and the human building it.
+            </p>
+          </Reveal>
+          <div className="mt-10">
+            <ProofBand />
           </div>
         </section>
 
-        {/* Playable permissions board */}
+        {/* 4 · Real execution, not chat — the engine, confirmed after the demo */}
+        <section className="bg-cream-deep/60">
+          <div className="mx-auto grid w-full max-w-5xl items-center gap-8 px-4 py-16 md:grid-cols-[auto_1fr]">
+            <Reveal>
+              <BenefitGlyph kind="card" />
+            </Reveal>
+            <Reveal delay={80}>
+              <h2 className="text-2xl font-extrabold lowercase sm:text-3xl">
+                real execution, not chat
+              </h2>
+              <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
+                cosigno doesn&apos;t hand you advice and wish you luck. it plans
+                across your tools and does the work — archives, drafts, updates,
+                sends — as concrete actions with exact payloads, in plain
+                english, each tagged with its risk tier.
+              </p>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* 5 · The trust mechanism — the brakes, positioned as the unlock */}
         <section className="mx-auto w-full max-w-6xl px-4 py-16">
           <Reveal className="flex flex-col items-center">
-            <h2 className="text-center text-2xl font-extrabold lowercase sm:text-3xl">
-              you set the rope. try it.
+            <BenefitGlyph kind="check" />
+            <h2 className="mt-4 text-center text-2xl font-extrabold lowercase sm:text-3xl">
+              every action is your call
             </h2>
-            <p className="mt-3 max-w-xl text-center text-sm font-semibold text-ink-soft">
-              every kind of action sits in a tier — auto, approve, or locked.
-              move one and see what changes. this is the real model.
+            <p className="mt-3 max-w-2xl text-center text-base leading-relaxed text-ink-soft">
+              anything that sends, posts, changes, or spends stops at an action
+              card and waits for your signature. destructive moves need typed
+              confirmation on top. every action sits in a tier — auto, approve,
+              or locked — and the agent can never escalate its own permissions.
+              that&apos;s exactly why you can hand it real work.
             </p>
-            <div className="mt-8 flex w-full justify-center">
+          </Reveal>
+          <Reveal className="mt-10 flex flex-col items-center">
+            <p className="max-w-xl text-center text-sm font-bold lowercase text-ink">
+              you set the rope. move one and see what changes.
+            </p>
+            <div className="mt-6 flex w-full justify-center">
               <Island minHeight={240} className="w-full max-w-3xl">
                 <TierBoard />
               </Island>
@@ -189,9 +202,29 @@ export default function LandingPage() {
           </Reveal>
         </section>
 
+        {/* 6 · Total audit trail — the enterprise wedge in one line */}
+        <section className="bg-cream-deep/60">
+          <div className="mx-auto grid w-full max-w-5xl items-center gap-8 px-4 py-16 md:grid-cols-[auto_1fr]">
+            <Reveal>
+              <BenefitGlyph kind="ledger" />
+            </Reveal>
+            <Reveal delay={80}>
+              <h2 className="text-2xl font-extrabold lowercase sm:text-3xl">
+                total audit trail
+              </h2>
+              <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
+                every proposal, approval, veto, and execution is permanently
+                logged with its exact payload — filterable, exportable, and
+                yours. you can always answer the only question that matters:
+                <span className="font-bold text-ink"> what did it do, and who said yes?</span>
+              </p>
+            </Reveal>
+          </div>
+        </section>
+
         <CheckDivider />
 
-        {/* How the loop works */}
+        {/* 7 · The loop — four beats */}
         <section className="mx-auto w-full max-w-6xl px-4 py-16">
           <Reveal>
             <h2 className="text-center text-2xl font-extrabold lowercase sm:text-3xl">
@@ -203,7 +236,7 @@ export default function LandingPage() {
               ["command", "tell it what you want in plain language."],
               ["proposal", "it plans and lays out action cards — exact payloads, plain english, risk tier."],
               ["signature", "you approve, edit, or veto. locked actions need typed confirmation."],
-              ["receipt", "approved actions execute server-side and land in your permanent audit trail."],
+              ["receipt", "approved actions execute and land in your permanent audit trail."],
             ].map(([title, body], i) => (
               <Reveal key={title} delay={i * 80} className="rounded-card bg-surface/70 p-4 shadow-soft">
                 <span className="text-xs font-extrabold text-signal">0{i + 1}</span>
@@ -214,26 +247,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* What would you hand off? calculator */}
-        <section className="bg-cream-deep/60">
-          <Reveal className="mx-auto flex w-full max-w-2xl flex-col items-center px-4 py-16">
-            <h2 className="text-center text-2xl font-extrabold lowercase sm:text-3xl">
-              what would you hand off?
-            </h2>
-            <p className="mt-3 max-w-xl text-center text-sm font-semibold text-ink-soft">
-              pick what eats your week. we&apos;ll size it — and show which plan
-              fits and how much time you get back.
-            </p>
-            <div className="mt-8 w-full">
-              <Island minHeight={320}>
-                <HandoffCalculator />
-              </Island>
-            </div>
-          </Reveal>
-        </section>
-
-        {/* Beta application */}
-        <section id="beta">
+        {/* 8 · Application close — the one thing to do */}
+        <section id="beta" className="bg-cream-deep/60">
           <Reveal className="mx-auto w-full max-w-2xl px-4 py-16">
             <div className="flex flex-col items-center text-center">
               <LivingMark size={44} />
@@ -241,14 +256,22 @@ export default function LandingPage() {
                 hand your busywork to an operator that asks first.
               </h2>
               <p className="mt-3 text-sm font-semibold text-ink-soft">
-                this is an application, not a waitlist. tell us what you&apos;d
-                delegate — we&apos;re building the first integrations around
-                the founding cohort&apos;s workflows.
+                this is an application, not a waitlist — we review weekly and
+                onboard a small cohort. we&apos;re building the first
+                integrations around the founding cohort&apos;s workflows.
               </p>
             </div>
             <div className="mt-8">
               <BetaForm />
             </div>
+            {/* the single, de-emphasised pricing mention on the page */}
+            <p className="mt-5 text-center text-xs font-semibold text-ink-soft">
+              the founding cohort locks pro at $29/mo.{" "}
+              <Link href="/pricing" className="underline decoration-signal underline-offset-2 hover:text-ink">
+                see what&apos;s included
+              </Link>
+              .
+            </p>
           </Reveal>
         </section>
       </main>
