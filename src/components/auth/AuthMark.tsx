@@ -1,6 +1,6 @@
 "use client";
 
-import { INK, SIGNAL } from "@/lib/brand";
+import { SIGNAL } from "@/lib/brand";
 
 /**
  * The Cosigno mark as the auth centerpiece — the same geometry as CosignoMark
@@ -83,7 +83,7 @@ export function AuthMark({
             before typing — it then brightens to full as the fields fill. */}
         <path
           d={C_PATH}
-          stroke={INK}
+          stroke="rgb(var(--c-ink))"
           strokeWidth={26}
           strokeLinecap="round"
           opacity={0.32}
@@ -100,7 +100,7 @@ export function AuthMark({
         {/* the C fills along its arc as the email fills */}
         <path
           d={C_PATH}
-          stroke={INK}
+          stroke="rgb(var(--c-ink))"
           strokeWidth={26}
           strokeLinecap="round"
           pathLength={1}

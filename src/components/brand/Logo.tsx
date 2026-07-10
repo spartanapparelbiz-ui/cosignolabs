@@ -1,4 +1,4 @@
-import { INK, SIGNAL } from "@/lib/brand";
+import { SIGNAL } from "@/lib/brand";
 
 /**
  * The cosigno mark: a thick near-black C opening to the right, and a chunky
@@ -22,9 +22,11 @@ export function CosignoMark({
       fill="none"
       aria-hidden="true"
     >
+      {/* Theme-aware ink so the C reads on both light and dark surfaces
+          (in dark mode it lightens instead of blending into the background). */}
       <path
         d="M 76.0 66.9 A 31 31 0 1 1 76.0 33.1"
-        stroke={INK}
+        stroke="rgb(var(--c-ink))"
         strokeWidth={26}
         strokeLinecap="round"
       />
