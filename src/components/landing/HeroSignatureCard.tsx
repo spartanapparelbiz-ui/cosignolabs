@@ -23,8 +23,10 @@ import { useEffect, useRef, useState } from "react";
 
 type Phase = "awaiting" | "signing" | "executed";
 
-const SIGN_PATH = "M 8 30 C 22 10, 34 40, 50 20 S 78 8, 96 24";
-const CHECK_PATH = "M 40 30 L 52 44 L 82 12";
+// The pen stroke rides the LOWER band of the plate (y ≥ 32) and the seal sits
+// top-right (centre 84,15 r12.5) — deliberately disjoint regions so the two
+// marks never overlap into a scribble at any size.
+const SIGN_PATH = "M 6 42 C 20 32, 34 48, 50 38 S 80 30, 98 40";
 
 export function HeroSignatureCard() {
   const [phase, setPhase] = useState<Phase>("awaiting");
@@ -101,7 +103,8 @@ export function HeroSignatureCard() {
             aria-hidden="true"
             className="absolute inset-x-0 bottom-1 mx-auto h-16 w-[86%] overflow-visible"
           >
-            {/* the signature flourish — draws in ink on sign */}
+            {/* the signature flourish — a clean pen stroke low in the plate,
+                kept clear of the seal so the two never collide */}
             <path
               d={SIGN_PATH}
               stroke="rgb(var(--c-ink))"
@@ -118,23 +121,27 @@ export function HeroSignatureCard() {
                   : "stroke-dashoffset 900ms cubic-bezier(0.22,1,0.36,1), opacity 200ms ease",
               }}
             />
-            {/* the checkmark stamp — the signal-coloured "signed" gesture */}
-            <path
-              d={CHECK_PATH}
-              stroke={SIGN_STROKE}
-              strokeWidth={4}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              pathLength={1}
-              strokeDasharray={1}
+            {/* the seal — a circular signal stamp that lands top-right of the
+                stroke on execute, like a notary's mark */}
+            <g
               style={{
-                strokeDashoffset: reduced.current ? 0 : executed ? 0 : 1,
+                transformOrigin: "84px 15px",
+                transform: executed ? "scale(1) rotate(-8deg)" : "scale(0.4) rotate(-8deg)",
                 opacity: executed ? 1 : 0,
                 transition: reduced.current
                   ? undefined
-                  : "stroke-dashoffset 460ms cubic-bezier(0.22,1,0.36,1) 60ms, opacity 160ms ease",
+                  : "transform 420ms cubic-bezier(0.34,1.56,0.64,1) 80ms, opacity 160ms ease 80ms",
               }}
-            />
+            >
+              <circle cx="84" cy="15" r="12.5" fill={SIGN_STROKE} />
+              <path
+                d="M 78 15.5 L 82.5 20 L 90.5 10.5"
+                stroke="rgb(var(--c-cream))"
+                strokeWidth={3}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
           </svg>
         </div>
 

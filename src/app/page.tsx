@@ -143,6 +143,12 @@ export default function LandingPage() {
             <p className="text-sm font-bold lowercase text-ink-soft">
               or drive it yourself — type any command
             </p>
+            <p className="mt-1 text-xs font-semibold text-ink-soft">
+              want the full screen?{" "}
+              <Link href="/demo" prefetch className="font-bold underline decoration-signal underline-offset-2 hover:text-signal">
+                open the demo dashboard
+              </Link>
+            </p>
           </Reveal>
           <div className="mt-6">
             <LivePreview />

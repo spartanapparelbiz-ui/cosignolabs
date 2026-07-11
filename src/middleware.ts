@@ -74,7 +74,8 @@ const WARMING_HTML = `<!doctype html>
     <path class="tick" d="M 47 53 L 57 63 L 88 28" fill="none" stroke="#FF4B1F" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
   <h1>cosigno is warming up</h1>
-  <p>the workspace is being configured &mdash; back shortly.<br/>the rest of the site works right now.</p>
+  <p>the workspace is being configured &mdash; back shortly.<br/>the rest of the site works right now &mdash; including the full demo.</p>
+  <a href="/demo">try the demo dashboard</a>
   <a href="/">back to home</a>
 </body></html>`;
 

@@ -124,10 +124,10 @@ export default function TemplatesPage() {
                     {t.approvals}
                   </p>
                   <Link
-                    href="/#sandbox"
+                    href="/demo"
                     className="mt-auto pt-3 text-xs font-bold lowercase underline decoration-signal underline-offset-4 hover:text-signal"
                   >
-                    try it in the sandbox →
+                    try it in the demo dashboard →
                   </Link>
                 </Reveal>
               ))}
