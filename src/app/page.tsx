@@ -30,34 +30,46 @@ const TierBoard = dynamic(() => import("@/components/landing/TierBoard"), {
   ),
 });
 
-// Primary CTA — the ONE conversion on this page, everywhere. Apply for the
-// founding beta (an application, reviewed weekly). No self-serve "start free".
-function ApplyButton({ className = "" }: { className?: string }) {
-  return (
-    <a
-      href="#beta"
-      className={`rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95 ${className}`}
-    >
-      apply for the founding beta
-    </a>
-  );
-}
+// Primary conversion: self-serve signup ("start with cosigno"). The founding
+// cohort application remains as a secondary, discovery-rich path at the close.
 
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen [min-height:100dvh] flex-col overflow-x-hidden">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5">
         <LogoHome size={30} textClass="text-2xl" />
-        <nav className="flex items-center gap-3">
-          <PricingLink className="hidden rounded-btn px-4 py-2 text-sm font-bold lowercase text-ink-soft transition-colors duration-fast hover:bg-cream-deep sm:block">
+        <nav className="flex items-center gap-1 sm:gap-2">
+          {[
+            ["/product", "product"],
+            ["/templates", "templates"],
+            ["/security", "security"],
+          ].map(([href, label]) => (
+            <Link
+              key={href}
+              href={href}
+              prefetch
+              className="hidden rounded-btn px-3 py-2 text-sm font-bold lowercase text-ink-soft transition-colors duration-fast hover:bg-cream-deep md:block"
+            >
+              {label}
+            </Link>
+          ))}
+          <PricingLink className="hidden rounded-btn px-3 py-2 text-sm font-bold lowercase text-ink-soft transition-colors duration-fast hover:bg-cream-deep sm:block">
             pricing
           </PricingLink>
-          <a
-            href="#beta"
+          <Link
+            href="/sign-in"
+            prefetch
+            className="hidden rounded-btn px-3 py-2 text-sm font-bold lowercase text-ink-soft transition-colors duration-fast hover:bg-cream-deep sm:block"
+          >
+            sign in
+          </Link>
+          <Link
+            href="/sign-up"
+            prefetch
             className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-all duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
           >
-            apply for the beta
-          </a>
+            start free
+          </Link>
         </nav>
       </header>
 
@@ -66,20 +78,26 @@ export default function LandingPage() {
         <section className="relative mx-auto grid min-h-[62dvh] w-full max-w-6xl content-center items-center gap-10 px-4 pb-16 pt-8 lg:min-h-[calc(100dvh-160px)] lg:grid-cols-2 lg:pt-8">
           <div>
             <StaggerHeadline
-              text="hand off the work that sends, posts, and spends."
-              className="font-display text-4xl font-bold leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.4rem]"
+              text="AI that works. nothing moves without your sign-off."
+              className="font-display text-4xl font-bold leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.3rem]"
             />
             <p className="mt-5 max-w-xl text-lg font-semibold text-ink-soft animate-word-in [animation-delay:520ms]">
-              cosigno plans and executes across your tools — and nothing moves
-              without your signature.
+              give cosigno a goal. it plans the work, prepares every action, and
+              executes across your tools only with the authority you choose.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 animate-word-in [animation-delay:700ms]">
-              <ApplyButton />
+              <Link
+                href="/sign-up"
+                prefetch
+                className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95"
+              >
+                start with cosigno
+              </Link>
               <a
                 href="#try"
                 className="text-base font-bold lowercase text-ink underline decoration-signal decoration-2 underline-offset-4 transition-colors hover:text-signal"
               >
-                see it work ↓
+                watch a mission ↓
               </a>
             </div>
           </div>
@@ -248,13 +266,22 @@ export default function LandingPage() {
               <h2 className="mt-4 text-2xl font-extrabold lowercase sm:text-3xl">
                 hand your busywork to an operator that asks first.
               </h2>
-              <p className="mt-3 text-sm font-semibold text-ink-soft">
-                this is an application, not a waitlist — we review weekly and
-                onboard a small cohort. we&apos;re building the first
-                integrations around the founding cohort&apos;s workflows.
+              <div className="mt-5">
+                <Link
+                  href="/sign-up"
+                  prefetch
+                  className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
+                >
+                  start with cosigno
+                </Link>
+              </div>
+              <p className="mt-6 text-sm font-semibold text-ink-soft">
+                or join the founding cohort: tell us what you&apos;d delegate and
+                we&apos;ll build the first integrations around your workflow —
+                applications reviewed weekly.
               </p>
             </div>
-            <div className="mt-8">
+            <div className="mt-6">
               <BetaForm />
             </div>
             {/* the single, de-emphasised pricing mention on the page */}

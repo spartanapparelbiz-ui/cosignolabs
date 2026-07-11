@@ -167,11 +167,11 @@ export default function ApprovalStory() {
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-3">
           <a
-            href="#beta"
-            onClick={() => track("story_cta", { to: "apply" })}
+            href="/sign-up"
+            onClick={() => track("story_cta", { to: "signup" })}
             className="rounded-btn bg-signal px-6 py-3 text-sm font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
           >
-            apply for the founding beta
+            start with cosigno
           </a>
           <button
             onClick={reset}

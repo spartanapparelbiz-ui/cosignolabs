@@ -27,6 +27,9 @@ const PUBLIC_PATHS = new Set([
   "/api/beta",
   "/api/preview",
   "/api/stripe/webhook",
+  // Anonymous analytics beacon — landing visitors have no session by design.
+  // Rate-limited + allowlist-validated in the route; needs no keys.
+  "/api/track",
 ]);
 
 function isPublic(pathname: string): boolean {
@@ -132,7 +135,7 @@ async function buildMiddleware(): Promise<NextMiddleware> {
   const isProtected = createRouteMatcher([
     "/app(.*)",
     "/checkout(.*)",
-    "/api((?!/health$|/beta$|/preview$|/stripe/webhook$).*)",
+    "/api((?!/health$|/beta$|/preview$|/stripe/webhook$|/track$).*)",
   ]);
   return clerkMiddleware(async (auth, req) => {
     if (!isProtected(req)) return;
@@ -166,8 +169,11 @@ export default async function middleware(
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    "/(api|trpc)(.*)",
-  ],
+  // CRITICAL ACCESS RULE: middleware runs ONLY on protected surfaces. The
+  // public marketing site (/, /product, /security, /pricing, /templates,
+  // /privacy, /terms, the auth pages, metadata routes, static assets, OG
+  // images) never touches middleware at all — so Clerk can never handshake,
+  // redirect, or 503 an anonymous visitor. Protection lives exactly where
+  // the product needs it: the app, checkout, and the non-public APIs.
+  matcher: ["/app/:path*", "/checkout/:path*", "/api/:path*"],
 };
