@@ -171,29 +171,40 @@ export function HeroSignatureCard() {
               }}
             />
 
-            {/* the seal — a circular signal stamp landing top-right, clear of
-                the lettering (letters end x≈112, flourish crests y≥31) */}
-            <g
-              style={{
-                transformOrigin: "204px 15px",
-                transform:
-                  still || executed ? "scale(1) rotate(-8deg)" : "scale(0.4) rotate(-8deg)",
-                opacity: still || executed ? 1 : 0,
-                transition: still
-                  ? undefined
-                  : "transform 420ms cubic-bezier(0.34,1.56,0.64,1) 80ms, opacity 160ms ease 80ms",
-              }}
-            >
-              <circle cx="204" cy="15" r="13" fill={SIGNAL} />
+          </svg>
+
+          {/* the seal — its own element in the plate's top-right CORNER,
+              opposite the "signed" label and fully clear of the lettering.
+              It stamps in with a spring on execute, like a notary's mark
+              pressed on the paper's corner. */}
+          <span
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              right: "0.5rem",
+              top: "0.5rem",
+              display: "block",
+              width: 30,
+              height: 30,
+              transform:
+                still || executed ? "scale(1) rotate(-10deg)" : "scale(0.4) rotate(-10deg)",
+              opacity: still || executed ? 1 : 0,
+              transition: still
+                ? undefined
+                : "transform 420ms cubic-bezier(0.34,1.56,0.64,1) 80ms, opacity 160ms ease 80ms",
+            }}
+          >
+            <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+              <circle cx="15" cy="15" r="14" fill={SIGNAL} />
               <path
-                d="M 197.5 15.5 L 202 20 L 210.5 10"
+                d="M 8.5 15.5 L 13 20 L 21.5 10.5"
                 stroke="rgb(var(--c-cream))"
-                strokeWidth={3}
+                strokeWidth={3.2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-            </g>
-          </svg>
+            </svg>
+          </span>
         </div>
 
         {/* footer receipt line, appears once executed */}
