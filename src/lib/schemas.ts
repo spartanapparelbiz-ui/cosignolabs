@@ -103,6 +103,35 @@ export const betaSchema = z
   })
   .strict();
 
+/**
+ * A generic API-key connector the user defines. `risk` is optional and, if
+ * given, may only make an action MORE restrictive than its server-computed safe
+ * default (enforced server-side, not here). Strict: unknown fields rejected.
+ */
+export const customConnectorSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    base_url: z.string().trim().url().max(400),
+    auth: z.object({
+      placement: z.enum(["bearer", "header", "query"]),
+      name: z.string().trim().max(60).optional(),
+    }),
+    api_key: z.string().min(1).max(4096),
+    actions: z
+      .array(
+        z.object({
+          id: z.string().trim().min(1).max(60).regex(/^[a-z0-9_]+$/, "lowercase letters, digits, underscore"),
+          summary: z.string().trim().min(1).max(160),
+          method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
+          path: z.string().trim().min(1).max(400),
+          risk: z.enum(["read", "write", "destructive"]).optional(),
+        })
+      )
+      .min(1)
+      .max(20),
+  })
+  .strict();
+
 export const actionsQuerySchema = z
   .object({
     session: uuid.optional(),

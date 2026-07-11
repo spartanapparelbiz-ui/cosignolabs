@@ -14,7 +14,31 @@ export type ConnectionStatus =
   | "error"
   | "revoked";
 
-export type ConnectionKind = "app" | "mcp";
+export type ConnectionKind = "app" | "mcp" | "custom";
+
+/** Where a custom API connector places its API key on each request. */
+export type CustomAuthPlacement = "bearer" | "header" | "query";
+
+/**
+ * One user-mapped action on a generic API-key connector. `risk` is the
+ * SERVER-assigned safe default (read/write/destructive → tier 1/2/3); the user
+ * may raise it (more restrictive), never lower it. `path` is appended to the
+ * connection's base_url and may contain {name} placeholders filled from args.
+ */
+export interface CustomApiAction {
+  id: string;
+  summary: string;
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  path: string;
+  risk: CapabilityRisk;
+}
+
+/** Non-secret config for a generic API-key connector, stored in metadata. */
+export interface CustomApiConfig {
+  base_url: string;
+  auth: { placement: CustomAuthPlacement; name?: string };
+  actions: CustomApiAction[];
+}
 
 export type McpTransport = "http" | "sse";
 

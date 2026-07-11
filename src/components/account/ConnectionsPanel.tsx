@@ -58,12 +58,21 @@ function TierBadge({ tier }: { tier: number }) {
 interface ConnectionView {
   id: string;
   provider_key: string;
-  kind: "app" | "mcp";
+  kind: "app" | "mcp" | "custom";
   display_name: string;
   status: "connected" | "needs_reauth" | "error" | "revoked";
   scopes: string | null;
   metadata: Record<string, unknown>;
 }
+
+interface CustomApiActionView {
+  id: string;
+  summary: string;
+  method: string;
+  path: string;
+  risk: "read" | "write" | "destructive";
+}
+const RISK_TIER_UI: Record<string, 1 | 2 | 3> = { read: 1, write: 2, destructive: 3 };
 interface McpTool {
   connection_id: string;
   name: string;
@@ -103,6 +112,7 @@ export function ConnectionsPanel() {
   const [unavailable, setUnavailable] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [addApiOpen, setAddApiOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   async function load() {
@@ -141,6 +151,7 @@ export function ConnectionsPanel() {
     (data?.connections ?? []).filter((c) => c.kind === "app").map((c) => [c.provider_key, c])
   );
   const mcps = (data?.connections ?? []).filter((c) => c.kind === "mcp");
+  const customs = (data?.connections ?? []).filter((c) => c.kind === "custom");
 
   async function connect(key: string) {
     setBusy(key);
@@ -374,6 +385,55 @@ export function ConnectionsPanel() {
               }
             }}
             onReload={load}
+          />
+        ))}
+      </section>
+
+      {/* ---- custom API-key tools ---- */}
+      <section className="flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">
+            custom API tools
+          </h4>
+          <button
+            onClick={() => setAddApiOpen((v) => !v)}
+            disabled={!data?.vaultReady}
+            className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:opacity-40"
+          >
+            {addApiOpen ? <X size={12} /> : <Plus size={12} />}
+            {addApiOpen ? "cancel" : "add API tool"}
+          </button>
+        </div>
+
+        <p className="flex items-start gap-2 rounded-btn bg-cream-deep/60 px-3 py-2 text-[11px] text-ink-soft">
+          <ShieldAlert size={13} className="mt-px shrink-0" />
+          you&apos;re responsible for custom tools you add. cosigno still requires
+          your approval for every action, tiers each one by risk, and treats all
+          responses as untrusted.
+        </p>
+
+        {addApiOpen && (
+          <AddApiToolForm
+            onAdded={async () => { setAddApiOpen(false); setNotice("added. review its actions below."); await load(); }}
+            onError={(m) => setError(m)}
+          />
+        )}
+
+        {customs.length === 0 && !addApiOpen && (
+          <p className="rounded-card bg-surface/40 px-4 py-5 text-xs text-ink-soft shadow-soft">
+            no custom API tools yet. connect any tool with a base URL + API key,
+            map its actions, and each one is tiered by risk and waits for your
+            signature.
+          </p>
+        )}
+
+        {customs.map((c) => (
+          <CustomApiCard
+            key={c.id}
+            conn={c}
+            busy={busy}
+            onDisconnect={() => disconnect(c.id)}
+            onPropose={(actionId) => propose(c.id, actionId)}
           />
         ))}
       </section>
@@ -713,5 +773,186 @@ function Labeled({
       {children}
       {hint && <span className="text-[11px] font-semibold text-signal">{hint}</span>}
     </label>
+  );
+}
+
+/**
+ * A connected custom API tool: its endpoint, status, and mapped actions — each
+ * with the SERVER-assigned tier and a "propose" control. Disconnect (with a
+ * confirm) is the kill switch. No secret is ever shown here.
+ */
+function CustomApiCard({
+  conn,
+  busy,
+  onDisconnect,
+  onPropose,
+}: {
+  conn: ConnectionView;
+  busy: string | null;
+  onDisconnect: () => void;
+  onPropose: (actionId: string) => void;
+}) {
+  const meta = conn.metadata as { base_url?: string; actions?: CustomApiActionView[] };
+  const actions = meta.actions ?? [];
+  return (
+    <div className="rounded-card bg-surface/60 p-4 shadow-soft">
+      <div className="flex flex-wrap items-center gap-2">
+        <Plug size={18} className="text-ink-soft" />
+        <span className="text-sm font-extrabold">{conn.display_name}</span>
+        <StatusPill status={conn.status} />
+        <button
+          onClick={() => {
+            if (confirm(`disconnect "${conn.display_name}"? this stops all its actions immediately.`)) onDisconnect();
+          }}
+          disabled={busy === conn.id}
+          className="ml-auto rounded-btn px-3 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
+        >
+          disconnect
+        </button>
+      </div>
+      {meta.base_url && (
+        <p className="mt-1 font-mono text-[11px] text-ink-soft/80">{meta.base_url}</p>
+      )}
+      <div className="mt-2 flex flex-col gap-1.5">
+        {actions.map((a) => (
+          <div key={a.id} className="flex items-center gap-2 rounded-btn bg-cream-deep/60 px-3 py-1.5">
+            <span className="font-mono text-[10px] font-bold uppercase text-ink-soft">{a.method}</span>
+            <span className="font-mono text-[11px] font-bold">{a.id}</span>
+            <TierBadge tier={RISK_TIER_UI[a.risk] ?? 2} />
+            <span className="min-w-0 flex-1 truncate text-[11px] text-ink-soft" title={a.summary}>
+              {a.summary}
+            </span>
+            {conn.status === "connected" && (
+              <button
+                onClick={() => onPropose(a.id)}
+                disabled={busy === `${conn.id}:${a.id}`}
+                className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50"
+              >
+                {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type DraftAction = { id: string; summary: string; method: string; path: string };
+
+/**
+ * "Add custom API tool" — base URL + API key + one or more mapped actions.
+ * The server SSRF-checks the URL, tiers each action by risk, and encrypts the
+ * key; this form only collects and posts.
+ */
+function AddApiToolForm({
+  onAdded,
+  onError,
+}: {
+  onAdded: () => void | Promise<void>;
+  onError: (m: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [baseUrl, setBaseUrl] = useState("");
+  const [placement, setPlacement] = useState<"bearer" | "header" | "query">("bearer");
+  const [authName, setAuthName] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [actions, setActions] = useState<DraftAction[]>([
+    { id: "", summary: "", method: "GET", path: "" },
+  ]);
+  const [busy, setBusy] = useState(false);
+
+  function setAction(i: number, patch: Partial<DraftAction>) {
+    setActions((prev) => prev.map((a, j) => (j === i ? { ...a, ...patch } : a)));
+  }
+
+  async function submit() {
+    setBusy(true);
+    try {
+      await api("/api/connections/custom", {
+        method: "POST",
+        body: JSON.stringify({
+          name: name.trim(),
+          base_url: baseUrl.trim(),
+          auth: { placement, ...(placement !== "bearer" && authName.trim() ? { name: authName.trim() } : {}) },
+          api_key: apiKey,
+          actions: actions
+            .filter((a) => a.id.trim() && a.path.trim() && a.summary.trim())
+            .map((a) => ({ id: a.id.trim(), summary: a.summary.trim(), method: a.method, path: a.path.trim() })),
+        }),
+      });
+      await onAdded();
+    } catch (e) {
+      onError(e instanceof Error ? e.message : "couldn't add that tool.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const inputCls = "w-full rounded-btn bg-surface px-3 py-2 text-sm shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal";
+
+  return (
+    <div className="flex flex-col gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Labeled label="name">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme API" className={inputCls} />
+        </Labeled>
+        <Labeled label="base URL" hint="must be a public https endpoint">
+          <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.acme.com" className={inputCls} />
+        </Labeled>
+        <Labeled label="auth">
+          <select value={placement} onChange={(e) => setPlacement(e.target.value as typeof placement)} className={inputCls}>
+            <option value="bearer">bearer token</option>
+            <option value="header">custom header</option>
+            <option value="query">query param</option>
+          </select>
+        </Labeled>
+        {placement !== "bearer" ? (
+          <Labeled label={placement === "header" ? "header name" : "param name"}>
+            <input value={authName} onChange={(e) => setAuthName(e.target.value)} placeholder={placement === "header" ? "X-API-Key" : "api_key"} className={inputCls} />
+          </Labeled>
+        ) : (
+          <div />
+        )}
+        <Labeled label="API key" className="sm:col-span-2">
+          <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk_…" className={inputCls} autoComplete="off" />
+        </Labeled>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-[11px] font-bold lowercase tracking-wide text-ink-soft">actions</span>
+        {actions.map((a, i) => (
+          <div key={i} className="grid gap-2 sm:grid-cols-[5rem_1fr_1fr]">
+            <select value={a.method} onChange={(e) => setAction(i, { method: e.target.value })} className={inputCls}>
+              {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => <option key={m}>{m}</option>)}
+            </select>
+            <input value={a.id} onChange={(e) => setAction(i, { id: e.target.value })} placeholder="action_id" className={`${inputCls} font-mono`} />
+            <input value={a.path} onChange={(e) => setAction(i, { path: e.target.value })} placeholder="/v1/things/{id}" className={`${inputCls} font-mono`} />
+            <input value={a.summary} onChange={(e) => setAction(i, { summary: e.target.value })} placeholder="what this action does" className={`${inputCls} sm:col-span-3`} />
+          </div>
+        ))}
+        <button
+          onClick={() => setActions((p) => [...p, { id: "", summary: "", method: "GET", path: "" }])}
+          className="self-start rounded-btn px-3 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
+        >
+          + another action
+        </button>
+      </div>
+
+      <p className="flex items-start gap-1.5 text-[11px] text-ink-soft">
+        <AlertTriangle size={12} className="mt-px shrink-0" />
+        cosigno tiers each action by risk automatically — writes wait for approval,
+        deletes/payments need typed confirmation. it never runs auto unless it&apos;s
+        provably read-only.
+      </p>
+
+      <button
+        onClick={submit}
+        disabled={busy || !name.trim() || !baseUrl.trim() || !apiKey.trim()}
+        className="inline-flex items-center justify-center gap-1.5 rounded-btn bg-ink px-4 py-2.5 text-sm font-extrabold text-cream disabled:opacity-40"
+      >
+        {busy ? "adding…" : <><Check size={14} /> add tool</>}
+      </button>
+    </div>
   );
 }

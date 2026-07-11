@@ -5,7 +5,7 @@ import type { ActionRecord } from "../../types";
 import { getProvider } from "../registry";
 import { isCallable } from "../mcp/consent";
 import { mcpToolRisk, resolveTier } from "../tiers";
-import type { ProviderAction } from "../types";
+import type { CustomApiConfig, ProviderAction } from "../types";
 
 export interface ProposeConnectorInput {
   connectionId: string;
@@ -51,6 +51,15 @@ export async function proposeConnectorAction(
     risk = cap as ProviderAction;
     summary = `${conn.display_name}: ${cap.summary}`;
     payload = { kind: "app", connection_id: conn.id, action: cap.id, args: input.args ?? {} };
+  } else if (conn.kind === "custom") {
+    // Generic API-key connector: risk is the SERVER-assigned safe default
+    // stored on the action at add time (user may raise, never lower).
+    const cfg = conn.metadata as unknown as CustomApiConfig;
+    const action = cfg.actions?.find((a) => a.id === input.capability);
+    if (!action) return { ok: false, error: "that action isn't available on this connection." };
+    risk = { mutates: true, risk: action.risk };
+    summary = `${conn.display_name}: ${action.summary}`;
+    payload = { kind: "custom", connection_id: conn.id, action: action.id, args: input.args ?? {} };
   } else {
     const tool = await store.getMcpTool(userId, conn.id, input.capability);
     if (!tool) return { ok: false, error: "that tool isn't on this server anymore." };

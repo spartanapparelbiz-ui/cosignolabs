@@ -16,6 +16,7 @@ export type SecurityEvent =
   | "injection_flagged"
   | "injection_approval_blocked"
   | "executor_category_denied"
+  | "ssrf_blocked"
   | "usage_limit_hit"
   | "upgrade_required"
   | "global_budget_hit"

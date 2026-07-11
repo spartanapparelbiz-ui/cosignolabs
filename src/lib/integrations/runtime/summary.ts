@@ -2,6 +2,7 @@ import { getStore } from "../../store";
 import { getProvider } from "../registry";
 import { capabilityRisk, mcpToolRisk } from "../tiers";
 import { isCallable } from "../mcp/consent";
+import type { CustomApiConfig } from "../types";
 
 /**
  * A compact, plain-text summary of what a user has connected — fed to the
@@ -30,6 +31,10 @@ export async function connectedCapabilitiesSummary(userId: string): Promise<stri
         .map((a) => `${a.id}(${capabilityRisk(a)})`)
         .join(", ");
       lines.push(`- ${c.display_name}: ${caps}`);
+    } else if (c.kind === "custom") {
+      const cfg = c.metadata as unknown as CustomApiConfig;
+      const caps = (cfg.actions ?? []).map((a) => `${a.id}(${a.risk})`).join(", ");
+      lines.push(`- ${c.display_name} (custom API): ${caps || "no actions"}`);
     } else {
       const tools = (await store.listMcpTools(userId, c.id)).filter(isCallable);
       if (tools.length === 0) {

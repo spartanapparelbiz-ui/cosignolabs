@@ -1,6 +1,7 @@
 import { logSecurity } from "../log";
 import { ActionCategory } from "../types";
 import { runMcpTool, runProviderAction } from "../integrations/runtime/connections";
+import { runCustomApiAction } from "../integrations/runtime/customApi";
 
 export interface ExecutionResult {
   ok: boolean;
@@ -91,6 +92,9 @@ const HANDLERS: Readonly<Record<ActionCategory, Handler>> = Object.freeze({
     }
     const action = str(payload.action);
     if (!action) return { ok: false, summary: "missing action id." };
+    if (payload.kind === "custom") {
+      return runCustomApiAction(ctx.userId, connectionId, action, args);
+    }
     return runProviderAction(ctx.userId, connectionId, action, args);
   },
 });

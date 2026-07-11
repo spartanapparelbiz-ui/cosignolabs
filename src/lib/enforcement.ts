@@ -30,15 +30,17 @@ export function usageLimitMessage(planId: string): string {
  */
 export async function assertIntegrationCapacity(
   userId: string,
-  opts: { customMcp?: boolean } = {}
+  opts: { customMcp?: boolean; custom?: boolean } = {}
 ): Promise<void> {
   const { plan, planId } = await getUserPlan(userId);
-  if (opts.customMcp && !plan.customMcp) {
-    logSecurity("upgrade_required", { userId, at: "custom_mcp", plan: planId });
+  // Any user-defined connector (custom MCP server OR generic API/OAuth tool) is
+  // a pro+ feature — free stays on built-ins only. Reuses the plan.customMcp flag.
+  if ((opts.customMcp || opts.custom) && !plan.customMcp) {
+    logSecurity("upgrade_required", { userId, at: "custom_integration", plan: planId });
     throw new ApiError(
       402,
       "upgrade_required",
-      "custom MCP servers are a pro feature. upgrade to add your own connectors."
+      "custom integrations are a pro feature. upgrade to connect your own tools."
     );
   }
   const existing = await getStore().listConnections(userId);

@@ -40,6 +40,24 @@ export function resolveTier(
   return { tier: req, clamped: false };
 }
 
+/**
+ * Safe-default risk for a user-mapped custom API action. Nothing is trusted to
+ * be read-only unless it PROVABLY looks it (a GET with a read-ish name);
+ * destructive/payment-sounding names or a DELETE default to destructive;
+ * everything else defaults to write (approval required). The user may raise the
+ * risk afterwards, never lower it.
+ */
+export function customActionRisk(name: string, method: string): CapabilityRisk {
+  const n = name.toLowerCase().replace(/[_-]+/g, " ").trim();
+  const m = method.toUpperCase();
+  if (m === "DELETE") return "destructive";
+  if (/\b(delete|remove|destroy|drop|purge|wipe|erase|revoke|cancel|refund|pay|payment|transfer|charge|wire)\b/.test(n))
+    return "destructive";
+  if (m === "GET" && /^(get|list|search|read|fetch|find|show|view|lookup|query)\b/.test(n))
+    return "read";
+  return "write";
+}
+
 /** MCP tools carry a sensitive flag + name; map to a safe default risk class. */
 export function mcpToolRisk(tool: { name: string; sensitive: boolean }): CapabilityRisk {
   // Normalize snake_case / kebab-case so word boundaries match each segment
