@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const LINKS = [
-  { href: "/app", label: "workspace" },
+  { href: "/app", label: "home" },
+  { href: "/app/missions", label: "missions" },
+  { href: "/app/decisions", label: "decisions" },
   { href: "/app/activity", label: "activity" },
   { href: "/app/account", label: "account" },
 ];
@@ -40,7 +42,10 @@ export function AppNav() {
   }, [idx]);
 
   return (
-    <nav className="relative flex items-center gap-1" aria-label="app">
+    <nav
+      className="relative flex max-w-full items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      aria-label="app"
+    >
       {pill && (
         <span
           aria-hidden="true"
@@ -59,7 +64,7 @@ export function AppNav() {
               refs.current[i] = el;
             }}
             aria-current={active ? "page" : undefined}
-            className={`relative z-10 rounded-btn px-3.5 py-1.5 text-sm font-bold lowercase transition-colors duration-base ${
+            className={`relative z-10 shrink-0 rounded-btn px-3 py-1.5 text-sm font-bold lowercase transition-colors duration-base ${
               active ? "text-cream" : "text-ink-soft hover:bg-cream-deep"
             }`}
           >
