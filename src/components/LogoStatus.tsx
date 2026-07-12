@@ -122,16 +122,17 @@ export function LogoStatus({
           >
             <path
               d={C_PATH}
-              stroke={INK}
+              stroke={SIGNAL}
               strokeWidth={26}
               strokeLinecap="round"
             />
-            {/* traveling highlight around the arc — listening/working only.
-                Hidden under reduced motion (a frozen dash is noise). */}
+            {/* traveling gloss around the arc — listening/working only.
+                A light sweep reads on the orange C; hidden under reduced
+                motion (a frozen dash is noise). */}
             {travel && (
               <path
                 d={C_PATH}
-                stroke={SIGNAL}
+                stroke="#FFFFFF"
                 strokeWidth={10}
                 strokeLinecap="round"
                 pathLength={1}
@@ -145,7 +146,7 @@ export function LogoStatus({
             )}
             <path
               d={CHECK_PATH}
-              stroke={SIGNAL}
+              stroke={INK}
               strokeWidth={17}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -163,6 +164,8 @@ export function LogoStatus({
                     : undefined,
               }}
             />
+            {/* the signal accent dot */}
+            <circle cx={73} cy={19} r={7} fill={SIGNAL} style={{ opacity: "var(--ls-check)" }} />
           </svg>
         </span>
       </span>

@@ -11,7 +11,7 @@ Never hard-code a hex value in a component — use a token.
 | `ink` | `#141414` | text, primary surfaces (dark buttons, header) |
 | `cream` | `#FBF4EA` | page background |
 | `cream-deep` | `#F3E9DA` | cards / wells / payload blocks on cream |
-| `signal` | `#FF4B1F` | **only**: the Approve button, executed/success states, the logo check, the i-dot, focus rings, active nav, progress fill |
+| `signal` | `#FF4B1F` | **only**: the Approve button, executed/success states, the logo **C + accent dot**, the i-dot, focus rings, active nav, progress fill |
 | `ink-soft` | `#5C5650` | secondary text |
 | `line` | `#E4D9C8` | the one hairline (orb track) — avoid; prefer shadow |
 
@@ -149,8 +149,13 @@ final states under `prefers-reduced-motion`.
   block), and `.tier3-texture` (faint diagonal hazard band on locked cards).
 - **Empty states**: `EmptyIllustration` — flat ink line-work with one orange
   accent, no people (`workspace` / `activity` / `integrations`).
-- **Favicon**: `favicon.svg` repaints the ink C cream on dark tabs via
-  `prefers-color-scheme`; `.ico` is the fallback.
+- **Mark**: an **orange C** opening right, a **check** completing it (theme-ink
+  → cream on dark), and a floating **orange accent dot** at the top of the
+  opening. Monochrome variant = one ink color. Geometry is the single source
+  of truth in `scripts/logo-geometry.mjs`, mirrored by `CosignoMark`.
+- **Favicon**: `favicon.svg` keeps the C orange and repaints the check
+  ink→cream on dark tabs via `prefers-color-scheme`; home-screen/PWA icons sit
+  on a cream plate; `.ico` is the fallback. Regenerate with `npm run assets`.
 - Toasts: `animate-toast-in`, bottom-right, auto-dismiss, `aria-live`.
 - **`prefers-reduced-motion`**: globals.css collapses every animation and
   transition to an instant state change.

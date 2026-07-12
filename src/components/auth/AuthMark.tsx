@@ -83,14 +83,14 @@ export function AuthMark({
             before typing — it then brightens to full as the fields fill. */}
         <path
           d={C_PATH}
-          stroke="rgb(var(--c-ink))"
+          stroke={SIGNAL}
           strokeWidth={26}
           strokeLinecap="round"
           opacity={0.32}
         />
         <path
           d={CHECK_PATH}
-          stroke={SIGNAL}
+          stroke="rgb(var(--c-ink))"
           strokeWidth={17}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -100,7 +100,7 @@ export function AuthMark({
         {/* the C fills along its arc as the email fills */}
         <path
           d={C_PATH}
-          stroke="rgb(var(--c-ink))"
+          stroke={SIGNAL}
           strokeWidth={26}
           strokeLinecap="round"
           pathLength={1}
@@ -119,7 +119,7 @@ export function AuthMark({
         {/* the orange check draws in as the password fills; stamps on submit */}
         <path
           d={CHECK_PATH}
-          stroke={SIGNAL}
+          stroke="rgb(var(--c-ink))"
           strokeWidth={17}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -140,6 +140,8 @@ export function AuthMark({
             transition,
           }}
         />
+        {/* the signal accent dot */}
+        <circle cx={73} cy={19} r={7} fill={SIGNAL} opacity={reducedMotion ? 1 : "calc(0.4 + 0.6 * var(--email-progress))"} style={{ transition }} />
       </svg>
     </span>
   );

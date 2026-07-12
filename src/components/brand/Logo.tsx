@@ -1,19 +1,31 @@
 import { SIGNAL } from "@/lib/brand";
 
 /**
- * The cosigno mark: a thick near-black C opening to the right, and a chunky
- * orange check whose short tail overlaps inside the C's mouth and whose long
- * arm extends up-right past the outer edge — the check completes the C.
+ * The cosigno mark: a thick ORANGE C opening to the right, and a chunky check
+ * whose short tail overlaps inside the C's mouth and whose long arm extends
+ * up-right past the outer edge — the check completes the C. A small orange
+ * accent dot floats above the opening (the signal dot, echoed over the "i"
+ * in the wordmark). The check is theme-aware ink → cream on dark surfaces.
  * Geometry mirrors scripts/logo-geometry.mjs (viewBox 0 0 100 100). Reads at 16px.
+ *
+ * `mono` renders the whole mark in a single ink color (the monochrome
+ * lockup) — used where a one-color mark is required.
  */
 export function CosignoMark({
   size = 28,
   checkClassName = "",
+  mono = false,
 }: {
   size?: number;
-  /** Applied to the orange check path — used by the living-logo breath. */
+  /** Applied to the check path — used by the living-logo breath. */
   checkClassName?: string;
+  /** Single-ink monochrome variant (C, check, and dot all ink). */
+  mono?: boolean;
 }) {
+  const cColor = mono ? "rgb(var(--c-ink))" : SIGNAL;
+  // The check is theme-aware ink in every variant (ink on light, cream on dark).
+  const checkColor = "rgb(var(--c-ink))";
+  const dotColor = mono ? "rgb(var(--c-ink))" : SIGNAL;
   return (
     <svg
       width={size}
@@ -22,22 +34,23 @@ export function CosignoMark({
       fill="none"
       aria-hidden="true"
     >
-      {/* Theme-aware ink so the C reads on both light and dark surfaces
-          (in dark mode it lightens instead of blending into the background). */}
       <path
         d="M 76.0 66.9 A 31 31 0 1 1 76.0 33.1"
-        stroke="rgb(var(--c-ink))"
+        stroke={cColor}
         strokeWidth={26}
         strokeLinecap="round"
       />
+      {/* Theme-aware check: ink on light surfaces, cream on dark — so it never
+          disappears into the background. */}
       <path
         d="M 47 53 L 57 63 L 88 28"
-        stroke={SIGNAL}
+        stroke={checkColor}
         strokeWidth={17}
         strokeLinecap="round"
         strokeLinejoin="round"
         className={checkClassName}
       />
+      <circle cx={73} cy={19} r={7} fill={dotColor} />
     </svg>
   );
 }

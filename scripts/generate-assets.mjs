@@ -13,7 +13,7 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 import pngToIco from "png-to-ico";
-import { INK, SIGNAL, C, CHECK } from "./logo-geometry.mjs";
+import { INK, SIGNAL, C, CHECK, DOT } from "./logo-geometry.mjs";
 
 const CREAM = "#FBF4EA";
 const CREAM_DEEP = "#F3E9DA";
@@ -24,29 +24,31 @@ mkdirSync(BRAND, { recursive: true });
 
 /**
  * Flat mark, viewBox 0 0 100 100. `flat=false` adds soft-3D shading.
- * `invert` draws the C in cream (for the dark-tile icon set); the check
- * stays signal-orange in every variant.
+ * New identity: an ORANGE C, a near-black check (cream when `invert`, for the
+ * dark tile), and the orange accent dot. The C and dot stay signal-orange in
+ * every variant; only the check flips for contrast on dark tiles.
  */
 function markInner(flat = true, invert = false) {
   if (flat) {
-    const cStroke = invert ? CREAM : INK;
+    const checkStroke = invert ? CREAM : INK;
     return `
-  <path d="${C.d}" fill="none" stroke="${cStroke}" stroke-width="${C.stroke}" stroke-linecap="round"/>
-  <path d="${CHECK.d}" fill="none" stroke="${SIGNAL}" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  <path d="${C.d}" fill="none" stroke="${SIGNAL}" stroke-width="${C.stroke}" stroke-linecap="round"/>
+  <path d="${CHECK.d}" fill="none" stroke="${checkStroke}" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="${DOT.cx}" cy="${DOT.cy}" r="${DOT.r}" fill="${SIGNAL}"/>`;
   }
-  // Soft-3D: vertical charcoal gradient on the C, warm gradient on the check,
-  // a drop shadow, and a soft top highlight — a rich translation of the mark.
+  // Soft-3D: warm gradient on the C, charcoal gradient on the check, a drop
+  // shadow, and soft highlights — a rich translation of the new mark.
   return `
   <defs>
-    <linearGradient id="ci" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#2b2b2b"/>
-      <stop offset="0.55" stop-color="#161616"/>
-      <stop offset="1" stop-color="#050505"/>
-    </linearGradient>
-    <linearGradient id="ch" x1="0" y1="0" x2="0.3" y2="1">
+    <linearGradient id="ci" x1="0" y1="0" x2="0.3" y2="1">
       <stop offset="0" stop-color="#ff6a44"/>
       <stop offset="0.6" stop-color="#ff4b1f"/>
       <stop offset="1" stop-color="#e23a12"/>
+    </linearGradient>
+    <linearGradient id="ch" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b2b2b"/>
+      <stop offset="0.55" stop-color="#161616"/>
+      <stop offset="1" stop-color="#050505"/>
     </linearGradient>
     <filter id="ds" x="-30%" y="-30%" width="160%" height="160%">
       <feDropShadow dx="0" dy="3.2" stdDeviation="3.4" flood-color="#000" flood-opacity="0.28"/>
@@ -54,31 +56,31 @@ function markInner(flat = true, invert = false) {
   </defs>
   <g filter="url(#ds)">
     <path d="${C.d}" fill="none" stroke="url(#ci)" stroke-width="${C.stroke}" stroke-linecap="round"/>
-    <path d="${C.d}" fill="none" stroke="#ffffff" stroke-opacity="0.10" stroke-width="${C.stroke - 16}" stroke-linecap="round" transform="translate(0,-3)"/>
+    <path d="${C.d}" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="${C.stroke - 16}" stroke-linecap="round" transform="translate(0,-3)"/>
     <path d="${CHECK.d}" fill="none" stroke="url(#ch)" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="${CHECK.d}" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" transform="translate(-1,-2)"/>
+    <circle cx="${DOT.cx}" cy="${DOT.cy}" r="${DOT.r}" fill="url(#ci)"/>
   </g>`;
 }
 
 /**
- * Transparent mark for the icon set (no plate). The ink C is given a soft
- * cream self-halo so it still reads on dark surfaces (invisible on cream),
- * and the orange check anchors recognition on any background. `adaptive`
- * makes the C repaint via prefers-color-scheme (ink on light tabs, cream on
- * dark) — used for the SVG favicon, the one format that can adapt.
+ * Transparent mark for the icon set (no plate). The orange C anchors
+ * recognition on any background; the check is `adaptive` — it repaints via
+ * prefers-color-scheme (ink on light tabs, cream on dark) so it never blends
+ * into the tab bar. The orange accent dot rides along. Used for the SVG
+ * favicon, the one format that can adapt.
  */
 function transparentMarkSvg({ size, pad, adaptive = false }) {
   const scale = (size - pad * 2) / 100;
   const style = adaptive
-    ? `<style>.c{stroke:${INK}}@media (prefers-color-scheme:dark){.c{stroke:${CREAM}}}</style>`
+    ? `<style>.k{stroke:${INK}}@media (prefers-color-scheme:dark){.k{stroke:${CREAM}}}</style>`
     : "";
-  const cAttrs = adaptive ? `class="c"` : `stroke="${INK}"`;
+  const checkAttrs = adaptive ? `class="k"` : `stroke="${INK}"`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   ${style}
   <g transform="translate(${pad},${pad}) scale(${scale})">
-  <path d="${C.d}" fill="none" stroke="${CREAM}" stroke-opacity="0.5" stroke-width="${C.stroke + 9}" stroke-linecap="round"/>
-  <path d="${C.d}" fill="none" ${cAttrs} stroke-width="${C.stroke}" stroke-linecap="round"/>
-  <path d="${CHECK.d}" fill="none" stroke="${SIGNAL}" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="${C.d}" fill="none" stroke="${SIGNAL}" stroke-width="${C.stroke}" stroke-linecap="round"/>
+  <path d="${CHECK.d}" fill="none" ${checkAttrs} stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="${DOT.cx}" cy="${DOT.cy}" r="${DOT.r}" fill="${SIGNAL}"/>
   </g>
 </svg>`;
 }
@@ -185,6 +187,7 @@ function maskIconSvg() {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <path d="${C.d}" fill="none" stroke="#000" stroke-width="${C.stroke}" stroke-linecap="round"/>
   <path d="${CHECK.d}" fill="none" stroke="#000" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="${DOT.cx}" cy="${DOT.cy}" r="${DOT.r}" fill="#000"/>
 </svg>`;
 }
 
@@ -204,19 +207,22 @@ async function main() {
     .png()
     .toFile(join(BRAND, "logo-3d.png"));
 
-  // Icon set — TRANSPARENT background everywhere (no plate/matte). The ink C
-  // carries a soft cream self-halo so it stays legible on dark surfaces, and
-  // the orange check anchors recognition on any background. Note: static PNGs
-  // can't adapt like the SVG favicon, so on very dark tab bars the C leans on
-  // its halo + the orange check rather than full ink contrast (documented).
-  const icon = (s, pad) =>
-    sharp(Buffer.from(transparentMarkSvg({ size: s, pad }))).png();
-  await icon(192, 30).toFile(join(PUB, "icon-192.png"));
-  await icon(512, 84).toFile(join(PUB, "icon-512.png"));
-  await icon(180, 28).toFile(join(PUB, "apple-touch-icon.png"));
-  // Standalone tab-size PNGs (part of the modern set, referenced in <head>).
-  await icon(16, 1).toFile(join(PUB, "icon-16.png"));
-  await icon(32, 3).toFile(join(PUB, "icon-32.png"));
+  // Home-screen / PWA icons — a cream rounded PLATE (the new "app icon"
+  // treatment): orange C, ink check, orange dot on a warm off-white tile with
+  // a hairline border so its edge shows on light chrome. A plate also fixes
+  // iOS compositing the apple-touch-icon onto black.
+  const plated = (s, pad) =>
+    sharp(Buffer.from(markSvg({ size: s, pad, plate: true, border: true }))).png();
+  await plated(192, 34).toFile(join(PUB, "icon-192.png"));
+  await plated(512, 92).toFile(join(PUB, "icon-512.png"));
+  await plated(180, 30).toFile(join(PUB, "apple-touch-icon.png"));
+
+  // Tab-size favicons — TRANSPARENT + adaptive: the orange C reads on any tab
+  // bar, and the check repaints ink↔cream via prefers-color-scheme.
+  const tab = (s, pad) =>
+    sharp(Buffer.from(transparentMarkSvg({ size: s, pad, adaptive: true }))).png();
+  await tab(16, 1).toFile(join(PUB, "icon-16.png"));
+  await tab(32, 3).toFile(join(PUB, "icon-32.png"));
 
   const f16 = await sharp(Buffer.from(transparentMarkSvg({ size: 16, pad: 1 }))).png().toBuffer();
   const f32 = await sharp(Buffer.from(transparentMarkSvg({ size: 32, pad: 3 }))).png().toBuffer();

@@ -216,8 +216,9 @@ export function CheckoutCard({ state, scale = 1 }: { state: CardState; scale?: n
                   </div>
                   {/* embossed C+check mark */}
                   <svg width="26" height="26" viewBox="0 0 100 100" fill="none" className="ml-2 shrink-0">
-                    <path d="M 76 66.9 A 31 31 0 1 1 76 33.1" fill="none" stroke={CREAM} strokeOpacity="0.85" strokeWidth="14" strokeLinecap="round" />
-                    <path d="M 47 53 L 57 63 L 88 28" fill="none" stroke={SIGNAL} strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M 76 66.9 A 31 31 0 1 1 76 33.1" fill="none" stroke={SIGNAL} strokeWidth="14" strokeLinecap="round" />
+                    <path d="M 47 53 L 57 63 L 88 28" fill="none" stroke={CREAM} strokeOpacity="0.9" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" />
+                    <circle cx="73" cy="19" r="7" fill={SIGNAL} />
                   </svg>
                 </div>
               </div>
