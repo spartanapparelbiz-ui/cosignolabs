@@ -5,6 +5,7 @@ import { ActionCategory, CATEGORIES, Tier } from "../types";
 import { buildSystemPrompt, SYSTEM_PROMPT_VERSION } from "./systemPrompt";
 import { scanUntrusted, wrapUntrusted, type UntrustedBlock } from "./untrusted";
 import { connectedCapabilitiesSummary } from "../integrations/runtime/summary";
+import { memorySummary } from "../memory";
 
 // Re-export so callers keep a single import surface for planner readiness.
 export { plannerConfigured } from "./provider";
@@ -65,9 +66,10 @@ export async function planCommand(
   // Tell the planner what the user has actually connected, so it proposes
   // within reach and suggests connecting a tool instead of inventing an action.
   const connected = userId ? await connectedCapabilitiesSummary(userId) : "";
+  const memory = userId ? await memorySummary(userId) : "";
 
   const plan = plannerConfigured()
-    ? await planWithLLM(command, blocks, connected, userId, model)
+    ? await planWithLLM(command, blocks, connected, memory, userId, model)
     : planWithMock(command, blocks);
 
   return {
@@ -84,6 +86,7 @@ async function planWithLLM(
   command: string,
   blocks: UntrustedBlock[],
   connected: string,
+  memory: string,
   userId?: string,
   model?: string
 ): Promise<RawPlan> {
@@ -96,7 +99,7 @@ async function planWithLLM(
   const result = await callPlanner({
     model: model || plannerModel("default"),
     maxTokens: MAX_TOKENS,
-    system: buildSystemPrompt(connected),
+    system: buildSystemPrompt(connected, memory),
     userContent,
     tool: {
       name: "propose_actions",

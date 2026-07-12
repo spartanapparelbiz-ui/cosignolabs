@@ -1,6 +1,8 @@
 import type {
   AutomationRecord,
   AutomationRunRecord,
+  MemoryRecord,
+  UserPrefs,
   AccountAuditRecord,
   ActionEventRecord,
   ActionEventType,
@@ -215,6 +217,18 @@ export interface Store {
   listDueAutomations(limit: number): Promise<AutomationRecord[]>;
   createAutomationRun(input: Omit<AutomationRunRecord, "id" | "created_at">): Promise<AutomationRunRecord>;
   listAutomationRuns(userId: string, automationId: string, limit?: number): Promise<AutomationRunRecord[]>;
+
+  /* -- memory (user-controlled planner context) -- */
+  createMemory(userId: string, content: string): Promise<MemoryRecord>;
+  listMemories(userId: string): Promise<MemoryRecord[]>;
+  updateMemory(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<MemoryRecord, "content" | "enabled">>
+  ): Promise<MemoryRecord | null>;
+  deleteMemory(userId: string, id: string): Promise<void>;
+  getPrefs(userId: string): Promise<UserPrefs>;
+  setMemoryEnabled(userId: string, enabled: boolean): Promise<void>;
 
   /** Cascade-delete everything owned by a user (account deletion). */
   deleteAllUserData(userId: string): Promise<void>;

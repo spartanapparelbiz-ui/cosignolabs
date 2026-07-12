@@ -17,6 +17,8 @@ import {
   UsageRecord,
   AutomationRecord,
   AutomationRunRecord,
+  MemoryRecord,
+  UserPrefs,
 } from "../types";
 import type {
   ActionInsert,
@@ -286,6 +288,8 @@ export class MemoryStore implements Store {
   private mcpTools: McpToolRecord[] = [];
   private automations: AutomationRecord[] = [];
   private automationRuns: AutomationRunRecord[] = [];
+  private memories: MemoryRecord[] = [];
+  private prefs = new Map<string, UserPrefs>();
   private oauthStates = new Map<string, OAuthStateRow>();
 
   async createConnection(input: ConnectionInsert): Promise<ConnectionRecord> {
@@ -507,6 +511,49 @@ export class MemoryStore implements Store {
       .map((r) => ({ ...r }));
   }
 
+
+  /* -- memory -- */
+  async createMemory(userId: string, content: string): Promise<MemoryRecord> {
+    const now = new Date().toISOString();
+    const rec: MemoryRecord = {
+      id: randomUUID(),
+      user_id: userId,
+      content,
+      enabled: true,
+      created_at: now,
+      updated_at: now,
+    };
+    this.memories.push(rec);
+    return { ...rec };
+  }
+
+  async listMemories(userId: string): Promise<MemoryRecord[]> {
+    return this.memories.filter((m) => m.user_id === userId).map((m) => ({ ...m }));
+  }
+
+  async updateMemory(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<MemoryRecord, "content" | "enabled">>
+  ): Promise<MemoryRecord | null> {
+    const m = this.memories.find((x) => x.id === id && x.user_id === userId);
+    if (!m) return null;
+    Object.assign(m, patch, { updated_at: new Date().toISOString() });
+    return { ...m };
+  }
+
+  async deleteMemory(userId: string, id: string): Promise<void> {
+    this.memories = this.memories.filter((x) => !(x.id === id && x.user_id === userId));
+  }
+
+  async getPrefs(userId: string): Promise<UserPrefs> {
+    return this.prefs.get(userId) ?? { user_id: userId, memory_enabled: true };
+  }
+
+  async setMemoryEnabled(userId: string, enabled: boolean): Promise<void> {
+    this.prefs.set(userId, { user_id: userId, memory_enabled: enabled });
+  }
+
   async deleteAllUserData(userId: string): Promise<void> {
     this.sessions = this.sessions.filter((s) => s.user_id !== userId);
     this.messages = this.messages.filter((m) => m.user_id !== userId);
@@ -525,5 +572,7 @@ export class MemoryStore implements Store {
     this.mcpTools = this.mcpTools.filter((t) => !gone.has(t.connection_id));
     this.automations = this.automations.filter((a) => a.user_id !== userId);
     this.automationRuns = this.automationRuns.filter((r) => r.user_id !== userId);
+    this.memories = this.memories.filter((m) => m.user_id !== userId);
+    this.prefs.delete(userId);
   }
 }

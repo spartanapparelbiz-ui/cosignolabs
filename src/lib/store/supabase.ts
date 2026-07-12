@@ -17,6 +17,8 @@ import {
   UsageRecord,
   AutomationRecord,
   AutomationRunRecord,
+  MemoryRecord,
+  UserPrefs,
 } from "../types";
 import type {
   ActionInsert,
@@ -716,10 +718,76 @@ export class SupabaseStore implements Store {
     return (data ?? []) as AutomationRunRecord[];
   }
 
+
+  /* -- memory -- */
+  async createMemory(userId: string, content: string): Promise<MemoryRecord> {
+    const { data, error } = await this.client
+      .from("memories")
+      .insert({ user_id: userId, content })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as MemoryRecord;
+  }
+
+  async listMemories(userId: string): Promise<MemoryRecord[]> {
+    const { data, error } = await this.client
+      .from("memories")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as MemoryRecord[];
+  }
+
+  async updateMemory(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<MemoryRecord, "content" | "enabled">>
+  ): Promise<MemoryRecord | null> {
+    const { data, error } = await this.client
+      .from("memories")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as MemoryRecord) ?? null;
+  }
+
+  async deleteMemory(userId: string, id: string): Promise<void> {
+    const { error } = await this.client
+      .from("memories")
+      .delete()
+      .eq("user_id", userId)
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+  }
+
+  async getPrefs(userId: string): Promise<UserPrefs> {
+    const { data, error } = await this.client
+      .from("user_prefs")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as UserPrefs) ?? { user_id: userId, memory_enabled: true };
+  }
+
+  async setMemoryEnabled(userId: string, enabled: boolean): Promise<void> {
+    const { error } = await this.client
+      .from("user_prefs")
+      .upsert({ user_id: userId, memory_enabled: enabled, updated_at: new Date().toISOString() });
+    if (error) throw new Error(error.message);
+  }
+
   async deleteAllUserData(userId: string): Promise<void> {
     // sessions cascade to messages/actions/action_events via FK ON DELETE
     // CASCADE; the rest are deleted explicitly.
     for (const table of [
+      "memories",
+      "user_prefs",
       "automation_runs",
       "automations",
       "account_audit",

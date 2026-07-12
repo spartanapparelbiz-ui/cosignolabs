@@ -150,6 +150,22 @@ export const automationPatchSchema = z
   })
   .strict();
 
+/** User memory notes — short, plain text. */
+export const memorySchema = z
+  .object({ content: z.string().trim().min(1).max(300) })
+  .strict();
+
+export const memoryPatchSchema = z
+  .object({
+    content: z.string().trim().min(1).max(300).optional(),
+    enabled: z.boolean().optional(),
+  })
+  .strict();
+
+export const memoryPrefsSchema = z
+  .object({ memory_enabled: z.boolean() })
+  .strict();
+
 export const actionsQuerySchema = z
   .object({
     session: uuid.optional(),

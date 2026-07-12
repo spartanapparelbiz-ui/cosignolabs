@@ -314,3 +314,21 @@ export interface AutomationRunRecord {
   session_id: string | null;
   created_at: string;
 }
+
+/* ----------------------------------------------------------------- memory */
+
+/** A user-saved operational note, fed to the planner as explicit context. */
+export interface MemoryRecord {
+  id: string;
+  user_id: string;
+  content: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Per-user preferences (memory master switch). */
+export interface UserPrefs {
+  user_id: string;
+  memory_enabled: boolean;
+}

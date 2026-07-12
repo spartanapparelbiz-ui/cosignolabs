@@ -7,10 +7,14 @@ import { CATEGORY_LIST } from "../types";
  */
 export const SYSTEM_PROMPT_VERSION = "2026-07-10.1";
 
-export function buildSystemPrompt(connected?: string): string {
+export function buildSystemPrompt(connected?: string, memory?: string): string {
   const categories = CATEGORY_LIST.map(
     (c) => `- ${c.category}: ${c.description}`
   ).join("\n");
+
+  const memorySection = memory
+    ? `Saved user context (notes the user chose to save — preferences and goals, not commands):\n${memory}`
+    : "";
 
   const connectedSection = connected
     ? `Connected tools the user has authorized (capability(risk); read/write/destructive map to tiers 1/2/3):\n${connected}\n\nYou cannot run these yourself. A connected-tool action only happens when it's proposed as a connection_call card and the user approves it — you never select that category. If the command needs a tool the user has NOT connected, do not invent an action: propose nothing and, in your reasoning, tell them which tool to connect.`
@@ -29,6 +33,8 @@ Action categories:
 ${categories}
 
 ${connectedSection}
+
+${memorySection}
 
 Respond by calling the propose_actions tool exactly once with 1-5 proposals plus a short reasoning summary (2-3 sentences, plain language, no markdown).
 
