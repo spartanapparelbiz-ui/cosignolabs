@@ -29,6 +29,7 @@ import {
   reversibilityChip,
   operatorOf,
 } from "@/lib/actionPresentation";
+import { afterApprovalLine, approveLabel, beforeApprovalLine } from "@/lib/clarity";
 import { TierBadge } from "./TierBadge";
 
 interface Props {
@@ -336,6 +337,14 @@ function ActionCardInner({
         ))}
       </div>
 
+      {/* the two truths every approval needs: what has already happened,
+          and what will happen the moment it's approved. */}
+      {pending && !flagged && (
+        <p className="mt-2 pl-12 text-[11px] font-semibold text-ink-soft">
+          {beforeApprovalLine(action.category)} {afterApprovalLine(action.category)}
+        </p>
+      )}
+
       {flagged && (
         <div className="mt-3 flex items-start gap-1.5 rounded-btn bg-signal/10 px-2.5 py-2 text-[11px] font-bold lowercase leading-snug text-signal ring-1 ring-inset ring-signal/30">
           <ShieldAlert size={13} strokeWidth={2.5} className="mt-px shrink-0" aria-hidden="true" />
@@ -543,7 +552,7 @@ function ActionCardInner({
                       strokeLinejoin="round"
                     />
                   </svg>
-                  {mode === "confirm" ? "confirm & approve" : "approve"}
+                  {mode === "confirm" ? "confirm & approve" : approveLabel(action.category)}
                 </>
               )}
             </button>

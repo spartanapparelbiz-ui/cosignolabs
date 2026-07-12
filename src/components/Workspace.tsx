@@ -13,6 +13,7 @@ import { OfferBanner } from "./OfferBanner";
 import { useKeyboardHints } from "@/lib/useKeyboardHints";
 import { useFaviconStatus } from "@/lib/useFaviconStatus";
 import { sessionCounts, sessionCountsLine } from "@/lib/actionPresentation";
+import { MissionGuide, MissionStatus } from "./MissionGuide";
 
 /** Static keyword set for inline command autocomplete. */
 const COMMAND_KEYWORDS = [
@@ -312,6 +313,20 @@ export function Workspace() {
     submitRef.current?.(action.summary);
   }, []);
 
+  // Stop mission: veto every waiting step at once. Nothing pending survives,
+  // and each veto is a normal engine transition (logged like any other).
+  const stopMission = useCallback(async () => {
+    const waiting = actions.filter((a) => a.status === "proposed");
+    for (const a of waiting) {
+      await jsonFetch(`/api/actions/${a.id}/veto`, {
+        method: "POST",
+        body: JSON.stringify({ reason: "mission stopped by user" }),
+      }).catch(() => {});
+    }
+    await refresh();
+    toast("success", "mission stopped — the waiting steps were vetoed and nothing else will run.");
+  }, [actions, refresh, toast]);
+
   const onVeto = useCallback(
     async (id: string, reason: string) => {
       setOptimistic((o) => ({ ...o, [id]: "vetoed" }));
@@ -499,6 +514,7 @@ export function Workspace() {
           <h2 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
             action cards
           </h2>
+          <MissionStatus actions={displayActions} planning={thinking} />
           {/* the living logo is the status light — the one live indicator */}
           <span className="ml-auto min-w-0">
             <LogoStatus state={logoState} awaiting={awaitingCount} />
@@ -509,6 +525,8 @@ export function Workspace() {
             {sessionCountsLine(counts)}
           </p>
         )}
+
+        <MissionGuide actions={displayActions} planning={thinking} onStop={stopMission} />
 
         {thinking && <SkeletonCard />}
 

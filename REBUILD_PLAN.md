@@ -113,7 +113,15 @@ every action risk-classed → tiered by the server) · teams/household v1
 roles, and delegated approvals: owners/approvers may approve or veto a
 workspace-mate's tier-2 proposals through the same engine door with the actor
 recorded in the audit trail; tier-3 approvals stay personal; the agent gains
-nothing from a workspace — only humans are added).
+nothing from a workspace — only humans are added) · clarity system (plain-
+language guidance derived only from real action state: mission status chip,
+persistent "what is cosigno doing?" panel with current step / sources /
+what's next / changes-made ("no external changes have been made" when true),
+visible plan with per-step approval notes, instant stop-mission (vetoes all
+waiting steps through the engine), action-specific approval buttons
+("approve & send", "approve deletion") with before/after truth lines,
+three-screen first-run intro, plain-language home tiles, and the new core
+copy on the landing hero).
 
 SATISFIED BY CONSTRUCTION (no build needed): "material changes invalidate
 approval" — approve requires status=proposed and executes atomically in the

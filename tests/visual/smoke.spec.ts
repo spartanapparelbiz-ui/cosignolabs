@@ -29,6 +29,43 @@ for (const vp of VIEWPORTS) {
   test.describe(`${vp.name} (${vp.width}px)`, () => {
     test.use({ viewport: { width: vp.width, height: vp.height } });
 
+    // The first-run intro is covered by its own test below; everywhere else
+    // the flag is pre-set so surfaces render in their steady state.
+    test.beforeEach(async ({ page }) => {
+      await page.addInitScript(() => {
+        try {
+          window.localStorage.setItem("cosigno_intro_seen", "1");
+        } catch {
+          /* storage may be unavailable */
+        }
+      });
+    });
+
+    test("first-run intro: three screens, once", async ({ page }) => {
+      await page.addInitScript(() => {
+        try {
+          window.localStorage.removeItem("cosigno_intro_seen");
+        } catch {
+          /* ignore */
+        }
+      });
+      await page.goto("/app", { waitUntil: "networkidle" });
+      await expect(page.getByRole("heading", { name: "what do you need handled?" })).toBeVisible();
+      await page.getByRole("button", { name: "see how it works" }).click();
+      await expect(page.getByRole("heading", { name: "how a mission works" })).toBeVisible();
+      await page.getByRole("button", { name: "one more thing" }).click();
+      await expect(page.getByRole("heading", { name: "you stay in control" })).toBeVisible();
+      await page.screenshot({ path: join(OUT, `intro-control-${vp.name}.png`) });
+      await page.getByRole("button", { name: /i understand/ }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      // Dismissing persisted the seen flag — future visits skip the intro.
+      // (A reload here would re-run this test's flag-clearing init script,
+      // so the flag itself is the assertion.)
+      expect(
+        await page.evaluate(() => window.localStorage.getItem("cosigno_intro_seen"))
+      ).toBe("1");
+    });
+
     // §5 QA harness: walk the core surfaces and assert nothing threw an
     // uncaught error and nothing overflows horizontally. Dev-server noise
     // (React DevTools banner, favicon/resource 404s, source maps, dev-only
@@ -52,7 +89,7 @@ for (const vp of VIEWPORTS) {
     test("landing", async ({ page }) => {
       await page.goto("/", { waitUntil: "networkidle" });
       await expect(
-        page.getByRole("heading", { name: "the AI operating system that gets things done." })
+        page.getByRole("heading", { name: "tell cosigno what you need done." })
       ).toBeVisible();
       // Hero viewport capture FIRST, while the composed scene is pristine at
       // the top of the page — its floating cards use scroll-driven parallax,
@@ -154,8 +191,16 @@ for (const vp of VIEWPORTS) {
       await box.fill("reprice these products for the summer sale");
       await page.keyboard.press("Enter");
       await expect(page.getByText(/awaiting your sign-off/).first()).toBeVisible();
+      // The clarity system: mission state chip + the "what is cosigno doing?"
+      // guide with its honest no-changes line and the visible plan.
+      await expect(page.getByText("waiting for your approval").first()).toBeVisible();
+      const guide = page.getByRole("button", { name: /what is cosigno doing/i });
+      await expect(guide).toBeVisible();
+      await guide.click();
+      await expect(page.getByText(/waiting for your (typed )?approval\.?/).first()).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `workspace-${vp.name}.png`), fullPage: true });
+      await guide.click();
     });
 
     test("living logo — one breather, and static under reduced motion", async ({

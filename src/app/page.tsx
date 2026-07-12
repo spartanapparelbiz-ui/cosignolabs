@@ -79,13 +79,15 @@ export default function LandingPage() {
         <section className="relative mx-auto grid min-h-[62dvh] w-full max-w-6xl content-center items-center gap-10 px-4 pb-16 pt-8 lg:min-h-[calc(100dvh-160px)] lg:grid-cols-2 lg:pt-8">
           <div>
             <StaggerHeadline
-              text="the AI operating system that gets things done."
+              text="tell cosigno what you need done."
               className="font-display text-4xl font-bold leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.3rem]"
             />
             <p className="mt-5 max-w-xl text-lg font-semibold text-ink-soft animate-word-in [animation-delay:520ms]">
-              give cosigno a goal. it plans the work, uses your tools,
-              coordinates every step, and completes approved actions while you
-              stay in control.
+              cosigno makes the plan, uses your connected apps, handles the
+              work, and asks before anything important happens.
+            </p>
+            <p className="mt-3 max-w-xl text-base font-bold animate-word-in [animation-delay:600ms]">
+              most AI gives you an answer. cosigno carries the task forward.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 animate-word-in [animation-delay:700ms]">
               <Link
@@ -93,7 +95,7 @@ export default function LandingPage() {
                 prefetch
                 className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95"
               >
-                give cosigno a mission
+                give cosigno a task
               </Link>
               <a
                 href="#try"

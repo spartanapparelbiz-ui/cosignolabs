@@ -65,11 +65,11 @@ export function TodayStrip() {
 
   const tiles = counts
     ? ([
-        { label: "missions", value: counts.missions, href: "/app/missions", accent: false },
-        { label: "need you", value: counts.decisions, href: "/app/decisions", accent: counts.decisions > 0 },
-        { label: "executed today", value: counts.executed, href: "/app/activity", accent: false },
+        { label: counts.missions === 1 ? "mission underway" : "missions underway", value: counts.missions, href: "/app/missions", accent: false },
+        { label: counts.decisions === 1 ? "needs your approval" : "need your approval", value: counts.decisions, href: "/app/decisions", accent: counts.decisions > 0 },
+        { label: "completed today", value: counts.executed, href: "/app/activity", accent: false },
         ...(counts.blocked > 0
-          ? [{ label: "blocked", value: counts.blocked, href: "/app/activity", accent: false }]
+          ? [{ label: "didn't complete", value: counts.blocked, href: "/app/activity", accent: false }]
           : []),
       ] as const)
     : null;
