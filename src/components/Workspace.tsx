@@ -398,7 +398,7 @@ export function Workspace() {
                 e.currentTarget.blur();
               }
             }}
-            placeholder={'tell cosigno what to do…  (press "/" to focus, ↑ recalls)'}
+            placeholder={'what do you want cosigno to handle?  (press "/" to focus, ↑ recalls)'}
             rows={3}
             className="mt-2 w-full resize-none rounded-btn bg-transparent text-lg font-semibold placeholder:text-ink-soft/60 focus:outline-none"
           />

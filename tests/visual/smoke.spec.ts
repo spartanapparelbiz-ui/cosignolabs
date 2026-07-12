@@ -149,7 +149,7 @@ for (const vp of VIEWPORTS) {
 
     test("workspace with a proposed card", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
-      const box = page.getByPlaceholder(/tell cosigno what to do/);
+      const box = page.getByPlaceholder(/what do you want cosigno to handle/);
       await expect(box).toBeVisible();
       await box.fill("reprice these products for the summer sale");
       await page.keyboard.press("Enter");

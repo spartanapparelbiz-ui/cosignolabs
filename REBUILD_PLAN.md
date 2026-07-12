@@ -89,6 +89,39 @@ Still open from v3, honestly assessed:
   ClickUp/Shopify/Stripe), real connector logos everywhere** — phased; the
   connector-logo identity component partially exists (bundled logos).
 
+## "Complete all" ledger (running status vs. the master directive)
+
+DONE (shipped + verified): positioning/hero/CTAs · public site (/product,
+/operators, /templates, /security, /demo, SEO) · public-access fix ·
+missions surface · decision inbox · operator attribution (cards + activity) ·
+home today-panel + committed composer prompt · approval engine (typed confirm,
+tier clamp, injection defense) · authority model (observe/prepare/confirm +
+scoped trust via the permissions board; destructive pinned) · connections
+(Gmail real; custom MCP + custom API-key with SSRF/timeouts/caps) · activity +
+CSV export · branded failure states · cost caps · Stripe billing ($29 pro).
+
+SATISFIED BY CONSTRUCTION (no build needed): "material changes invalidate
+approval" — approve requires status=proposed and executes atomically in the
+same server call; a payload can only be edited BEFORE approval, so what you
+sign is exactly what runs. There is no approved-but-unexecuted window to
+invalidate. If a background job queue is ever introduced (see Automations),
+action versioning + approval invalidation MUST ship with it.
+
+BLOCKED ON FOUNDER DECISIONS (cannot ship honestly without them):
+- Pricing v4 sheet ($0/$19.99/$49.99/$69.99/$129.99 — fourth sheet supplied):
+  confirm it's final, then it ships as one SSOT+Stripe+enforcement+tests
+  commit; requires running scripts/stripe-setup.ts for real price IDs.
+- Gmail live activation: GOOGLE_CLIENT_ID/SECRET in Netlify (GMAIL_SETUP.md).
+- App keys (Clerk/Supabase/planner) in Netlify for the real signed-in product.
+
+REMAINING BUILD PHASES (in order): automations (recurring missions: table,
+scheduler, run history, test mode — every run through the propose/approve
+door) → memory controls (view/edit/delete, scoped) → files surface →
+calendar/drive/outlook/slack/notion/asana/clickup/shopify/stripe connectors
+(each is a provider config + real OAuth app the founder must register) →
+teams/household (workspace_id migration, roles, policies) → browser control
+(largest: isolated sessions, step-visible driving, approval-gated actions).
+
 Non-negotiables across every phase: the approval state machine stays the only
 door to execution; all tenant tables keep RLS; tests stay green per phase; no
 fake surfaces — anything not yet live is labeled, never simulated as real.
