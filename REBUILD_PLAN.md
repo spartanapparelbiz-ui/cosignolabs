@@ -121,7 +121,17 @@ visible plan with per-step approval notes, instant stop-mission (vetoes all
 waiting steps through the engine), action-specific approval buttons
 ("approve & send", "approve deletion") with before/after truth lines,
 three-screen first-run intro, plain-language home tiles, and the new core
-copy on the landing hero).
+copy on the landing hero) · durable mission engine (server-side missions +
+checkpointed steps in Postgres, advanced by ticks — cron via /api/missions/
+tick + user-present polling — so work survives closed tabs and restarts;
+operator runtime profiles that actually gate tools/timeouts/retries; the
+strict tool contract with an honest live/sandbox split; adaptive planning as
+append-only expansion with plan_version history; structured questions that
+block one step while independent steps continue; consequential steps gated
+by real action cards; post-execution verification (Gmail send confirmed in
+Sent Mail; sandbox honestly marked); real deliverables in files; mission
+receipts; pause/resume/stop with card vetoes; the reference "prepare
+everything for tomorrow's meeting" mission working end-to-end).
 
 SATISFIED BY CONSTRUCTION (no build needed): "material changes invalidate
 approval" — approve requires status=proposed and executes atomically in the

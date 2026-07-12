@@ -23,6 +23,8 @@ import {
   WorkspaceRecord,
   WorkspaceMemberRecord,
   WorkspaceRole,
+  MissionRecord,
+  MissionStepRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -850,6 +852,126 @@ export class SupabaseStore implements Store {
       .eq("user_id", userId)
       .eq("id", id);
     if (error) throw new Error(error.message);
+  }
+
+  /* -- durable missions -- */
+  async createMission(input: import("./index").MissionInsert): Promise<MissionRecord> {
+    const { data, error } = await this.client
+      .from("missions")
+      .insert({ user_id: input.user_id, session_id: input.session_id, goal: input.goal })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as MissionRecord;
+  }
+
+  async getMission(userId: string, id: string): Promise<MissionRecord | null> {
+    const { data, error } = await this.client
+      .from("missions")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as MissionRecord) ?? null;
+  }
+
+  async listMissions(userId: string, limit = 50): Promise<MissionRecord[]> {
+    const { data, error } = await this.client
+      .from("missions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as MissionRecord[];
+  }
+
+  async updateMission(
+    userId: string,
+    id: string,
+    patch: Partial<
+      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at">
+    >
+  ): Promise<MissionRecord | null> {
+    const { data, error } = await this.client
+      .from("missions")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as MissionRecord) ?? null;
+  }
+
+  async listRunnableMissions(limit: number): Promise<MissionRecord[]> {
+    const { data, error } = await this.client
+      .from("missions")
+      .select("*")
+      .in("state", ["queued", "running", "retrying", "verifying"])
+      .order("updated_at", { ascending: true })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as MissionRecord[];
+  }
+
+  async createMissionSteps(
+    steps: import("./index").MissionStepInsert[]
+  ): Promise<MissionStepRecord[]> {
+    const { data, error } = await this.client
+      .from("mission_steps")
+      .insert(
+        steps.map((s) => ({
+          mission_id: s.mission_id,
+          user_id: s.user_id,
+          idx: s.idx,
+          purpose: s.purpose,
+          operator: s.operator,
+          tool: s.tool,
+          state: s.state ?? "ready",
+          depends_on: s.depends_on,
+          input: s.input ?? {},
+          sources: s.sources ?? [],
+          max_retries: s.max_retries ?? 2,
+        }))
+      )
+      .select();
+    if (error) throw new Error(error.message);
+    return (data ?? []) as MissionStepRecord[];
+  }
+
+  async listMissionSteps(userId: string, missionId: string): Promise<MissionStepRecord[]> {
+    const { data, error } = await this.client
+      .from("mission_steps")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("mission_id", missionId)
+      .order("idx", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as MissionStepRecord[];
+  }
+
+  async updateMissionStep(
+    userId: string,
+    id: string,
+    patch: Partial<
+      Pick<
+        MissionStepRecord,
+        | "state" | "input" | "output" | "sources" | "action_id"
+        | "retry_count" | "error" | "verification" | "started_at" | "completed_at"
+      >
+    >
+  ): Promise<MissionStepRecord | null> {
+    const { data, error } = await this.client
+      .from("mission_steps")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as MissionStepRecord) ?? null;
   }
 
   /* -- workspaces -- */

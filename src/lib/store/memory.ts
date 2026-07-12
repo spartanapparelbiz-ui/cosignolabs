@@ -23,6 +23,8 @@ import {
   WorkspaceRecord,
   WorkspaceMemberRecord,
   WorkspaceRole,
+  MissionRecord,
+  MissionStepRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -605,6 +607,120 @@ export class MemoryStore implements Store {
     this.files = this.files.filter((x) => !(x.id === id && x.user_id === userId));
   }
 
+  /* -- durable missions -- */
+  private missions: MissionRecord[] = [];
+  private missionSteps: MissionStepRecord[] = [];
+
+  async createMission(input: import("./index").MissionInsert): Promise<MissionRecord> {
+    const now = nowIso();
+    const rec: MissionRecord = {
+      id: randomUUID(),
+      user_id: input.user_id,
+      session_id: input.session_id,
+      goal: input.goal,
+      state: "queued",
+      plan_version: 1,
+      pending_question: null,
+      receipt: null,
+      error: null,
+      created_at: now,
+      updated_at: now,
+      completed_at: null,
+    };
+    this.missions.push(rec);
+    return { ...rec };
+  }
+
+  async getMission(userId: string, id: string): Promise<MissionRecord | null> {
+    const m = this.missions.find((x) => x.id === id && x.user_id === userId);
+    return m ? { ...m } : null;
+  }
+
+  async listMissions(userId: string, limit = 50): Promise<MissionRecord[]> {
+    return this.missions
+      .filter((m) => m.user_id === userId)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, limit)
+      .map((m) => ({ ...m }));
+  }
+
+  async updateMission(
+    userId: string,
+    id: string,
+    patch: Partial<
+      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at">
+    >
+  ): Promise<MissionRecord | null> {
+    const m = this.missions.find((x) => x.id === id && x.user_id === userId);
+    if (!m) return null;
+    Object.assign(m, patch, { updated_at: nowIso() });
+    return { ...m };
+  }
+
+  async listRunnableMissions(limit: number): Promise<MissionRecord[]> {
+    const runnable = new Set(["queued", "running", "retrying", "verifying"]);
+    return this.missions
+      .filter((m) => runnable.has(m.state))
+      .sort((a, b) => a.updated_at.localeCompare(b.updated_at))
+      .slice(0, limit)
+      .map((m) => ({ ...m }));
+  }
+
+  async createMissionSteps(
+    steps: import("./index").MissionStepInsert[]
+  ): Promise<MissionStepRecord[]> {
+    const now = nowIso();
+    const created = steps.map((s) => ({
+      id: randomUUID(),
+      mission_id: s.mission_id,
+      user_id: s.user_id,
+      idx: s.idx,
+      purpose: s.purpose,
+      operator: s.operator,
+      tool: s.tool,
+      state: s.state ?? ("ready" as const),
+      depends_on: [...s.depends_on],
+      input: { ...(s.input ?? {}) },
+      output: null,
+      sources: [...(s.sources ?? [])],
+      action_id: null,
+      retry_count: 0,
+      max_retries: s.max_retries ?? 2,
+      error: null,
+      verification: null,
+      started_at: null,
+      completed_at: null,
+      created_at: now,
+      updated_at: now,
+    }));
+    this.missionSteps.push(...created);
+    return created.map((s) => ({ ...s }));
+  }
+
+  async listMissionSteps(userId: string, missionId: string): Promise<MissionStepRecord[]> {
+    return this.missionSteps
+      .filter((s) => s.mission_id === missionId && s.user_id === userId)
+      .sort((a, b) => a.idx - b.idx)
+      .map((s) => ({ ...s }));
+  }
+
+  async updateMissionStep(
+    userId: string,
+    id: string,
+    patch: Partial<
+      Pick<
+        MissionStepRecord,
+        | "state" | "input" | "output" | "sources" | "action_id"
+        | "retry_count" | "error" | "verification" | "started_at" | "completed_at"
+      >
+    >
+  ): Promise<MissionStepRecord | null> {
+    const s = this.missionSteps.find((x) => x.id === id && x.user_id === userId);
+    if (!s) return null;
+    Object.assign(s, patch, { updated_at: nowIso() });
+    return { ...s };
+  }
+
   /* -- workspaces -- */
   private workspaces: WorkspaceRecord[] = [];
   private workspaceMembers: WorkspaceMemberRecord[] = [];
@@ -739,6 +855,8 @@ export class MemoryStore implements Store {
     this.memories = this.memories.filter((m) => m.user_id !== userId);
     this.prefs.delete(userId);
     this.files = this.files.filter((f) => f.user_id !== userId);
+    this.missions = this.missions.filter((m) => m.user_id !== userId);
+    this.missionSteps = this.missionSteps.filter((s) => s.user_id !== userId);
     // Workspaces they OWN dissolve entirely; memberships elsewhere are removed.
     const owned = new Set(
       this.workspaces.filter((w) => w.owner_user_id === userId).map((w) => w.id)

@@ -186,6 +186,19 @@ export const filePatchSchema = z
     message: "nothing to update.",
   });
 
+/** Durable missions. */
+export const missionCreateSchema = z
+  .object({ template: z.enum(["meeting_prep"]) })
+  .strict();
+
+export const missionAnswerSchema = z
+  .object({ answer: z.string().trim().min(1).max(300) })
+  .strict();
+
+export const missionControlSchema = z
+  .object({ op: z.enum(["pause", "resume", "stop"]) })
+  .strict();
+
 /** Workspaces (teams/household). */
 export const workspaceSchema = z
   .object({ name: z.string().trim().min(1).max(80) })

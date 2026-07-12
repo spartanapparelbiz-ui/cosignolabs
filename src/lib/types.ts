@@ -380,3 +380,94 @@ export interface WorkspaceMemberRecord {
   created_at: string;
   updated_at: string;
 }
+
+/* ------------------------------------------------------ durable missions */
+
+/**
+ * The durable mission engine. Missions progress SERVER-SIDE on ticks; state
+ * lives in these records, never in a browser session. Consequential steps
+ * link an action card (action_id) and block on the same approval door as
+ * everything else.
+ */
+export type MissionRunState =
+  | "queued"
+  | "running"
+  | "awaiting_input"
+  | "awaiting_approval"
+  | "retrying"
+  | "verifying"
+  | "paused"
+  | "completed"
+  | "partial"
+  | "failed"
+  | "stopped"
+  | "blocked";
+
+/** A structured question blocking one step — never a dead-end failure. */
+export interface MissionQuestion {
+  step_id: string;
+  question: string;
+  why: string;
+  options: string[];
+  recommended?: string;
+  /** What the answer changes about the mission. */
+  effect: string;
+}
+
+export interface MissionRecord {
+  id: string;
+  user_id: string;
+  session_id: string;
+  goal: string;
+  state: MissionRunState;
+  plan_version: number;
+  pending_question: MissionQuestion | null;
+  receipt: Record<string, unknown> | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+}
+
+export type MissionStepState =
+  | "ready"
+  | "running"
+  | "awaiting_input"
+  | "awaiting_approval"
+  | "retrying"
+  | "verifying"
+  | "completed"
+  | "failed"
+  | "vetoed"
+  | "skipped"
+  | "canceled";
+
+export interface MissionSourceRef {
+  name: string;
+  detail: string;
+  simulated?: boolean;
+}
+
+export interface MissionStepRecord {
+  id: string;
+  mission_id: string;
+  user_id: string;
+  idx: number;
+  purpose: string;
+  operator: string;
+  tool: string;
+  state: MissionStepState;
+  depends_on: number[];
+  input: Record<string, unknown>;
+  output: Record<string, unknown> | null;
+  sources: MissionSourceRef[];
+  action_id: string | null;
+  retry_count: number;
+  max_retries: number;
+  error: string | null;
+  verification: Record<string, unknown> | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}

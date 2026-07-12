@@ -7,6 +7,12 @@ import type {
   WorkspaceRecord,
   WorkspaceMemberRecord,
   WorkspaceRole,
+  MissionRecord,
+  MissionStepRecord,
+  MissionRunState,
+  MissionStepState,
+  MissionQuestion,
+  MissionSourceRef,
   AccountAuditRecord,
   ActionEventRecord,
   ActionEventType,
@@ -75,6 +81,30 @@ export interface OAuthStateRow {
   redirect_uri: string;
   expires_at: string;
 }
+
+export interface MissionInsert {
+  user_id: string;
+  session_id: string;
+  goal: string;
+}
+
+export interface MissionStepInsert {
+  mission_id: string;
+  user_id: string;
+  idx: number;
+  purpose: string;
+  operator: string;
+  tool: string;
+  depends_on: number[];
+  input?: Record<string, unknown>;
+  max_retries?: number;
+  /** Initial state — defaults to "ready". */
+  state?: MissionStepState;
+  sources?: MissionSourceRef[];
+}
+
+// Re-exported so engine/tests can type against the store module alone.
+export type { MissionQuestion, MissionRunState };
 
 export interface ActionInsert {
   session_id: string;
@@ -253,6 +283,44 @@ export interface Store {
     patch: Partial<Pick<FileRecord, "name" | "content">>
   ): Promise<FileRecord | null>;
   deleteFile(userId: string, id: string): Promise<void>;
+
+  /* -- durable missions (server-side multi-step work, advanced on ticks) -- */
+  createMission(input: MissionInsert): Promise<MissionRecord>;
+  getMission(userId: string, id: string): Promise<MissionRecord | null>;
+  listMissions(userId: string, limit?: number): Promise<MissionRecord[]>;
+  updateMission(
+    userId: string,
+    id: string,
+    patch: Partial<
+      Pick<
+        MissionRecord,
+        "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at"
+      >
+    >
+  ): Promise<MissionRecord | null>;
+  /** Missions any user owns that the tick should advance (queued/running/retrying/verifying). */
+  listRunnableMissions(limit: number): Promise<MissionRecord[]>;
+  createMissionSteps(steps: MissionStepInsert[]): Promise<MissionStepRecord[]>;
+  listMissionSteps(userId: string, missionId: string): Promise<MissionStepRecord[]>;
+  updateMissionStep(
+    userId: string,
+    id: string,
+    patch: Partial<
+      Pick<
+        MissionStepRecord,
+        | "state"
+        | "input"
+        | "output"
+        | "sources"
+        | "action_id"
+        | "retry_count"
+        | "error"
+        | "verification"
+        | "started_at"
+        | "completed_at"
+      >
+    >
+  ): Promise<MissionStepRecord | null>;
 
   /* -- workspaces (teams/household: shared visibility + delegated approvals) -- */
   /** Create a workspace with the creator as its active owner member. */

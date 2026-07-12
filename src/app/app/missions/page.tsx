@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MissionList } from "@/components/app/MissionList";
+import { MissionRunner } from "@/components/app/MissionRunner";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,13 @@ export default function MissionsPage() {
           new mission
         </Link>
       </div>
-      <div className="mt-6 flex-1">
+      <div className="mt-6">
+        <MissionRunner />
+      </div>
+      <h2 className="mt-8 text-sm font-extrabold lowercase tracking-widest text-ink-soft">
+        command threads
+      </h2>
+      <div className="mt-3 flex-1">
         <MissionList />
       </div>
     </div>
