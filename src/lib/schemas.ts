@@ -186,6 +186,30 @@ export const filePatchSchema = z
     message: "nothing to update.",
   });
 
+/** Workspaces (teams/household). */
+export const workspaceSchema = z
+  .object({ name: z.string().trim().min(1).max(80) })
+  .strict();
+
+export const workspaceInviteSchema = z
+  .object({
+    email: z.string().email().max(200),
+    role: z.enum(["approver", "member"]).optional(),
+  })
+  .strict();
+
+export const workspaceMemberPatchSchema = z
+  .object({ role: z.enum(["approver", "member"]) })
+  .strict();
+
+export const delegatedDecisionSchema = z
+  .object({
+    action_id: uuid,
+    decision: z.enum(["approve", "veto"]),
+    reason: z.string().max(500).optional(),
+  })
+  .strict();
+
 export const actionsQuerySchema = z
   .object({
     session: uuid.optional(),

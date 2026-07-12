@@ -212,6 +212,11 @@ export type AccountAuditType =
   | "account_deleted"
   | "automation_created"
   | "automation_deleted"
+  | "workspace_created"
+  | "workspace_deleted"
+  | "workspace_member_invited"
+  | "workspace_member_removed"
+  | "workspace_role_changed"
   | "promo";
 
 /**
@@ -344,6 +349,34 @@ export interface FileRecord {
   mime: "text/plain" | "text/markdown" | "text/csv";
   content: string;
   version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/* ------------------------------------------------------------- workspaces */
+
+/**
+ * Teams/household v1. Roles gate DELEGATED APPROVALS only: an owner/approver
+ * may approve or veto a workspace-mate's tier-2 proposals through the same
+ * engine door. Tier-3 approvals stay personal to the action's owner.
+ */
+export type WorkspaceRole = "owner" | "approver" | "member";
+
+export interface WorkspaceRecord {
+  id: string;
+  owner_user_id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface WorkspaceMemberRecord {
+  id: string;
+  workspace_id: string;
+  /** null until the invited email signs in and the invite is accepted. */
+  user_id: string | null;
+  email: string;
+  role: WorkspaceRole;
+  status: "invited" | "active";
   created_at: string;
   updated_at: string;
 }

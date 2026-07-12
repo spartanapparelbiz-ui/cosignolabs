@@ -4,6 +4,9 @@ import type {
   MemoryRecord,
   UserPrefs,
   FileRecord,
+  WorkspaceRecord,
+  WorkspaceMemberRecord,
+  WorkspaceRole,
   AccountAuditRecord,
   ActionEventRecord,
   ActionEventType,
@@ -250,6 +253,34 @@ export interface Store {
     patch: Partial<Pick<FileRecord, "name" | "content">>
   ): Promise<FileRecord | null>;
   deleteFile(userId: string, id: string): Promise<void>;
+
+  /* -- workspaces (teams/household: shared visibility + delegated approvals) -- */
+  /** Create a workspace with the creator as its active owner member. */
+  createWorkspace(userId: string, email: string, name: string): Promise<WorkspaceRecord>;
+  /** The workspace a user is an ACTIVE member of (v1: at most one). */
+  getWorkspaceForUser(userId: string): Promise<WorkspaceRecord | null>;
+  getWorkspace(id: string): Promise<WorkspaceRecord | null>;
+  listWorkspaceMembers(workspaceId: string): Promise<WorkspaceMemberRecord[]>;
+  /** Add an invited member row (unique per email within the workspace). */
+  inviteWorkspaceMember(
+    workspaceId: string,
+    email: string,
+    role: Exclude<WorkspaceRole, "owner">
+  ): Promise<WorkspaceMemberRecord>;
+  /**
+   * Bind pending invites for this email to the user and activate the first
+   * (v1: one workspace per user). Returns the activated membership, if any.
+   */
+  acceptWorkspaceInvites(userId: string, email: string): Promise<WorkspaceMemberRecord | null>;
+  updateWorkspaceMember(
+    workspaceId: string,
+    memberId: string,
+    patch: Partial<Pick<WorkspaceMemberRecord, "role">>
+  ): Promise<WorkspaceMemberRecord | null>;
+  removeWorkspaceMember(workspaceId: string, memberId: string): Promise<void>;
+  deleteWorkspace(id: string): Promise<void>;
+  /** Proposed actions across a set of users — delegated-decision listing. */
+  listProposedActionsForUsers(userIds: string[], limit?: number): Promise<ActionRecord[]>;
 
   /** Cascade-delete everything owned by a user (account deletion). */
   deleteAllUserData(userId: string): Promise<void>;

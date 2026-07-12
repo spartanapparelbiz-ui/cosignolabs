@@ -20,6 +20,9 @@ import {
   MemoryRecord,
   UserPrefs,
   FileRecord,
+  WorkspaceRecord,
+  WorkspaceMemberRecord,
+  WorkspaceRole,
 } from "../types";
 import type {
   ActionInsert,
@@ -849,7 +852,164 @@ export class SupabaseStore implements Store {
     if (error) throw new Error(error.message);
   }
 
+  /* -- workspaces -- */
+  async createWorkspace(userId: string, email: string, name: string): Promise<WorkspaceRecord> {
+    const { data, error } = await this.client
+      .from("workspaces")
+      .insert({ owner_user_id: userId, name })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    const ws = data as WorkspaceRecord;
+    const { error: mErr } = await this.client.from("workspace_members").insert({
+      workspace_id: ws.id,
+      user_id: userId,
+      email: email.toLowerCase(),
+      role: "owner",
+      status: "active",
+    });
+    if (mErr) throw new Error(mErr.message);
+    return ws;
+  }
+
+  async getWorkspaceForUser(userId: string): Promise<WorkspaceRecord | null> {
+    const { data, error } = await this.client
+      .from("workspace_members")
+      .select("workspace_id")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) return null;
+    return this.getWorkspace((data as { workspace_id: string }).workspace_id);
+  }
+
+  async getWorkspace(id: string): Promise<WorkspaceRecord | null> {
+    const { data, error } = await this.client
+      .from("workspaces")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as WorkspaceRecord) ?? null;
+  }
+
+  async listWorkspaceMembers(workspaceId: string): Promise<WorkspaceMemberRecord[]> {
+    const { data, error } = await this.client
+      .from("workspace_members")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as WorkspaceMemberRecord[];
+  }
+
+  async inviteWorkspaceMember(
+    workspaceId: string,
+    email: string,
+    role: Exclude<WorkspaceRole, "owner">
+  ): Promise<WorkspaceMemberRecord> {
+    const { data, error } = await this.client
+      .from("workspace_members")
+      .insert({ workspace_id: workspaceId, email: email.toLowerCase(), role, status: "invited" })
+      .select()
+      .single();
+    if (error) {
+      // unique (workspace_id, email) — surface as the same error the memory
+      // store raises so routes translate it identically.
+      if (error.code === "23505") throw new Error("already_invited");
+      throw new Error(error.message);
+    }
+    return data as WorkspaceMemberRecord;
+  }
+
+  async acceptWorkspaceInvites(userId: string, email: string): Promise<WorkspaceMemberRecord | null> {
+    const active = await this.getWorkspaceForUser(userId);
+    if (active) return null; // v1: one workspace per user
+    const { data, error } = await this.client
+      .from("workspace_members")
+      .select("*")
+      .eq("email", email.toLowerCase())
+      .eq("status", "invited")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) return null;
+    const invite = data as WorkspaceMemberRecord;
+    const { data: updated, error: uErr } = await this.client
+      .from("workspace_members")
+      .update({ user_id: userId, status: "active", updated_at: new Date().toISOString() })
+      .eq("id", invite.id)
+      .eq("status", "invited")
+      .select()
+      .maybeSingle();
+    if (uErr) throw new Error(uErr.message);
+    return (updated as WorkspaceMemberRecord) ?? null;
+  }
+
+  async updateWorkspaceMember(
+    workspaceId: string,
+    memberId: string,
+    patch: Partial<Pick<WorkspaceMemberRecord, "role">>
+  ): Promise<WorkspaceMemberRecord | null> {
+    const { data, error } = await this.client
+      .from("workspace_members")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("id", memberId)
+      .eq("workspace_id", workspaceId)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as WorkspaceMemberRecord) ?? null;
+  }
+
+  async removeWorkspaceMember(workspaceId: string, memberId: string): Promise<void> {
+    const { error } = await this.client
+      .from("workspace_members")
+      .delete()
+      .eq("id", memberId)
+      .eq("workspace_id", workspaceId);
+    if (error) throw new Error(error.message);
+  }
+
+  async deleteWorkspace(id: string): Promise<void> {
+    // workspace_members cascade via FK ON DELETE CASCADE.
+    const { error } = await this.client.from("workspaces").delete().eq("id", id);
+    if (error) throw new Error(error.message);
+  }
+
+  async listProposedActionsForUsers(userIds: string[], limit = 50): Promise<ActionRecord[]> {
+    if (userIds.length === 0) return [];
+    const { data, error } = await this.client
+      .from("actions")
+      .select("*")
+      .in("user_id", userIds)
+      .eq("status", "proposed")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as ActionRecord[];
+  }
+
   async deleteAllUserData(userId: string): Promise<void> {
+    // Workspaces they OWN dissolve entirely (members cascade); memberships
+    // elsewhere are removed below.
+    const { data: owned, error: wsErr } = await this.client
+      .from("workspaces")
+      .select("id")
+      .eq("owner_user_id", userId);
+    if (wsErr) throw new Error(wsErr.message);
+    for (const w of (owned ?? []) as { id: string }[]) {
+      await this.deleteWorkspace(w.id);
+    }
+    const { error: memErr } = await this.client
+      .from("workspace_members")
+      .delete()
+      .eq("user_id", userId);
+    if (memErr) throw new Error(memErr.message);
+
     // sessions cascade to messages/actions/action_events via FK ON DELETE
     // CASCADE; the rest are deleted explicitly.
     for (const table of [

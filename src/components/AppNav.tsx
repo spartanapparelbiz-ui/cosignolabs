@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/app/automations", label: "automations" },
   { href: "/app/memory", label: "memory" },
   { href: "/app/files", label: "files" },
+  { href: "/app/team", label: "team" },
   { href: "/app/activity", label: "activity" },
   { href: "/app/account", label: "account" },
 ];

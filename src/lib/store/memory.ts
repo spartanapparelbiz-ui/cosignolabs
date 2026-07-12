@@ -20,6 +20,9 @@ import {
   MemoryRecord,
   UserPrefs,
   FileRecord,
+  WorkspaceRecord,
+  WorkspaceMemberRecord,
+  WorkspaceRole,
 } from "../types";
 import type {
   ActionInsert,
@@ -602,6 +605,119 @@ export class MemoryStore implements Store {
     this.files = this.files.filter((x) => !(x.id === id && x.user_id === userId));
   }
 
+  /* -- workspaces -- */
+  private workspaces: WorkspaceRecord[] = [];
+  private workspaceMembers: WorkspaceMemberRecord[] = [];
+
+  async createWorkspace(userId: string, email: string, name: string): Promise<WorkspaceRecord> {
+    const now = new Date().toISOString();
+    const ws: WorkspaceRecord = { id: randomUUID(), owner_user_id: userId, name, created_at: now };
+    this.workspaces.push(ws);
+    this.workspaceMembers.push({
+      id: randomUUID(),
+      workspace_id: ws.id,
+      user_id: userId,
+      email: email.toLowerCase(),
+      role: "owner",
+      status: "active",
+      created_at: now,
+      updated_at: now,
+    });
+    return { ...ws };
+  }
+
+  async getWorkspaceForUser(userId: string): Promise<WorkspaceRecord | null> {
+    const m = this.workspaceMembers.find(
+      (x) => x.user_id === userId && x.status === "active"
+    );
+    if (!m) return null;
+    const ws = this.workspaces.find((w) => w.id === m.workspace_id);
+    return ws ? { ...ws } : null;
+  }
+
+  async getWorkspace(id: string): Promise<WorkspaceRecord | null> {
+    const ws = this.workspaces.find((w) => w.id === id);
+    return ws ? { ...ws } : null;
+  }
+
+  async listWorkspaceMembers(workspaceId: string): Promise<WorkspaceMemberRecord[]> {
+    return this.workspaceMembers
+      .filter((m) => m.workspace_id === workspaceId)
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((m) => ({ ...m }));
+  }
+
+  async inviteWorkspaceMember(
+    workspaceId: string,
+    email: string,
+    role: Exclude<WorkspaceRole, "owner">
+  ): Promise<WorkspaceMemberRecord> {
+    const lower = email.toLowerCase();
+    if (this.workspaceMembers.some((m) => m.workspace_id === workspaceId && m.email === lower)) {
+      throw new Error("already_invited");
+    }
+    const now = new Date().toISOString();
+    const rec: WorkspaceMemberRecord = {
+      id: randomUUID(),
+      workspace_id: workspaceId,
+      user_id: null,
+      email: lower,
+      role,
+      status: "invited",
+      created_at: now,
+      updated_at: now,
+    };
+    this.workspaceMembers.push(rec);
+    return { ...rec };
+  }
+
+  async acceptWorkspaceInvites(userId: string, email: string): Promise<WorkspaceMemberRecord | null> {
+    // Already in a workspace → nothing to accept (v1: one workspace per user).
+    if (this.workspaceMembers.some((m) => m.user_id === userId && m.status === "active")) return null;
+    const lower = email.toLowerCase();
+    const invite = this.workspaceMembers
+      .filter((m) => m.email === lower && m.status === "invited")
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))[0];
+    if (!invite) return null;
+    invite.user_id = userId;
+    invite.status = "active";
+    invite.updated_at = new Date().toISOString();
+    return { ...invite };
+  }
+
+  async updateWorkspaceMember(
+    workspaceId: string,
+    memberId: string,
+    patch: Partial<Pick<WorkspaceMemberRecord, "role">>
+  ): Promise<WorkspaceMemberRecord | null> {
+    const m = this.workspaceMembers.find(
+      (x) => x.id === memberId && x.workspace_id === workspaceId
+    );
+    if (!m) return null;
+    Object.assign(m, patch, { updated_at: new Date().toISOString() });
+    return { ...m };
+  }
+
+  async removeWorkspaceMember(workspaceId: string, memberId: string): Promise<void> {
+    this.workspaceMembers = this.workspaceMembers.filter(
+      (m) => !(m.id === memberId && m.workspace_id === workspaceId)
+    );
+  }
+
+  async deleteWorkspace(id: string): Promise<void> {
+    this.workspaces = this.workspaces.filter((w) => w.id !== id);
+    this.workspaceMembers = this.workspaceMembers.filter((m) => m.workspace_id !== id);
+  }
+
+  async listProposedActionsForUsers(userIds: string[], limit = 50): Promise<ActionRecord[]> {
+    const ids = new Set(userIds);
+    return this.actions
+      .filter((a) => ids.has(a.user_id) && a.status === "proposed")
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, limit)
+      .map((a) => ({ ...a }));
+  }
+
   async deleteAllUserData(userId: string): Promise<void> {
     this.sessions = this.sessions.filter((s) => s.user_id !== userId);
     this.messages = this.messages.filter((m) => m.user_id !== userId);
@@ -623,5 +739,13 @@ export class MemoryStore implements Store {
     this.memories = this.memories.filter((m) => m.user_id !== userId);
     this.prefs.delete(userId);
     this.files = this.files.filter((f) => f.user_id !== userId);
+    // Workspaces they OWN dissolve entirely; memberships elsewhere are removed.
+    const owned = new Set(
+      this.workspaces.filter((w) => w.owner_user_id === userId).map((w) => w.id)
+    );
+    this.workspaces = this.workspaces.filter((w) => !owned.has(w.id));
+    this.workspaceMembers = this.workspaceMembers.filter(
+      (m) => !owned.has(m.workspace_id) && m.user_id !== userId
+    );
   }
 }

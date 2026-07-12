@@ -108,7 +108,12 @@ expanded connectors (Google Calendar + Google Drive with real capabilities on
 the SAME Google OAuth app as Gmail — zero extra registration; Outlook via
 Microsoft Graph; Slack + Notion upgraded from identity stubs to real
 list/post/search/create actions; Notion's Basic-auth token exchange fixed;
-every action risk-classed → tiered by the server).
+every action risk-classed → tiered by the server) · teams/household v1
+(workspaces with email invites that activate on sign-in, owner/approver/member
+roles, and delegated approvals: owners/approvers may approve or veto a
+workspace-mate's tier-2 proposals through the same engine door with the actor
+recorded in the audit trail; tier-3 approvals stay personal; the agent gains
+nothing from a workspace — only humans are added).
 
 SATISFIED BY CONSTRUCTION (no build needed): "material changes invalidate
 approval" — approve requires status=proposed and executes atomically in the
@@ -124,9 +129,8 @@ BLOCKED ON FOUNDER DECISIONS (cannot ship honestly without them):
 - Gmail live activation: GOOGLE_CLIENT_ID/SECRET in Netlify (GMAIL_SETUP.md).
 - App keys (Clerk/Supabase/planner) in Netlify for the real signed-in product.
 
-REMAINING BUILD PHASES (in order): teams/household (workspace_id migration,
-roles, policies) → browser control (largest: isolated sessions, step-visible
-driving, approval-gated actions). Connector code is DONE for
+REMAINING BUILD PHASES: browser control (largest: isolated sessions,
+step-visible driving, approval-gated actions). Connector code is DONE for
 gmail/calendar/drive/github/outlook/slack/notion — each goes live the moment
 its env keys are set (Google's one pair lights up all three Google
 connectors); further providers (asana/clickup/shopify/stripe) are now a

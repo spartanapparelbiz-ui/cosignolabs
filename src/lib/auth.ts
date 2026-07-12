@@ -25,3 +25,21 @@ export async function getUserId(): Promise<string | null> {
   const { userId } = await auth();
   return userId ?? null;
 }
+
+/**
+ * The signed-in user's verified email (lowercased) — used to match workspace
+ * invites. Same fail-closed shape as getUserId: demo email in development
+ * only, null in production without Clerk.
+ */
+export async function getUserEmail(): Promise<string | null> {
+  if (!clerkConfigured()) {
+    return isProduction() ? null : "demo@cosigno.local";
+  }
+  const { currentUser } = await import("@clerk/nextjs/server");
+  const user = await currentUser();
+  const email =
+    user?.primaryEmailAddress?.emailAddress ??
+    user?.emailAddresses?.[0]?.emailAddress ??
+    null;
+  return email ? email.toLowerCase() : null;
+}

@@ -82,6 +82,12 @@ export interface ApproveOptions {
   confirmation?: string;
   /** Optional edited payload applied at approval time. */
   payload?: Record<string, unknown>;
+  /**
+   * Set ONLY by the workspace delegation layer (never from a client body):
+   * a workspace-mate with approval rights is deciding on the owner's behalf.
+   * Recorded verbatim in the audit trail.
+   */
+  delegate?: { actorId: string; actorEmail: string };
 }
 
 export async function approveAction(
@@ -111,6 +117,21 @@ export async function approveAction(
       "injection_blocked",
       "this card was held: external content attempted to direct the agent. it can't be executed — re-issue the command yourself if you want this done."
     );
+  }
+
+  // Delegated approvals are for routine writes only: tier 3 stays personal
+  // (the typed confirmation belongs to the action's owner), and a delegate
+  // never edits the payload — they sign exactly what the owner saw.
+  if (opts.delegate) {
+    if (action.tier !== 2) {
+      throw new EngineError(
+        "forbidden",
+        "only tier-2 actions can be approved by a workspace member — locked actions stay with their owner."
+      );
+    }
+    if (opts.payload) {
+      throw new EngineError("forbidden", "a delegated approval can't edit the payload.");
+    }
   }
 
   if (action.tier === 3) {
@@ -151,6 +172,9 @@ export async function approveAction(
   await store.logEvent(userId, actionId, "approved", "user", {
     tier: action.tier,
     confirmed: action.tier === 3 ? action.category : undefined,
+    ...(opts.delegate
+      ? { delegated: true, approved_by: opts.delegate.actorEmail }
+      : {}),
   });
 
   return runExecution(userId, actionId);
@@ -159,7 +183,8 @@ export async function approveAction(
 export async function vetoAction(
   userId: string,
   actionId: string,
-  reason: string
+  reason: string,
+  delegate?: { actorId: string; actorEmail: string }
 ): Promise<ActionRecord> {
   const store = getStore();
   const action = await store.getAction(userId, actionId);
@@ -173,7 +198,10 @@ export async function vetoAction(
   const updated = await store.transitionAction(userId, actionId, "vetoed", {
     veto_reason: reason || "no reason given",
   });
-  await store.logEvent(userId, actionId, "vetoed", "user", { reason });
+  await store.logEvent(userId, actionId, "vetoed", "user", {
+    reason,
+    ...(delegate ? { delegated: true, vetoed_by: delegate.actorEmail } : {}),
+  });
   return updated;
 }
 
