@@ -7,7 +7,15 @@
  */
 
 /** Provider keys that ship with a bundled logo in /public/logos. */
-const BUNDLED = new Set(["github", "google", "slack", "notion"]);
+const BUNDLED = new Set([
+  "github",
+  "google",
+  "google-calendar",
+  "google-drive",
+  "outlook",
+  "slack",
+  "notion",
+]);
 
 /** Path to a bundled logo (served static, long-cached), or null. */
 export function bundledLogo(providerKey: string): string | null {

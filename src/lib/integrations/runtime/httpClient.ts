@@ -50,7 +50,10 @@ async function once(url: string, opts: RequestOptions): Promise<Response> {
             ? opts.body
             : new URLSearchParams(opts.body as Record<string, string>).toString();
       } else {
-        headers["content-type"] = "application/json";
+        // Default to JSON, but honor a caller-supplied content type (Drive
+        // multipart uploads send a raw string body with their own boundary).
+        const hasType = Object.keys(headers).some((k) => k.toLowerCase() === "content-type");
+        if (!hasType) headers["content-type"] = "application/json";
         body = typeof opts.body === "string" ? opts.body : JSON.stringify(opts.body);
       }
     }

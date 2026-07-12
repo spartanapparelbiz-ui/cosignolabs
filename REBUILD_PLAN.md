@@ -103,7 +103,12 @@ automations (recurring missions through the same approval door, run history,
 run-now, honest failure records) · memory (user-written planner context:
 CRUD, per-note enable, master kill switch — agent never writes) · files
 (mission-aware text documents: create/open/edit with version bump on every
-save, download, delete; text/markdown/csv v1, binary is a later phase).
+save, download, delete; text/markdown/csv v1, binary is a later phase) ·
+expanded connectors (Google Calendar + Google Drive with real capabilities on
+the SAME Google OAuth app as Gmail — zero extra registration; Outlook via
+Microsoft Graph; Slack + Notion upgraded from identity stubs to real
+list/post/search/create actions; Notion's Basic-auth token exchange fixed;
+every action risk-classed → tiered by the server).
 
 SATISFIED BY CONSTRUCTION (no build needed): "material changes invalidate
 approval" — approve requires status=proposed and executes atomically in the
@@ -119,11 +124,13 @@ BLOCKED ON FOUNDER DECISIONS (cannot ship honestly without them):
 - Gmail live activation: GOOGLE_CLIENT_ID/SECRET in Netlify (GMAIL_SETUP.md).
 - App keys (Clerk/Supabase/planner) in Netlify for the real signed-in product.
 
-REMAINING BUILD PHASES (in order):
-calendar/drive/outlook/slack/notion/asana/clickup/shopify/stripe connectors
-(each is a provider config + real OAuth app the founder must register) →
-teams/household (workspace_id migration, roles, policies) → browser control
-(largest: isolated sessions, step-visible driving, approval-gated actions).
+REMAINING BUILD PHASES (in order): teams/household (workspace_id migration,
+roles, policies) → browser control (largest: isolated sessions, step-visible
+driving, approval-gated actions). Connector code is DONE for
+gmail/calendar/drive/github/outlook/slack/notion — each goes live the moment
+its env keys are set (Google's one pair lights up all three Google
+connectors); further providers (asana/clickup/shopify/stripe) are now a
+small declarative config each, added on demand.
 
 Non-negotiables across every phase: the approval state machine stays the only
 door to execution; all tenant tables keep RLS; tests stay green per phase; no

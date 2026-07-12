@@ -139,7 +139,26 @@ cache-busting.
    - Authorization callback URL: `https://<your-site>/api/connections/github/callback`
    - Copy the client id/secret → `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`.
 4. Redeploy. The GitHub card on the Connections screen becomes connectable; the
-   others (Google/Slack/Notion) stay greyed until you set their env the same way.
+   others stay greyed until you set their env the same way.
+
+**One Google app powers three connectors.** `GOOGLE_CLIENT_ID` /
+`GOOGLE_CLIENT_SECRET` enable Gmail, **Google Calendar**, and **Google
+Drive** together — no extra registration. On the Google Cloud consent screen,
+add all three scopes (`gmail.modify`, `calendar.events`, `drive.file`); each
+connector still asks the user only for its own scope at connect time. Drive
+uses `drive.file`, so cosigno can only see files it created — never the whole
+drive.
+
+**Outlook** needs its own app: Azure Portal → App registrations → new app,
+redirect URI `https://<your-site>/api/connections/outlook/callback`, add a
+client secret, grant delegated Graph permissions `Mail.ReadWrite`,
+`Mail.Send`, `User.Read` → `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`.
+
+**Slack** (api.slack.com/apps): bot scopes `channels:read`, `chat:write`,
+redirect URL as above with `/slack/` → `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`.
+**Notion** (notion.so/my-integrations, public integration): redirect with
+`/notion/` → `NOTION_CLIENT_ID`, `NOTION_CLIENT_SECRET`. Users pick which
+pages to share during Notion's own consent step.
 
 For **custom MCP** there's nothing to register — a user pastes a remote MCP URL
 (https, or http for localhost) and an optional bearer token in the "add server"

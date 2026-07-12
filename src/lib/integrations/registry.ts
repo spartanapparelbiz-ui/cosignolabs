@@ -4,6 +4,9 @@ import { bundledLogo, GENERIC_MCP_LOGO } from "./logos";
 import { serverTier } from "./tiers";
 import { githubProvider } from "./providers/github";
 import { gmailProvider } from "./providers/gmail";
+import { googleCalendarProvider } from "./providers/googleCalendar";
+import { googleDriveProvider } from "./providers/googleDrive";
+import { outlookProvider } from "./providers/outlook";
 import { notionProvider, slackProvider } from "./providers/oauth";
 
 /**
@@ -17,6 +20,9 @@ import { notionProvider, slackProvider } from "./providers/oauth";
  */
 const PROVIDERS: IntegrationProvider[] = [
   gmailProvider,
+  googleCalendarProvider,
+  googleDriveProvider,
+  outlookProvider,
   githubProvider,
   slackProvider,
   notionProvider,
