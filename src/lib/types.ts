@@ -332,3 +332,18 @@ export interface UserPrefs {
   user_id: string;
   memory_enabled: boolean;
 }
+
+/* ------------------------------------------------------------------ files */
+
+/** A text-based file: a deliverable or user document, optionally mission-linked. */
+export interface FileRecord {
+  id: string;
+  user_id: string;
+  session_id: string | null;
+  name: string;
+  mime: "text/plain" | "text/markdown" | "text/csv";
+  content: string;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}

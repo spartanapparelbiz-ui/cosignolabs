@@ -98,7 +98,12 @@ home today-panel + committed composer prompt · approval engine (typed confirm,
 tier clamp, injection defense) · authority model (observe/prepare/confirm +
 scoped trust via the permissions board; destructive pinned) · connections
 (Gmail real; custom MCP + custom API-key with SSRF/timeouts/caps) · activity +
-CSV export · branded failure states · cost caps · Stripe billing ($29 pro).
+CSV export · branded failure states · cost caps · Stripe billing ($29 pro) ·
+automations (recurring missions through the same approval door, run history,
+run-now, honest failure records) · memory (user-written planner context:
+CRUD, per-note enable, master kill switch — agent never writes) · files
+(mission-aware text documents: create/open/edit with version bump on every
+save, download, delete; text/markdown/csv v1, binary is a later phase).
 
 SATISFIED BY CONSTRUCTION (no build needed): "material changes invalidate
 approval" — approve requires status=proposed and executes atomically in the
@@ -114,9 +119,7 @@ BLOCKED ON FOUNDER DECISIONS (cannot ship honestly without them):
 - Gmail live activation: GOOGLE_CLIENT_ID/SECRET in Netlify (GMAIL_SETUP.md).
 - App keys (Clerk/Supabase/planner) in Netlify for the real signed-in product.
 
-REMAINING BUILD PHASES (in order): automations (recurring missions: table,
-scheduler, run history, test mode — every run through the propose/approve
-door) → memory controls (view/edit/delete, scoped) → files surface →
+REMAINING BUILD PHASES (in order):
 calendar/drive/outlook/slack/notion/asana/clickup/shopify/stripe connectors
 (each is a provider config + real OAuth app the founder must register) →
 teams/household (workspace_id migration, roles, policies) → browser control

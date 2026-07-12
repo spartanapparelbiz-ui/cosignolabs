@@ -166,6 +166,26 @@ export const memoryPrefsSchema = z
   .object({ memory_enabled: z.boolean() })
   .strict();
 
+/** Text-based files (deliverables + documents). Content ≤ 80k chars. */
+export const fileSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    mime: z.enum(["text/plain", "text/markdown", "text/csv"]),
+    content: z.string().max(80000),
+    session_id: uuid.optional(),
+  })
+  .strict();
+
+export const filePatchSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    content: z.string().max(80000).optional(),
+  })
+  .strict()
+  .refine((v) => v.name !== undefined || v.content !== undefined, {
+    message: "nothing to update.",
+  });
+
 export const actionsQuerySchema = z
   .object({
     session: uuid.optional(),

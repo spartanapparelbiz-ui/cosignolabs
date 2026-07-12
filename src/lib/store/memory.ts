@@ -19,6 +19,7 @@ import {
   AutomationRunRecord,
   MemoryRecord,
   UserPrefs,
+  FileRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -290,6 +291,7 @@ export class MemoryStore implements Store {
   private automationRuns: AutomationRunRecord[] = [];
   private memories: MemoryRecord[] = [];
   private prefs = new Map<string, UserPrefs>();
+  private files: FileRecord[] = [];
   private oauthStates = new Map<string, OAuthStateRow>();
 
   async createConnection(input: ConnectionInsert): Promise<ConnectionRecord> {
@@ -554,6 +556,52 @@ export class MemoryStore implements Store {
     this.prefs.set(userId, { user_id: userId, memory_enabled: enabled });
   }
 
+
+  /* -- files -- */
+  async createFile(input: import("./index").FileInsert): Promise<FileRecord> {
+    const now = new Date().toISOString();
+    const rec: FileRecord = {
+      id: randomUUID(),
+      user_id: input.user_id,
+      session_id: input.session_id ?? null,
+      name: input.name,
+      mime: input.mime,
+      content: input.content,
+      version: 1,
+      created_at: now,
+      updated_at: now,
+    };
+    this.files.push(rec);
+    return { ...rec };
+  }
+
+  async listFiles(userId: string): Promise<FileRecord[]> {
+    return this.files
+      .filter((f) => f.user_id === userId)
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+      .map((f) => ({ ...f, content: f.content }));
+  }
+
+  async getFile(userId: string, id: string): Promise<FileRecord | null> {
+    const f = this.files.find((x) => x.id === id && x.user_id === userId);
+    return f ? { ...f } : null;
+  }
+
+  async updateFile(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<FileRecord, "name" | "content">>
+  ): Promise<FileRecord | null> {
+    const f = this.files.find((x) => x.id === id && x.user_id === userId);
+    if (!f) return null;
+    Object.assign(f, patch, { version: f.version + 1, updated_at: new Date().toISOString() });
+    return { ...f };
+  }
+
+  async deleteFile(userId: string, id: string): Promise<void> {
+    this.files = this.files.filter((x) => !(x.id === id && x.user_id === userId));
+  }
+
   async deleteAllUserData(userId: string): Promise<void> {
     this.sessions = this.sessions.filter((s) => s.user_id !== userId);
     this.messages = this.messages.filter((m) => m.user_id !== userId);
@@ -574,5 +622,6 @@ export class MemoryStore implements Store {
     this.automationRuns = this.automationRuns.filter((r) => r.user_id !== userId);
     this.memories = this.memories.filter((m) => m.user_id !== userId);
     this.prefs.delete(userId);
+    this.files = this.files.filter((f) => f.user_id !== userId);
   }
 }

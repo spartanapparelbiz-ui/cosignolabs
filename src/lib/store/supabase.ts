@@ -19,6 +19,7 @@ import {
   AutomationRunRecord,
   MemoryRecord,
   UserPrefs,
+  FileRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -782,10 +783,77 @@ export class SupabaseStore implements Store {
     if (error) throw new Error(error.message);
   }
 
+
+  /* -- files -- */
+  async createFile(input: import("./index").FileInsert): Promise<FileRecord> {
+    const { data, error } = await this.client
+      .from("files")
+      .insert({
+        user_id: input.user_id,
+        session_id: input.session_id ?? null,
+        name: input.name,
+        mime: input.mime,
+        content: input.content,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as FileRecord;
+  }
+
+  async listFiles(userId: string): Promise<FileRecord[]> {
+    const { data, error } = await this.client
+      .from("files")
+      .select("*")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as FileRecord[];
+  }
+
+  async getFile(userId: string, id: string): Promise<FileRecord | null> {
+    const { data, error } = await this.client
+      .from("files")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as FileRecord) ?? null;
+  }
+
+  async updateFile(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<FileRecord, "name" | "content">>
+  ): Promise<FileRecord | null> {
+    const existing = await this.getFile(userId, id);
+    if (!existing) return null;
+    const { data, error } = await this.client
+      .from("files")
+      .update({ ...patch, version: existing.version + 1, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as FileRecord) ?? null;
+  }
+
+  async deleteFile(userId: string, id: string): Promise<void> {
+    const { error } = await this.client
+      .from("files")
+      .delete()
+      .eq("user_id", userId)
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+  }
+
   async deleteAllUserData(userId: string): Promise<void> {
     // sessions cascade to messages/actions/action_events via FK ON DELETE
     // CASCADE; the rest are deleted explicitly.
     for (const table of [
+      "files",
       "memories",
       "user_prefs",
       "automation_runs",

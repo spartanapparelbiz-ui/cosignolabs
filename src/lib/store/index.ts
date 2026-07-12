@@ -3,6 +3,7 @@ import type {
   AutomationRunRecord,
   MemoryRecord,
   UserPrefs,
+  FileRecord,
   AccountAuditRecord,
   ActionEventRecord,
   ActionEventType,
@@ -44,6 +45,14 @@ export interface AutomationInsert {
   command: string;
   interval_hours: number;
   next_run_at: string;
+}
+
+export interface FileInsert {
+  user_id: string;
+  session_id?: string | null;
+  name: string;
+  mime: FileRecord["mime"];
+  content: string;
 }
 
 export interface ConnectionPatch {
@@ -229,6 +238,18 @@ export interface Store {
   deleteMemory(userId: string, id: string): Promise<void>;
   getPrefs(userId: string): Promise<UserPrefs>;
   setMemoryEnabled(userId: string, enabled: boolean): Promise<void>;
+
+  /* -- files (text-based, mission-aware) -- */
+  createFile(input: FileInsert): Promise<FileRecord>;
+  listFiles(userId: string): Promise<FileRecord[]>;
+  getFile(userId: string, id: string): Promise<FileRecord | null>;
+  /** Content/name edits bump `version`. */
+  updateFile(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<FileRecord, "name" | "content">>
+  ): Promise<FileRecord | null>;
+  deleteFile(userId: string, id: string): Promise<void>;
 
   /** Cascade-delete everything owned by a user (account deletion). */
   deleteAllUserData(userId: string): Promise<void>;
