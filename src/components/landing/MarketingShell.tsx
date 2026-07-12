@@ -11,6 +11,7 @@ import { PricingLink } from "@/components/landing/Track";
 
 const NAV = [
   { href: "/product", label: "product" },
+  { href: "/operators", label: "operators" },
   { href: "/templates", label: "templates" },
   { href: "/security", label: "security" },
 ] as const;

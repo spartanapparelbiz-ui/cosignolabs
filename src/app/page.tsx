@@ -41,6 +41,7 @@ export default function LandingPage() {
         <nav className="flex items-center gap-1 sm:gap-2">
           {[
             ["/product", "product"],
+            ["/operators", "operators"],
             ["/templates", "templates"],
             ["/security", "security"],
           ].map(([href, label]) => (
@@ -78,12 +79,13 @@ export default function LandingPage() {
         <section className="relative mx-auto grid min-h-[62dvh] w-full max-w-6xl content-center items-center gap-10 px-4 pb-16 pt-8 lg:min-h-[calc(100dvh-160px)] lg:grid-cols-2 lg:pt-8">
           <div>
             <StaggerHeadline
-              text="AI that works. nothing moves without your sign-off."
+              text="the AI operating system that gets things done."
               className="font-display text-4xl font-bold leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.3rem]"
             />
             <p className="mt-5 max-w-xl text-lg font-semibold text-ink-soft animate-word-in [animation-delay:520ms]">
-              give cosigno a goal. it plans the work, prepares every action, and
-              executes across your tools only with the authority you choose.
+              give cosigno a goal. it plans the work, uses your tools,
+              coordinates every step, and completes approved actions while you
+              stay in control.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 animate-word-in [animation-delay:700ms]">
               <Link
@@ -91,13 +93,13 @@ export default function LandingPage() {
                 prefetch
                 className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95"
               >
-                start with cosigno
+                give cosigno a mission
               </Link>
               <a
                 href="#try"
                 className="text-base font-bold lowercase text-ink underline decoration-signal decoration-2 underline-offset-4 transition-colors hover:text-signal"
               >
-                watch a mission ↓
+                watch cosigno work ↓
               </a>
             </div>
           </div>

@@ -65,6 +65,30 @@ tested engine; refactor surfaces on top of it — never stack fakes.
 - **Phase 8 — Onboarding + in-app templates**: guided first mission in the
   demo workspace; template gallery inside the app.
 
+## v3 directive deltas ("AI operating system that gets things done")
+
+Shipped in the v3 pass: the new positioning (hero, "give cosigno a mission" /
+"watch cosigno work"), and a public **/operators** page grounded strictly in
+the REAL capability categories (search/summarize · draft/send/post ·
+update_record/webhook · spend/payment/refund · delete · connection_call) with
+their server-enforced authority ceilings — no fake agent personalities.
+
+Still open from v3, honestly assessed:
+- **Browser control** — real infrastructure (isolated browser sessions,
+  step-visible driving, approval-gated interactions). Cannot be shipped
+  honestly as a pass; a dead "Browser" nav item is worse than none. Own phase,
+  significant build.
+- **Pricing v3** ($19.99/$49.99/$69.99/$129.99 — the third sheet in three
+  directives). Ship ONLY as one coherent commit: plans SSOT + Stripe price IDs
+  (founder runs scripts/stripe-setup.ts) + enforcement + tests + marketing.
+  Until then the live $29 pro pricing stays — marketing must not outrun the
+  backend.
+- **In-app operator attribution** — label each action card / activity row with
+  its operator group (derived from its real category). Small, honest, next.
+- **Memory controls, Files surface, expanded connections (Outlook/Asana/
+  ClickUp/Shopify/Stripe), real connector logos everywhere** — phased; the
+  connector-logo identity component partially exists (bundled logos).
+
 Non-negotiables across every phase: the approval state machine stays the only
 door to execution; all tenant tables keep RLS; tests stay green per phase; no
 fake surfaces — anything not yet live is labeled, never simulated as real.
