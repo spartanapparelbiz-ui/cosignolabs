@@ -132,6 +132,24 @@ export const customConnectorSchema = z
   })
   .strict();
 
+/** Recurring mission (automation). Interval bounded 1h..30d. */
+export const automationSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    command: z.string().trim().min(1).max(MAX_COMMAND_LENGTH),
+    interval_hours: z.coerce.number().int().min(1).max(720),
+  })
+  .strict();
+
+export const automationPatchSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).optional(),
+    command: z.string().trim().min(1).max(MAX_COMMAND_LENGTH).optional(),
+    interval_hours: z.coerce.number().int().min(1).max(720).optional(),
+    enabled: z.boolean().optional(),
+  })
+  .strict();
+
 export const actionsQuerySchema = z
   .object({
     session: uuid.optional(),

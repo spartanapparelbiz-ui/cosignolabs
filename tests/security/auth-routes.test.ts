@@ -28,6 +28,9 @@ const PUBLIC_ROUTES = new Set([
   // §9 analytics beacon — landing visitors have no session by design; it is
   // rate-limited, allowlist-validated, and writes only coarse event names.
   "/api/track",
+  // Scheduler entry point — authenticates via CRON_SECRET, never a session;
+  // fails closed (503) when the secret is unset.
+  "/api/automations/tick",
 ]);
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 

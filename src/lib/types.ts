@@ -210,6 +210,8 @@ export type AccountAuditType =
   | "integration_disconnected"
   | "connector_action"
   | "account_deleted"
+  | "automation_created"
+  | "automation_deleted"
   | "promo";
 
 /**
@@ -281,4 +283,34 @@ export const STATUS_TRANSITIONS: Record<ActionStatus, ActionStatus[]> = {
 
 export function canTransition(from: ActionStatus, to: ActionStatus): boolean {
   return STATUS_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
+/* ------------------------------------------------------------ automations */
+
+/** A recurring mission: a saved command re-run on an interval. */
+export interface AutomationRecord {
+  id: string;
+  user_id: string;
+  name: string;
+  command: string;
+  /** Re-run cadence in hours (1..720). */
+  interval_hours: number;
+  enabled: boolean;
+  last_run_at: string | null;
+  next_run_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** One execution of an automation — always through the normal pipeline. */
+export interface AutomationRunRecord {
+  id: string;
+  automation_id: string;
+  user_id: string;
+  status: "ok" | "error";
+  /** Proposal count on ok; a SAFE error note on error (never a stack). */
+  detail: string | null;
+  /** The mission (session) this run created, if planning succeeded. */
+  session_id: string | null;
+  created_at: string;
 }

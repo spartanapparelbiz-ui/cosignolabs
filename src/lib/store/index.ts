@@ -1,4 +1,6 @@
 import type {
+  AutomationRecord,
+  AutomationRunRecord,
   AccountAuditRecord,
   ActionEventRecord,
   ActionEventType,
@@ -32,6 +34,14 @@ export interface ConnectionInsert {
   scopes?: string | null;
   metadata?: Record<string, unknown>;
   status?: ConnectionStatus;
+}
+
+export interface AutomationInsert {
+  user_id: string;
+  name: string;
+  command: string;
+  interval_hours: number;
+  next_run_at: string;
 }
 
 export interface ConnectionPatch {
@@ -190,6 +200,21 @@ export interface Store {
   listPromos(userId: string): Promise<PromoRecord[]>;
   /** Earliest activity timestamp (unix seconds) — a stand-in for signup date. */
   firstSeenAt(userId: string): Promise<number | null>;
+
+  /* -- automations (recurring missions) -- */
+  createAutomation(input: AutomationInsert): Promise<AutomationRecord>;
+  listAutomations(userId: string): Promise<AutomationRecord[]>;
+  getAutomation(userId: string, id: string): Promise<AutomationRecord | null>;
+  updateAutomation(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<AutomationRecord, "name" | "command" | "interval_hours" | "enabled" | "last_run_at" | "next_run_at">>
+  ): Promise<AutomationRecord | null>;
+  deleteAutomation(userId: string, id: string): Promise<void>;
+  /** Enabled automations due to run (next_run_at <= now), across all users — tick only. */
+  listDueAutomations(limit: number): Promise<AutomationRecord[]>;
+  createAutomationRun(input: Omit<AutomationRunRecord, "id" | "created_at">): Promise<AutomationRunRecord>;
+  listAutomationRuns(userId: string, automationId: string, limit?: number): Promise<AutomationRunRecord[]>;
 
   /** Cascade-delete everything owned by a user (account deletion). */
   deleteAllUserData(userId: string): Promise<void>;

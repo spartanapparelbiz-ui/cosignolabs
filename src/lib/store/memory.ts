@@ -15,6 +15,8 @@ import {
   SubscriptionRecord,
   TierSettingRecord,
   UsageRecord,
+  AutomationRecord,
+  AutomationRunRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -282,6 +284,8 @@ export class MemoryStore implements Store {
   /* --- connections v2 --- */
   private connections: ConnectionRecord[] = [];
   private mcpTools: McpToolRecord[] = [];
+  private automations: AutomationRecord[] = [];
+  private automationRuns: AutomationRunRecord[] = [];
   private oauthStates = new Map<string, OAuthStateRow>();
 
   async createConnection(input: ConnectionInsert): Promise<ConnectionRecord> {
@@ -426,6 +430,83 @@ export class MemoryStore implements Store {
     return Math.floor(Math.min(...times) / 1000);
   }
 
+
+  /* -- automations -- */
+  async createAutomation(input: import("./index").AutomationInsert): Promise<AutomationRecord> {
+    const now = new Date().toISOString();
+    const rec: AutomationRecord = {
+      id: randomUUID(),
+      user_id: input.user_id,
+      name: input.name,
+      command: input.command,
+      interval_hours: input.interval_hours,
+      enabled: true,
+      last_run_at: null,
+      next_run_at: input.next_run_at,
+      created_at: now,
+      updated_at: now,
+    };
+    this.automations.push(rec);
+    return { ...rec };
+  }
+
+  async listAutomations(userId: string): Promise<AutomationRecord[]> {
+    return this.automations.filter((a) => a.user_id === userId).map((a) => ({ ...a }));
+  }
+
+  async getAutomation(userId: string, id: string): Promise<AutomationRecord | null> {
+    const a = this.automations.find((x) => x.id === id && x.user_id === userId);
+    return a ? { ...a } : null;
+  }
+
+  async updateAutomation(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<AutomationRecord, "name" | "command" | "interval_hours" | "enabled" | "last_run_at" | "next_run_at">>
+  ): Promise<AutomationRecord | null> {
+    const a = this.automations.find((x) => x.id === id && x.user_id === userId);
+    if (!a) return null;
+    Object.assign(a, patch, { updated_at: new Date().toISOString() });
+    return { ...a };
+  }
+
+  async deleteAutomation(userId: string, id: string): Promise<void> {
+    this.automations = this.automations.filter((x) => !(x.id === id && x.user_id === userId));
+    this.automationRuns = this.automationRuns.filter((r) => r.automation_id !== id || r.user_id !== userId);
+  }
+
+  async listDueAutomations(limit: number): Promise<AutomationRecord[]> {
+    const now = Date.now();
+    return this.automations
+      .filter((a) => a.enabled && Date.parse(a.next_run_at) <= now)
+      .slice(0, limit)
+      .map((a) => ({ ...a }));
+  }
+
+  async createAutomationRun(
+    input: Omit<AutomationRunRecord, "id" | "created_at">
+  ): Promise<AutomationRunRecord> {
+    const rec: AutomationRunRecord = {
+      ...input,
+      id: randomUUID(),
+      created_at: new Date().toISOString(),
+    };
+    this.automationRuns.push(rec);
+    return { ...rec };
+  }
+
+  async listAutomationRuns(
+    userId: string,
+    automationId: string,
+    limit = 20
+  ): Promise<AutomationRunRecord[]> {
+    return this.automationRuns
+      .filter((r) => r.user_id === userId && r.automation_id === automationId)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, limit)
+      .map((r) => ({ ...r }));
+  }
+
   async deleteAllUserData(userId: string): Promise<void> {
     this.sessions = this.sessions.filter((s) => s.user_id !== userId);
     this.messages = this.messages.filter((m) => m.user_id !== userId);
@@ -442,5 +523,7 @@ export class MemoryStore implements Store {
     );
     this.connections = this.connections.filter((c) => c.user_id !== userId);
     this.mcpTools = this.mcpTools.filter((t) => !gone.has(t.connection_id));
+    this.automations = this.automations.filter((a) => a.user_id !== userId);
+    this.automationRuns = this.automationRuns.filter((r) => r.user_id !== userId);
   }
 }

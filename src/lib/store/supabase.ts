@@ -15,6 +15,8 @@ import {
   SubscriptionRecord,
   TierSettingRecord,
   UsageRecord,
+  AutomationRecord,
+  AutomationRunRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -610,10 +612,116 @@ export class SupabaseStore implements Store {
     return data?.created_at ? Math.floor(Date.parse(data.created_at) / 1000) : null;
   }
 
+
+  /* -- automations -- */
+  async createAutomation(input: import("./index").AutomationInsert): Promise<AutomationRecord> {
+    const { data, error } = await this.client
+      .from("automations")
+      .insert({
+        user_id: input.user_id,
+        name: input.name,
+        command: input.command,
+        interval_hours: input.interval_hours,
+        next_run_at: input.next_run_at,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as AutomationRecord;
+  }
+
+  async listAutomations(userId: string): Promise<AutomationRecord[]> {
+    const { data, error } = await this.client
+      .from("automations")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as AutomationRecord[];
+  }
+
+  async getAutomation(userId: string, id: string): Promise<AutomationRecord | null> {
+    const { data, error } = await this.client
+      .from("automations")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as AutomationRecord) ?? null;
+  }
+
+  async updateAutomation(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<AutomationRecord, "name" | "command" | "interval_hours" | "enabled" | "last_run_at" | "next_run_at">>
+  ): Promise<AutomationRecord | null> {
+    const { data, error } = await this.client
+      .from("automations")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as AutomationRecord) ?? null;
+  }
+
+  async deleteAutomation(userId: string, id: string): Promise<void> {
+    const { error } = await this.client
+      .from("automations")
+      .delete()
+      .eq("user_id", userId)
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+  }
+
+  async listDueAutomations(limit: number): Promise<AutomationRecord[]> {
+    const { data, error } = await this.client
+      .from("automations")
+      .select("*")
+      .eq("enabled", true)
+      .lte("next_run_at", new Date().toISOString())
+      .order("next_run_at", { ascending: true })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as AutomationRecord[];
+  }
+
+  async createAutomationRun(
+    input: Omit<AutomationRunRecord, "id" | "created_at">
+  ): Promise<AutomationRunRecord> {
+    const { data, error } = await this.client
+      .from("automation_runs")
+      .insert(input)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as AutomationRunRecord;
+  }
+
+  async listAutomationRuns(
+    userId: string,
+    automationId: string,
+    limit = 20
+  ): Promise<AutomationRunRecord[]> {
+    const { data, error } = await this.client
+      .from("automation_runs")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("automation_id", automationId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as AutomationRunRecord[];
+  }
+
   async deleteAllUserData(userId: string): Promise<void> {
     // sessions cascade to messages/actions/action_events via FK ON DELETE
     // CASCADE; the rest are deleted explicitly.
     for (const table of [
+      "automation_runs",
+      "automations",
       "account_audit",
       "promotions",
       "integrations",
