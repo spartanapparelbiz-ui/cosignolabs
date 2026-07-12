@@ -298,3 +298,35 @@ export function sessionCountsLine(c: SessionCounts): string | null {
   if (c.failed > 0) parts.push(`${c.failed} failed`);
   return parts.join(" · ");
 }
+
+/* -------------------------------------------------------------- operators */
+
+/**
+ * The operator group an action belongs to — the specialist capability lane
+ * the planner routed it through. Presentation naming over the REAL category
+ * (matches the public /operators page); it never affects tiers or approval.
+ */
+export function operatorOf(category: ActionCategory): string {
+  switch (category) {
+    case "search":
+    case "summarize":
+      return "research";
+    case "draft":
+    case "send_email":
+    case "post_content":
+      return "communication";
+    case "update_record":
+    case "webhook":
+      return "records";
+    case "spend":
+    case "payment":
+    case "refund":
+      return "finance";
+    case "delete":
+      return "cleanup";
+    case "connection_call":
+      return "connections";
+    default:
+      return "operator";
+  }
+}

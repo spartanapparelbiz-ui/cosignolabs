@@ -6,6 +6,7 @@ import type { ActionRecord } from "@/lib/types";
 import { CATEGORY_LIST } from "@/lib/types";
 import { SkeletonRows } from "./Skeleton";
 import { TierBadge } from "./TierBadge";
+import { operatorOf } from "@/lib/actionPresentation";
 import { EmptyIllustration } from "./EmptyIllustration";
 
 const STATUSES = ["proposed", "approved", "executing", "executed", "vetoed", "failed"];
@@ -138,6 +139,9 @@ export function ActivityLog() {
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-semibold">{a.summary}</p>
+                    <p className="mt-0.5 text-[10px] font-bold lowercase tracking-wide text-ink-soft/80">
+                      {operatorOf(a.category)} operator · {a.category}
+                    </p>
                     {a.injection_flag && (
                       <p className="mt-1 flex items-center gap-1 text-[11px] font-bold lowercase text-ink-soft">
                         <ShieldAlert size={11} strokeWidth={2.5} aria-hidden="true" />

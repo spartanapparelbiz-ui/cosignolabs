@@ -175,3 +175,29 @@ describe("sessionCounts — the quiet audit-trail line", () => {
     ).toMatch(/1 failed/);
   });
 });
+
+describe("operatorOf — the operator lane an action belongs to", () => {
+  it("maps every real category to its operator group", async () => {
+    const { operatorOf } = await import("../src/lib/actionPresentation");
+    expect(operatorOf("search")).toBe("research");
+    expect(operatorOf("summarize")).toBe("research");
+    expect(operatorOf("draft")).toBe("communication");
+    expect(operatorOf("send_email")).toBe("communication");
+    expect(operatorOf("post_content")).toBe("communication");
+    expect(operatorOf("update_record")).toBe("records");
+    expect(operatorOf("webhook")).toBe("records");
+    expect(operatorOf("spend")).toBe("finance");
+    expect(operatorOf("payment")).toBe("finance");
+    expect(operatorOf("refund")).toBe("finance");
+    expect(operatorOf("delete")).toBe("cleanup");
+    expect(operatorOf("connection_call")).toBe("connections");
+  });
+
+  it("covers the full CATEGORY_LIST (no category falls to the generic label)", async () => {
+    const { operatorOf } = await import("../src/lib/actionPresentation");
+    const { CATEGORY_LIST } = await import("../src/lib/types");
+    for (const meta of CATEGORY_LIST) {
+      expect(operatorOf(meta.category), meta.category).not.toBe("operator");
+    }
+  });
+});

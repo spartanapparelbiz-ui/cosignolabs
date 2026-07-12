@@ -27,6 +27,7 @@ import {
   impactChips,
   resultPreview,
   reversibilityChip,
+  operatorOf,
 } from "@/lib/actionPresentation";
 import { TierBadge } from "./TierBadge";
 
@@ -284,6 +285,9 @@ function ActionCardInner({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <TierBadge tier={action.tier} />
+            <span className="rounded-pill bg-ink/5 px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide text-ink-soft ring-1 ring-inset ring-ink/15">
+              {operatorOf(action.category)} operator
+            </span>
             <span
               className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide ${
                 action.status === "executed"
