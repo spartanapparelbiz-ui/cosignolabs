@@ -277,6 +277,19 @@ export async function advanceMission(
     const step = runnable[0];
     attempted.add(step.id);
 
+    // Cost control: a mission can never out-run its budget, and an adaptive
+    // plan can't grow past it either. tool_calls is capped from budget_cents
+    // (≈ one cent per five calls, matching the manifest limit). Over the cap →
+    // a clean blocked state with a plain reason, never silent overrun.
+    const maxToolCalls = Math.max(1, Math.floor(mission.budget_cents / 5));
+    if (mission.tool_calls >= maxToolCalls) {
+      await store.updateMission(userId, missionId, {
+        state: "blocked",
+        error: `this mission reached its operating budget (${maxToolCalls} tool calls). start a new mission or raise its budget to continue.`,
+      });
+      break;
+    }
+
     if (!operatorAllows(step.operator, step.tool) || !TOOLS[step.tool]) {
       await store.updateMissionStep(userId, step.id, {
         state: "failed",
@@ -293,7 +306,11 @@ export async function advanceMission(
       state: "running",
       started_at: step.started_at ?? new Date().toISOString(),
     });
-    await store.updateMission(userId, missionId, { state: "running" });
+    await store.updateMission(userId, missionId, {
+      state: "running",
+      tool_calls: mission.tool_calls + 1,
+    });
+    mission.tool_calls += 1;
 
     try {
       const freshSteps = await store.listMissionSteps(userId, missionId);
@@ -386,16 +403,36 @@ export async function controlMission(
   });
 }
 
-/** The cron entry point: advance every runnable mission a bounded amount. */
-export async function tickMissions(limit = 5): Promise<{ advanced: number }> {
-  const missions = await getStore().listRunnableMissions(limit);
+const LEASE_TTL_MS = 90_000;
+
+/**
+ * The cron entry point: advance every runnable mission a bounded amount.
+ * Each mission is guarded by a short execution lease so two overlapping ticks
+ * (or a second worker) never advance the same mission — and therefore never
+ * run the same consequential step — simultaneously. A worker that can't claim
+ * the lease skips the mission; the holder releases it when done, and an
+ * abandoned lease expires so work always recovers.
+ */
+export async function tickMissions(limit = 5, worker = newRequestId()): Promise<{ advanced: number; skipped: number }> {
+  const store = getStore();
+  const missions = await store.listRunnableMissions(limit);
+  let advanced = 0;
+  let skipped = 0;
   for (const m of missions) {
+    const leased = await store.claimMissionLease(m.id, worker, LEASE_TTL_MS);
+    if (!leased) {
+      skipped += 1; // another worker holds a live lease — don't double-run
+      continue;
+    }
     try {
       await advanceMission(m.user_id, m.id, 3);
+      advanced += 1;
     } catch (err) {
       logError(newRequestId(), err, { event: "mission_tick_failed", missionId: m.id });
+    } finally {
+      await store.releaseMissionLease(m.id, worker).catch(() => {});
     }
   }
-  if (missions.length > 0) logInfo("mission_tick", { advanced: missions.length });
-  return { advanced: missions.length };
+  if (missions.length > 0) logInfo("mission_tick", { advanced, skipped });
+  return { advanced, skipped };
 }

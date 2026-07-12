@@ -78,7 +78,7 @@ for (const vp of VIEWPORTS) {
       page.on("console", (m) => {
         if (m.type() === "error" && !IGNORE.test(m.text())) errors.push(`console: ${m.text()}`);
       });
-      for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/missions", "/app/decisions", "/app/automations", "/app/memory", "/app/files", "/app/team", "/app/activity", "/app/account", "/sign-in"]) {
+      for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/missions", "/app/decisions", "/app/automations", "/app/memory", "/app/files", "/app/team", "/app/health", "/app/activity", "/app/account", "/sign-in"]) {
         await page.goto(path, { waitUntil: "networkidle" });
         await page.waitForTimeout(300);
         await noHorizontalScroll(page);
@@ -232,6 +232,20 @@ for (const vp of VIEWPORTS) {
       await expect(page.getByRole("heading", { name: "activity" })).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `activity-${vp.name}.png`), fullPage: true });
+    });
+
+    test("compiler: an open-ended goal becomes a real, previewed plan", async ({ page }) => {
+      await page.goto("/app/missions", { waitUntil: "networkidle" });
+      const box = page.getByPlaceholder(/compare the best laptops/i);
+      await expect(box).toBeVisible();
+      await box.fill("compare the best laptops under $1,000");
+      await page.getByRole("button", { name: "plan it" }).click();
+      // The goal-understanding preview appears, built only from real tools.
+      await expect(page.getByText("i understood the goal")).toBeVisible();
+      await expect(page.getByText(/created this plan from your goal/i)).toBeVisible();
+      await expect(page.getByText(/no supported payment connection|payment/i).first()).toBeVisible();
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `compiler-preview-${vp.name}.png`), fullPage: true });
     });
 
     test("checkout: giant card choreography (demo)", async ({ page }) => {

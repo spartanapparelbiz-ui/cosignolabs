@@ -1,0 +1,124 @@
+import { getStore } from "../store";
+import { TOOLS } from "./tools";
+import { OPERATOR_PROFILES } from "./operators";
+import { isLiveBrowser } from "../browser";
+import { plannerConfigured } from "../agent/provider";
+
+/**
+ * The capability manifest — the single source of truth the compiler plans
+ * against. It describes exactly what Cosigno can actually do right now:
+ * which tools exist, which operators may run them, whether the browser is
+ * live or sandbox, which connections are healthy, and which steps are
+ * consequential + verifiable. A compiled plan may reference ONLY what appears
+ * here; anything else is rejected as unsupported. This is how honesty is
+ * enforced structurally — the model cannot invent a tool it doesn't have.
+ */
+
+export interface ToolCapability {
+  id: string;
+  operator: string;
+  /** Does running it change the outside world? */
+  consequential: boolean;
+  /** Is there a verification method after it executes? */
+  verifiable: boolean;
+  /** Live (real connection/browser) vs sandbox (labeled fixtures). */
+  live: boolean;
+  summary: string;
+}
+
+export interface ConnectionCapability {
+  provider_key: string;
+  name: string;
+  healthy: boolean;
+}
+
+export interface CapabilityManifest {
+  tools: ToolCapability[];
+  operators: { key: string; name: string; tools: string[] }[];
+  connections: ConnectionCapability[];
+  browser: { available: boolean; live: boolean };
+  planner: boolean;
+  limits: { maxToolCalls: number; maxBrowserActions: number; defaultBudgetCents: number };
+}
+
+/** One-line summaries for the registered tools (kept next to the registry). */
+const TOOL_SUMMARY: Record<string, string> = {
+  "calendar.find_event": "find an upcoming calendar event",
+  "gmail.search_related": "search Gmail for related messages (read-only)",
+  "drive.search_files": "search Drive for related files (read-only)",
+  "analyze.extract": "extract commitments/decisions/questions from gathered material",
+  "deliverable.brief": "write a meeting brief as a versioned file",
+  "deliverable.agenda": "draft an agenda as a versioned file",
+  "deliverable.followup": "draft a follow-up email as a versioned file (never sent)",
+  "approval.offer_send": "offer a follow-up email for approval, then verify the send",
+  "mission.receipt": "write the mission receipt",
+  "browser.research": "research public pages through the browser (read-only)",
+  "deliverable.comparison": "write a comparison deliverable as a versioned file",
+  "browser.prepare_purchase": "prepare (never complete) a purchase for approval, then verify the stage",
+};
+
+/** Tools whose execution changes the outside world (need an approval gate). */
+const CONSEQUENTIAL_TOOLS = new Set(["approval.offer_send", "browser.prepare_purchase"]);
+/** Tools with a post-execution verification hook. */
+const VERIFIABLE_TOOLS = new Set(["approval.offer_send", "browser.prepare_purchase"]);
+/** Tools that touch a real external provider when its connection is live. */
+const PROVIDER_TOOL: Record<string, string> = {
+  "calendar.find_event": "google-calendar",
+  "gmail.search_related": "google",
+  "drive.search_files": "google-drive",
+};
+/** Tools that use the browser service. */
+const BROWSER_TOOLS = new Set(["browser.research", "browser.prepare_purchase"]);
+
+function operatorOfTool(toolId: string): string {
+  for (const [key, p] of Object.entries(OPERATOR_PROFILES)) {
+    if (p.tools.includes(toolId)) return key;
+  }
+  return "chief";
+}
+
+export async function buildCapabilityManifest(userId: string): Promise<CapabilityManifest> {
+  let connections: ConnectionCapability[] = [];
+  try {
+    const conns = await getStore().listConnections(userId);
+    connections = conns
+      .filter((c) => c.kind === "app")
+      .map((c) => ({
+        provider_key: c.provider_key,
+        name: c.display_name,
+        healthy: c.status === "connected",
+      }));
+  } catch {
+    connections = [];
+  }
+
+  const healthy = new Set(connections.filter((c) => c.healthy).map((c) => c.provider_key));
+  const browserLive = isLiveBrowser();
+
+  const tools: ToolCapability[] = Object.keys(TOOLS).map((id) => {
+    const providerKey = PROVIDER_TOOL[id];
+    const usesBrowser = BROWSER_TOOLS.has(id);
+    const live = providerKey ? healthy.has(providerKey) : usesBrowser ? browserLive : true;
+    return {
+      id,
+      operator: operatorOfTool(id),
+      consequential: CONSEQUENTIAL_TOOLS.has(id),
+      verifiable: VERIFIABLE_TOOLS.has(id),
+      live,
+      summary: TOOL_SUMMARY[id] ?? id,
+    };
+  });
+
+  return {
+    tools,
+    operators: Object.values(OPERATOR_PROFILES).map((p) => ({
+      key: p.key,
+      name: p.name,
+      tools: p.tools,
+    })),
+    connections,
+    browser: { available: true, live: browserLive },
+    planner: plannerConfigured(),
+    limits: { maxToolCalls: 40, maxBrowserActions: 30, defaultBudgetCents: 200 },
+  };
+}

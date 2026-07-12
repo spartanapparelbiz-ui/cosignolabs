@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { errorResponse, requireUser } from "@/lib/api";
+import { ApiError, errorResponse, requireUser } from "@/lib/api";
 import { enforceGlobalPlanningBudget, enforceLimit } from "@/lib/ratelimit";
 import { missionCreateSchema, parseStrict, readJsonBody } from "@/lib/schemas";
 import { getStore } from "@/lib/store";
 import { advanceMission } from "@/lib/missions/engine";
 import { createMeetingPrepMission } from "@/lib/missions/meetingPrep";
+import { compileMission } from "@/lib/missions/compiler";
+import { instantiateCompiledMission } from "@/lib/missions/create";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,11 +29,30 @@ export async function POST(req: NextRequest) {
     await enforceLimit("commandMinute", userId);
     await enforceLimit("commandDay", userId);
     await enforceGlobalPlanningBudget();
-    parseStrict(missionCreateSchema, await readJsonBody(req), "mission_create");
-    const { mission } = await createMeetingPrepMission(userId);
-    const advanced = await advanceMission(userId, mission.id);
+    const body = parseStrict(missionCreateSchema, await readJsonBody(req), "mission_create");
+
+    let missionId: string;
+    if (body.template === "meeting_prep") {
+      const { mission } = await createMeetingPrepMission(userId);
+      missionId = mission.id;
+    } else {
+      // Compile the open-ended goal, validate, and refuse to start an
+      // unsupported or invalid plan (never run something we can't do).
+      const compiled = await compileMission(userId, body.goal!);
+      if (compiled.blocked) {
+        throw new ApiError(
+          422,
+          "unsupported_goal",
+          compiled.understood.boundary || "cosigno can't turn that goal into a plan it can actually run yet."
+        );
+      }
+      const { mission } = await instantiateCompiledMission(userId, compiled.plan);
+      missionId = mission.id;
+    }
+
+    const advanced = await advanceMission(userId, missionId);
     return NextResponse.json({
-      mission: advanced?.mission ?? mission,
+      mission: advanced?.mission,
       steps: advanced?.steps ?? [],
     });
   } catch (err) {

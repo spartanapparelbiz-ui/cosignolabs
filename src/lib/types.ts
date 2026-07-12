@@ -424,6 +424,13 @@ export interface MissionRecord {
   pending_question: MissionQuestion | null;
   receipt: Record<string, unknown> | null;
   error: string | null;
+  /** Tick concurrency lease — set while a worker is advancing this mission. */
+  lease_owner: string | null;
+  lease_expires_at: string | null;
+  /** Cost/resource counters + per-mission cap (cents). */
+  tool_calls: number;
+  browser_actions: number;
+  budget_cents: number;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -468,6 +475,78 @@ export interface MissionStepRecord {
   verification: Record<string, unknown> | null;
   started_at: string | null;
   completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/* ------------------------------------------------------- browser operator */
+
+export type BrowserSessionStatus =
+  | "requested"
+  | "starting"
+  | "active"
+  | "waiting_for_page"
+  | "waiting_for_user_login"
+  | "waiting_for_approval"
+  | "navigating"
+  | "extracting"
+  | "interacting"
+  | "downloading"
+  | "verifying"
+  | "paused"
+  | "expired"
+  | "blocked"
+  | "failed_safely"
+  | "stopped"
+  | "completed";
+
+export interface BrowserSessionRecord {
+  id: string;
+  user_id: string;
+  mission_id: string;
+  operator: string;
+  provider: string;
+  simulated: boolean;
+  status: BrowserSessionStatus;
+  objective: string;
+  current_url: string | null;
+  page_title: string | null;
+  provider_ref: string | null;
+  last_action: string | null;
+  stop_reason: string | null;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type BrowserActionState =
+  | "proposed"
+  | "ready"
+  | "running"
+  | "awaiting_approval"
+  | "submitted"
+  | "completed"
+  | "failed"
+  | "skipped"
+  | "canceled"
+  | "verifying";
+
+export interface BrowserActionRecord {
+  id: string;
+  session_id: string;
+  mission_id: string;
+  user_id: string;
+  idx: number;
+  purpose: string;
+  kind: string;
+  target: string | null;
+  risk: "read" | "consequential";
+  changes_external: boolean;
+  requires_approval: boolean;
+  action_id: string | null;
+  state: BrowserActionState;
+  detail: Record<string, unknown>;
+  verification: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }

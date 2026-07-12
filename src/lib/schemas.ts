@@ -186,9 +186,19 @@ export const filePatchSchema = z
     message: "nothing to update.",
   });
 
-/** Durable missions. */
+/** Durable missions. A mission starts from a template OR a compiled goal. */
 export const missionCreateSchema = z
-  .object({ template: z.enum(["meeting_prep"]) })
+  .object({
+    template: z.enum(["meeting_prep"]).optional(),
+    goal: z.string().trim().min(3).max(500).optional(),
+  })
+  .strict()
+  .refine((v) => Boolean(v.template) !== Boolean(v.goal), {
+    message: "provide exactly one of template or goal.",
+  });
+
+export const missionCompileSchema = z
+  .object({ goal: z.string().trim().min(3).max(500) })
   .strict();
 
 export const missionAnswerSchema = z

@@ -96,12 +96,160 @@ async function jsonFetch(url: string, init?: RequestInit) {
 
 const ACTIVE = new Set(["queued", "running", "retrying", "verifying"]);
 
+interface CompilePreview {
+  understood: { normalizedGoal: string; willDo: string[]; boundary: string };
+  shape: string;
+  blocked: boolean;
+  plan: {
+    successCriteria: string[];
+    assumptions: string[];
+    questions: { question: string; recommended?: string }[];
+    steps: { idx: number; purpose: string; operator: string; tool: string }[];
+    expectedDeliverables: string[];
+    approvalCheckpoints: string[];
+    unsupported: string[];
+  };
+}
+
+/** The open-ended goal composer: compile → review the plan → start. */
+function GoalComposer({ onStarted }: { onStarted: (id: string) => void }) {
+  const [goal, setGoal] = useState("");
+  const [preview, setPreview] = useState<CompilePreview | null>(null);
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+
+  async function compile() {
+    if (!goal.trim()) return;
+    setBusy(true);
+    try {
+      const data = await jsonFetch("/api/missions/compile", {
+        method: "POST",
+        body: JSON.stringify({ goal: goal.trim() }),
+      });
+      setPreview(data);
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "couldn't read that goal.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function start() {
+    setBusy(true);
+    try {
+      const data = await jsonFetch("/api/missions", {
+        method: "POST",
+        body: JSON.stringify({ goal: goal.trim() }),
+      });
+      toast("success", "mission started from your goal.");
+      setPreview(null);
+      setGoal("");
+      onStarted(data.mission.id);
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "couldn't start that mission.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const inputCls =
+    "w-full rounded-btn bg-surface px-3 py-2.5 text-sm shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal";
+
+  if (preview) {
+    const p = preview.plan;
+    return (
+      <div className="flex flex-col gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
+        <div>
+          <p className="text-[10px] font-extrabold lowercase tracking-widest text-ink-soft">i understood the goal</p>
+          <p className="mt-0.5 text-sm font-extrabold">{preview.understood.normalizedGoal}</p>
+        </div>
+        <p className="rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold">
+          cosigno created this plan from your goal using its currently available tools.
+        </p>
+        {preview.understood.willDo.length > 0 && (
+          <div>
+            <p className="text-[10px] font-extrabold lowercase tracking-widest text-ink-soft">i will help by</p>
+            <ol className="mt-1 flex flex-col gap-1 text-xs">
+              {preview.understood.willDo.map((w, i) => (
+                <li key={i} className="font-semibold">{i + 1}. {w}</li>
+              ))}
+            </ol>
+          </div>
+        )}
+        {p.approvalCheckpoints.length > 0 && (
+          <p className="text-xs font-bold text-ink">boundary: {preview.understood.boundary}</p>
+        )}
+        {p.unsupported.length > 0 && (
+          <div className="rounded-btn bg-signal/10 px-3 py-2 text-xs font-semibold ring-1 ring-inset ring-signal/30">
+            {p.unsupported.map((u, i) => (
+              <p key={i}>• {u}</p>
+            ))}
+          </div>
+        )}
+        {p.expectedDeliverables.length > 0 && (
+          <p className="text-xs text-ink-soft">
+            <span className="font-bold">you&apos;ll get:</span> {p.expectedDeliverables.join(", ")}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {preview.blocked ? (
+            <p className="text-xs font-bold text-ink-soft">this goal can&apos;t run as-is — see the note above.</p>
+          ) : (
+            <button
+              onClick={start}
+              disabled={busy}
+              className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:opacity-40"
+            >
+              {busy ? "starting…" : "confirm & start"}
+            </button>
+          )}
+          <button
+            onClick={() => setPreview(null)}
+            className="rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep"
+          >
+            edit goal
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-card bg-surface/60 p-4 shadow-soft">
+      <p className="text-sm font-extrabold lowercase">give cosigno any goal</p>
+      <p className="text-xs text-ink-soft">
+        cosigno turns it into a real, validated plan using only the tools it
+        actually has — then shows you before anything runs.
+      </p>
+      <div className="flex gap-2">
+        <input
+          value={goal}
+          onChange={(e) => setGoal(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && compile()}
+          maxLength={500}
+          placeholder="e.g. compare the best laptops under $1,000"
+          className={inputCls}
+          aria-label="mission goal"
+        />
+        <button
+          onClick={compile}
+          disabled={busy || !goal.trim()}
+          className="shrink-0 rounded-btn bg-ink px-4 py-2 text-sm font-bold text-cream disabled:opacity-40"
+        >
+          {busy ? "reading…" : "plan it"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function MissionRunner() {
   const [missions, setMissions] = useState<MissionRecord[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bgActive, setBgActive] = useState<boolean | null>(null);
   const toast = useToast();
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -129,6 +277,10 @@ export function MissionRunner() {
 
   useEffect(() => {
     load();
+    fetch("/api/health/mission")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((h) => h && setBgActive(Boolean(h.background_execution_active)))
+      .catch(() => {});
   }, [load]);
 
   // While an ACTIVE mission is open, keep the engine moving (the cron tick
@@ -216,7 +368,26 @@ export function MissionRunner() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* start the reference mission */}
+      {bgActive === false && (
+        <div className="flex items-start gap-2 rounded-card bg-signal/10 p-3 text-xs font-semibold ring-1 ring-inset ring-signal/30">
+          <Square size={13} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
+          <span>
+            background mission execution isn&apos;t configured — missions advance
+            only while this page is open. <a href="/app/health" className="underline underline-offset-2">deployment health</a>.
+          </span>
+        </div>
+      )}
+
+      {/* open-ended goal → compiled mission */}
+      <GoalComposer
+        onStarted={async (id) => {
+          await load();
+          setOpenId(id);
+          await loadSteps(id);
+        }}
+      />
+
+      {/* start the reference (suggested) mission */}
       <div className="flex flex-wrap items-center gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
         <Rocket size={18} className="shrink-0 text-ink-soft" aria-hidden="true" />
         <div className="min-w-0 flex-1">

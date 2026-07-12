@@ -13,6 +13,9 @@ import type {
   MissionStepState,
   MissionQuestion,
   MissionSourceRef,
+  BrowserSessionRecord,
+  BrowserActionRecord,
+  BrowserSessionStatus,
   AccountAuditRecord,
   ActionEventRecord,
   ActionEventType,
@@ -101,6 +104,32 @@ export interface MissionStepInsert {
   /** Initial state — defaults to "ready". */
   state?: MissionStepState;
   sources?: MissionSourceRef[];
+}
+
+export interface BrowserSessionInsert {
+  user_id: string;
+  mission_id: string;
+  operator: string;
+  provider: string;
+  simulated: boolean;
+  objective: string;
+  provider_ref?: string | null;
+  expires_at?: string | null;
+}
+
+export interface BrowserActionInsert {
+  session_id: string;
+  mission_id: string;
+  user_id: string;
+  idx: number;
+  purpose: string;
+  kind: string;
+  target?: string | null;
+  risk: "read" | "consequential";
+  changes_external: boolean;
+  requires_approval: boolean;
+  state?: BrowserActionRecord["state"];
+  detail?: Record<string, unknown>;
 }
 
 // Re-exported so engine/tests can type against the store module alone.
@@ -294,12 +323,44 @@ export interface Store {
     patch: Partial<
       Pick<
         MissionRecord,
-        "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at"
+        | "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at"
+        | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents"
       >
     >
   ): Promise<MissionRecord | null>;
   /** Missions any user owns that the tick should advance (queued/running/retrying/verifying). */
   listRunnableMissions(limit: number): Promise<MissionRecord[]>;
+  /**
+   * Atomically claim a tick lease on a mission: succeeds only if no live lease
+   * exists (or the prior one expired). Two workers can never both win — the
+   * loser gets null and skips. Returns the leased mission on success.
+   */
+  claimMissionLease(missionId: string, owner: string, ttlMs: number): Promise<MissionRecord | null>;
+  releaseMissionLease(missionId: string, owner: string): Promise<void>;
+
+  /* -- browser operator (sessions + structured actions) -- */
+  createBrowserSession(input: BrowserSessionInsert): Promise<BrowserSessionRecord>;
+  getBrowserSession(userId: string, id: string): Promise<BrowserSessionRecord | null>;
+  listBrowserSessions(userId: string, missionId: string): Promise<BrowserSessionRecord[]>;
+  updateBrowserSession(
+    userId: string,
+    id: string,
+    patch: Partial<
+      Pick<
+        BrowserSessionRecord,
+        "status" | "current_url" | "page_title" | "provider_ref" | "last_action" | "stop_reason" | "expires_at"
+      >
+    >
+  ): Promise<BrowserSessionRecord | null>;
+  createBrowserAction(input: BrowserActionInsert): Promise<BrowserActionRecord>;
+  listBrowserActions(userId: string, sessionId: string): Promise<BrowserActionRecord[]>;
+  updateBrowserAction(
+    userId: string,
+    id: string,
+    patch: Partial<
+      Pick<BrowserActionRecord, "state" | "action_id" | "detail" | "verification">
+    >
+  ): Promise<BrowserActionRecord | null>;
   createMissionSteps(steps: MissionStepInsert[]): Promise<MissionStepRecord[]>;
   listMissionSteps(userId: string, missionId: string): Promise<MissionStepRecord[]>;
   updateMissionStep(

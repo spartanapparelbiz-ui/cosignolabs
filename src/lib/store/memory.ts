@@ -25,6 +25,8 @@ import {
   WorkspaceRole,
   MissionRecord,
   MissionStepRecord,
+  BrowserSessionRecord,
+  BrowserActionRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -623,12 +625,37 @@ export class MemoryStore implements Store {
       pending_question: null,
       receipt: null,
       error: null,
+      lease_owner: null,
+      lease_expires_at: null,
+      tool_calls: 0,
+      browser_actions: 0,
+      budget_cents: 200,
       created_at: now,
       updated_at: now,
       completed_at: null,
     };
     this.missions.push(rec);
     return { ...rec };
+  }
+
+  async claimMissionLease(missionId: string, owner: string, ttlMs: number): Promise<MissionRecord | null> {
+    const m = this.missions.find((x) => x.id === missionId);
+    if (!m) return null;
+    const now = Date.now();
+    const held = m.lease_owner && m.lease_expires_at && new Date(m.lease_expires_at).getTime() > now;
+    if (held && m.lease_owner !== owner) return null; // someone else holds it
+    m.lease_owner = owner;
+    m.lease_expires_at = new Date(now + ttlMs).toISOString();
+    m.updated_at = nowIso();
+    return { ...m };
+  }
+
+  async releaseMissionLease(missionId: string, owner: string): Promise<void> {
+    const m = this.missions.find((x) => x.id === missionId);
+    if (m && m.lease_owner === owner) {
+      m.lease_owner = null;
+      m.lease_expires_at = null;
+    }
   }
 
   async getMission(userId: string, id: string): Promise<MissionRecord | null> {
@@ -648,7 +675,7 @@ export class MemoryStore implements Store {
     userId: string,
     id: string,
     patch: Partial<
-      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at">
+      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at" | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents">
     >
   ): Promise<MissionRecord | null> {
     const m = this.missions.find((x) => x.id === id && x.user_id === userId);
@@ -719,6 +746,99 @@ export class MemoryStore implements Store {
     if (!s) return null;
     Object.assign(s, patch, { updated_at: nowIso() });
     return { ...s };
+  }
+
+  /* -- browser operator -- */
+  private browserSessions: BrowserSessionRecord[] = [];
+  private browserActions: BrowserActionRecord[] = [];
+
+  async createBrowserSession(input: import("./index").BrowserSessionInsert): Promise<BrowserSessionRecord> {
+    const now = nowIso();
+    const rec: BrowserSessionRecord = {
+      id: randomUUID(),
+      user_id: input.user_id,
+      mission_id: input.mission_id,
+      operator: input.operator,
+      provider: input.provider,
+      simulated: input.simulated,
+      status: "active",
+      objective: input.objective,
+      current_url: null,
+      page_title: null,
+      provider_ref: input.provider_ref ?? null,
+      last_action: null,
+      stop_reason: null,
+      expires_at: input.expires_at ?? null,
+      created_at: now,
+      updated_at: now,
+    };
+    this.browserSessions.push(rec);
+    return { ...rec };
+  }
+
+  async getBrowserSession(userId: string, id: string): Promise<BrowserSessionRecord | null> {
+    const s = this.browserSessions.find((x) => x.id === id && x.user_id === userId);
+    return s ? { ...s } : null;
+  }
+
+  async listBrowserSessions(userId: string, missionId: string): Promise<BrowserSessionRecord[]> {
+    return this.browserSessions
+      .filter((s) => s.user_id === userId && s.mission_id === missionId)
+      .map((s) => ({ ...s }));
+  }
+
+  async updateBrowserSession(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<BrowserSessionRecord, "status" | "current_url" | "page_title" | "provider_ref" | "last_action" | "stop_reason" | "expires_at">>
+  ): Promise<BrowserSessionRecord | null> {
+    const s = this.browserSessions.find((x) => x.id === id && x.user_id === userId);
+    if (!s) return null;
+    Object.assign(s, patch, { updated_at: nowIso() });
+    return { ...s };
+  }
+
+  async createBrowserAction(input: import("./index").BrowserActionInsert): Promise<BrowserActionRecord> {
+    const now = nowIso();
+    const rec: BrowserActionRecord = {
+      id: randomUUID(),
+      session_id: input.session_id,
+      mission_id: input.mission_id,
+      user_id: input.user_id,
+      idx: input.idx,
+      purpose: input.purpose,
+      kind: input.kind,
+      target: input.target ?? null,
+      risk: input.risk,
+      changes_external: input.changes_external,
+      requires_approval: input.requires_approval,
+      action_id: null,
+      state: input.state ?? "proposed",
+      detail: { ...(input.detail ?? {}) },
+      verification: null,
+      created_at: now,
+      updated_at: now,
+    };
+    this.browserActions.push(rec);
+    return { ...rec };
+  }
+
+  async listBrowserActions(userId: string, sessionId: string): Promise<BrowserActionRecord[]> {
+    return this.browserActions
+      .filter((a) => a.user_id === userId && a.session_id === sessionId)
+      .sort((a, b) => a.idx - b.idx)
+      .map((a) => ({ ...a }));
+  }
+
+  async updateBrowserAction(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<BrowserActionRecord, "state" | "action_id" | "detail" | "verification">>
+  ): Promise<BrowserActionRecord | null> {
+    const a = this.browserActions.find((x) => x.id === id && x.user_id === userId);
+    if (!a) return null;
+    Object.assign(a, patch, { updated_at: nowIso() });
+    return { ...a };
   }
 
   /* -- workspaces -- */
@@ -857,6 +977,8 @@ export class MemoryStore implements Store {
     this.files = this.files.filter((f) => f.user_id !== userId);
     this.missions = this.missions.filter((m) => m.user_id !== userId);
     this.missionSteps = this.missionSteps.filter((s) => s.user_id !== userId);
+    this.browserSessions = this.browserSessions.filter((s) => s.user_id !== userId);
+    this.browserActions = this.browserActions.filter((a) => a.user_id !== userId);
     // Workspaces they OWN dissolve entirely; memberships elsewhere are removed.
     const owned = new Set(
       this.workspaces.filter((w) => w.owner_user_id === userId).map((w) => w.id)

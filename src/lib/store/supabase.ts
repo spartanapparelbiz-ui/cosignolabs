@@ -25,6 +25,8 @@ import {
   WorkspaceRole,
   MissionRecord,
   MissionStepRecord,
+  BrowserSessionRecord,
+  BrowserActionRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -891,7 +893,7 @@ export class SupabaseStore implements Store {
     userId: string,
     id: string,
     patch: Partial<
-      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at">
+      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at" | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents">
     >
   ): Promise<MissionRecord | null> {
     const { data, error } = await this.client
@@ -914,6 +916,141 @@ export class SupabaseStore implements Store {
       .limit(limit);
     if (error) throw new Error(error.message);
     return (data ?? []) as MissionRecord[];
+  }
+
+  async claimMissionLease(missionId: string, owner: string, ttlMs: number): Promise<MissionRecord | null> {
+    // Atomic claim: only succeeds when no live lease exists. The conditional
+    // update (lease_expires_at is null OR in the past) makes two concurrent
+    // workers mutually exclusive — the DB serializes the write.
+    const nowIso = new Date().toISOString();
+    const expiresIso = new Date(Date.now() + ttlMs).toISOString();
+    const { data, error } = await this.client
+      .from("missions")
+      .update({ lease_owner: owner, lease_expires_at: expiresIso })
+      .eq("id", missionId)
+      .or(`lease_owner.is.null,lease_expires_at.lt.${nowIso},lease_owner.eq.${owner}`)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as MissionRecord) ?? null;
+  }
+
+  async releaseMissionLease(missionId: string, owner: string): Promise<void> {
+    const { error } = await this.client
+      .from("missions")
+      .update({ lease_owner: null, lease_expires_at: null })
+      .eq("id", missionId)
+      .eq("lease_owner", owner);
+    if (error) throw new Error(error.message);
+  }
+
+  /* -- browser operator -- */
+  async createBrowserSession(input: import("./index").BrowserSessionInsert): Promise<BrowserSessionRecord> {
+    const { data, error } = await this.client
+      .from("browser_sessions")
+      .insert({
+        user_id: input.user_id,
+        mission_id: input.mission_id,
+        operator: input.operator,
+        provider: input.provider,
+        simulated: input.simulated,
+        status: "active",
+        objective: input.objective,
+        provider_ref: input.provider_ref ?? null,
+        expires_at: input.expires_at ?? null,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as BrowserSessionRecord;
+  }
+
+  async getBrowserSession(userId: string, id: string): Promise<BrowserSessionRecord | null> {
+    const { data, error } = await this.client
+      .from("browser_sessions")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as BrowserSessionRecord) ?? null;
+  }
+
+  async listBrowserSessions(userId: string, missionId: string): Promise<BrowserSessionRecord[]> {
+    const { data, error } = await this.client
+      .from("browser_sessions")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("mission_id", missionId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as BrowserSessionRecord[];
+  }
+
+  async updateBrowserSession(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<BrowserSessionRecord, "status" | "current_url" | "page_title" | "provider_ref" | "last_action" | "stop_reason" | "expires_at">>
+  ): Promise<BrowserSessionRecord | null> {
+    const { data, error } = await this.client
+      .from("browser_sessions")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as BrowserSessionRecord) ?? null;
+  }
+
+  async createBrowserAction(input: import("./index").BrowserActionInsert): Promise<BrowserActionRecord> {
+    const { data, error } = await this.client
+      .from("browser_actions")
+      .insert({
+        session_id: input.session_id,
+        mission_id: input.mission_id,
+        user_id: input.user_id,
+        idx: input.idx,
+        purpose: input.purpose,
+        kind: input.kind,
+        target: input.target ?? null,
+        risk: input.risk,
+        changes_external: input.changes_external,
+        requires_approval: input.requires_approval,
+        state: input.state ?? "proposed",
+        detail: input.detail ?? {},
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as BrowserActionRecord;
+  }
+
+  async listBrowserActions(userId: string, sessionId: string): Promise<BrowserActionRecord[]> {
+    const { data, error } = await this.client
+      .from("browser_actions")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("session_id", sessionId)
+      .order("idx", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as BrowserActionRecord[];
+  }
+
+  async updateBrowserAction(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<BrowserActionRecord, "state" | "action_id" | "detail" | "verification">>
+  ): Promise<BrowserActionRecord | null> {
+    const { data, error } = await this.client
+      .from("browser_actions")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as BrowserActionRecord) ?? null;
   }
 
   async createMissionSteps(
@@ -1133,8 +1270,13 @@ export class SupabaseStore implements Store {
     if (memErr) throw new Error(memErr.message);
 
     // sessions cascade to messages/actions/action_events via FK ON DELETE
-    // CASCADE; the rest are deleted explicitly.
+    // CASCADE; the rest are deleted explicitly. Missions cascade to
+    // mission_steps + browser_sessions + browser_actions via FK.
     for (const table of [
+      "browser_actions",
+      "browser_sessions",
+      "mission_steps",
+      "missions",
       "files",
       "memories",
       "user_prefs",

@@ -131,7 +131,23 @@ block one step while independent steps continue; consequential steps gated
 by real action cards; post-execution verification (Gmail send confirmed in
 Sent Mail; sandbox honestly marked); real deliverables in files; mission
 receipts; pause/resume/stop with card vetoes; the reference "prepare
-everything for tomorrow's meeting" mission working end-to-end).
+everything for tomorrow's meeting" mission working end-to-end) · universal
+mission compiler (open-ended goal → capability-manifest-bound plan that
+references ONLY real registered tools; strict validator — acyclic deps, real
+tools, permitted operators, approval gate on every consequential step,
+verification-or-labeled-unverified, no silent live/sandbox mix; single repair
+pass; unsupported goals surfaced as an honest blocked state) · browser
+operator (provider-neutral browser-service abstraction — serverless never
+hosts Chromium; a sandbox provider drives the loop with clearly-labeled
+fixtures and a documented remote-provider seam; durable browser sessions +
+structured actions, read-only vs consequential split, "filled ≠ submitted",
+approval-gated submits, post-submit verification; laptop-comparison reference
+mission working end-to-end) · normalized provider verification (Gmail
+Sent-Mail, Calendar read-back, Drive read-back — one result model, uncertain
+outcomes stay unverified) · tick concurrency (DB execution leases so two
+workers never run the same step) · per-mission cost budget · deployment
+health page that says plainly whether background execution is actually
+configured).
 
 SATISFIED BY CONSTRUCTION (no build needed): "material changes invalidate
 approval" — approve requires status=proposed and executes atomically in the
