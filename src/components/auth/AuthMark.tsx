@@ -25,7 +25,7 @@ import { SIGNAL } from "@/lib/brand";
  */
 
 const C_PATH = "M 76.0 66.9 A 31 31 0 1 1 76.0 33.1";
-const CHECK_PATH = "M 47 53 L 57 63 L 88 28";
+const CHECK_PATH = "M 38 51 L 53 65 L 83 29";
 
 function clamp01(n: number): number {
   if (!Number.isFinite(n)) return 0;
@@ -141,7 +141,7 @@ export function AuthMark({
           }}
         />
         {/* the signal accent dot */}
-        <circle cx={73} cy={19} r={7} fill={SIGNAL} opacity={reducedMotion ? 1 : "calc(0.4 + 0.6 * var(--email-progress))"} style={{ transition }} />
+        <circle cx={72} cy={18} r={7} fill={SIGNAL} opacity={reducedMotion ? 1 : "calc(0.4 + 0.6 * var(--email-progress))"} style={{ transition }} />
       </svg>
     </span>
   );

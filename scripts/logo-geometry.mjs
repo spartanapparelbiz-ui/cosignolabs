@@ -21,21 +21,23 @@ export const C = {
   d: "M 76.0 66.9 A 31 31 0 1 1 76.0 33.1",
 };
 
-// Check — polyline shortTail -> vertex -> longArm, chunky rounded stroke.
+// Check — a compact checkmark sitting INSIDE the C (not a swoosh past the
+// edge): short tail low-left, vertex at the bottom, long arm rising to the
+// C's top-right opening. Chunky rounded stroke.
 export const CHECK = {
   stroke: 17,
   points: [
-    [47, 53], // short tail, inside the C mouth
-    [57, 63], // vertex (bottom corner)
-    [88, 28], // long arm, past the outer edge
+    [38, 51], // short tail, inside the C's lower-left
+    [53, 65], // vertex (bottom corner)
+    [83, 29], // long arm, rising up through the C's top-right opening
   ],
-  d: "M 47 53 L 57 63 L 88 28",
+  d: "M 38 51 L 53 65 L 83 29",
 };
 
-// Accent dot — the signal dot, floating above the C's top opening (clear of
-// the check's long arm, which passes ~y46 at this x).
+// Accent dot — the signal dot, floating clear above the C's top-right
+// opening (well above the check's long arm).
 export const DOT = {
-  cx: 73,
-  cy: 19,
+  cx: 72,
+  cy: 18,
   r: 7,
 };

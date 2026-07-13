@@ -38,8 +38,8 @@ export default function GlobalError({
       >
         <svg width="48" height="48" viewBox="0 0 100 100" fill="none" aria-hidden="true">
           <path d="M 76 66.9 A 31 31 0 1 1 76 33.1" stroke="#FF4B1F" strokeWidth={26} strokeLinecap="round" />
-          <path d="M 47 53 L 57 63 L 88 28" stroke="#141414" strokeWidth={17} strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx="73" cy="19" r="7" fill="#FF4B1F" />
+          <path d="M 38 51 L 53 65 L 83 29" stroke="#141414" strokeWidth={17} strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="72" cy="18" r="7" fill="#FF4B1F" />
         </svg>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, textTransform: "lowercase" }}>

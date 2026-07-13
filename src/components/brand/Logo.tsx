@@ -43,14 +43,14 @@ export function CosignoMark({
       {/* Theme-aware check: ink on light surfaces, cream on dark — so it never
           disappears into the background. */}
       <path
-        d="M 47 53 L 57 63 L 88 28"
+        d="M 38 51 L 53 65 L 83 29"
         stroke={checkColor}
         strokeWidth={17}
         strokeLinecap="round"
         strokeLinejoin="round"
         className={checkClassName}
       />
-      <circle cx={73} cy={19} r={7} fill={dotColor} />
+      <circle cx={72} cy={18} r={7} fill={dotColor} />
     </svg>
   );
 }
