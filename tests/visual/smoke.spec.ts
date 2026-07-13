@@ -50,7 +50,10 @@ for (const vp of VIEWPORTS) {
         }
       });
       await page.goto("/app", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "what do you need handled?" })).toBeVisible();
+      // Scope to the intro dialog — the dashboard shares this headline.
+      await expect(
+        page.getByRole("dialog").getByRole("heading", { name: "what do you need handled?" })
+      ).toBeVisible();
       await page.getByRole("button", { name: "see how it works" }).click();
       await expect(page.getByRole("heading", { name: "how a mission works" })).toBeVisible();
       await page.getByRole("button", { name: "one more thing" }).click();
@@ -71,6 +74,9 @@ for (const vp of VIEWPORTS) {
     // (React DevTools banner, favicon/resource 404s, source maps, dev-only
     // hydration warnings) is filtered; real app errors + pageerrors are not.
     test("no uncaught errors + no overflow across surfaces", async ({ page }) => {
+      // A long walk (20+ surfaces, each waiting for networkidle) — give it
+      // room beyond the default 120s per-test budget.
+      test.setTimeout(240_000);
       const errors: string[] = [];
       const IGNORE =
         /(React DevTools|ResizeObserver loop|favicon|\/_next\/|hydrat|Extra attributes from the server|Failed to load resource|net::ERR|status of 4|status of 5)/i;
@@ -78,7 +84,7 @@ for (const vp of VIEWPORTS) {
       page.on("console", (m) => {
         if (m.type() === "error" && !IGNORE.test(m.text())) errors.push(`console: ${m.text()}`);
       });
-      for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/missions", "/app/decisions", "/app/automations", "/app/memory", "/app/files", "/app/team", "/app/health", "/app/activity", "/app/account", "/sign-in"]) {
+      for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/missions", "/app/decisions", "/app/automations", "/app/connections", "/app/memory", "/app/files", "/app/team", "/app/health", "/app/activity", "/app/account", "/app/workspace", "/sign-in"]) {
         await page.goto(path, { waitUntil: "networkidle" });
         await page.waitForTimeout(300);
         await noHorizontalScroll(page);
@@ -184,8 +190,22 @@ for (const vp of VIEWPORTS) {
       await board.screenshot({ path: join(OUT, `tierboard-${vp.name}.png`) });
     });
 
-    test("workspace with a proposed card", async ({ page }) => {
+    test("home dashboard: the four-question layout", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
+      await expect(page.getByRole("heading", { name: "What do you need handled?" })).toBeVisible();
+      // The ask box + the four honest section headings (stable regardless of
+      // how much data exists in the shared demo store).
+      await expect(page.getByPlaceholder(/Ask cosigno to handle something/)).toBeVisible();
+      await expect(page.getByRole("button", { name: /Start Mission/ })).toBeVisible();
+      await expect(page.getByText("In progress").first()).toBeVisible();
+      await expect(page.getByText("Needs your approval").first()).toBeVisible();
+      await expect(page.getByText("Connected apps").first()).toBeVisible();
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `dashboard-${vp.name}.png`), fullPage: true });
+    });
+
+    test("workspace with a proposed card", async ({ page }) => {
+      await page.goto("/app/workspace", { waitUntil: "networkidle" });
       const box = page.getByPlaceholder(/what do you want cosigno to handle/);
       await expect(box).toBeVisible();
       await box.fill("reprice these products for the summer sale");
