@@ -204,6 +204,20 @@ for (const vp of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `dashboard-${vp.name}.png`), fullPage: true });
     });
 
+    test("ask box: file + link controls, and the paste-a-link field fits", async ({ page }) => {
+      await page.goto("/app", { waitUntil: "networkidle" });
+      // The four honest controls sit under the ask box (no voice).
+      await expect(page.getByRole("button", { name: "Add file" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Add link" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Choose apps" })).toBeVisible();
+      // Add link opens a compact field with Add + Cancel, and never overflows.
+      await page.getByRole("button", { name: "Add link" }).click();
+      await expect(page.getByPlaceholder(/Paste a link/)).toBeVisible();
+      await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `ask-sources-${vp.name}.png`) });
+    });
+
     test("workspace with a proposed card", async ({ page }) => {
       await page.goto("/app/workspace", { waitUntil: "networkidle" });
       const box = page.getByPlaceholder(/what do you want cosigno to handle/);

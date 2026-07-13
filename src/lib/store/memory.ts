@@ -27,6 +27,7 @@ import {
   MissionStepRecord,
   BrowserSessionRecord,
   BrowserActionRecord,
+  MissionSourceRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -748,6 +749,68 @@ export class MemoryStore implements Store {
     return { ...s };
   }
 
+  /* -- mission sources -- */
+  private missionSources: MissionSourceRecord[] = [];
+
+  async createMissionSource(input: import("./index").MissionSourceInsert): Promise<MissionSourceRecord> {
+    const now = nowIso();
+    const rec: MissionSourceRecord = {
+      id: randomUUID(),
+      user_id: input.user_id,
+      mission_id: null,
+      kind: input.kind,
+      name: input.name,
+      subtype: input.subtype ?? "",
+      size_bytes: input.size_bytes ?? 0,
+      status: input.status,
+      summary: input.summary ?? "",
+      injection_flag: input.injection_flag ?? false,
+      detail: { ...(input.detail ?? {}) },
+      created_at: now,
+      updated_at: now,
+    };
+    this.missionSources.push(rec);
+    return { ...rec };
+  }
+
+  async getMissionSource(userId: string, id: string): Promise<MissionSourceRecord | null> {
+    const s = this.missionSources.find((x) => x.id === id && x.user_id === userId);
+    return s ? { ...s } : null;
+  }
+
+  async listStagedSources(userId: string): Promise<MissionSourceRecord[]> {
+    return this.missionSources
+      .filter((s) => s.user_id === userId && s.mission_id === null)
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((s) => ({ ...s }));
+  }
+
+  async listMissionSources(userId: string, missionId: string): Promise<MissionSourceRecord[]> {
+    return this.missionSources
+      .filter((s) => s.user_id === userId && s.mission_id === missionId)
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((s) => ({ ...s }));
+  }
+
+  async deleteMissionSource(userId: string, id: string): Promise<void> {
+    this.missionSources = this.missionSources.filter((s) => !(s.id === id && s.user_id === userId));
+  }
+
+  async attachSourcesToMission(userId: string, sourceIds: string[], missionId: string): Promise<number> {
+    const ids = new Set(sourceIds);
+    let n = 0;
+    for (const s of this.missionSources) {
+      // Only STAGED sources owned by the user can be attached (never steal
+      // another mission's or user's source).
+      if (ids.has(s.id) && s.user_id === userId && s.mission_id === null) {
+        s.mission_id = missionId;
+        s.updated_at = nowIso();
+        n++;
+      }
+    }
+    return n;
+  }
+
   /* -- browser operator -- */
   private browserSessions: BrowserSessionRecord[] = [];
   private browserActions: BrowserActionRecord[] = [];
@@ -979,6 +1042,7 @@ export class MemoryStore implements Store {
     this.missionSteps = this.missionSteps.filter((s) => s.user_id !== userId);
     this.browserSessions = this.browserSessions.filter((s) => s.user_id !== userId);
     this.browserActions = this.browserActions.filter((a) => a.user_id !== userId);
+    this.missionSources = this.missionSources.filter((s) => s.user_id !== userId);
     // Workspaces they OWN dissolve entirely; memberships elsewhere are removed.
     const owned = new Set(
       this.workspaces.filter((w) => w.owner_user_id === userId).map((w) => w.id)

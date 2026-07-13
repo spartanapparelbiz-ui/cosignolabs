@@ -16,6 +16,9 @@ import type {
   BrowserSessionRecord,
   BrowserActionRecord,
   BrowserSessionStatus,
+  MissionSourceRecord,
+  MissionSourceKind,
+  MissionSourceStatus,
   AccountAuditRecord,
   ActionEventRecord,
   ActionEventType,
@@ -129,6 +132,18 @@ export interface BrowserActionInsert {
   changes_external: boolean;
   requires_approval: boolean;
   state?: BrowserActionRecord["state"];
+  detail?: Record<string, unknown>;
+}
+
+export interface MissionSourceInsert {
+  user_id: string;
+  kind: MissionSourceKind;
+  name: string;
+  subtype?: string;
+  size_bytes?: number;
+  status: MissionSourceStatus;
+  summary?: string;
+  injection_flag?: boolean;
   detail?: Record<string, unknown>;
 }
 
@@ -363,6 +378,16 @@ export interface Store {
   ): Promise<BrowserActionRecord | null>;
   createMissionSteps(steps: MissionStepInsert[]): Promise<MissionStepRecord[]>;
   listMissionSteps(userId: string, missionId: string): Promise<MissionStepRecord[]>;
+
+  /* -- mission sources (uploaded files + attached links) -- */
+  createMissionSource(input: MissionSourceInsert): Promise<MissionSourceRecord>;
+  getMissionSource(userId: string, id: string): Promise<MissionSourceRecord | null>;
+  /** Staged sources (not yet attached to a mission) for the ask box. */
+  listStagedSources(userId: string): Promise<MissionSourceRecord[]>;
+  listMissionSources(userId: string, missionId: string): Promise<MissionSourceRecord[]>;
+  deleteMissionSource(userId: string, id: string): Promise<void>;
+  /** Attach staged sources to a mission (sets mission_id) — returns the count attached. */
+  attachSourcesToMission(userId: string, sourceIds: string[], missionId: string): Promise<number>;
   updateMissionStep(
     userId: string,
     id: string,

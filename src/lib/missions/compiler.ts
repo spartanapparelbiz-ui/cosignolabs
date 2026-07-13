@@ -1,6 +1,55 @@
 import type { CapabilityManifest } from "./capabilities";
 import { buildCapabilityManifest } from "./capabilities";
 import { validatePlan, type CompiledPlan, type ValidationResult } from "./validate";
+import type { MissionSourceKind, MissionSourceStatus } from "../types";
+
+/**
+ * The context a staged file/link source contributes to the compiler. Only
+ * `ready` sources add extracted content; every source is listed on the
+ * understanding screen so the user sees exactly what was (and wasn't) read.
+ */
+export interface SourceContext {
+  id: string;
+  kind: MissionSourceKind;
+  name: string;
+  subtype: string;
+  status: MissionSourceStatus;
+  summary: string;
+  injection_flag: boolean;
+}
+
+/** Honest, human line for a source on the understanding screen. */
+function describeSource(s: SourceContext): string {
+  if (s.kind === "file") {
+    if (s.status === "ready") {
+      return s.summary && !s.summary.startsWith("[image attached")
+        ? `${s.name} — file read as context`
+        : `${s.name} — attached as a visual reference (not read as text)`;
+    }
+    if (s.status === "unsupported") return `${s.name} — file type not supported (won't be used)`;
+    return `${s.name} — couldn't be read (won't be used)`;
+  }
+  // link
+  const where = s.subtype ? ` (${s.subtype})` : "";
+  switch (s.status) {
+    case "ready":
+      return `${s.name}${where} — page read as context`;
+    case "login_required":
+      return `${s.name}${where} — needs a sign-in, so the page wasn't read`;
+    case "blocked":
+      return `${s.name}${where} — the website blocked reading it`;
+    case "checking":
+    case "reading":
+      return `${s.name}${where} — still being read`;
+    default:
+      return `${s.name}${where} — couldn't be opened (won't be used)`;
+  }
+}
+
+/** A source contributes real content only when it was actually read. */
+export function sourceIsUsable(s: SourceContext): boolean {
+  return s.status === "ready" && s.summary.trim().length > 0;
+}
 
 /**
  * The Universal Mission Compiler. It turns an open-ended goal into a
@@ -24,6 +73,8 @@ export interface CompileResult {
     normalizedGoal: string;
     willDo: string[];
     boundary: string;
+    /** Every source the user provided, listed honestly by what was read. */
+    informationProvided: string[];
   };
   plan: CompiledPlan;
   validation: ValidationResult;
@@ -214,10 +265,17 @@ function willDoFrom(plan: CompiledPlan): string[] {
     .map((s) => s.purpose);
 }
 
-export async function compileMission(userId: string, goal: string): Promise<CompileResult> {
+export async function compileMission(
+  userId: string,
+  goal: string,
+  sources: SourceContext[] = []
+): Promise<CompileResult> {
   const manifest = await buildCapabilityManifest(userId);
   const shape = classify(goal);
   let plan = buildPlan(shape, goal, manifest);
+
+  const informationProvided = [`Your request: "${goal.trim()}"`, ...sources.map(describeSource)];
+  const usable = sources.filter(sourceIsUsable);
 
   if (shape === "unsupported") {
     return {
@@ -225,6 +283,7 @@ export async function compileMission(userId: string, goal: string): Promise<Comp
         normalizedGoal: goal,
         willDo: [],
         boundary: plan.unsupported[0] ?? "this goal isn't supported yet.",
+        informationProvided,
       },
       plan,
       validation: { ok: false, issues: [{ code: "empty_plan", detail: "no executable steps." }] },
@@ -243,8 +302,15 @@ export async function compileMission(userId: string, goal: string): Promise<Comp
     plan.approvalCheckpoints[0] ??
     (plan.unsupported[0] ? `boundary: ${plan.unsupported[0]}` : "cosigno will research and prepare — nothing consequential runs without your approval.");
 
+  const willDo = willDoFrom(plan);
+  if (usable.length > 0) {
+    willDo.unshift(
+      `read the ${usable.length} source${usable.length === 1 ? "" : "s"} you provided and use ${usable.length === 1 ? "it" : "them"} as context`
+    );
+  }
+
   return {
-    understood: { normalizedGoal: plan.normalizedGoal, willDo: willDoFrom(plan), boundary },
+    understood: { normalizedGoal: plan.normalizedGoal, willDo, boundary, informationProvided },
     plan,
     validation,
     blocked: !validation.ok || plan.steps.length === 0,

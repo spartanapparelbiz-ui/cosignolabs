@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { CalendarClock, Check, ChevronRight, Repeat, Sparkles } from "lucide-react";
+import { CalendarClock, Check, ChevronRight, Repeat } from "lucide-react";
 import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
-import { useToast } from "@/components/Toast";
+import { SourceComposer } from "@/components/app/SourceComposer";
 
 /**
  * The home dashboard — one calm place that answers four questions:
@@ -27,13 +26,6 @@ async function jsonFetch(url: string, init?: RequestInit) {
   if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
   return body;
 }
-
-const EXAMPLES = [
-  "prepare tomorrow's meeting",
-  "review my unread emails",
-  "research the best option",
-  "organize this project",
-];
 
 /* --------- plain-language status (never technical words) --------- */
 const STATUS_LABEL: Record<MissionRecord["state"], string> = {
@@ -140,11 +132,6 @@ const CARD = "rounded-card border border-line/70 bg-surface p-5 shadow-soft";
 const SECTION_TITLE = "text-xs font-extrabold uppercase tracking-widest text-ink-soft";
 
 export function Dashboard() {
-  const router = useRouter();
-  const toast = useToast();
-  const [goal, setGoal] = useState("");
-  const [starting, setStarting] = useState(false);
-
   const [missions, setMissions] = useState<MissionRecord[] | null>(null);
   const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>({});
   const [approvals, setApprovals] = useState<ActionRecord[]>([]);
@@ -190,20 +177,6 @@ export function Dashboard() {
     load();
   }, [load]);
 
-  async function startMission() {
-    const g = goal.trim();
-    if (!g || starting) return;
-    setStarting(true);
-    try {
-      await jsonFetch("/api/missions", { method: "POST", body: JSON.stringify({ goal: g }) });
-      toast("success", "mission started — opening it now.");
-      router.push("/app/missions");
-    } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't start that — try rephrasing the goal.");
-      setStarting(false);
-    }
-  }
-
   const active = (missions ?? []).filter((m) => ACTIVE_STATES.has(m.state)).slice(0, 4);
   const completed = (missions ?? []).filter((m) => m.state === "completed" || m.state === "partial").slice(0, 3);
 
@@ -213,37 +186,9 @@ export function Dashboard() {
       <section className={`${CARD} p-6 sm:p-8`}>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">What do you need handled?</h1>
         <p className="mt-1.5 text-sm font-semibold text-ink-soft">
-          Tell cosigno what you want done. It will make a plan and guide you through it.
+          Tell cosigno what you want done. Add a file or link when it helps explain the task.
         </p>
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <input
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && startMission()}
-            maxLength={500}
-            placeholder="Ask cosigno to handle something…"
-            aria-label="what do you need handled"
-            className="w-full rounded-btn border border-line/70 bg-cream/40 px-4 py-3.5 text-base font-semibold shadow-well placeholder:font-medium placeholder:text-ink-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
-          />
-          <button
-            onClick={startMission}
-            disabled={starting || !goal.trim()}
-            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-btn bg-signal px-6 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:opacity-40"
-          >
-            <Sparkles size={16} /> {starting ? "Starting…" : "Start Mission"}
-          </button>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {EXAMPLES.map((ex) => (
-            <button
-              key={ex}
-              onClick={() => setGoal(ex)}
-              className="rounded-pill border border-line/70 bg-cream/40 px-3.5 py-1.5 text-sm font-semibold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
-            >
-              {ex}
-            </button>
-          ))}
-        </div>
+        <SourceComposer onStarted={load} />
       </section>
 
       {/* ---------- two columns on desktop, stacked on mobile ---------- */}

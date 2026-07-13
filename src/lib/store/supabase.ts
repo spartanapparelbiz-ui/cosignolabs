@@ -27,6 +27,7 @@ import {
   MissionStepRecord,
   BrowserSessionRecord,
   BrowserActionRecord,
+  MissionSourceRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -1111,6 +1112,84 @@ export class SupabaseStore implements Store {
     return (data as MissionStepRecord) ?? null;
   }
 
+  /* -- mission sources -- */
+  async createMissionSource(input: import("./index").MissionSourceInsert): Promise<MissionSourceRecord> {
+    const { data, error } = await this.client
+      .from("mission_sources")
+      .insert({
+        user_id: input.user_id,
+        kind: input.kind,
+        name: input.name,
+        subtype: input.subtype ?? "",
+        size_bytes: input.size_bytes ?? 0,
+        status: input.status,
+        summary: input.summary ?? "",
+        injection_flag: input.injection_flag ?? false,
+        detail: input.detail ?? {},
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as MissionSourceRecord;
+  }
+
+  async getMissionSource(userId: string, id: string): Promise<MissionSourceRecord | null> {
+    const { data, error } = await this.client
+      .from("mission_sources")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as MissionSourceRecord) ?? null;
+  }
+
+  async listStagedSources(userId: string): Promise<MissionSourceRecord[]> {
+    const { data, error } = await this.client
+      .from("mission_sources")
+      .select("*")
+      .eq("user_id", userId)
+      .is("mission_id", null)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as MissionSourceRecord[];
+  }
+
+  async listMissionSources(userId: string, missionId: string): Promise<MissionSourceRecord[]> {
+    const { data, error } = await this.client
+      .from("mission_sources")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("mission_id", missionId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as MissionSourceRecord[];
+  }
+
+  async deleteMissionSource(userId: string, id: string): Promise<void> {
+    const { error } = await this.client
+      .from("mission_sources")
+      .delete()
+      .eq("user_id", userId)
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+  }
+
+  async attachSourcesToMission(userId: string, sourceIds: string[], missionId: string): Promise<number> {
+    if (sourceIds.length === 0) return 0;
+    // Only STAGED sources owned by the user are attached (the is-null guard
+    // prevents re-parenting another mission's source).
+    const { data, error } = await this.client
+      .from("mission_sources")
+      .update({ mission_id: missionId, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .is("mission_id", null)
+      .in("id", sourceIds)
+      .select("id");
+    if (error) throw new Error(error.message);
+    return (data ?? []).length;
+  }
+
   /* -- workspaces -- */
   async createWorkspace(userId: string, email: string, name: string): Promise<WorkspaceRecord> {
     const { data, error } = await this.client
@@ -1275,6 +1354,7 @@ export class SupabaseStore implements Store {
     for (const table of [
       "browser_actions",
       "browser_sessions",
+      "mission_sources",
       "mission_steps",
       "missions",
       "files",

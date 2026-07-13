@@ -7,7 +7,10 @@ import {
   ChevronDown,
   Circle,
   CircleDot,
+  FileText,
   HelpCircle,
+  Link2,
+  Lock,
   OctagonX,
   Pause,
   Play,
@@ -15,7 +18,7 @@ import {
   Square,
   XCircle,
 } from "lucide-react";
-import type { MissionRecord, MissionStepRecord } from "@/lib/types";
+import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/lib/types";
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
 
@@ -247,6 +250,7 @@ export function MissionRunner() {
   const [missions, setMissions] = useState<MissionRecord[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>({});
+  const [sources, setSources] = useState<Record<string, MissionSourceRecord[]>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [bgActive, setBgActive] = useState<boolean | null>(null);
@@ -269,6 +273,7 @@ export function MissionRunner() {
     try {
       const data = await jsonFetch(`/api/missions/${id}`);
       setSteps((s) => ({ ...s, [id]: data.steps ?? [] }));
+      setSources((s) => ({ ...s, [id]: data.sources ?? [] }));
       return data.mission as MissionRecord;
     } catch {
       return null;
@@ -480,6 +485,44 @@ export function MissionRunner() {
                     </Link>
                     . the mission resumes automatically after you decide.
                   </p>
+                )}
+
+                {/* sources the user provided (files + links), as real inputs */}
+                {(sources[m.id] ?? []).length > 0 && (
+                  <div className="rounded-btn bg-cream-deep/60 px-3 py-2.5">
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
+                      sources you provided
+                    </p>
+                    <ul className="mt-1.5 flex flex-col gap-1.5">
+                      {(sources[m.id] ?? []).map((src) => {
+                        const usable = src.status === "ready";
+                        const usedBy = (steps[m.id] ?? []).filter((st) =>
+                          st.sources.some((r) => r.name === src.name)
+                        );
+                        return (
+                          <li key={src.id} className="flex items-start gap-2 text-xs">
+                            <span className="mt-0.5 shrink-0 text-ink-soft">
+                              {src.kind === "link" ? <Link2 size={13} /> : src.status === "login_required" ? <Lock size={13} /> : <FileText size={13} />}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="font-bold">{src.name}</span>
+                              <span className="block text-[11px] text-ink-soft">
+                                {src.kind === "link" ? src.subtype || "link" : src.subtype}
+                                {" · "}
+                                {usable ? (src.kind === "link" ? "read" : "read as context") : "not used — couldn't be read"}
+                                {src.injection_flag && " · flagged content (data only)"}
+                              </span>
+                              {usable && usedBy.length > 0 && (
+                                <span className="block text-[11px] text-ink-soft/80">
+                                  used in: {usedBy.map((st) => `step ${st.idx + 1}`).join(", ")}
+                                </span>
+                              )}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
                 )}
 
                 {/* steps */}

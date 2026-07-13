@@ -191,14 +191,28 @@ export const missionCreateSchema = z
   .object({
     template: z.enum(["meeting_prep"]).optional(),
     goal: z.string().trim().min(3).max(500).optional(),
+    // staged file/link sources (ask-box context) to attach to the mission
+    sourceIds: z.array(uuid).max(20).optional(),
   })
   .strict()
   .refine((v) => Boolean(v.template) !== Boolean(v.goal), {
     message: "provide exactly one of template or goal.",
   });
 
+/** Adding a link source from the ask box. */
+export const sourceLinkSchema = z
+  .object({ url: z.string().trim().min(1).max(2048) })
+  .strict();
+
+export const sourceIdsSchema = z
+  .object({ sourceIds: z.array(uuid).max(20) })
+  .strict();
+
 export const missionCompileSchema = z
-  .object({ goal: z.string().trim().min(3).max(500) })
+  .object({
+    goal: z.string().trim().min(3).max(500),
+    sourceIds: z.array(uuid).max(20).optional(),
+  })
   .strict();
 
 export const missionAnswerSchema = z

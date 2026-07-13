@@ -14,8 +14,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const id = parseStrict(idParamSchema, (await params).id, "mission_id");
     const mission = await getStore().getMission(userId, id);
     if (!mission) throw new ApiError(404, "not_found", "we couldn't find that mission.");
-    const steps = await getStore().listMissionSteps(userId, id);
-    return NextResponse.json({ mission, steps });
+    const [steps, sources] = await Promise.all([
+      getStore().listMissionSteps(userId, id),
+      getStore().listMissionSources(userId, id),
+    ]);
+    return NextResponse.json({ mission, steps, sources });
   } catch (err) {
     return errorResponse(err);
   }

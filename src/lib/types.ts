@@ -550,3 +550,40 @@ export interface BrowserActionRecord {
   created_at: string;
   updated_at: string;
 }
+
+/* ------------------------------------------------------ mission sources */
+
+/** A file or link the user attaches to a mission from the ask box. */
+export type MissionSourceKind = "file" | "link";
+
+export type MissionSourceStatus =
+  | "uploading"
+  | "processing"
+  | "ready"
+  | "failed"
+  | "unsupported"
+  | "checking"
+  | "reading"
+  | "login_required"
+  | "blocked"
+  | "could_not_access";
+
+export interface MissionSourceRecord {
+  id: string;
+  user_id: string;
+  /** null while staged in the ask box; set when the mission is created. */
+  mission_id: string | null;
+  kind: MissionSourceKind;
+  /** filename (file) or page title (link). */
+  name: string;
+  /** mime type (file) or domain (link). */
+  subtype: string;
+  size_bytes: number;
+  status: MissionSourceStatus;
+  /** extracted, bounded text summary (untrusted content — data only). */
+  summary: string;
+  injection_flag: boolean;
+  detail: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
