@@ -86,6 +86,44 @@ function clerkConfigured(): boolean {
   );
 }
 
+// --- public sandbox (COSIGNO_PUBLIC_MODE=1) guest identity, inlined so the
+// edge gate stays import-light and vendor-free (mirrors publicMode.ts). ---
+const GUEST_COOKIE = "cosigno_guest";
+const GUEST_HEADER = "x-cosigno-guest";
+const GUEST_RE = /^guest_[0-9a-f]{32}$/;
+
+function publicSandbox(): boolean {
+  return process.env.COSIGNO_PUBLIC_MODE === "1";
+}
+
+function newGuestId(): string {
+  return "guest_" + crypto.randomUUID().replace(/-/g, "");
+}
+
+/**
+ * Let an anonymous visitor into the sandbox: ensure a valid guest id, forward
+ * it as a request header (so THIS request already resolves it), and persist it
+ * as an httpOnly cookie. Marketing paths pass through untouched.
+ */
+function guestGate(req: NextRequest): NextResponse {
+  if (isPublic(req.nextUrl.pathname) && req.nextUrl.pathname !== "/api/beta") {
+    return NextResponse.next();
+  }
+  const existing = req.cookies.get(GUEST_COOKIE)?.value;
+  const id = existing && GUEST_RE.test(existing) ? existing : newGuestId();
+  const headers = new Headers(req.headers);
+  headers.set(GUEST_HEADER, id);
+  const res = NextResponse.next({ request: { headers } });
+  res.cookies.set(GUEST_COOKIE, id, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7, // a week; the sandbox itself is ephemeral
+  });
+  return res;
+}
+
 function productionReady(): boolean {
   // Coarse edge gate for /app pages. The authoritative fail-closed check is
   // env.ts → provider (which honors the one-release legacy planner key); this
@@ -102,6 +140,13 @@ function productionReady(): boolean {
 
 async function buildMiddleware(): Promise<NextMiddleware> {
   const prod = process.env.NODE_ENV === "production";
+
+  if (prod && !productionReady() && publicSandbox()) {
+    // Opt-in public sandbox: no real keys, but anyone can try cosigno. Each
+    // visitor gets an isolated guest id; the store is in-memory, the planner
+    // offline, connectors sandbox-only — no real accounts, data, or actions.
+    return (req: NextRequest) => guestGate(req);
+  }
 
   if (prod && !productionReady()) {
     // Fail closed: protected surfaces 503, never a silent demo fallback.

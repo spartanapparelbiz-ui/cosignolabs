@@ -89,3 +89,12 @@ export function serviceStatus(env = process.env) {
 export function appGated(env = process.env) {
   return serviceStatus(env).some((s) => s.gatesApp && !s.present);
 }
+
+/**
+ * Opt-in public sandbox: when COSIGNO_PUBLIC_MODE=1 and the app is otherwise
+ * gated, /app serves a per-visitor, in-memory, offline, sandbox-only workspace
+ * instead of a 503 — so anyone can try cosigno with no sign-in.
+ */
+export function publicSandbox(env = process.env) {
+  return env.COSIGNO_PUBLIC_MODE === "1";
+}

@@ -453,10 +453,10 @@ export function getStore(): Store {
     if (supabaseConfigured()) {
       globalStore.__cosignoStore = new SupabaseStore();
     } else {
-      // The in-memory store exists for local development only. Production
-      // fails closed rather than silently serving a non-persistent,
-      // shared-user backend.
-      if (process.env.NODE_ENV === "production") {
+      // The in-memory store is for local development AND the opt-in public
+      // sandbox (COSIGNO_PUBLIC_MODE=1). Production without either fails closed
+      // rather than silently serving a non-persistent, shared backend.
+      if (process.env.NODE_ENV === "production" && process.env.COSIGNO_PUBLIC_MODE !== "1") {
         throw new Error("supabase_not_configured");
       }
       globalStore.__cosignoStore = new MemoryStore();

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { clerkConfigured } from "@/lib/auth";
+import { clerkConfigured, getUserId } from "@/lib/auth";
+import { isGuestId } from "@/lib/publicMode";
 import { AppNav } from "@/components/AppNav";
 import { ToastProvider } from "@/components/Toast";
 import { LogoHome } from "@/components/brand/LivingLogo";
@@ -7,16 +8,36 @@ import { AccountChip } from "@/components/app/AccountChip";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Honest, calm strip shown only to a public-sandbox guest. It tells the truth:
+ * this is a temporary try-it space — nothing is saved and nothing real happens.
+ */
+function SandboxBanner() {
+  return (
+    <div className="bg-signal/12 text-ink">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-x-2 gap-y-0.5 px-4 py-1.5 text-center text-[12px] font-semibold">
+        <span>You&apos;re trying cosigno in a temporary sandbox — nothing is saved and no real emails, files, or payments are touched.</span>
+        <Link href="/" className="underline underline-offset-2 hover:text-signal">
+          Join the waitlist
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function Chrome({
   children,
   userSlot,
+  guest,
 }: {
   children: React.ReactNode;
   userSlot: React.ReactNode;
+  guest: boolean;
 }) {
   return (
     <ToastProvider>
       <div className="flex min-h-screen [min-height:100dvh] flex-col">
+        {guest && <SandboxBanner />}
         <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
           <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
             <LogoHome href="/app" label="cosigno workspace" size={26} textClass="text-xl" />
@@ -58,6 +79,10 @@ export default async function AppLayout({
   // theme, sign out); sign out works with or without Clerk configured.
   const userSlot = <AccountChip />;
 
+  // Public-sandbox guests get an honest banner. Resolved server-side from the
+  // guest id the middleware forwards; real signed-in users never see it.
+  const guest = isGuestId(await getUserId());
+
   if (clerkConfigured()) {
     // Keep Clerk for the session/auth, but only for its headless pieces — the
     // visible UI is ours. The appearance still themes the sign-in/up routes.
@@ -78,10 +103,10 @@ export default async function AppLayout({
     };
     return (
       <ClerkProvider appearance={appearance} signInUrl="/sign-in" signUpUrl="/sign-up">
-        <Chrome userSlot={userSlot}>{children}</Chrome>
+        <Chrome userSlot={userSlot} guest={guest}>{children}</Chrome>
       </ClerkProvider>
     );
   }
 
-  return <Chrome userSlot={userSlot}>{children}</Chrome>;
+  return <Chrome userSlot={userSlot} guest={guest}>{children}</Chrome>;
 }

@@ -54,9 +54,15 @@ export async function planCommand(
     .filter((b) => b.injectionSuspected)
     .map((b) => b.source);
 
-  if (!plannerConfigured() && process.env.NODE_ENV === "production") {
+  if (
+    !plannerConfigured() &&
+    process.env.NODE_ENV === "production" &&
+    process.env.COSIGNO_PUBLIC_MODE !== "1"
+  ) {
     // Operator cause is logged in callPlanner/provider; the user sees generic
-    // copy only — never env var names or infra hints.
+    // copy only — never env var names or infra hints. In the public sandbox
+    // (COSIGNO_PUBLIC_MODE=1) the deterministic offline planner is used
+    // instead — it invents nothing and reaches no real provider.
     throw new PlannerError(
       null,
       "the AI operator is temporarily unavailable. we've been notified — please try again shortly."

@@ -34,11 +34,33 @@ export function productionReady(): boolean {
 }
 
 /**
+ * Public sandbox mode — an OPT-IN way to let anyone try cosigno with no
+ * sign-in, safely, on a deployment that isn't fully provisioned yet.
+ *
+ * It is deliberately a single explicit switch (COSIGNO_PUBLIC_MODE=1), never
+ * automatic: a half-configured deployment still fails closed unless the
+ * operator turns this on. When on AND the real key set is absent, protected
+ * surfaces serve a per-visitor, in-memory, offline-planner, sandbox-only
+ * workspace (isolated by a random guest id; no real accounts, data, money, or
+ * external actions are ever reachable). The moment the real keys are present
+ * (`productionReady()`), the real product takes over and this flag is ignored.
+ */
+export function publicSandboxEnabled(): boolean {
+  return process.env.COSIGNO_PUBLIC_MODE === "1";
+}
+
+/** True when the app is actually serving the public sandbox (flag on, real keys absent). */
+export function publicSandboxActive(): boolean {
+  return publicSandboxEnabled() && !productionReady();
+}
+
+/**
  * True when the app may serve authenticated product surfaces:
  *  - development: always (demo mode is allowed)
- *  - production: only with the full key set — otherwise every protected
- *    route serves 503 and nothing ever falls back to the demo user.
+ *  - production with the full key set: the real product
+ *  - production with COSIGNO_PUBLIC_MODE=1: the public sandbox (see above)
+ *  - otherwise: fails closed — every protected route serves 503.
  */
 export function servingAllowed(): boolean {
-  return !isProduction() || productionReady();
+  return !isProduction() || productionReady() || publicSandboxEnabled();
 }

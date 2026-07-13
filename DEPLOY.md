@@ -12,6 +12,48 @@ start with the section right below.
 
 ---
 
+## Two ways to make the app work for everyone
+
+You can pick either one now, and switch later — no code changes.
+
+### Option A — Public sandbox (fastest; anyone can try it, no sign-in)
+
+Set **one** environment variable and redeploy:
+
+| Variable | Value |
+| --- | --- |
+| `COSIGNO_PUBLIC_MODE` | `1` |
+
+That's it. `/app` opens for **everyone** with no login. Each visitor gets their
+own private, temporary workspace and can type a request, add files and links,
+and run a full mission through the offline planner. It is **safe by design**:
+
+- no sign-in, no database — each visitor is isolated by a random guest id;
+- the planner runs **offline** (no AI key, no cost) and invents nothing;
+- connectors are **sandbox-only** — no real emails, files, calendars, or
+  payments are ever touched, and consequential steps still ask for approval;
+- nothing is saved — it's a try-it space, clearly labelled with a banner.
+
+Turn this off (delete the variable) whenever you want, or just add the real
+keys below — **the real product automatically takes over** the moment the full
+key set is present, and `COSIGNO_PUBLIC_MODE` is ignored.
+
+### Option B — The real product (saved accounts, real AI, connected apps)
+
+Add the full key set (next sections) and run the database migrations. This
+gives real sign-in, saved data, real AI planning, and real connected apps.
+You can do this **in addition to** Option A: keep the sandbox live today, then
+flip to the real product the moment your keys are in.
+
+To finish Option B you need, in Netlify **Site configuration → Environment
+variables**: `PLANNER_API_KEY`, the three `…SUPABASE…` keys, and the two
+`…CLERK…` keys (Stripe + connector OAuth are optional). Then run every SQL file
+in `supabase/migrations/` (through `0014_mission_sources.sql`) in the Supabase
+SQL editor, and point your scheduler at `/api/missions/tick` and
+`/api/automations/tick`. The per-service table further down explains each one.
+
+---
+
 ## "Every page is showing an error" — fix it in 4 checks
 
 Do these in order. Stop as soon as one fixes it.

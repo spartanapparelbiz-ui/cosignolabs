@@ -15,7 +15,7 @@ export async function register() {
   // env-services module somehow isn't bundled into the serverless function, we
   // log and continue rather than taking down every route with a boot error.
   try {
-    const { serviceStatus, appGated } = await import(
+    const { serviceStatus, appGated, publicSandbox } = await import(
       "../scripts/env-services.mjs"
     );
     const status = serviceStatus();
@@ -34,10 +34,19 @@ export async function register() {
     }
 
     if (prod && appGated()) {
-      console.warn(
-        "[cosigno] /app and real API routes will serve a branded 503 until " +
-          "PLANNER, SUPABASE, and CLERK are all set. Marketing pages stay public."
-      );
+      if (publicSandbox()) {
+        console.warn(
+          "[cosigno] PUBLIC SANDBOX is ON (COSIGNO_PUBLIC_MODE=1): /app serves a " +
+            "per-visitor, in-memory, offline, sandbox-only workspace — no sign-in, no " +
+            "real data or actions. Add PLANNER + SUPABASE + CLERK to switch to the real product."
+        );
+      } else {
+        console.warn(
+          "[cosigno] /app and real API routes will serve a branded 503 until " +
+            "PLANNER, SUPABASE, and CLERK are all set. Marketing pages stay public. " +
+            "(Set COSIGNO_PUBLIC_MODE=1 to open a safe public sandbox instead.)"
+        );
+      }
     }
   } catch (err) {
     console.warn("[cosigno] boot service-check skipped:", err);
