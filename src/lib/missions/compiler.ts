@@ -128,50 +128,41 @@ function productComparePlan(goal: string, manifest: CapabilityManifest): Compile
   const browserLive = manifest.browser.live;
   const assumptions = [
     browserLive
-      ? "researches live public product pages for current prices"
+      ? "researches live pages on major manufacturer and retailer sites for current prices"
       : "no live browser provider is configured — research runs in a clearly-labeled sandbox with example prices",
   ];
+  // The browser-operator MVP plan: eight fixed, read-only steps. The mission
+  // opens real product pages, records only what they actually show, and STOPS
+  // at the recommended product page — no purchase is ever attempted.
   return {
     normalizedGoal: goal,
     successCriteria: [
-      "at least two options are compared on price, specs, availability, and returns",
-      "a recommendation is made against the user's priority",
-      "a purchase is prepared but never completed without approval",
+      "at least three products are reviewed from real pages (fewer only if sources block access, stated honestly)",
+      "a comparison report is saved with prices, specs, strengths, and weaknesses",
+      "the recommendation is supported by the collected data — never invented",
+      "the mission stops before any purchase",
     ],
     assumptions,
-    questions: [
-      {
-        question: "Which country should I use for current prices?",
-        why: "prices and availability differ by region.",
-        options: ["United States", "United Kingdom", "Canada"],
-        recommended: "United States",
-        blocking: false,
-        affectsSteps: [0, 1],
-      },
-      {
-        question: "Is battery life or gaming performance more important?",
-        why: "it changes which model I recommend.",
-        options: ["battery life", "gaming performance", "a balance"],
-        recommended: "a balance",
-        blocking: false,
-        affectsSteps: [1, 2],
-      },
-    ],
+    questions: [],
     steps: [
-      { idx: 0, purpose: "research current options through the browser", operator: "browser", tool: "browser.research", dependsOn: [] },
-      { idx: 1, purpose: "compare the options and pick a recommendation", operator: "files", tool: "deliverable.comparison", dependsOn: [0] },
-      { idx: 2, purpose: "prepare the purchase for your approval (no payment is made)", operator: "browser", tool: "browser.prepare_purchase", dependsOn: [1] },
-      { idx: 3, purpose: "write the mission receipt", operator: "chief", tool: "mission.receipt", dependsOn: [] },
+      { idx: 0, purpose: "Confirm requirements", operator: "chief", tool: "laptop.confirm", dependsOn: [] },
+      { idx: 1, purpose: "Search for suitable laptops", operator: "browser", tool: "laptop.search", dependsOn: [0] },
+      { idx: 2, purpose: "Review product one", operator: "browser", tool: "laptop.review", dependsOn: [1] },
+      { idx: 3, purpose: "Review product two", operator: "browser", tool: "laptop.review", dependsOn: [2] },
+      { idx: 4, purpose: "Review product three", operator: "browser", tool: "laptop.review", dependsOn: [3] },
+      { idx: 5, purpose: "Compare the products", operator: "research", tool: "laptop.compare", dependsOn: [2, 3, 4] },
+      { idx: 6, purpose: "Create recommendation", operator: "research", tool: "laptop.recommend", dependsOn: [5] },
+      { idx: 7, purpose: "Save final report", operator: "files", tool: "laptop.report", dependsOn: [6] },
     ],
-    expectedDeliverables: ["comparison table with recommendation"],
-    approvalCheckpoints: ["preparing the purchase requires your approval"],
-    verificationRequirements: ["browser.prepare_purchase: confirm the cart contents (no payment — no payment connection)"],
+    expectedDeliverables: ["comparison report with a data-supported recommendation"],
+    approvalCheckpoints: [],
+    verificationRequirements: [],
     riskSummary: browserLive
-      ? "browser research is read-only; preparing the purchase is approval-gated and never completes payment."
-      : "sandbox research (labeled); preparing the purchase is approval-gated and never completes payment.",
-    unsupported: manifest.connections.some((c) => c.provider_key.includes("stripe"))
-      ? []
-      : ["completing payment (no supported payment connection is available — cosigno prepares the cart only)"],
+      ? "entirely read-only — cosigno opens and reads public pages, and stops at the recommended product page. no purchase, login, or form submission ever happens."
+      : "sandbox research (labeled) — read-only; no purchase, login, or form submission ever happens.",
+    unsupported: [
+      "completing a purchase or payment — cosigno researches, compares, and opens the recommended product page, then stops.",
+    ],
   };
 }
 

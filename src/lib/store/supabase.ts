@@ -27,6 +27,7 @@ import {
   MissionStepRecord,
   BrowserSessionRecord,
   BrowserActionRecord,
+  BrowserProductRecord,
   MissionSourceRecord,
 } from "../types";
 import type {
@@ -991,7 +992,7 @@ export class SupabaseStore implements Store {
   async updateBrowserSession(
     userId: string,
     id: string,
-    patch: Partial<Pick<BrowserSessionRecord, "status" | "current_url" | "page_title" | "provider_ref" | "last_action" | "stop_reason" | "expires_at">>
+    patch: Partial<Pick<BrowserSessionRecord, "status" | "current_url" | "page_title" | "provider_ref" | "last_action" | "stop_reason" | "screenshot_ref" | "expires_at">>
   ): Promise<BrowserSessionRecord | null> {
     const { data, error } = await this.client
       .from("browser_sessions")
@@ -1052,6 +1053,50 @@ export class SupabaseStore implements Store {
       .maybeSingle();
     if (error) throw new Error(error.message);
     return (data as BrowserActionRecord) ?? null;
+  }
+
+  async createBrowserProduct(input: import("./index").BrowserProductInsert): Promise<BrowserProductRecord> {
+    const { data, error } = await this.client
+      .from("browser_products")
+      .insert({
+        user_id: input.user_id,
+        mission_id: input.mission_id,
+        session_id: input.session_id,
+        name: input.name,
+        brand: input.brand ?? "",
+        current_price: input.current_price ?? null,
+        currency: input.currency ?? "USD",
+        retailer: input.retailer ?? "",
+        product_url: input.product_url,
+        processor: input.processor ?? null,
+        memory: input.memory ?? null,
+        storage: input.storage ?? null,
+        display: input.display ?? null,
+        graphics: input.graphics ?? null,
+        battery_claim: input.battery_claim ?? null,
+        availability: input.availability ?? null,
+        warranty: input.warranty ?? null,
+        return_policy: input.return_policy ?? null,
+        source_title: input.source_title ?? "",
+        injection_flag: input.injection_flag ?? false,
+        simulated: input.simulated ?? true,
+        accessed_at: input.accessed_at ?? new Date().toISOString(),
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as BrowserProductRecord;
+  }
+
+  async listBrowserProducts(userId: string, missionId: string): Promise<BrowserProductRecord[]> {
+    const { data, error } = await this.client
+      .from("browser_products")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("mission_id", missionId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as BrowserProductRecord[];
   }
 
   async createMissionSteps(
@@ -1352,6 +1397,7 @@ export class SupabaseStore implements Store {
     // CASCADE; the rest are deleted explicitly. Missions cascade to
     // mission_steps + browser_sessions + browser_actions via FK.
     for (const table of [
+      "browser_products",
       "browser_actions",
       "browser_sessions",
       "mission_sources",

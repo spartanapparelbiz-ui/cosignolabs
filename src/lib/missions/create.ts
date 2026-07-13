@@ -8,7 +8,9 @@ function stepUsesContext(tool: string): boolean {
   return (
     tool.startsWith("analyze.") ||
     tool.startsWith("deliverable.") ||
-    tool === "browser.research"
+    tool === "browser.research" ||
+    tool === "laptop.compare" ||
+    tool === "laptop.report"
   );
 }
 

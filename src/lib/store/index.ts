@@ -16,6 +16,7 @@ import type {
   BrowserSessionRecord,
   BrowserActionRecord,
   BrowserSessionStatus,
+  BrowserProductRecord,
   MissionSourceRecord,
   MissionSourceKind,
   MissionSourceStatus,
@@ -133,6 +134,32 @@ export interface BrowserActionInsert {
   requires_approval: boolean;
   state?: BrowserActionRecord["state"];
   detail?: Record<string, unknown>;
+}
+
+/** A product finding — every nullable field defaults to null (never invented). */
+export interface BrowserProductInsert {
+  user_id: string;
+  mission_id: string;
+  session_id: string;
+  name: string;
+  brand?: string;
+  current_price?: number | null;
+  currency?: string;
+  retailer?: string;
+  product_url: string;
+  processor?: string | null;
+  memory?: string | null;
+  storage?: string | null;
+  display?: string | null;
+  graphics?: string | null;
+  battery_claim?: string | null;
+  availability?: string | null;
+  warranty?: string | null;
+  return_policy?: string | null;
+  source_title?: string;
+  injection_flag?: boolean;
+  simulated?: boolean;
+  accessed_at?: string;
 }
 
 export interface MissionSourceInsert {
@@ -363,12 +390,21 @@ export interface Store {
     patch: Partial<
       Pick<
         BrowserSessionRecord,
-        "status" | "current_url" | "page_title" | "provider_ref" | "last_action" | "stop_reason" | "expires_at"
+        | "status"
+        | "current_url"
+        | "page_title"
+        | "provider_ref"
+        | "last_action"
+        | "stop_reason"
+        | "screenshot_ref"
+        | "expires_at"
       >
     >
   ): Promise<BrowserSessionRecord | null>;
   createBrowserAction(input: BrowserActionInsert): Promise<BrowserActionRecord>;
   listBrowserActions(userId: string, sessionId: string): Promise<BrowserActionRecord[]>;
+  createBrowserProduct(input: BrowserProductInsert): Promise<BrowserProductRecord>;
+  listBrowserProducts(userId: string, missionId: string): Promise<BrowserProductRecord[]>;
   updateBrowserAction(
     userId: string,
     id: string,

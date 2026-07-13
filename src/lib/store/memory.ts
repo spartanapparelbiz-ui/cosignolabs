@@ -27,6 +27,7 @@ import {
   MissionStepRecord,
   BrowserSessionRecord,
   BrowserActionRecord,
+  BrowserProductRecord,
   MissionSourceRecord,
 } from "../types";
 import type {
@@ -831,6 +832,7 @@ export class MemoryStore implements Store {
       provider_ref: input.provider_ref ?? null,
       last_action: null,
       stop_reason: null,
+      screenshot_ref: null,
       expires_at: input.expires_at ?? null,
       created_at: now,
       updated_at: now,
@@ -853,7 +855,7 @@ export class MemoryStore implements Store {
   async updateBrowserSession(
     userId: string,
     id: string,
-    patch: Partial<Pick<BrowserSessionRecord, "status" | "current_url" | "page_title" | "provider_ref" | "last_action" | "stop_reason" | "expires_at">>
+    patch: Partial<Pick<BrowserSessionRecord, "status" | "current_url" | "page_title" | "provider_ref" | "last_action" | "stop_reason" | "screenshot_ref" | "expires_at">>
   ): Promise<BrowserSessionRecord | null> {
     const s = this.browserSessions.find((x) => x.id === id && x.user_id === userId);
     if (!s) return null;
@@ -902,6 +904,47 @@ export class MemoryStore implements Store {
     if (!a) return null;
     Object.assign(a, patch, { updated_at: nowIso() });
     return { ...a };
+  }
+
+  private browserProducts: BrowserProductRecord[] = [];
+
+  async createBrowserProduct(input: import("./index").BrowserProductInsert): Promise<BrowserProductRecord> {
+    const now = nowIso();
+    const rec: BrowserProductRecord = {
+      id: randomUUID(),
+      user_id: input.user_id,
+      mission_id: input.mission_id,
+      session_id: input.session_id,
+      name: input.name,
+      brand: input.brand ?? "",
+      current_price: input.current_price ?? null,
+      currency: input.currency ?? "USD",
+      retailer: input.retailer ?? "",
+      product_url: input.product_url,
+      processor: input.processor ?? null,
+      memory: input.memory ?? null,
+      storage: input.storage ?? null,
+      display: input.display ?? null,
+      graphics: input.graphics ?? null,
+      battery_claim: input.battery_claim ?? null,
+      availability: input.availability ?? null,
+      warranty: input.warranty ?? null,
+      return_policy: input.return_policy ?? null,
+      source_title: input.source_title ?? "",
+      injection_flag: input.injection_flag ?? false,
+      simulated: input.simulated ?? true,
+      accessed_at: input.accessed_at ?? now,
+      created_at: now,
+    };
+    this.browserProducts.push(rec);
+    return { ...rec };
+  }
+
+  async listBrowserProducts(userId: string, missionId: string): Promise<BrowserProductRecord[]> {
+    return this.browserProducts
+      .filter((p) => p.user_id === userId && p.mission_id === missionId)
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map((p) => ({ ...p }));
   }
 
   /* -- workspaces -- */
@@ -1042,6 +1085,7 @@ export class MemoryStore implements Store {
     this.missionSteps = this.missionSteps.filter((s) => s.user_id !== userId);
     this.browserSessions = this.browserSessions.filter((s) => s.user_id !== userId);
     this.browserActions = this.browserActions.filter((a) => a.user_id !== userId);
+    this.browserProducts = this.browserProducts.filter((p) => p.user_id !== userId);
     this.missionSources = this.missionSources.filter((s) => s.user_id !== userId);
     // Workspaces they OWN dissolve entirely; memberships elsewhere are removed.
     const owned = new Set(

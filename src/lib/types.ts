@@ -514,9 +514,44 @@ export interface BrowserSessionRecord {
   provider_ref: string | null;
   last_action: string | null;
   stop_reason: string | null;
+  /** Bounded JPEG data URI of the current page (or a labeled sandbox placeholder). */
+  screenshot_ref: string | null;
   expires_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * A product actually found on a page during browser research. Only fields
+ * REALLY present on the page are set — anything the page didn't state is
+ * null, never invented. Content is untrusted page data.
+ */
+export interface BrowserProductRecord {
+  id: string;
+  user_id: string;
+  mission_id: string;
+  session_id: string;
+  name: string;
+  brand: string;
+  current_price: number | null;
+  currency: string;
+  retailer: string;
+  product_url: string;
+  processor: string | null;
+  memory: string | null;
+  storage: string | null;
+  display: string | null;
+  graphics: string | null;
+  battery_claim: string | null;
+  availability: string | null;
+  warranty: string | null;
+  return_policy: string | null;
+  source_title: string;
+  /** True when the page content tried to steer the agent (recorded, never obeyed). */
+  injection_flag: boolean;
+  simulated: boolean;
+  accessed_at: string;
+  created_at: string;
 }
 
 export type BrowserActionState =

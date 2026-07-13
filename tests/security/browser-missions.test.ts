@@ -43,23 +43,64 @@ async function startLaptopMission(userId: string) {
   return instantiateCompiledMission(userId, compiled.plan);
 }
 
-describe("the laptop comparison mission (sandbox browser)", () => {
-  it("researches, compares, prepares a purchase for approval, and never pays", async () => {
-    const { mission } = await startLaptopMission("user-a");
-    let r = await drive("user-a", mission.id);
-    expect(r.mission.state).toBe("awaiting_approval");
+/**
+ * A hand-built mission exercising the CONSEQUENTIAL browser path (prepare a
+ * purchase → approval card → approved submit → verification). The compiled
+ * laptop plan is read-only by design now, but these guarantees must keep
+ * holding for any plan that stages a consequential browser step.
+ */
+async function startPurchasePreparationMission(userId: string) {
+  const session = await store.createSession(userId, "purchase-prep flow");
+  const mission = await store.createMission({
+    user_id: userId,
+    session_id: session.id,
+    goal: "compare laptops and prepare (never complete) the purchase",
+  });
+  const base = { mission_id: mission.id, user_id: userId };
+  const steps = await store.createMissionSteps([
+    { ...base, idx: 0, purpose: "research options through the browser", operator: "browser", tool: "browser.research", depends_on: [] },
+    { ...base, idx: 1, purpose: "compare and pick a recommendation", operator: "files", tool: "deliverable.comparison", depends_on: [0] },
+    { ...base, idx: 2, purpose: "prepare the purchase for approval (no payment)", operator: "browser", tool: "browser.prepare_purchase", depends_on: [1] },
+  ]);
+  return { mission, steps };
+}
 
-    // Real browser actions were logged and labeled sandbox.
+describe("the laptop comparison mission (sandbox browser)", () => {
+  it("the compiled laptop mission is read-only end to end and completes with a report", async () => {
+    const { mission, steps } = await startLaptopMission("user-a");
+    // The exact 8-step vertical slice, persisted.
+    expect(steps.map((s) => s.purpose)).toEqual([
+      "Confirm requirements",
+      "Search for suitable laptops",
+      "Review product one",
+      "Review product two",
+      "Review product three",
+      "Compare the products",
+      "Create recommendation",
+      "Save final report",
+    ]);
+    const r = await drive("user-a", mission.id, 30);
+    expect(r.mission.state).toBe("completed");
+
+    // Real browser actions were logged, all read-only, all labeled sandbox.
     const sessions = await store.listBrowserSessions("user-a", mission.id);
     expect(sessions.length).toBe(1);
     expect(sessions[0].simulated).toBe(true);
     const actions = await store.listBrowserActions("user-a", sessions[0].id);
     expect(actions.length).toBeGreaterThanOrEqual(4); // search + 3 product pages
-    expect(actions.every((a) => a.risk === "read")).toBe(true);
+    expect(actions.every((a) => a.risk === "read" && !a.changes_external)).toBe(true);
 
-    // A comparison deliverable exists with a recommendation.
+    // Three products, a comparison report, and a receipt that says read-only.
+    expect(await store.listBrowserProducts("user-a", mission.id)).toHaveLength(3);
     const files = await store.listFiles("user-a");
-    expect(files.map((f) => f.name).join()).toMatch(/comparison/);
+    expect(files.map((f) => f.name).join()).toMatch(/Laptop comparison/);
+    expect(String((r.mission.receipt as Record<string, unknown>)?.external_changes)).toMatch(/read-only/);
+  });
+
+  it("a consequential purchase-preparation step is approval-gated and never pays", async () => {
+    const { mission } = await startPurchasePreparationMission("user-a");
+    let r = await drive("user-a", mission.id);
+    expect(r.mission.state).toBe("awaiting_approval");
 
     // The purchase step is blocked on an approval card that plainly says no payment.
     const prep = r.steps.find((s) => s.tool === "browser.prepare_purchase")!;
@@ -78,11 +119,9 @@ describe("the laptop comparison mission (sandbox browser)", () => {
     expect(String(settled.verification?.detail)).toMatch(/no payment was made/i);
 
     // The add-to-cart browser action is logged as consequential.
+    const sessions = await store.listBrowserSessions("user-a", mission.id);
     const finalActions = await store.listBrowserActions("user-a", sessions[0].id);
     expect(finalActions.some((a) => a.risk === "consequential" && a.kind === "submitApprovedForm")).toBe(true);
-
-    expect(r.mission.state).toBe("completed");
-    expect(r.mission.receipt).not.toBeNull();
   });
 
   it("the read-only/consequential split is enforced by the kind set", () => {
@@ -131,7 +170,7 @@ describe("tick concurrency", () => {
   });
 
   it("a duplicate approval settle executes the browser submit only once", async () => {
-    const { mission } = await startLaptopMission("user-a");
+    const { mission } = await startPurchasePreparationMission("user-a");
     let r = await drive("user-a", mission.id);
     const prep = r.steps.find((s) => s.tool === "browser.prepare_purchase")!;
     await approveAction("user-a", prep.action_id!);

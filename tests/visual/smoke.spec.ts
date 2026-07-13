@@ -218,6 +218,37 @@ for (const vp of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `ask-sources-${vp.name}.png`) });
     });
 
+    test("browser view: laptop mission with live progress and read-only promise", async ({ page }) => {
+      // Start the browser mission through the real API, then watch it.
+      const res = await page.request.post("/api/missions", {
+        data: { template: "laptop_compare" },
+      });
+      expect(res.ok()).toBeTruthy();
+      const { mission } = await res.json();
+      await page.goto(`/app/browser/${mission.id}`, { waitUntil: "networkidle" });
+
+      // The two-column truth: what it's doing, what it found, what's next,
+      // and the standing read-only statement.
+      await expect(page.getByText("What cosigno is doing")).toBeVisible();
+      await expect(page.getByText("What it found")).toBeVisible();
+      await expect(page.getByText("Changes made")).toBeVisible();
+      await expect(page.getByText(/No external changes have been made/)).toBeVisible();
+      // Controls exist (pause/stop/refresh) — no dead buttons.
+      await expect(page.getByRole("button", { name: /Pause|Resume/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `browser-view-${vp.name}.png`), fullPage: true });
+
+      // Let the client poll drive the sandbox mission to completion, then the
+      // result screen appears with the recommendation + report.
+      await expect(page.getByText("Mission complete")).toBeVisible({ timeout: 90_000 });
+      await expect(page.getByText("Recommended option")).toBeVisible();
+      await expect(page.getByRole("link", { name: /Open comparison/ })).toBeVisible();
+      await expect(page.getByText(/Prices and availability may change/)).toBeVisible();
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `browser-result-${vp.name}.png`), fullPage: true });
+    });
+
     test("workspace with a proposed card", async ({ page }) => {
       await page.goto("/app/workspace", { waitUntil: "networkidle" });
       const box = page.getByPlaceholder(/what do you want cosigno to handle/);

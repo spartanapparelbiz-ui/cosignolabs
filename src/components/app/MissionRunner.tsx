@@ -8,6 +8,7 @@ import {
   Circle,
   CircleDot,
   FileText,
+  Globe,
   HelpCircle,
   Link2,
   Lock,
@@ -327,6 +328,21 @@ export function MissionRunner() {
     }
   }
 
+  async function startLaptop() {
+    setBusy("laptop");
+    try {
+      const data = await jsonFetch("/api/missions", {
+        method: "POST",
+        body: JSON.stringify({ template: "laptop_compare" }),
+      });
+      toast("success", "browser mission started — opening the browser view.");
+      window.location.href = `/app/browser/${data.mission.id}`;
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "couldn't start the mission.");
+      setBusy(null);
+    }
+  }
+
   async function control(id: string, op: "pause" | "resume" | "stop") {
     setBusy(id);
     try {
@@ -413,6 +429,27 @@ export function MissionRunner() {
         </button>
       </div>
 
+      {/* the browser-operator reference mission */}
+      <div className="flex flex-wrap items-center gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
+        <Globe size={18} className="shrink-0 text-ink-soft" aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-extrabold lowercase">compare three laptops under $1,000</p>
+          <p className="text-xs text-ink-soft">
+            cosigno opens real product pages, records what they actually show,
+            compares three options, and stops at the recommended product page —
+            watch every page it reads. entirely read-only: no purchase is ever
+            attempted.
+          </p>
+        </div>
+        <button
+          onClick={startLaptop}
+          disabled={busy === "laptop"}
+          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:opacity-40"
+        >
+          {busy === "laptop" ? "starting…" : "start mission"}
+        </button>
+      </div>
+
       {missions === null && (
         <div className="flex flex-col gap-3" aria-busy="true" aria-label="loading missions">
           {[0, 1].map((i) => (
@@ -425,6 +462,7 @@ export function MissionRunner() {
         const open = openId === m.id;
         const mySteps = steps[m.id] ?? [];
         const done = mySteps.filter((s) => s.state === "completed").length;
+        const usesBrowser = mySteps.some((s) => s.tool.startsWith("laptop.") || s.tool.startsWith("browser."));
         return (
           <div key={m.id} className="rounded-card bg-surface/60 shadow-soft">
             <button
@@ -450,6 +488,15 @@ export function MissionRunner() {
 
             {open && (
               <div className="flex flex-col gap-3 border-t border-line/60 px-4 py-3">
+                {usesBrowser && (
+                  <Link
+                    href={`/app/browser/${m.id}`}
+                    className="inline-flex w-fit items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
+                  >
+                    <Globe size={13} aria-hidden="true" /> open the browser view
+                  </Link>
+                )}
+
                 {/* pending question */}
                 {m.pending_question && (
                   <div className="rounded-btn bg-signal/10 p-3 ring-1 ring-inset ring-signal/30">

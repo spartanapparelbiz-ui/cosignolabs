@@ -55,6 +55,12 @@ const TOOL_SUMMARY: Record<string, string> = {
   "browser.research": "research public pages through the browser (read-only)",
   "deliverable.comparison": "write a comparison deliverable as a versioned file",
   "browser.prepare_purchase": "prepare (never complete) a purchase for approval, then verify the stage",
+  "laptop.confirm": "confirm the budget, requirements, and country",
+  "laptop.search": "search allowed retailer sites for suitable products (read-only)",
+  "laptop.review": "open one product page and record only what it actually shows",
+  "laptop.compare": "compare the collected products against the requirements",
+  "laptop.recommend": "pick the data-supported option and open its page (never buys)",
+  "laptop.report": "save the versioned comparison report",
 };
 
 /** Tools whose execution changes the outside world (need an approval gate). */
@@ -68,7 +74,13 @@ const PROVIDER_TOOL: Record<string, string> = {
   "drive.search_files": "google-drive",
 };
 /** Tools that use the browser service. */
-const BROWSER_TOOLS = new Set(["browser.research", "browser.prepare_purchase"]);
+const BROWSER_TOOLS = new Set([
+  "browser.research",
+  "browser.prepare_purchase",
+  "laptop.search",
+  "laptop.review",
+  "laptop.recommend",
+]);
 
 function operatorOfTool(toolId: string): string {
   for (const [key, p] of Object.entries(OPERATOR_PROFILES)) {

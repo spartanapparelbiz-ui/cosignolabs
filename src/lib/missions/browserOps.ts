@@ -19,7 +19,12 @@ import type { BrowserSessionRecord, MissionRecord } from "../types";
  * already-approved submit during verification.
  */
 
-const SESSION_TTL_MS = 20 * 60_000;
+/** MVP limits (spec'd): 30-minute sessions, 20 page visits per mission. */
+const SESSION_TTL_MS = 30 * 60_000;
+export const MAX_PAGE_VISITS_PER_MISSION = 20;
+
+/** Kinds that open/read a page (counted against the page-visit limit). */
+const PAGE_VISIT_KINDS = new Set(["navigate", "inspect", "openLink", "scroll", "searchWithinPage"]);
 
 export async function ensureBrowserSession(
   userId: string,
@@ -32,9 +37,23 @@ export async function ensureBrowserSession(
   // "extracting", verify submits on the same one). Only a terminal session
   // forces a new one — never spin up a second session mid-mission.
   const TERMINAL = new Set(["expired", "stopped", "failed_safely", "completed"]);
-  const existing = (await store.listBrowserSessions(userId, mission.id)).find(
+  const candidates = (await store.listBrowserSessions(userId, mission.id)).filter(
     (s) => s.provider_ref && !TERMINAL.has(s.status)
   );
+  let existing: BrowserSessionRecord | undefined;
+  for (const s of candidates) {
+    // An expired session is marked honestly; completed research is already
+    // persisted, so a fresh session simply continues where it left off.
+    if (s.expires_at && new Date(s.expires_at).getTime() < Date.now()) {
+      await store.updateBrowserSession(userId, s.id, {
+        status: "expired",
+        stop_reason: "the browser session expired. completed research was saved.",
+      });
+      continue;
+    }
+    existing = s;
+    break;
+  }
   const provider = getBrowserProvider();
   if (existing && existing.provider_ref) {
     return {
@@ -87,6 +106,17 @@ export async function runReadOnlyAction(
   if (!budget.ok) return { ok: false, summary: budget.reason! };
 
   const existing = await store.listBrowserActions(userId, session.id);
+  // Page-visit cap: a mission may open at most 20 pages. Reached → stop
+  // safely with a plain reason (research already saved stays saved).
+  if (PAGE_VISIT_KINDS.has(action.kind)) {
+    const visits = existing.filter((a) => PAGE_VISIT_KINDS.has(a.kind)).length;
+    if (visits >= MAX_PAGE_VISITS_PER_MISSION) {
+      return {
+        ok: false,
+        summary: `this mission reached its ${MAX_PAGE_VISITS_PER_MISSION}-page limit — cosigno stopped browsing and kept everything it already found.`,
+      };
+    }
+  }
   const idx = existing.length + actionSeq++;
   const row = await store.createBrowserAction({
     session_id: session.id,

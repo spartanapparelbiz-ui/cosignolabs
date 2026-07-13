@@ -189,7 +189,7 @@ export const filePatchSchema = z
 /** Durable missions. A mission starts from a template OR a compiled goal. */
 export const missionCreateSchema = z
   .object({
-    template: z.enum(["meeting_prep"]).optional(),
+    template: z.enum(["meeting_prep", "laptop_compare"]).optional(),
     goal: z.string().trim().min(3).max(500).optional(),
     // staged file/link sources (ask-box context) to attach to the mission
     sourceIds: z.array(uuid).max(20).optional(),
@@ -221,6 +221,11 @@ export const missionAnswerSchema = z
 
 export const missionControlSchema = z
   .object({ op: z.enum(["pause", "resume", "stop"]) })
+  .strict();
+
+/** Browser-view controls: pause/resume/stop the session, refresh the preview. */
+export const browserControlSchema = z
+  .object({ op: z.enum(["pause", "resume", "stop", "refresh"]) })
   .strict();
 
 /** Workspaces (teams/household). */

@@ -740,6 +740,8 @@ const browserPreparePurchase: MissionTool = {
   },
 };
 
+import { LAPTOP_TOOLS } from "./laptopTools";
+
 export const TOOLS: Record<string, MissionTool> = {
   [calendarFindEvent.id]: calendarFindEvent,
   [gmailSearchRelated.id]: gmailSearchRelated,
@@ -753,4 +755,5 @@ export const TOOLS: Record<string, MissionTool> = {
   [deliverableComparison.id]: deliverableComparison,
   [browserPreparePurchase.id]: browserPreparePurchase,
   [missionReceipt.id]: missionReceipt,
+  ...LAPTOP_TOOLS,
 };

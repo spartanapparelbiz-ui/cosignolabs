@@ -24,18 +24,29 @@ beforeEach(() => {
 });
 
 describe("compileMission — open-ended goals become real plans", () => {
-  it("a laptop-comparison goal compiles to a valid, browser-based plan with an approval gate", async () => {
+  it("a laptop-comparison goal compiles to the read-only browser-operator plan (stops before purchase)", async () => {
     const r = await compileMission("user-a", "compare the best laptops under $1,000");
     expect(r.shape).toBe("product_compare");
     expect(r.blocked).toBe(false);
     expect(r.validation.ok).toBe(true);
+    // The exact 8-step vertical slice: confirm → search → three reviews →
+    // compare → recommend → report. Entirely read-only.
     const tools = r.plan.steps.map((s) => s.tool);
-    expect(tools).toContain("browser.research");
-    expect(tools).toContain("deliverable.comparison");
-    expect(tools).toContain("browser.prepare_purchase");
-    expect(r.plan.approvalCheckpoints.length).toBeGreaterThan(0);
-    // honest about no payment connection
-    expect(r.plan.unsupported.join(" ")).toMatch(/payment/i);
+    expect(tools).toEqual([
+      "laptop.confirm",
+      "laptop.search",
+      "laptop.review",
+      "laptop.review",
+      "laptop.review",
+      "laptop.compare",
+      "laptop.recommend",
+      "laptop.report",
+    ]);
+    // No consequential step → no approval gate needed; purchases are out of
+    // scope and said so honestly.
+    expect(r.plan.approvalCheckpoints).toHaveLength(0);
+    expect(r.plan.unsupported.join(" ")).toMatch(/purchase|payment/i);
+    expect(r.plan.riskSummary).toMatch(/read-only/i);
   });
 
   it("a research goal compiles to a read-only plan with no consequential steps", async () => {

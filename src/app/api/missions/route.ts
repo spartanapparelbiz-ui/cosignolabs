@@ -5,6 +5,7 @@ import { missionCreateSchema, parseStrict, readJsonBody } from "@/lib/schemas";
 import { getStore } from "@/lib/store";
 import { advanceMission } from "@/lib/missions/engine";
 import { createMeetingPrepMission } from "@/lib/missions/meetingPrep";
+import { createLaptopCompareMission } from "@/lib/missions/laptopCompare";
 import { compileMission, type SourceContext } from "@/lib/missions/compiler";
 import { instantiateCompiledMission } from "@/lib/missions/create";
 import type { MissionSourceRecord } from "@/lib/types";
@@ -58,6 +59,9 @@ export async function POST(req: NextRequest) {
     let missionId: string;
     if (body.template === "meeting_prep") {
       const { mission } = await createMeetingPrepMission(userId);
+      missionId = mission.id;
+    } else if (body.template === "laptop_compare") {
+      const { mission } = await createLaptopCompareMission(userId);
       missionId = mission.id;
     } else {
       // Load any staged sources the ask box attached (only the caller's own).
