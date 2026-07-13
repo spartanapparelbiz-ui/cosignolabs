@@ -60,6 +60,21 @@ describe("clerk errors → calm copy, never the raw cause", () => {
     ).toMatch(/code/i);
   });
 
+  it("maps production bot-protection and restriction failures honestly (never a silent shrug)", () => {
+    // The codes a production Clerk instance produces when the sign-up CAPTCHA
+    // can't run or sign-ups are restricted — the failures that previously fell
+    // into the generic bucket and made "sign-up is broken" undiagnosable.
+    expect(
+      friendlyClerkError({ errors: [{ code: "captcha_invalid" }] }, "sign-up")
+    ).toMatch(/robot check/i);
+    expect(
+      friendlyClerkError({ errors: [{ code: "captcha_unavailable" }] }, "sign-up")
+    ).toMatch(/robot check/i);
+    expect(
+      friendlyClerkError({ errors: [{ code: "sign_up_restricted" }] }, "sign-up")
+    ).toMatch(/limited|invitation/i);
+  });
+
   it("falls back to a safe generic per mode for unknown/garbage input", () => {
     expect(friendlyClerkError(null, "sign-in")).toMatch(/sign you in/i);
     expect(friendlyClerkError({}, "sign-up")).toMatch(/create your account/i);

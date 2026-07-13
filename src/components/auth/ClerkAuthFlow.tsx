@@ -4,7 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSignIn, useSignUp } from "@clerk/nextjs";
 import { AuthForm } from "./AuthForm";
-import { friendlyClerkError } from "./clerkErrors";
+import { clerkErrorCode, friendlyClerkError } from "./clerkErrors";
+
+/**
+ * Surface a calm message to the user, but keep the STABLE provider error code
+ * findable (browser console) so a broken flow is diagnosable — a swallowed
+ * error is how "sign-up is broken" goes unnoticed. Codes only, never raw
+ * provider messages or user data.
+ */
+function describeAuthError(err: unknown, mode: "sign-in" | "sign-up"): string {
+  const code = clerkErrorCode(err);
+  // eslint-disable-next-line no-console
+  console.warn(`[cosigno auth] ${mode} failed`, code ? `code=${code}` : err);
+  return friendlyClerkError(err, mode);
+}
 
 /**
  * The real engine: Clerk stays fully in charge of security, session, and
@@ -85,7 +98,7 @@ export function ClerkAuthFlow({
       if (mode === "sign-in") await handleSignIn(email, password);
       else await handleSignUp(email, password);
     } catch (err) {
-      setError(friendlyClerkError(err, mode));
+      setError(describeAuthError(err, mode));
     } finally {
       setBusy(false);
     }
@@ -104,7 +117,7 @@ export function ClerkAuthFlow({
         setError("that code isn't right — check it and try again.");
       }
     } catch (err) {
-      setError(friendlyClerkError(err, mode));
+      setError(describeAuthError(err, mode));
     } finally {
       setBusy(false);
     }
@@ -124,7 +137,7 @@ export function ClerkAuthFlow({
       });
       // redirect leaves the page; nothing after this runs on success
     } catch (err) {
-      setError(friendlyClerkError(err, mode));
+      setError(describeAuthError(err, mode));
       setBusy(false);
     }
   }

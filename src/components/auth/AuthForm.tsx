@@ -228,6 +228,12 @@ export function AuthForm(props: AuthFormProps) {
               />
             )}
 
+            {/* Clerk bot-protection mount. PRODUCTION Clerk instances run a
+                smart CAPTCHA on sign-up; a custom (headless) flow MUST render
+                this element or signUp.create() fails for real users. Empty and
+                invisible until Clerk needs to show a challenge. */}
+            {mode === "sign-up" && <div id="clerk-captcha" className="empty:hidden" />}
+
             {error && <ErrorLine>{error}</ErrorLine>}
 
             <SubmitButton lit={ready} busy={busy}>

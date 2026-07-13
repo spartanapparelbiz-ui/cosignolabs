@@ -14,11 +14,14 @@ export function AuthScreen({
   clerkEnabled,
   googleEnabled,
   dest,
+  demoAllowed = true,
 }: {
   mode: "sign-in" | "sign-up";
   clerkEnabled: boolean;
   googleEnabled: boolean;
   dest: string;
+  /** Dev/sandbox only. In production without Clerk, an honest notice shows instead. */
+  demoAllowed?: boolean;
 }) {
   const other = mode === "sign-in" ? "/sign-up" : "/sign-in";
   const switchHref = withRedirect(other, dest);
@@ -44,13 +47,29 @@ export function AuthScreen({
           dest={dest}
           switchHref={switchHref}
         />
-      ) : (
+      ) : demoAllowed ? (
         <DemoAuthFlow
           mode={mode}
           googleEnabled={googleEnabled}
           dest={dest}
           switchHref={switchHref}
         />
+      ) : (
+        // Production without sign-in configured: say so plainly rather than
+        // rendering a form that can't actually create an account.
+        <div className="w-full max-w-sm rounded-card border border-line/70 bg-surface p-6 text-center shadow-soft">
+          <p className="text-base font-extrabold">accounts aren&apos;t open just yet</p>
+          <p className="mt-2 text-sm font-semibold text-ink-soft">
+            we&apos;re finishing setup. join the waitlist on the homepage and
+            we&apos;ll email you the moment sign-ups are live.
+          </p>
+          <Link
+            href="/"
+            className="mt-4 inline-flex rounded-btn bg-ink px-4 py-2 text-sm font-bold text-cream"
+          >
+            back to home
+          </Link>
+        </div>
       )}
     </main>
   );
