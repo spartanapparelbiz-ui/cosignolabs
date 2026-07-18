@@ -275,7 +275,9 @@ export function Workspace() {
   submitRef.current = submit;
 
   const onApprove = useCallback(
-    async (id: string, opts: { confirmation?: string }) => {
+    // The whole opts object posts through — a drawn signature (SIGN) rides
+    // along to the authorization record exactly like in the decision inbox.
+    async (id: string, opts: { confirmation?: string; signature?: { name: string; image?: string } }) => {
       setOptimistic((o) => ({ ...o, [id]: "executing" }));
       try {
         const data = await jsonFetch(`/api/actions/${id}/approve`, {

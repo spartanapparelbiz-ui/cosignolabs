@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import type { MissionSourceRecord, MissionSourceStatus } from "@/lib/types";
+import { classifyDelegation } from "@/lib/delegate";
 import { useToast } from "@/components/Toast";
 
 /**
@@ -28,8 +29,8 @@ import { useToast } from "@/components/Toast";
 const EXAMPLES = [
   "prepare tomorrow's meeting",
   "review my unread emails",
+  "watch for emails from investors",
   "research the best option",
-  "summarize this document",
 ];
 
 const ACCEPT = ".pdf,.docx,.txt,.md,.markdown,.csv,.png,.jpg,.jpeg,.webp";
@@ -280,6 +281,31 @@ export function SourceComposer({ onStarted }: { onStarted: () => void }) {
     }
     setBusy(true);
     try {
+      // Delegation, not workflow-picking: "watch for…" becomes a standing
+      // watch and "every monday…" a recurring rule — the user never chooses
+      // the mechanism. Everything else compiles into a mission as before.
+      const intent = classifyDelegation(g);
+      if (intent.kind === "watch" || intent.kind === "automation") {
+        await jsonFetch("/api/automations", {
+          method: "POST",
+          body: JSON.stringify({
+            name: intent.name,
+            command: g,
+            interval_hours: intent.interval_hours,
+            mode: intent.mode,
+          }),
+        });
+        toast(
+          "success",
+          intent.kind === "watch"
+            ? "watching — cosigno will tell you when something happens."
+            : "recurring rule created — cosigno will prepare it on schedule."
+        );
+        setGoal("");
+        onStarted();
+        router.push("/app/watch");
+        return;
+      }
       const data = await jsonFetch("/api/missions/compile", {
         method: "POST",
         body: JSON.stringify({ goal: g, sourceIds: sources.map((s) => s.id) }),

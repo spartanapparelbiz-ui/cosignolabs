@@ -4,19 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-// The everyday pages. Advanced surfaces (memory, team, health) are
-// reachable from the account/settings menu, not the main nav — the dashboard
-// stays about the four simple questions, and autopilot answers the four
-// business questions (what changed / what's wrong / what's well / what next).
+// Minimal, delegation-first: cosigno itself is the operator, so there is no
+// separate operator page. Autopilot, files, skills, and the advanced
+// surfaces (memory, team, health) stay reachable from home and the account
+// menu without widening the everyday nav.
 const LINKS = [
   { href: "/app", label: "home" },
-  { href: "/app/autopilot", label: "autopilot" },
   { href: "/app/missions", label: "missions" },
+  { href: "/app/watch", label: "watch" },
   { href: "/app/decisions", label: "approvals" },
-  { href: "/app/automations", label: "automations" },
-  { href: "/app/connections", label: "connections" },
-  { href: "/app/files", label: "files" },
   { href: "/app/activity", label: "activity" },
+  { href: "/app/connections", label: "connections" },
+  { href: "/app/settings", label: "settings" },
 ];
 
 function activeIndex(pathname: string): number {

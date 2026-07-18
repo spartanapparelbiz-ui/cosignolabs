@@ -84,7 +84,7 @@ for (const vp of VIEWPORTS) {
       page.on("console", (m) => {
         if (m.type() === "error" && !IGNORE.test(m.text())) errors.push(`console: ${m.text()}`);
       });
-      for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/autopilot", "/app/missions", "/app/decisions", "/app/automations", "/app/connections", "/app/memory", "/app/files", "/app/team", "/app/health", "/app/activity", "/app/account", "/app/workspace", "/sign-in"]) {
+      for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/autopilot", "/app/missions", "/app/watch", "/app/skills", "/app/decisions", "/app/connections", "/app/memory", "/app/files", "/app/team", "/app/health", "/app/activity", "/app/account", "/app/workspace", "/sign-in"]) {
         await page.goto(path, { waitUntil: "networkidle" });
         await page.waitForTimeout(300);
         await noHorizontalScroll(page);
@@ -190,15 +190,17 @@ for (const vp of VIEWPORTS) {
       await board.screenshot({ path: join(OUT, `tierboard-${vp.name}.png`) });
     });
 
-    test("home dashboard: the four-question layout", async ({ page }) => {
+    test("home dashboard: the live-operator layout", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "What do you need handled?" })).toBeVisible();
-      // The ask box + the four honest section headings (stable regardless of
-      // how much data exists in the shared demo store).
+      await expect(page.getByRole("heading", { name: "What should cosigno handle?" })).toBeVisible();
+      // The delegation box + the live-operator section headings (stable
+      // regardless of how much data exists in the shared demo store).
       await expect(page.getByPlaceholder(/Ask cosigno to handle something/)).toBeVisible();
       await expect(page.getByRole("button", { name: /Start Mission/ })).toBeVisible();
-      await expect(page.getByText("In progress").first()).toBeVisible();
-      await expect(page.getByText("Needs your approval").first()).toBeVisible();
+      await expect(page.getByText("Working").first()).toBeVisible();
+      await expect(page.getByText("Needs you").first()).toBeVisible();
+      await expect(page.getByText("Watching").first()).toBeVisible();
+      await expect(page.getByText("Completed").first()).toBeVisible();
       await expect(page.getByText("Connected apps").first()).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `dashboard-${vp.name}.png`), fullPage: true });

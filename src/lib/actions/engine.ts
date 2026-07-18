@@ -2,6 +2,7 @@ import { getStore, type ActionInsert } from "../store";
 import { getUserPlan } from "../billing";
 import { effectiveActionLimit, usageLimitMessage } from "../enforcement";
 import { logSecurity } from "../log";
+import { authorizationHash } from "../signRecord";
 import { executeAction } from "./executor";
 import { ActionRecord } from "../types";
 
@@ -69,10 +70,27 @@ export async function autoExecute(
   const usage = await store.getUsage(userId);
   if (usage.actions_executed >= (await effectiveActionLimit(userId))) return action;
 
+  const authorizedAt = new Date().toISOString();
   await store.transitionAction(userId, action.id, "approved");
   await store.logEvent(userId, action.id, "approved", "system", {
     auto: true,
     note: "Tier 1 — auto-approved (read-only/reversible).",
+    authorization: {
+      method: "auto",
+      signed_name: null,
+      authorized_at: authorizedAt,
+      record_hash: authorizationHash({
+        user_id: userId,
+        action_id: action.id,
+        category: action.category,
+        tier: action.tier,
+        method: "auto",
+        signed_name: null,
+        summary: action.summary,
+        payload: action.payload,
+        authorized_at: authorizedAt,
+      }),
+    },
   });
   return runExecution(userId, action.id);
 }
@@ -88,6 +106,13 @@ export interface ApproveOptions {
    * Recorded verbatim in the audit trail.
    */
   delegate?: { actorId: string; actorEmail: string };
+  /**
+   * The SIGN interaction, when the user drew (or applied) their signature.
+   * Purely additive audit context: the signature is the human interaction;
+   * the hashed authorization record written below is the proof. Absence
+   * means a one-click APPROVE.
+   */
+  signature?: { name: string; image?: string };
 }
 
 export async function approveAction(
@@ -167,7 +192,13 @@ export async function approveAction(
     });
   }
 
-  // The approval row — written BEFORE any execution can begin.
+  // The approval row — written BEFORE any execution can begin. Every
+  // approval seals a tamper-evident authorization record: who, what, the
+  // exact approved payload, when, and how (signed vs one-click). The drawn
+  // signature (if any) rides along as audit context; the hash is the proof.
+  const authorizedAt = new Date().toISOString();
+  const method = opts.signature ? ("signed" as const) : ("approved" as const);
+  const approvedPayload = opts.payload ?? action.payload;
   await store.transitionAction(userId, actionId, "approved");
   await store.logEvent(userId, actionId, "approved", "user", {
     tier: action.tier,
@@ -175,6 +206,23 @@ export async function approveAction(
     ...(opts.delegate
       ? { delegated: true, approved_by: opts.delegate.actorEmail }
       : {}),
+    authorization: {
+      method,
+      signed_name: opts.signature?.name ?? null,
+      authorized_at: authorizedAt,
+      record_hash: authorizationHash({
+        user_id: userId,
+        action_id: actionId,
+        category: action.category,
+        tier: action.tier,
+        method,
+        signed_name: opts.signature?.name ?? null,
+        summary: action.summary,
+        payload: approvedPayload,
+        authorized_at: authorizedAt,
+      }),
+      ...(opts.signature?.image ? { signature_image: opts.signature.image } : {}),
+    },
   });
 
   return runExecution(userId, actionId);

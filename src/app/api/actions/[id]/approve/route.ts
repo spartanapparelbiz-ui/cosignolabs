@@ -23,6 +23,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     const action = await approveAction(userId, id, {
       confirmation: body.confirmation,
       payload: body.payload,
+      signature: body.signature,
     });
     return NextResponse.json({ action });
   } catch (err) {

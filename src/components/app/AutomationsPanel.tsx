@@ -200,7 +200,7 @@ export function AutomationsPanel() {
           onClick={() => setAddOpen((v) => !v)}
           className="inline-flex shrink-0 items-center gap-1 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream"
         >
-          <Plus size={13} /> {addOpen ? "cancel" : "new automation"}
+          <Plus size={13} /> {addOpen ? "cancel" : "new watch or rule"}
         </button>
       </div>
 

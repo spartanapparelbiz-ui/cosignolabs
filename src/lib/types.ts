@@ -332,6 +332,25 @@ export interface AutomationRunRecord {
   created_at: string;
 }
 
+/* ------------------------------------------------------------- signatures */
+
+/**
+ * The user's saved visual signature — an optional convenience for the SIGN
+ * interaction (Hold to Sign replays it). It is a product interaction
+ * representing approval inside cosigno, NOT automatically a legally binding
+ * e-signature; the authenticated, hashed authorization record on each
+ * approval event is the underlying proof.
+ */
+export interface SignatureRecord {
+  user_id: string;
+  /** Display name sealed onto signed cards ("Signed by …"). */
+  name: string;
+  /** Small PNG data URI of the drawn signature (bounded server-side). */
+  image: string;
+  created_at: string;
+  updated_at: string;
+}
+
 /* -------------------------------------------------------------- autopilot */
 
 /** The user's disposition on a detected signal (keyed by its stable key). */

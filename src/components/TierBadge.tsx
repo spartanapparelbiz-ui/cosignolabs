@@ -1,17 +1,20 @@
 import { Lock } from "lucide-react";
 import type { Tier } from "@/lib/types";
 
+// The three authorization levels, presented as cosigno speaks about them:
+// AUTO runs pre-authorized low-risk work, APPROVE is one click, SIGN is the
+// deliberate signature interaction (all tier-3, plus outward-facing tier-2).
 const TIER_STYLES: Record<Tier, { label: string; className: string }> = {
   1: {
-    label: "tier 1 · auto",
+    label: "auto",
     className: "bg-cream-deep text-ink-soft",
   },
   2: {
-    label: "tier 2 · approve",
+    label: "approve",
     className: "bg-ink/5 text-ink ring-1 ring-inset ring-ink/20",
   },
   3: {
-    label: "tier 3 · locked",
+    label: "sign",
     className: "bg-ink text-cream",
   },
 };

@@ -31,6 +31,7 @@ import {
   MissionSourceRecord,
   SignalStateRecord,
   SignalStateStatus,
+  SignatureRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -778,6 +779,32 @@ export class SupabaseStore implements Store {
     if (error) throw new Error(error.message);
   }
 
+  /* -- saved signature -- */
+  async getSignature(userId: string): Promise<SignatureRecord | null> {
+    const { data, error } = await this.client
+      .from("signatures")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as SignatureRecord) ?? null;
+  }
+
+  async saveSignature(userId: string, name: string, image: string): Promise<SignatureRecord> {
+    const { data, error } = await this.client
+      .from("signatures")
+      .upsert({ user_id: userId, name, image, updated_at: new Date().toISOString() })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as SignatureRecord;
+  }
+
+  async deleteSignature(userId: string): Promise<void> {
+    const { error } = await this.client.from("signatures").delete().eq("user_id", userId);
+    if (error) throw new Error(error.message);
+  }
+
   /* -- autopilot -- */
   async ensureSignalStates(userId: string, keys: string[]): Promise<SignalStateRecord[]> {
     if (keys.length === 0) return [];
@@ -1476,6 +1503,7 @@ export class SupabaseStore implements Store {
       "missions",
       "autopilot_signal_states",
       "autopilot_meta",
+      "signatures",
       "files",
       "memories",
       "user_prefs",

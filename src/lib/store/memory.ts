@@ -31,6 +31,7 @@ import {
   MissionSourceRecord,
   SignalStateRecord,
   SignalStateStatus,
+  SignatureRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -302,6 +303,7 @@ export class MemoryStore implements Store {
   private automationRuns: AutomationRunRecord[] = [];
   private signalStates: SignalStateRecord[] = [];
   private autopilotViewedAt = new Map<string, string>();
+  private signatures = new Map<string, SignatureRecord>();
   private memories: MemoryRecord[] = [];
   private prefs = new Map<string, UserPrefs>();
   private files: FileRecord[] = [];
@@ -527,6 +529,30 @@ export class MemoryStore implements Store {
       .map((r) => ({ ...r }));
   }
 
+
+  /* -- saved signature -- */
+  async getSignature(userId: string): Promise<SignatureRecord | null> {
+    const s = this.signatures.get(userId);
+    return s ? { ...s } : null;
+  }
+
+  async saveSignature(userId: string, name: string, image: string): Promise<SignatureRecord> {
+    const now = nowIso();
+    const existing = this.signatures.get(userId);
+    const rec: SignatureRecord = {
+      user_id: userId,
+      name,
+      image,
+      created_at: existing?.created_at ?? now,
+      updated_at: now,
+    };
+    this.signatures.set(userId, rec);
+    return { ...rec };
+  }
+
+  async deleteSignature(userId: string): Promise<void> {
+    this.signatures.delete(userId);
+  }
 
   /* -- autopilot -- */
   async ensureSignalStates(userId: string, keys: string[]): Promise<SignalStateRecord[]> {
@@ -1145,6 +1171,7 @@ export class MemoryStore implements Store {
     this.missionSources = this.missionSources.filter((s) => s.user_id !== userId);
     this.signalStates = this.signalStates.filter((s) => s.user_id !== userId);
     this.autopilotViewedAt.delete(userId);
+    this.signatures.delete(userId);
     // Workspaces they OWN dissolve entirely; memberships elsewhere are removed.
     const owned = new Set(
       this.workspaces.filter((w) => w.owner_user_id === userId).map((w) => w.id)

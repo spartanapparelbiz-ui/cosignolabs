@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ActionRecord } from "@/lib/types";
-import { ActionCard } from "@/components/ActionCard";
+import type { ActionRecord, SignatureRecord } from "@/lib/types";
+import { ActionCard, type ApproveOpts } from "@/components/ActionCard";
 import { SkeletonCard } from "@/components/Skeleton";
 import { EmptyIllustration } from "@/components/EmptyIllustration";
 import { useToast } from "@/components/Toast";
+import { useDisplayName } from "@/lib/theme";
 
 /**
  * The Decision Inbox — ONLY items that need human judgment: every proposed
@@ -26,7 +27,9 @@ async function jsonFetch(url: string, init?: RequestInit) {
 
 export function DecisionInbox() {
   const [actions, setActions] = useState<ActionRecord[] | null>(null);
+  const [saved, setSaved] = useState<SignatureRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [displayName] = useDisplayName();
   const toast = useToast();
 
   const load = useCallback(async () => {
@@ -41,16 +44,23 @@ export function DecisionInbox() {
 
   useEffect(() => {
     load();
+    // The saved signature enables Hold to Sign — best effort, never blocking.
+    jsonFetch("/api/signature")
+      .then((d) => setSaved(d.signature ?? null))
+      .catch(() => null);
   }, [load]);
 
   const onApprove = useCallback(
-    async (id: string, opts: { confirmation?: string }): Promise<string | null> => {
+    async (id: string, opts: ApproveOpts): Promise<string | null> => {
       try {
         await jsonFetch(`/api/actions/${id}/approve`, {
           method: "POST",
-          body: JSON.stringify(opts.confirmation ? { confirmation: opts.confirmation } : {}),
+          body: JSON.stringify({
+            ...(opts.confirmation ? { confirmation: opts.confirmation } : {}),
+            ...(opts.signature ? { signature: opts.signature } : {}),
+          }),
         });
-        toast("success", "signed & executed.");
+        toast("success", opts.signature ? "signed & executed." : "approved & executed.");
         await load();
         return null;
       } catch (e) {
@@ -58,6 +68,22 @@ export function DecisionInbox() {
       }
     },
     [load, toast]
+  );
+
+  const onSaveSignature = useCallback(
+    async (name: string, image: string) => {
+      try {
+        const d = await jsonFetch("/api/signature", {
+          method: "PUT",
+          body: JSON.stringify({ name, image }),
+        });
+        setSaved(d.signature ?? null);
+        toast("success", "signature saved — next time, hold to sign.");
+      } catch {
+        // Convenience only; the approval already went through.
+      }
+    },
+    [toast]
   );
 
   const onVeto = useCallback(
@@ -140,6 +166,9 @@ export function DecisionInbox() {
           key={a.id}
           action={a}
           index={i}
+          savedSignature={saved}
+          signerName={displayName.trim() || "Operator"}
+          onSaveSignature={onSaveSignature}
           onApprove={onApprove}
           onVeto={onVeto}
           onEdit={onEdit}

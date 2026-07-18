@@ -11,9 +11,12 @@ Live at [cosignolabs.com](https://cosignolabs.com).
 2. The agent plans and produces **action cards** — structured proposals, never
    executed actions. Each card shows what it will do in one plain-English
    sentence, the exact payload it would execute, and a risk-tier badge.
-3. **Approve / Edit / Veto.** Nothing executes until you approve. Approval
-   fires the action server-side, logs it, and marks the card executed. Veto
-   kills it with a logged reason.
+3. **Approve, Sign, or Veto.** Nothing executes until you decide. Routine
+   writes are one-click approvals; important actions (external email,
+   publishing, spend, and everything locked) use **Cosigno Sign** — you draw
+   or apply your signature, the card seals, and a tamper-evident
+   authorization record lands in the audit trail (see `docs/SIGN.md`). Veto
+   kills the card with a logged reason.
 4. Everything — proposed, approved, vetoed, executed, failed, blocked,
    flagged — is permanently logged in the Activity timeline.
 
@@ -34,8 +37,8 @@ Cosigno is two connected layers over the same approval engine:
 | Tier | Name    | Behavior |
 |------|---------|----------|
 | 1    | Auto    | Read-only / reversible (search, summarize, draft). Executes without approval, still logged. |
-| 2    | Approve | Anything that sends, posts, modifies, or spends. Requires explicit card approval. Default for all writes. |
-| 3    | Locked  | Destructive or financial (delete, refund, payment). Approval **plus** typed confirmation of the action name. Pinned — cannot be lowered. |
+| 2    | Approve | Anything that sends, posts, modifies, or spends. Requires explicit card approval; outward-facing categories (external email, publishing, spend, webhooks) use the SIGN interaction. |
+| 3    | Sign (locked) | Destructive or financial (delete, refund, payment). Deliberate signature authorization on top of the server confirmation contract. Pinned — cannot be lowered. |
 
 Tiers are enforced server-side from the action **category**; the client cannot
 escalate and the agent cannot self-escalate. If the model requests a different

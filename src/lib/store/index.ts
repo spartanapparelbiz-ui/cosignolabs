@@ -32,6 +32,7 @@ import type {
   SessionRecord,
   SignalStateRecord,
   SignalStateStatus,
+  SignatureRecord,
   SubscriptionRecord,
   TierSettingRecord,
   UsageRecord,
@@ -333,6 +334,11 @@ export interface Store {
   listDueAutomations(limit: number): Promise<AutomationRecord[]>;
   createAutomationRun(input: Omit<AutomationRunRecord, "id" | "created_at">): Promise<AutomationRunRecord>;
   listAutomationRuns(userId: string, automationId: string, limit?: number): Promise<AutomationRunRecord[]>;
+
+  /* -- saved signature (Hold to Sign convenience; image bounded upstream) -- */
+  getSignature(userId: string): Promise<SignatureRecord | null>;
+  saveSignature(userId: string, name: string, image: string): Promise<SignatureRecord>;
+  deleteSignature(userId: string): Promise<void>;
 
   /* -- autopilot (signal dispositions + last-viewed marker) -- */
   /**

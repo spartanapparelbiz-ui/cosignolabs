@@ -5,6 +5,7 @@ import { ShieldAlert } from "lucide-react";
 import type { ActionRecord } from "@/lib/types";
 import { CATEGORY_LIST } from "@/lib/types";
 import { SkeletonRows } from "./Skeleton";
+import { ReceiptModal } from "./sign/ReceiptModal";
 import { TierBadge } from "./TierBadge";
 import { operatorOf } from "@/lib/actionPresentation";
 import { EmptyIllustration } from "./EmptyIllustration";
@@ -17,6 +18,7 @@ export function ActivityLog() {
   const [category, setCategory] = useState("");
   const [actions, setActions] = useState<ActionRecord[] | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [receiptFor, setReceiptFor] = useState<string | null>(null);
 
   const query = useCallback(() => {
     const params = new URLSearchParams();
@@ -62,10 +64,10 @@ export function ActivityLog() {
           className={selectClass}
           aria-label="filter by tier"
         >
-          <option value="">all tiers</option>
-          <option value="1">tier 1 · auto</option>
-          <option value="2">tier 2 · approve</option>
-          <option value="3">tier 3 · locked</option>
+          <option value="">all levels</option>
+          <option value="1">auto</option>
+          <option value="2">approve</option>
+          <option value="3">sign</option>
         </select>
         <select
           value={category}
@@ -184,6 +186,17 @@ export function ActivityLog() {
                         )}
                       </pre>
                     )}
+                    {a.status === "executed" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReceiptFor(a.id);
+                        }}
+                        className="mt-1 block text-xs font-bold lowercase text-ink-soft underline underline-offset-2 hover:text-ink"
+                      >
+                        view receipt
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -192,6 +205,7 @@ export function ActivityLog() {
         </div>
       )}
       </div>
+      {receiptFor && <ReceiptModal actionId={receiptFor} onClose={() => setReceiptFor(null)} />}
     </div>
   );
 }

@@ -19,7 +19,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import type { ActionCategory, ActionRecord } from "@/lib/types";
+import type { ActionCategory, ActionRecord, SignatureRecord } from "@/lib/types";
 import { CREAM } from "@/lib/brand";
 import {
   effectLine,
@@ -30,7 +30,16 @@ import {
   operatorOf,
 } from "@/lib/actionPresentation";
 import { afterApprovalLine, approveLabel, beforeApprovalLine } from "@/lib/clarity";
+import { signRequired } from "@/lib/sign";
+import { SignDialog } from "./sign/SignDialog";
+import { ReceiptModal } from "./sign/ReceiptModal";
 import { TierBadge } from "./TierBadge";
+
+export interface ApproveOpts {
+  confirmation?: string;
+  /** Present when the user authorized via the SIGN interaction. */
+  signature?: { name: string; image?: string };
+}
 
 interface Props {
   action: ActionRecord;
@@ -38,10 +47,13 @@ interface Props {
   index?: number;
   /** Show the a/v keyboard-shortcut footer (account preference). */
   showKeyHints?: boolean;
-  onApprove: (
-    id: string,
-    opts: { confirmation?: string }
-  ) => Promise<string | null>;
+  /** The user's saved signature, if any (enables Hold to Sign). */
+  savedSignature?: SignatureRecord | null;
+  /** Default name for a fresh signature ("Signed by …"). */
+  signerName?: string;
+  /** Persist a newly drawn signature for next time (best effort). */
+  onSaveSignature?: (name: string, image: string) => Promise<void>;
+  onApprove: (id: string, opts: ApproveOpts) => Promise<string | null>;
   onVeto: (id: string, reason: string) => Promise<string | null>;
   onEdit: (id: string, payload: Record<string, unknown>) => Promise<string | null>;
   /** Failed cards offer "propose again" — re-issues the action as a command. */
@@ -128,24 +140,27 @@ function ActionCardInner({
   action,
   index = 0,
   showKeyHints = false,
+  savedSignature = null,
+  signerName = "",
+  onSaveSignature,
   onApprove,
   onVeto,
   onEdit,
   onRetry,
 }: Props) {
   const enterDelay = { animationDelay: `${Math.min(index, 6) * 60}ms` };
-  const [mode, setMode] = useState<"view" | "edit" | "veto" | "confirm">("view");
+  const [mode, setMode] = useState<"view" | "edit" | "veto">("view");
   const [payloadText, setPayloadText] = useState(() =>
     JSON.stringify(action.payload, null, 2)
   );
   const [vetoReason, setVetoReason] = useState("");
-  const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [shake, setShake] = useState(false);
+  const [signOpen, setSignOpen] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
 
   const pending = action.status === "proposed";
   const inFlight = action.status === "approved" || action.status === "executing";
@@ -168,23 +183,28 @@ function ActionCardInner({
     return err;
   }
 
+  // SIGN actions (tier 3, and outward-facing tier 2 like external email or
+  // spend) authorize through the signature surface; the rest are one click.
+  const needsSign = signRequired(action.category, action.tier);
+
   async function handleApprove() {
     if (flagged) return; // held for review — server refuses too
-    if (action.tier === 3 && mode !== "confirm") {
-      setMode("confirm");
+    if (needsSign) {
+      setSignOpen(true);
       return;
     }
-    const err = await run(() =>
-      onApprove(action.id, {
-        confirmation: action.tier === 3 ? confirmation : undefined,
-      })
-    );
+    const err = await run(() => onApprove(action.id, {}));
     if (!err) setMode("view");
-    else if (/match/i.test(err)) {
-      // wrong typed confirmation → shake the field
-      setShake(true);
-      setTimeout(() => setShake(false), 260);
-    }
+  }
+
+  /** The SignDialog's authorize hook — same engine door, signature attached. */
+  async function authorizeSigned(signature: { name: string; image?: string }) {
+    // Tier 3 keeps its server confirmation contract; the deliberate human
+    // step is now the drawn signature, which supplies it.
+    return onApprove(action.id, {
+      confirmation: action.tier === 3 ? action.category : undefined,
+      signature,
+    });
   }
 
   // a = approve, v = veto — only when the card itself holds focus (never when
@@ -507,28 +527,12 @@ function ActionCardInner({
         </p>
       )}
 
-      {pending && mode === "confirm" && (
-        <div className="mt-3 origin-top animate-modal-in rounded-btn bg-cream-deep p-3 ring-1 ring-inset ring-ink/15">
-          <p className="text-xs font-bold">
-            this is a locked action. type its name to approve:{" "}
-            <code className="rounded bg-cream px-1.5 py-0.5 font-mono">{action.category}</code>
-          </p>
-          <input
-            value={confirmation}
-            onChange={(e) => setConfirmation(e.target.value)}
-            placeholder={action.category}
-            className={`mt-2 w-full rounded-btn bg-cream px-3 py-2 text-sm ${shake ? "animate-shake-x" : ""}`}
-            aria-label="type the action name to confirm"
-          />
-        </div>
-      )}
-
       {pending && mode !== "edit" && (
         <footer className="mt-4 flex flex-wrap items-center gap-2">
           <span title={flagged ? INJECTION_TOOLTIP : undefined}>
             <button
               onClick={handleApprove}
-              disabled={busy || flagged || (mode === "confirm" && !confirmation)}
+              disabled={busy || flagged}
               aria-disabled={flagged || undefined}
               title={flagged ? INJECTION_TOOLTIP : undefined}
               className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:opacity-50"
@@ -541,6 +545,11 @@ function ActionCardInner({
                   />
                   executing…
                 </>
+              ) : needsSign ? (
+                <>
+                  <PenLine size={14} strokeWidth={2.6} aria-hidden="true" />
+                  Sign →
+                </>
               ) : (
                 <>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -552,7 +561,7 @@ function ActionCardInner({
                       strokeLinejoin="round"
                     />
                   </svg>
-                  {mode === "confirm" ? "confirm & approve" : approveLabel(action.category)}
+                  {approveLabel(action.category)}
                 </>
               )}
             </button>
@@ -607,10 +616,28 @@ function ActionCardInner({
       )}
 
       {action.status === "executed" && (
-        <div className="mt-3">
+        <div className="mt-3 flex items-center justify-between gap-3">
           <SignedCheck />
+          <button
+            onClick={() => setReceiptOpen(true)}
+            className="rounded-btn px-3 py-1 text-xs font-bold lowercase text-ink-soft underline underline-offset-2 hover:text-ink"
+          >
+            view receipt
+          </button>
         </div>
       )}
+
+      {signOpen && (
+        <SignDialog
+          action={action}
+          saved={savedSignature}
+          defaultName={signerName}
+          onAuthorize={authorizeSigned}
+          onSaveSignature={async (n, img) => onSaveSignature?.(n, img)}
+          onClose={() => setSignOpen(false)}
+        />
+      )}
+      {receiptOpen && <ReceiptModal actionId={action.id} onClose={() => setReceiptOpen(false)} />}
     </article>
   );
 }
@@ -625,6 +652,9 @@ export const ActionCard = memo(
     prev.action === next.action &&
     prev.index === next.index &&
     prev.showKeyHints === next.showKeyHints &&
+    prev.savedSignature === next.savedSignature &&
+    prev.signerName === next.signerName &&
+    prev.onSaveSignature === next.onSaveSignature &&
     prev.onApprove === next.onApprove &&
     prev.onVeto === next.onVeto &&
     prev.onEdit === next.onEdit &&

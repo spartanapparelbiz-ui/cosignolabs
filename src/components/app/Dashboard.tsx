@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Activity, CalendarClock, Check, ChevronRight, Repeat, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, CalendarClock, Check, ChevronRight, Eye, PenLine, Repeat, TrendingDown, TrendingUp } from "lucide-react";
 import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
 import type { AutopilotOverview } from "@/lib/autopilot/types";
+import { signRequired } from "@/lib/sign";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
 
@@ -136,7 +137,7 @@ export function Dashboard() {
   const [missions, setMissions] = useState<MissionRecord[] | null>(null);
   const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>({});
   const [approvals, setApprovals] = useState<ActionRecord[]>([]);
-  const [automation, setAutomation] = useState<AutomationRecord | null>(null);
+  const [automations, setAutomations] = useState<AutomationRecord[]>([]);
   const [connections, setConnections] = useState<ConnectionView[]>([]);
   const [autopilot, setAutopilot] = useState<AutopilotOverview | null>(null);
 
@@ -153,7 +154,7 @@ export function Dashboard() {
       setApprovals((a.actions ?? []).filter((x: ActionRecord) => x.status === "proposed"));
       const enabled: AutomationRecord[] = (au.automations ?? []).filter((x: AutomationRecord) => x.enabled);
       enabled.sort((x, y) => new Date(x.next_run_at).getTime() - new Date(y.next_run_at).getTime());
-      setAutomation(enabled[0] ?? null);
+      setAutomations(enabled);
       setConnections((c.connections ?? []).filter((x: ConnectionView) => x.kind === "app" && x.status === "connected"));
 
       // Fetch steps for the active missions we'll show (up to 4).
@@ -188,22 +189,23 @@ export function Dashboard() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      {/* ---------- ask box: the biggest, clearest thing ---------- */}
+      {/* ---------- delegation: the biggest, clearest thing ---------- */}
       <section className={`${CARD} p-6 sm:p-8`}>
-        <h1 className="font-display text-2xl font-bold sm:text-3xl">What do you need handled?</h1>
+        <h1 className="font-display text-2xl font-bold sm:text-3xl">What should cosigno handle?</h1>
         <p className="mt-1.5 text-sm font-semibold text-ink-soft">
-          Tell cosigno what you want done. Add a file or link when it helps explain the task.
+          Describe the result you want — a task, a whole mission, or something to watch. cosigno
+          figures out the rest and asks before anything important happens.
         </p>
         <SourceComposer onStarted={load} />
       </section>
 
       {/* ---------- two columns on desktop, stacked on mobile ---------- */}
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1.4fr_1fr]">
-        {/* LEFT: in progress + recently completed */}
+        {/* LEFT: working + completed */}
         <div className="flex flex-col gap-8">
           <section>
             <div className="flex items-center justify-between">
-              <h2 className={SECTION_TITLE}>In progress</h2>
+              <h2 className={SECTION_TITLE}>Working</h2>
               {active.length > 0 && (
                 <Link href="/app/missions" className="text-xs font-bold text-ink-soft hover:text-ink">
                   see all
@@ -215,8 +217,8 @@ export function Dashboard() {
                 <div className="h-24 animate-pulse rounded-card bg-cream-deep" aria-hidden="true" />
               ) : active.length === 0 ? (
                 <div className={`${CARD} text-center`}>
-                  <p className="text-sm font-extrabold">Nothing is in progress</p>
-                  <p className="mt-1 text-sm text-ink-soft">Tell cosigno what you need handled.</p>
+                  <p className="text-sm font-extrabold">Nothing is being worked on</p>
+                  <p className="mt-1 text-sm text-ink-soft">Tell cosigno what to handle.</p>
                 </div>
               ) : (
                 active.map((m) => {
@@ -236,7 +238,8 @@ export function Dashboard() {
                       {doing && <p className="mt-1.5 text-sm text-ink-soft">{doing}</p>}
                       {ms.length > 0 && (
                         <p className="mt-2 text-sm font-bold text-ink">
-                          {done} of {ms.length} steps complete
+                          Step {Math.min(done + 1, ms.length)} of {ms.length}
+                          {done > 0 && <span className="font-semibold text-ink-soft"> · {done} done</span>}
                         </p>
                       )}
                       <div className="mt-3 flex items-center justify-between gap-3">
@@ -260,7 +263,7 @@ export function Dashboard() {
           </section>
 
           <section>
-            <h2 className={SECTION_TITLE}>Recently completed</h2>
+            <h2 className={SECTION_TITLE}>Completed</h2>
             <div className="mt-3 flex flex-col gap-3">
               {missions !== null && completed.length === 0 ? (
                 <div className={`${CARD} text-center`}>
@@ -349,11 +352,11 @@ export function Dashboard() {
             </section>
           )}
           <section>
-            <h2 className={SECTION_TITLE}>Needs your approval</h2>
+            <h2 className={SECTION_TITLE}>Needs you</h2>
             <div className="mt-3 flex flex-col gap-3">
               {approvals.length === 0 ? (
                 <div className={CARD}>
-                  <p className="text-sm font-extrabold">Nothing needs your approval</p>
+                  <p className="text-sm font-extrabold">Nothing needs you right now</p>
                   <p className="mt-1 text-sm text-ink-soft">
                     cosigno will ask before anything important happens.
                   </p>
@@ -362,6 +365,7 @@ export function Dashboard() {
                 approvals.slice(0, 4).map((a) => {
                   const to = typeof a.payload?.to === "string" ? a.payload.to : typeof a.payload?.recipient === "string" ? a.payload.recipient : null;
                   const provider = typeof a.payload?.provider === "string" ? a.payload.provider : null;
+                  const sign = signRequired(a.category, a.tier);
                   return (
                     <div key={a.id} className={`${CARD} border-signal/40`}>
                       <div className="flex items-start gap-3">
@@ -374,14 +378,19 @@ export function Dashboard() {
                         )}
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-extrabold leading-snug">{a.summary}</p>
-                          {to && <p className="mt-0.5 text-xs text-ink-soft">Prepared for {to}</p>}
+                          <p className="mt-0.5 text-xs text-ink-soft">
+                            {to ? `Prepared for ${to}.` : "Prepared and ready."}
+                          </p>
                         </div>
                       </div>
                       <Link
                         href="/app/decisions"
-                        className="mt-3 inline-flex w-full items-center justify-center rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95"
+                        className={`mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-btn px-4 py-2 text-sm font-extrabold shadow-soft transition-transform active:scale-95 ${
+                          sign ? "bg-ink text-cream" : "bg-signal text-ink"
+                        }`}
                       >
-                        Review
+                        {sign && <PenLine size={13} strokeWidth={2.6} aria-hidden="true" />}
+                        {sign ? "Sign →" : "Approve →"}
                       </Link>
                     </div>
                   );
@@ -391,24 +400,41 @@ export function Dashboard() {
           </section>
 
           <section>
-            <h2 className={SECTION_TITLE}>Coming up</h2>
+            <div className="flex items-center justify-between">
+              <h2 className={SECTION_TITLE}>Watching</h2>
+              {automations.length > 0 && (
+                <Link href="/app/watch" className="text-xs font-bold text-ink-soft hover:text-ink">
+                  manage
+                </Link>
+              )}
+            </div>
             <div className={`${CARD} mt-3`}>
-              {automation ? (
-                <div className="flex items-center gap-3">
-                  <Repeat size={18} className="shrink-0 text-ink-soft" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{automation.name}</p>
-                    <p className="text-xs text-ink-soft">Runs {timeUntil(automation.next_run_at)}</p>
-                  </div>
-                  <Link href="/app/automations" className="shrink-0 text-xs font-bold text-ink-soft hover:text-ink">
-                    Manage
-                  </Link>
-                </div>
-              ) : (
+              {automations.length === 0 ? (
                 <div className="flex items-center gap-3 text-ink-soft">
                   <CalendarClock size={18} className="shrink-0" />
-                  <p className="text-sm">Nothing scheduled yet.</p>
+                  <p className="text-sm">
+                    Nothing being watched yet.{" "}
+                    <Link href="/app/watch" className="font-bold underline underline-offset-2 hover:text-ink">
+                      Set up a watch
+                    </Link>
+                  </p>
                 </div>
+              ) : (
+                <ul className="flex flex-col gap-2.5">
+                  {automations.slice(0, 4).map((a) => (
+                    <li key={a.id} className="flex items-center gap-3">
+                      {a.mode === "monitor" ? (
+                        <Eye size={16} className="shrink-0 text-ink-soft" />
+                      ) : (
+                        <Repeat size={16} className="shrink-0 text-ink-soft" />
+                      )}
+                      <p className="min-w-0 flex-1 truncate text-sm font-bold">{a.name}</p>
+                      <span className="shrink-0 text-xs font-bold text-ink-soft">
+                        {a.mode === "monitor" ? "Active" : `Runs ${timeUntil(a.next_run_at)}`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </section>
@@ -420,7 +446,11 @@ export function Dashboard() {
                 <div className="text-center">
                   <p className="text-sm font-extrabold">Connect your apps</p>
                   <p className="mt-1 text-sm text-ink-soft">
-                    Let cosigno work with your email, calendar, and files.
+                    Let cosigno work with your email, calendar, and files — then{" "}
+                    <Link href="/app/skills" className="font-bold underline underline-offset-2 hover:text-ink">
+                      install a skill
+                    </Link>{" "}
+                    to put it to work immediately.
                   </p>
                   <Link
                     href="/app/connections"

@@ -60,10 +60,38 @@ export const commandSchema = z
   })
   .strict();
 
+/**
+ * A drawn signature accompanying an approval (the SIGN interaction). The
+ * image is a small PNG data URI — bounded hard so the audit trail stays
+ * lean. Optional: approvals without it are one-click APPROVEs.
+ */
+export const signaturePayloadSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    image: z
+      .string()
+      .regex(/^data:image\/png;base64,[A-Za-z0-9+/=]+$/, "signature must be a PNG data URI")
+      .max(80_000)
+      .optional(),
+  })
+  .strict();
+
 export const approveSchema = z
   .object({
     confirmation: z.string().max(100).optional(),
     payload: payloadObject.optional(),
+    signature: signaturePayloadSchema.optional(),
+  })
+  .strict();
+
+/** Saving / replacing the user's stored signature (Hold to Sign). */
+export const savedSignatureSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    image: z
+      .string()
+      .regex(/^data:image\/png;base64,[A-Za-z0-9+/=]+$/, "signature must be a PNG data URI")
+      .max(80_000),
   })
   .strict();
 
@@ -151,6 +179,14 @@ export const automationPatchSchema = z
     interval_hours: z.coerce.number().int().min(1).max(720).optional(),
     mode: z.enum(["monitor", "prepare", "execute"]).optional(),
     enabled: z.boolean().optional(),
+  })
+  .strict();
+
+/** Install / uninstall a skill pack. */
+export const skillActionSchema = z
+  .object({
+    key: z.string().trim().min(1).max(60),
+    action: z.enum(["install", "uninstall"]),
   })
   .strict();
 
