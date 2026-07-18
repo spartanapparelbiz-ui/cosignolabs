@@ -18,6 +18,30 @@ const CADENCES = [
   { label: "every week", hours: 168 },
 ] as const;
 
+/**
+ * What each run may do with what it finds. Execute is an explicit,
+ * per-automation grant and is described honestly: routine (tier-2) proposals
+ * run automatically; locked tier-3 actions always wait for a signature.
+ */
+const MODES: { value: AutomationRecord["mode"]; label: string; detail: string }[] = [
+  {
+    value: "monitor",
+    label: "monitor",
+    detail: "watch and report only — nothing is proposed, nothing waits on you.",
+  },
+  {
+    value: "prepare",
+    label: "prepare",
+    detail: "prepare proposed actions that wait for your approval. the default.",
+  },
+  {
+    value: "execute",
+    label: "execute",
+    detail:
+      "you grant THIS rule permission to run its routine actions automatically. locked actions (payments, refunds, deletes) always wait for you.",
+  },
+];
+
 async function jsonFetch(url: string, init?: RequestInit) {
   const res = await fetch(url, {
     ...init,
@@ -43,6 +67,7 @@ export function AutomationsPanel() {
   const [name, setName] = useState("");
   const [command, setCommand] = useState("");
   const [hours, setHours] = useState<number>(24);
+  const [mode, setMode] = useState<AutomationRecord["mode"]>("prepare");
   const toast = useToast();
 
   const load = useCallback(async () => {
@@ -64,10 +89,11 @@ export function AutomationsPanel() {
     try {
       await jsonFetch("/api/automations", {
         method: "POST",
-        body: JSON.stringify({ name: name.trim(), command: command.trim(), interval_hours: hours }),
+        body: JSON.stringify({ name: name.trim(), command: command.trim(), interval_hours: hours, mode }),
       });
       setName("");
       setCommand("");
+      setMode("prepare");
       setAddOpen(false);
       toast("success", "automation created — its first run is scheduled.");
       await load();
@@ -202,6 +228,34 @@ export function AutomationsPanel() {
               ))}
             </select>
           </label>
+          <fieldset className="flex flex-col gap-1">
+            <legend className="text-[11px] font-bold lowercase tracking-wide text-ink-soft">
+              what may it do?
+            </legend>
+            <div className="mt-1 flex flex-col gap-1.5">
+              {MODES.map((m) => (
+                <label
+                  key={m.value}
+                  className={`flex cursor-pointer items-start gap-2.5 rounded-btn px-3 py-2 ring-1 ring-inset ${
+                    mode === m.value ? "ring-ink bg-cream-deep" : "ring-line/70"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="automation-mode"
+                    value={m.value}
+                    checked={mode === m.value}
+                    onChange={() => setMode(m.value)}
+                    className="mt-0.5 accent-[#FF4B1F]"
+                  />
+                  <span>
+                    <span className="text-xs font-extrabold lowercase">{m.label}</span>
+                    <span className="block text-[11px] text-ink-soft">{m.detail}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <button
             onClick={create}
             disabled={busy === "create" || !name.trim() || !command.trim()}
@@ -230,6 +284,12 @@ export function AutomationsPanel() {
             <h2 className="min-w-0 flex-1 truncate text-sm font-extrabold" title={a.name}>
               {a.name}
             </h2>
+            <span
+              className="rounded-pill bg-cream-deep px-2.5 py-0.5 text-[10px] font-bold lowercase tracking-wide text-ink-soft"
+              title={MODES.find((m) => m.value === a.mode)?.detail}
+            >
+              {a.mode ?? "prepare"}
+            </span>
             <span
               className={`rounded-pill px-2.5 py-0.5 text-[10px] font-bold lowercase tracking-wide ${
                 a.enabled ? "bg-signal text-cream" : "ring-1 ring-inset ring-ink/40 text-ink-soft"

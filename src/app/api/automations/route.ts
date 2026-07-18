@@ -30,11 +30,13 @@ export async function POST(req: NextRequest) {
       name: body.name,
       command: body.command,
       interval_hours: body.interval_hours,
+      mode: body.mode,
       next_run_at: nextRunAt(body.interval_hours),
     });
     await getStore().logAudit(userId, "automation_created", {
       name: body.name,
       interval_hours: body.interval_hours,
+      mode: body.mode,
     });
     return NextResponse.json({ automation });
   } catch (err) {

@@ -29,6 +29,8 @@ import {
   BrowserActionRecord,
   BrowserProductRecord,
   MissionSourceRecord,
+  SignalStateRecord,
+  SignalStateStatus,
 } from "../types";
 import type {
   ActionInsert,
@@ -634,6 +636,7 @@ export class SupabaseStore implements Store {
         name: input.name,
         command: input.command,
         interval_hours: input.interval_hours,
+        mode: input.mode,
         next_run_at: input.next_run_at,
       })
       .select()
@@ -666,7 +669,7 @@ export class SupabaseStore implements Store {
   async updateAutomation(
     userId: string,
     id: string,
-    patch: Partial<Pick<AutomationRecord, "name" | "command" | "interval_hours" | "enabled" | "last_run_at" | "next_run_at">>
+    patch: Partial<Pick<AutomationRecord, "name" | "command" | "interval_hours" | "mode" | "enabled" | "last_run_at" | "next_run_at">>
   ): Promise<AutomationRecord | null> {
     const { data, error } = await this.client
       .from("automations")
@@ -772,6 +775,74 @@ export class SupabaseStore implements Store {
       .delete()
       .eq("user_id", userId)
       .eq("id", id);
+    if (error) throw new Error(error.message);
+  }
+
+  /* -- autopilot -- */
+  async ensureSignalStates(userId: string, keys: string[]): Promise<SignalStateRecord[]> {
+    if (keys.length === 0) return [];
+    const now = new Date().toISOString();
+    // Insert-if-missing without clobbering existing dispositions: upsert with
+    // ignoreDuplicates leaves rows that already exist completely untouched.
+    const { error: upsertError } = await this.client.from("autopilot_signal_states").upsert(
+      keys.map((signal_key) => ({
+        user_id: userId,
+        signal_key,
+        status: "new",
+        first_seen: now,
+        updated_at: now,
+      })),
+      { onConflict: "user_id,signal_key", ignoreDuplicates: true }
+    );
+    if (upsertError) throw new Error(upsertError.message);
+    const { data, error } = await this.client
+      .from("autopilot_signal_states")
+      .select("*")
+      .eq("user_id", userId)
+      .in("signal_key", keys);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as SignalStateRecord[];
+  }
+
+  async setSignalStatus(
+    userId: string,
+    signalKey: string,
+    status: SignalStateStatus
+  ): Promise<SignalStateRecord | null> {
+    const { data, error } = await this.client
+      .from("autopilot_signal_states")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("signal_key", signalKey)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as SignalStateRecord) ?? null;
+  }
+
+  async markSignalsSeen(userId: string): Promise<void> {
+    const { error } = await this.client
+      .from("autopilot_signal_states")
+      .update({ status: "seen", updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("status", "new");
+    if (error) throw new Error(error.message);
+  }
+
+  async getAutopilotViewedAt(userId: string): Promise<string | null> {
+    const { data, error } = await this.client
+      .from("autopilot_meta")
+      .select("viewed_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data?.viewed_at as string) ?? null;
+  }
+
+  async setAutopilotViewedAt(userId: string, iso: string): Promise<void> {
+    const { error } = await this.client
+      .from("autopilot_meta")
+      .upsert({ user_id: userId, viewed_at: iso });
     if (error) throw new Error(error.message);
   }
 
@@ -1403,6 +1474,8 @@ export class SupabaseStore implements Store {
       "mission_sources",
       "mission_steps",
       "missions",
+      "autopilot_signal_states",
+      "autopilot_meta",
       "files",
       "memories",
       "user_prefs",

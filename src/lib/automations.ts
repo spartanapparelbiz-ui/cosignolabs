@@ -1,5 +1,5 @@
 import { runCommand } from "./agent/pipeline";
-import { EngineError } from "./actions/engine";
+import { approveAction, EngineError } from "./actions/engine";
 import { logInfo } from "./log";
 import { enforceGlobalPlanningBudget, enforceLimit, RateLimitError } from "./ratelimit";
 import { getStore } from "./store";
@@ -38,9 +38,44 @@ export async function runAutomation(
 
     const result = await runCommand(userId, automation.command, {});
     sessionId = result.session.id;
-    const proposed = result.actions.filter((a) => a.status === "proposed").length;
+    const proposals = result.actions.filter((a) => a.status === "proposed");
     const executed = result.actions.filter((a) => a.status === "executed").length;
-    detail = `${result.actions.length} action${result.actions.length === 1 ? "" : "s"} planned · ${proposed} awaiting your signature · ${executed} auto-ran (tier 1)`;
+
+    if (automation.mode === "monitor" && proposals.length > 0) {
+      // Monitor rules watch and report ONLY: any consequential proposal the
+      // planner produced is closed out immediately with an honest reason, so
+      // nothing ever sits waiting on the user from a monitor-only rule.
+      for (const a of proposals) {
+        await store
+          .transitionAction(userId, a.id, "vetoed", {
+            veto_reason: "monitor-only automation — reported, not proposed.",
+          })
+          .catch(() => null);
+        await store
+          .logEvent(userId, a.id, "vetoed", "system", { reason: "monitor_mode" })
+          .catch(() => null);
+      }
+      detail = `${result.actions.length} action${result.actions.length === 1 ? "" : "s"} analyzed · ${executed} read-only ran · ${proposals.length} write${proposals.length === 1 ? "" : "s"} reported but not proposed (monitor mode)`;
+    } else if (automation.mode === "execute" && proposals.length > 0) {
+      // Execute rules carry the user's EXPLICIT per-automation grant: routine
+      // tier-2 proposals are approved through the normal engine door (usage
+      // caps, injection containment, and the state machine all still apply).
+      // Locked tier-3 actions are never auto-approved — they wait like always.
+      let autoRan = 0;
+      let waiting = 0;
+      for (const a of proposals) {
+        if (a.tier === 2 && !a.injection_flag) {
+          const ok = await approveAction(userId, a.id).catch(() => null);
+          if (ok) autoRan += 1;
+          else waiting += 1;
+        } else {
+          waiting += 1;
+        }
+      }
+      detail = `${result.actions.length} action${result.actions.length === 1 ? "" : "s"} planned · ${autoRan} ran under this rule's grant · ${waiting} awaiting your signature`;
+    } else {
+      detail = `${result.actions.length} action${result.actions.length === 1 ? "" : "s"} planned · ${proposals.length} awaiting your signature · ${executed} auto-ran (tier 1)`;
+    }
   } catch (err) {
     status = "error";
     if (err instanceof RateLimitError) detail = "paused by rate limit — will retry next cycle.";

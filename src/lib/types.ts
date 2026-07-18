@@ -292,6 +292,17 @@ export function canTransition(from: ActionStatus, to: ActionStatus): boolean {
 
 /* ------------------------------------------------------------ automations */
 
+/**
+ * What a recurring rule is allowed to do with what it finds:
+ *  - monitor: watch and report only — any tier-2+ proposal a run creates is
+ *    auto-vetoed with an honest note; nothing waits on you.
+ *  - prepare: the default — runs propose action cards that wait for approval.
+ *  - execute: an explicit, per-automation grant — routine (tier-2) proposals
+ *    from this rule's runs are approved and executed automatically. Locked
+ *    tier-3 actions ALWAYS stay manual, grant or not.
+ */
+export type AutomationMode = "monitor" | "prepare" | "execute";
+
 /** A recurring mission: a saved command re-run on an interval. */
 export interface AutomationRecord {
   id: string;
@@ -300,6 +311,7 @@ export interface AutomationRecord {
   command: string;
   /** Re-run cadence in hours (1..720). */
   interval_hours: number;
+  mode: AutomationMode;
   enabled: boolean;
   last_run_at: string | null;
   next_run_at: string;
@@ -318,6 +330,20 @@ export interface AutomationRunRecord {
   /** The mission (session) this run created, if planning succeeded. */
   session_id: string | null;
   created_at: string;
+}
+
+/* -------------------------------------------------------------- autopilot */
+
+/** The user's disposition on a detected signal (keyed by its stable key). */
+export type SignalStateStatus = "new" | "seen" | "ignored" | "actioned";
+
+export interface SignalStateRecord {
+  user_id: string;
+  /** Stable signal key from the detection engine (e.g. "revenue_week_drop"). */
+  signal_key: string;
+  status: SignalStateStatus;
+  first_seen: string;
+  updated_at: string;
 }
 
 /* ----------------------------------------------------------------- memory */

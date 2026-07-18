@@ -138,6 +138,9 @@ export const automationSchema = z
     name: z.string().trim().min(1).max(80),
     command: z.string().trim().min(1).max(MAX_COMMAND_LENGTH),
     interval_hours: z.coerce.number().int().min(1).max(720),
+    // monitor = watch & report; prepare = propose for approval (default);
+    // execute = explicit per-rule grant to run routine (tier-2) proposals.
+    mode: z.enum(["monitor", "prepare", "execute"]).default("prepare"),
   })
   .strict();
 
@@ -146,7 +149,33 @@ export const automationPatchSchema = z
     name: z.string().trim().min(1).max(80).optional(),
     command: z.string().trim().min(1).max(MAX_COMMAND_LENGTH).optional(),
     interval_hours: z.coerce.number().int().min(1).max(720).optional(),
+    mode: z.enum(["monitor", "prepare", "execute"]).optional(),
     enabled: z.boolean().optional(),
+  })
+  .strict();
+
+/* ------------------------------------------------------------- autopilot */
+
+/** A business question for Ask Cosigno. */
+export const autopilotAskSchema = z
+  .object({ question: z.string().trim().min(1).max(500) })
+  .strict();
+
+/** Disposition change on a detected signal. */
+export const signalStatusSchema = z
+  .object({ status: z.enum(["seen", "ignored", "actioned"]) })
+  .strict();
+
+/**
+ * "Take action" from an Autopilot insight: the recommended operator command
+ * plus (optionally) the signal it came from, so the signal is marked
+ * actioned. The command runs through the exact same pipeline as a typed
+ * command — approval-first, unchanged.
+ */
+export const autopilotActSchema = z
+  .object({
+    command: z.string().trim().min(1).max(MAX_COMMAND_LENGTH),
+    signal_key: z.string().trim().min(1).max(120).optional(),
   })
   .strict();
 

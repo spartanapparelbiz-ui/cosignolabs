@@ -4,11 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-// The seven everyday pages. Advanced surfaces (memory, team, health) are
+// The everyday pages. Advanced surfaces (memory, team, health) are
 // reachable from the account/settings menu, not the main nav — the dashboard
-// stays about the four simple questions.
+// stays about the four simple questions, and autopilot answers the four
+// business questions (what changed / what's wrong / what's well / what next).
 const LINKS = [
   { href: "/app", label: "home" },
+  { href: "/app/autopilot", label: "autopilot" },
   { href: "/app/missions", label: "missions" },
   { href: "/app/decisions", label: "approvals" },
   { href: "/app/automations", label: "automations" },

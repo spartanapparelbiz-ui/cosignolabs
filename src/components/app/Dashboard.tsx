@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { CalendarClock, Check, ChevronRight, Repeat } from "lucide-react";
+import { Activity, CalendarClock, Check, ChevronRight, Repeat, TrendingDown, TrendingUp } from "lucide-react";
 import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
+import type { AutopilotOverview } from "@/lib/autopilot/types";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
 
@@ -137,6 +138,7 @@ export function Dashboard() {
   const [approvals, setApprovals] = useState<ActionRecord[]>([]);
   const [automation, setAutomation] = useState<AutomationRecord | null>(null);
   const [connections, setConnections] = useState<ConnectionView[]>([]);
+  const [autopilot, setAutopilot] = useState<AutopilotOverview | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -171,6 +173,10 @@ export function Dashboard() {
     } catch {
       setMissions([]);
     }
+    // The Autopilot digest is enrichment — the dashboard renders without it.
+    jsonFetch("/api/autopilot")
+      .then((d) => setAutopilot(d.overview ?? null))
+      .catch(() => setAutopilot(null));
   }, []);
 
   useEffect(() => {
@@ -296,8 +302,52 @@ export function Dashboard() {
           </section>
         </div>
 
-        {/* RIGHT: approvals + coming up + connected apps */}
+        {/* RIGHT: autopilot digest + approvals + coming up + connected apps */}
         <div className="flex flex-col gap-8">
+          {autopilot && (
+            <section>
+              <div className="flex items-center justify-between">
+                <h2 className={SECTION_TITLE}>What changed</h2>
+                {autopilot.data_source === "sample" && (
+                  <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-[10px] font-bold text-ink-soft">
+                    Sample data
+                  </span>
+                )}
+              </div>
+              <div className={`${CARD} mt-3`}>
+                <ul className="flex flex-col gap-2">
+                  {autopilot.changes.slice(0, 3).map((c) => (
+                    <li key={c.key} className="flex items-start gap-2">
+                      {c.tone === "positive" ? (
+                        <TrendingUp size={14} className="mt-0.5 shrink-0 text-ink" />
+                      ) : c.tone === "negative" ? (
+                        <TrendingDown size={14} className="mt-0.5 shrink-0 text-signal" />
+                      ) : (
+                        <Activity size={14} className="mt-0.5 shrink-0 text-ink-soft" />
+                      )}
+                      <span className="text-sm font-semibold leading-snug">{c.text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  {autopilot.attention.length > 0 ? (
+                    <p className="text-xs font-bold text-ink-soft">
+                      {autopilot.attention.length} item{autopilot.attention.length === 1 ? "" : "s"} need
+                      {autopilot.attention.length === 1 ? "s" : ""} your attention
+                    </p>
+                  ) : (
+                    <p className="text-xs font-bold text-ink-soft">Nothing needs your attention</p>
+                  )}
+                  <Link
+                    href="/app/autopilot"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-btn px-3 py-1.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
+                  >
+                    Open Autopilot <ChevronRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            </section>
+          )}
           <section>
             <h2 className={SECTION_TITLE}>Needs your approval</h2>
             <div className="mt-3 flex flex-col gap-3">

@@ -29,6 +29,8 @@ import {
   BrowserActionRecord,
   BrowserProductRecord,
   MissionSourceRecord,
+  SignalStateRecord,
+  SignalStateStatus,
 } from "../types";
 import type {
   ActionInsert,
@@ -298,6 +300,8 @@ export class MemoryStore implements Store {
   private mcpTools: McpToolRecord[] = [];
   private automations: AutomationRecord[] = [];
   private automationRuns: AutomationRunRecord[] = [];
+  private signalStates: SignalStateRecord[] = [];
+  private autopilotViewedAt = new Map<string, string>();
   private memories: MemoryRecord[] = [];
   private prefs = new Map<string, UserPrefs>();
   private files: FileRecord[] = [];
@@ -455,6 +459,7 @@ export class MemoryStore implements Store {
       name: input.name,
       command: input.command,
       interval_hours: input.interval_hours,
+      mode: input.mode,
       enabled: true,
       last_run_at: null,
       next_run_at: input.next_run_at,
@@ -477,7 +482,7 @@ export class MemoryStore implements Store {
   async updateAutomation(
     userId: string,
     id: string,
-    patch: Partial<Pick<AutomationRecord, "name" | "command" | "interval_hours" | "enabled" | "last_run_at" | "next_run_at">>
+    patch: Partial<Pick<AutomationRecord, "name" | "command" | "interval_hours" | "mode" | "enabled" | "last_run_at" | "next_run_at">>
   ): Promise<AutomationRecord | null> {
     const a = this.automations.find((x) => x.id === id && x.user_id === userId);
     if (!a) return null;
@@ -522,6 +527,57 @@ export class MemoryStore implements Store {
       .map((r) => ({ ...r }));
   }
 
+
+  /* -- autopilot -- */
+  async ensureSignalStates(userId: string, keys: string[]): Promise<SignalStateRecord[]> {
+    const now = nowIso();
+    for (const key of keys) {
+      if (!this.signalStates.some((s) => s.user_id === userId && s.signal_key === key)) {
+        this.signalStates.push({
+          user_id: userId,
+          signal_key: key,
+          status: "new",
+          first_seen: now,
+          updated_at: now,
+        });
+      }
+    }
+    return this.signalStates
+      .filter((s) => s.user_id === userId && keys.includes(s.signal_key))
+      .map((s) => ({ ...s }));
+  }
+
+  async setSignalStatus(
+    userId: string,
+    signalKey: string,
+    status: SignalStateStatus
+  ): Promise<SignalStateRecord | null> {
+    const s = this.signalStates.find(
+      (x) => x.user_id === userId && x.signal_key === signalKey
+    );
+    if (!s) return null;
+    s.status = status;
+    s.updated_at = nowIso();
+    return { ...s };
+  }
+
+  async markSignalsSeen(userId: string): Promise<void> {
+    const now = nowIso();
+    for (const s of this.signalStates) {
+      if (s.user_id === userId && s.status === "new") {
+        s.status = "seen";
+        s.updated_at = now;
+      }
+    }
+  }
+
+  async getAutopilotViewedAt(userId: string): Promise<string | null> {
+    return this.autopilotViewedAt.get(userId) ?? null;
+  }
+
+  async setAutopilotViewedAt(userId: string, iso: string): Promise<void> {
+    this.autopilotViewedAt.set(userId, iso);
+  }
 
   /* -- memory -- */
   async createMemory(userId: string, content: string): Promise<MemoryRecord> {
@@ -1087,6 +1143,8 @@ export class MemoryStore implements Store {
     this.browserActions = this.browserActions.filter((a) => a.user_id !== userId);
     this.browserProducts = this.browserProducts.filter((p) => p.user_id !== userId);
     this.missionSources = this.missionSources.filter((s) => s.user_id !== userId);
+    this.signalStates = this.signalStates.filter((s) => s.user_id !== userId);
+    this.autopilotViewedAt.delete(userId);
     // Workspaces they OWN dissolve entirely; memberships elsewhere are removed.
     const owned = new Set(
       this.workspaces.filter((w) => w.owner_user_id === userId).map((w) => w.id)

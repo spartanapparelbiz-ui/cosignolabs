@@ -17,6 +17,18 @@ Live at [cosignolabs.com](https://cosignolabs.com).
 4. Everything — proposed, approved, vetoed, executed, failed, blocked,
    flagged — is permanently logged in the Activity timeline.
 
+## Two layers: Operator + Autopilot
+
+Cosigno is two connected layers over the same approval engine:
+
+- **Operator** carries out approved tasks and workflows ("what should I do?").
+- **Autopilot** continuously reads the business — what changed, what's going
+  wrong, what's going well, what should happen next — and turns its findings
+  into signals, health scores, a forecast, a business map, and recommended
+  actions ("what is happening, and what should change?"). Every "take action"
+  routes back through the Operator pipeline, so Autopilot can never execute
+  anything on its own. See `docs/AUTOPILOT.md`.
+
 ## Three-tier permission model
 
 | Tier | Name    | Behavior |

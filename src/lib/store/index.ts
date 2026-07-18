@@ -30,6 +30,8 @@ import type {
   PromoOffer,
   PromoRecord,
   SessionRecord,
+  SignalStateRecord,
+  SignalStateStatus,
   SubscriptionRecord,
   TierSettingRecord,
   UsageRecord,
@@ -60,6 +62,7 @@ export interface AutomationInsert {
   name: string;
   command: string;
   interval_hours: number;
+  mode: AutomationRecord["mode"];
   next_run_at: string;
 }
 
@@ -323,13 +326,31 @@ export interface Store {
   updateAutomation(
     userId: string,
     id: string,
-    patch: Partial<Pick<AutomationRecord, "name" | "command" | "interval_hours" | "enabled" | "last_run_at" | "next_run_at">>
+    patch: Partial<Pick<AutomationRecord, "name" | "command" | "interval_hours" | "mode" | "enabled" | "last_run_at" | "next_run_at">>
   ): Promise<AutomationRecord | null>;
   deleteAutomation(userId: string, id: string): Promise<void>;
   /** Enabled automations due to run (next_run_at <= now), across all users — tick only. */
   listDueAutomations(limit: number): Promise<AutomationRecord[]>;
   createAutomationRun(input: Omit<AutomationRunRecord, "id" | "created_at">): Promise<AutomationRunRecord>;
   listAutomationRuns(userId: string, automationId: string, limit?: number): Promise<AutomationRunRecord[]>;
+
+  /* -- autopilot (signal dispositions + last-viewed marker) -- */
+  /**
+   * Ensure a state row exists for every currently-detected signal key
+   * (missing keys are inserted as "new"), then return the rows for exactly
+   * those keys. Dispositions on keys not passed are left untouched.
+   */
+  ensureSignalStates(userId: string, keys: string[]): Promise<SignalStateRecord[]>;
+  /** Set the disposition on one signal (ignore / acted / seen). */
+  setSignalStatus(
+    userId: string,
+    signalKey: string,
+    status: SignalStateStatus
+  ): Promise<SignalStateRecord | null>;
+  /** Flip every "new" signal to "seen" — called when the user views Autopilot. */
+  markSignalsSeen(userId: string): Promise<void>;
+  getAutopilotViewedAt(userId: string): Promise<string | null>;
+  setAutopilotViewedAt(userId: string, iso: string): Promise<void>;
 
   /* -- memory (user-controlled planner context) -- */
   createMemory(userId: string, content: string): Promise<MemoryRecord>;
