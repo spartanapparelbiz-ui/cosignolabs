@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
   FileText,
@@ -155,10 +155,18 @@ function SourceRow({ source, onRemove }: { source: MissionSourceRecord; onRemove
 
 export function SourceComposer({ onStarted }: { onStarted: () => void }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [goal, setGoal] = useState("");
+
+  // Cosigno Presence hands delegations here (/app?handle=…): prefill the
+  // objective so the user lands mid-thought, ready to confirm.
+  useEffect(() => {
+    const handle = searchParams.get("handle");
+    if (handle) setGoal(handle.slice(0, 2000));
+  }, [searchParams]);
   const [sources, setSources] = useState<MissionSourceRecord[]>([]);
   // Optimistic placeholders keyed by a temp id, shown while a request is in flight.
   const [pending, setPending] = useState<MissionSourceRecord[]>([]);

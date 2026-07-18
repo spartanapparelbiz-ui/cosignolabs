@@ -5,6 +5,7 @@ import { AppNav } from "@/components/AppNav";
 import { ToastProvider } from "@/components/Toast";
 import { LogoHome } from "@/components/brand/LivingLogo";
 import { AccountChip } from "@/components/app/AccountChip";
+import { Presence } from "@/components/presence/Presence";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,11 @@ function Chrome({
             <div className="order-3 w-full sm:order-none sm:w-auto">
               <AppNav />
             </div>
-            <div className="ml-auto flex items-center gap-3">{userSlot}</div>
+            {/* Cosigno Presence: the mark, its live state, and ⌘K activation. */}
+            <div className="ml-auto flex items-center gap-2.5">
+              <Presence />
+              {userSlot}
+            </div>
           </div>
         </header>
         <main className="flex flex-1 flex-col">{children}</main>

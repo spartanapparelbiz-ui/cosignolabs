@@ -217,6 +217,18 @@ const config: Config = {
           "60%": { transform: "scale(0.997)" },
           "100%": { transform: "scale(1)" },
         },
+        // --- the handshake: responsibility physically transfers ---
+        // Work arrives from cosigno's side (left), and after authorization
+        // it returns to cosigno (slides right, fades). Meaningful motion
+        // only — both are quick and settle immediately.
+        "handoff-in": {
+          "0%": { opacity: "0", transform: "translateX(-16px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        "handoff-return": {
+          "0%": { opacity: "1", transform: "translateX(0)" },
+          "100%": { opacity: "0", transform: "translateX(22px)" },
+        },
       },
       animation: {
         "card-in": "card-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both",
@@ -245,6 +257,8 @@ const config: Config = {
         "sig-reveal": "sig-reveal 700ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "sig-underline": "sig-underline 450ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both",
         "sig-seal": "sig-seal 380ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "handoff-in": "handoff-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "handoff-return": "handoff-return 380ms cubic-bezier(0.22, 1, 0.36, 1) both",
         settle: "settle 500ms cubic-bezier(0.22, 1, 0.36, 1) both",
         float: "float 6s ease-in-out infinite",
         "rise-in": "rise-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both",

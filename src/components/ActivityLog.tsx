@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { ShieldAlert } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Search, ShieldAlert } from "lucide-react";
 import type { ActionRecord } from "@/lib/types";
 import { CATEGORY_LIST } from "@/lib/types";
 import { SkeletonRows } from "./Skeleton";
@@ -13,9 +14,14 @@ import { EmptyIllustration } from "./EmptyIllustration";
 const STATUSES = ["proposed", "approved", "executing", "executed", "vetoed", "failed"];
 
 export function ActivityLog() {
-  const [status, setStatus] = useState("");
+  // Adaptive UI entry: "what did you finish today?" arrives as
+  // ?status=executed&range=today — the ledger becomes the answer.
+  const searchParams = useSearchParams();
+  const [status, setStatus] = useState(() => searchParams.get("status") ?? "");
   const [tier, setTier] = useState("");
   const [category, setCategory] = useState("");
+  const [search, setSearch] = useState("");
+  const [todayOnly, setTodayOnly] = useState(() => searchParams.get("range") === "today");
   const [actions, setActions] = useState<ActionRecord[] | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [receiptFor, setReceiptFor] = useState<string | null>(null);
@@ -38,6 +44,22 @@ export function ActivityLog() {
       cancelled = true;
     };
   }, [query]);
+
+  const visible = useMemo(() => {
+    if (!actions) return null;
+    const needle = search.trim().toLowerCase();
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    return actions.filter((a) => {
+      if (todayOnly && Date.parse(a.created_at) < dayStart.getTime()) return false;
+      if (
+        needle &&
+        !`${a.summary} ${a.category} ${a.veto_reason ?? ""}`.toLowerCase().includes(needle)
+      )
+        return false;
+      return true;
+    });
+  }, [actions, search, todayOnly]);
 
   const selectClass =
     "rounded-btn bg-cream-deep px-3 py-1.5 text-sm font-semibold lowercase";
@@ -82,6 +104,25 @@ export function ActivityLog() {
             </option>
           ))}
         </select>
+        <label className="flex min-w-[180px] flex-1 items-center gap-1.5 rounded-btn bg-cream-deep px-3 py-1.5 sm:max-w-xs">
+          <Search size={13} className="shrink-0 text-ink-soft" aria-hidden="true" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="search the record…"
+            className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-ink-soft/70"
+            aria-label="search activity"
+          />
+        </label>
+        <button
+          onClick={() => setTodayOnly((v) => !v)}
+          aria-pressed={todayOnly}
+          className={`rounded-btn px-3 py-1.5 text-sm font-bold lowercase ${
+            todayOnly ? "bg-ink text-cream" : "bg-cream-deep text-ink-soft hover:text-ink"
+          }`}
+        >
+          today
+        </button>
         <a
           href={`/api/activity?${query()}&format=csv`}
           className="ml-auto rounded-btn bg-ink px-4 py-1.5 text-sm font-bold lowercase text-cream transition-transform active:scale-95"
@@ -92,11 +133,11 @@ export function ActivityLog() {
 
       {/* keyed by the active filter so the list fades through on change */}
       <div key={query().toString()} className="animate-fade-through">
-      {actions === null ? (
+      {visible === null ? (
         <div className="mt-6">
           <SkeletonRows rows={5} />
         </div>
-      ) : actions.length === 0 ? (
+      ) : visible.length === 0 ? (
         <div className="mt-8 flex flex-col items-center rounded-card bg-surface/40 p-8 text-center shadow-soft">
           <EmptyIllustration kind="activity" className="mb-3" />
           <p className="max-w-md text-sm font-semibold text-ink-soft">
@@ -117,7 +158,7 @@ export function ActivityLog() {
               </tr>
             </thead>
             <tbody>
-              {actions.map((a) => (
+              {visible.map((a) => (
                 <tr
                   key={a.id}
                   onClick={() => setExpanded(expanded === a.id ? null : a.id)}

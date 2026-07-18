@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Activity, CalendarClock, Check, ChevronRight, Eye, PenLine, Repeat, TrendingDown, TrendingUp } from "lucide-react";
+import { CalendarClock, Check, ChevronRight, Eye, PenLine, Repeat } from "lucide-react";
 import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
-import type { AutopilotOverview } from "@/lib/autopilot/types";
+import type { CosignoState } from "@/lib/state";
 import { signRequired } from "@/lib/sign";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
@@ -139,7 +139,7 @@ export function Dashboard() {
   const [approvals, setApprovals] = useState<ActionRecord[]>([]);
   const [automations, setAutomations] = useState<AutomationRecord[]>([]);
   const [connections, setConnections] = useState<ConnectionView[]>([]);
-  const [autopilot, setAutopilot] = useState<AutopilotOverview | null>(null);
+  const [state, setState] = useState<CosignoState | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -174,10 +174,10 @@ export function Dashboard() {
     } catch {
       setMissions([]);
     }
-    // The Autopilot digest is enrichment — the dashboard renders without it.
-    jsonFetch("/api/autopilot")
-      .then((d) => setAutopilot(d.overview ?? null))
-      .catch(() => setAutopilot(null));
+    // Current State is enrichment — the dashboard renders without it.
+    jsonFetch("/api/state")
+      .then((d) => setState(d.state ?? null))
+      .catch(() => setState(null));
   }, []);
 
   useEffect(() => {
@@ -197,6 +197,22 @@ export function Dashboard() {
           figures out the rest and asks before anything important happens.
         </p>
         <SourceComposer onStarted={load} />
+        {state && (
+          <p className="mt-4 border-t border-line/50 pt-3 text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
+            Current state
+            <span className="ml-3 normal-case tracking-normal">
+              <span className="font-extrabold text-ink">{state.moving} Moving</span>
+              <span className="mx-1.5">·</span>
+              <Link href="/app/focus" className={`font-extrabold ${state.need_you > 0 ? "text-signal" : "text-ink"} hover:underline`}>
+                {state.need_you} Need You
+              </Link>
+              <span className="mx-1.5">·</span>
+              <span className="font-extrabold text-ink">{state.watching} Watching</span>
+              <span className="mx-1.5">·</span>
+              <span className="font-extrabold text-ink">{state.blocked} Blocked</span>
+            </span>
+          </p>
+        )}
       </section>
 
       {/* ---------- two columns on desktop, stacked on mobile ---------- */}
@@ -307,50 +323,6 @@ export function Dashboard() {
 
         {/* RIGHT: autopilot digest + approvals + coming up + connected apps */}
         <div className="flex flex-col gap-8">
-          {autopilot && (
-            <section>
-              <div className="flex items-center justify-between">
-                <h2 className={SECTION_TITLE}>What changed</h2>
-                {autopilot.data_source === "sample" && (
-                  <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-[10px] font-bold text-ink-soft">
-                    Sample data
-                  </span>
-                )}
-              </div>
-              <div className={`${CARD} mt-3`}>
-                <ul className="flex flex-col gap-2">
-                  {autopilot.changes.slice(0, 3).map((c) => (
-                    <li key={c.key} className="flex items-start gap-2">
-                      {c.tone === "positive" ? (
-                        <TrendingUp size={14} className="mt-0.5 shrink-0 text-ink" />
-                      ) : c.tone === "negative" ? (
-                        <TrendingDown size={14} className="mt-0.5 shrink-0 text-signal" />
-                      ) : (
-                        <Activity size={14} className="mt-0.5 shrink-0 text-ink-soft" />
-                      )}
-                      <span className="text-sm font-semibold leading-snug">{c.text}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  {autopilot.attention.length > 0 ? (
-                    <p className="text-xs font-bold text-ink-soft">
-                      {autopilot.attention.length} item{autopilot.attention.length === 1 ? "" : "s"} need
-                      {autopilot.attention.length === 1 ? "s" : ""} your attention
-                    </p>
-                  ) : (
-                    <p className="text-xs font-bold text-ink-soft">Nothing needs your attention</p>
-                  )}
-                  <Link
-                    href="/app/autopilot"
-                    className="inline-flex shrink-0 items-center gap-1 rounded-btn px-3 py-1.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
-                  >
-                    Open Autopilot <ChevronRight size={14} />
-                  </Link>
-                </div>
-              </div>
-            </section>
-          )}
           <section>
             <h2 className={SECTION_TITLE}>Needs you</h2>
             <div className="mt-3 flex flex-col gap-3">
@@ -384,7 +356,7 @@ export function Dashboard() {
                         </div>
                       </div>
                       <Link
-                        href="/app/decisions"
+                        href="/app/focus"
                         className={`mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-btn px-4 py-2 text-sm font-extrabold shadow-soft transition-transform active:scale-95 ${
                           sign ? "bg-ink text-cream" : "bg-signal text-ink"
                         }`}
@@ -438,6 +410,42 @@ export function Dashboard() {
               )}
             </div>
           </section>
+
+          {state && state.stream.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between">
+                <h2 className={SECTION_TITLE}>State stream</h2>
+                <Link href="/app/autopilot" className="text-xs font-bold text-ink-soft hover:text-ink">
+                  autopilot brief
+                </Link>
+              </div>
+              <div className={`${CARD} mt-3`}>
+                <ol className="flex flex-col gap-2.5">
+                  {state.stream.slice(0, 5).map((e) => (
+                    <li key={e.key} className="flex items-start gap-2.5">
+                      <span
+                        className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                          e.needs_you ? "bg-signal" : e.kind === "working" ? "animate-orb-pulse bg-ink" : "bg-ink/30"
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold leading-snug">{e.text}</p>
+                        <p className="text-[10px] font-bold text-ink-soft">
+                          {timeAgo(e.at)}
+                          {e.needs_you && (
+                            <Link href="/app/focus" className="ml-2 text-signal hover:underline">
+                              needs you →
+                            </Link>
+                          )}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </section>
+          )}
 
           <section>
             <h2 className={SECTION_TITLE}>Connected apps</h2>

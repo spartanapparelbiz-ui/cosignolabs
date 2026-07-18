@@ -84,7 +84,7 @@ for (const vp of VIEWPORTS) {
       page.on("console", (m) => {
         if (m.type() === "error" && !IGNORE.test(m.text())) errors.push(`console: ${m.text()}`);
       });
-      for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/autopilot", "/app/missions", "/app/watch", "/app/skills", "/app/decisions", "/app/connections", "/app/memory", "/app/files", "/app/team", "/app/health", "/app/activity", "/app/account", "/app/workspace", "/sign-in"]) {
+      for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/autopilot", "/app/missions", "/app/watch", "/app/skills", "/app/focus", "/app/decisions", "/app/connections", "/app/memory", "/app/files", "/app/team", "/app/health", "/app/activity", "/app/account", "/app/workspace", "/sign-in"]) {
         await page.goto(path, { waitUntil: "networkidle" });
         await page.waitForTimeout(300);
         await noHorizontalScroll(page);

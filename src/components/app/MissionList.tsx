@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ActionRecord, SessionRecord } from "@/lib/types";
 import { EmptyIllustration } from "@/components/EmptyIllustration";
@@ -22,6 +23,7 @@ async function jsonFetch(url: string) {
 
 interface MissionRow {
   session: SessionRecord;
+  list: ActionRecord[];
   proposed: number;
   executed: number;
   vetoed: number;
@@ -29,20 +31,57 @@ interface MissionRow {
   total: number;
 }
 
-function statusOf(m: MissionRow): { label: string; cls: string } {
+/**
+ * Momentum, not a score: Moving / Needs you / Blocked / Complete — derived
+ * only from what the actions actually did.
+ */
+function statusOf(m: MissionRow): { label: string; key: string; cls: string } {
   if (m.proposed > 0)
-    return { label: `needs you · ${m.proposed}`, cls: "bg-signal text-cream" };
+    return { label: `needs you · ${m.proposed}`, key: "needs_you", cls: "bg-signal text-cream" };
   if (m.total === 0)
-    return { label: "planning", cls: "bg-cream-deep text-ink-soft" };
+    return { label: "moving", key: "moving", cls: "bg-ink text-cream" };
   if (m.failed > 0)
-    return { label: "blocked", cls: "ring-1 ring-inset ring-ink/40 text-ink" };
-  return { label: "complete", cls: "ring-1 ring-inset ring-signal/50 text-signal" };
+    return { label: "blocked", key: "blocked", cls: "ring-1 ring-inset ring-ink/40 text-ink" };
+  return { label: "complete", key: "complete", cls: "ring-1 ring-inset ring-signal/50 text-signal" };
+}
+
+/**
+ * The living progress track: one segment per action, in proposal order —
+ * filled (executed), signal (waiting on you), hollow (open), muted (vetoed).
+ */
+function ProgressTrack({ actions }: { actions: ActionRecord[] }) {
+  if (actions.length === 0) return null;
+  return (
+    <div className="mt-2.5 flex items-center gap-1" aria-hidden="true">
+      {actions.slice(0, 16).map((a) => (
+        <span
+          key={a.id}
+          className={`h-1.5 flex-1 rounded-pill transition-colors ${
+            a.status === "executed"
+              ? "bg-ink"
+              : a.status === "proposed"
+                ? "bg-signal"
+                : a.status === "failed"
+                  ? "bg-ink/40"
+                  : a.status === "vetoed"
+                    ? "bg-line"
+                    : "bg-cream-deep ring-1 ring-inset ring-ink/15"
+          }`}
+        />
+      ))}
+    </div>
+  );
 }
 
 export function MissionList() {
   const [sessions, setSessions] = useState<SessionRecord[] | null>(null);
   const [actions, setActions] = useState<ActionRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Adaptive UI: "show me the launch" lands here as ?q=launch; "what's
+  // blocked?" as ?filter=blocked — the list becomes the answer.
+  const searchParams = useSearchParams();
+  const q = (searchParams.get("q") ?? "").trim().toLowerCase();
+  const filter = searchParams.get("filter");
 
   const load = useCallback(async () => {
     setError(null);
@@ -70,10 +109,13 @@ export function MissionList() {
       list.push(a);
       bySession.set(a.session_id, list);
     }
-    return sessions.map((session) => {
-      const list = bySession.get(session.id) ?? [];
+    const rows = sessions.map((session) => {
+      const list = (bySession.get(session.id) ?? []).sort(
+        (a, b) => Date.parse(a.created_at) - Date.parse(b.created_at)
+      );
       return {
         session,
+        list,
         proposed: list.filter((a) => a.status === "proposed").length,
         executed: list.filter((a) => a.status === "executed").length,
         vetoed: list.filter((a) => a.status === "vetoed").length,
@@ -81,7 +123,12 @@ export function MissionList() {
         total: list.length,
       };
     });
-  }, [sessions, actions]);
+    return rows.filter((m) => {
+      if (q && !m.session.title.toLowerCase().includes(q)) return false;
+      if (filter === "blocked" && statusOf(m).key !== "blocked") return false;
+      return true;
+    });
+  }, [sessions, actions, q, filter]);
 
   if (error) {
     return (
@@ -103,6 +150,24 @@ export function MissionList() {
         {[0, 1, 2].map((i) => (
           <div key={i} className="h-20 animate-pulse rounded-card bg-cream-deep" />
         ))}
+      </div>
+    );
+  }
+
+  if (missions.length === 0 && (q || filter)) {
+    return (
+      <div className="rounded-card bg-surface/40 px-6 py-10 text-center shadow-soft">
+        <p className="text-sm font-extrabold lowercase">
+          {filter === "blocked" ? "nothing is blocked." : `nothing matches “${q}”.`}
+        </p>
+        <p className="mt-1 text-xs text-ink-soft">
+          {filter === "blocked"
+            ? "every delegated goal is moving, waiting, or complete."
+            : "try another name, or ask cosigno to start it."}
+        </p>
+        <Link href="/app/missions" className="mt-3 inline-block text-xs font-bold underline underline-offset-2">
+          show everything
+        </Link>
       </div>
     );
   }
@@ -145,13 +210,14 @@ export function MissionList() {
                 {s.label}
               </span>
             </div>
+            <ProgressTrack actions={m.list} />
             <p className="mt-1.5 font-mono text-[11px] text-ink-soft">
               {m.executed} executed · {m.vetoed} vetoed · {m.failed} failed ·{" "}
               {new Date(m.session.created_at).toLocaleDateString()}
             </p>
             {m.proposed > 0 && (
               <Link
-                href="/app/decisions"
+                href="/app/focus"
                 prefetch
                 className="mt-2 inline-block rounded-btn bg-ink px-3.5 py-1.5 text-xs font-bold text-cream transition-transform duration-fast hover:-translate-y-px"
               >
