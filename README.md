@@ -1,7 +1,10 @@
 # cosigno
 
-**The AI operator that asks first.** Cosigno plans, drafts, and executes across
-your tools — and nothing moves without your signature.
+**Give it responsibility. Keep the authority.** Cosigno takes delegated
+outcomes, handles the work between your decisions across your tools, and
+returns to you only when your authority is actually required — nothing
+important crosses the boundary without your approval or signature.
+(See `docs/RESPONSIBILITY.md`, `docs/ENVIRONMENT.md`, `docs/SIGN.md`.)
 
 Live at [cosignolabs.com](https://cosignolabs.com).
 

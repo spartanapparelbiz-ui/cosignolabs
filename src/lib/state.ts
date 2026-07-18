@@ -1,9 +1,13 @@
+import { signRequired } from "./sign";
 import type {
+  ActionCategory,
   ActionEventRecord,
   ActionRecord,
   AutomationRecord,
   MissionRecord,
+  Tier,
 } from "./types";
+import { CATEGORIES } from "./types";
 
 /**
  * Cosigno State — the live understanding of delegated work. Not a business
@@ -162,6 +166,8 @@ export interface CosignoState {
   stream: StreamEvent[];
   /** Operational memory: honest observations from the record, never hidden reasoning. */
   notes: string[];
+  /** Earned-autonomy offers: repeated one-click approvals cosigno could take over — only ever expanded by the user's explicit yes. */
+  autonomy: AutonomyOffer[];
 }
 
 export interface StateInputs {
@@ -170,10 +176,12 @@ export interface StateInputs {
   actions: ActionRecord[];
   automations: AutomationRecord[];
   events: ActionEventRecord[];
+  /** Current effective tier per category (from the user's tier settings). */
+  tiers?: Partial<Record<ActionCategory, Tier>>;
 }
 
 export function assembleState(inputs: StateInputs): CosignoState {
-  const { missions, actions, automations, events } = inputs;
+  const { missions, actions, automations, events, tiers } = inputs;
   const proposals = actions.filter((a) => a.status === "proposed");
 
   const missionMomentum: MissionMomentum[] = missions.map((m) => ({
@@ -197,7 +205,59 @@ export function assembleState(inputs: StateInputs): CosignoState {
     missions: missionMomentum,
     stream: assembleStream(events, actions, missions),
     notes: operationalNotes(events, actions),
+    autonomy: autonomyOffers(events, actions, tiers),
   };
+}
+
+/* --------------------------------------------------------- earned autonomy */
+
+export interface AutonomyOffer {
+  category: ActionCategory;
+  label: string;
+  /** How many times the user one-click-approved this category. */
+  count: number;
+}
+
+const AUTONOMY_THRESHOLD = 5;
+
+/**
+ * Earned autonomy: cosigno notices repeated one-click approvals and OFFERS
+ * to take the category over — it never expands its own authority. Offers
+ * are strictly scoped:
+ *  - only categories currently at tier 2 (approve),
+ *  - never SIGN categories (external email, publishing, spend, webhooks),
+ *  - never pinned tier-3 categories,
+ *  - only after the user has approved the same category ≥5 times.
+ * Accepting routes through the existing tier-settings door (reversible in
+ * settings); declining is remembered client-side and costs nothing.
+ */
+export function autonomyOffers(
+  events: ActionEventRecord[],
+  actions: ActionRecord[],
+  tiers?: Partial<Record<ActionCategory, Tier>>
+): AutonomyOffer[] {
+  const byId = new Map(actions.map((a) => [a.id, a]));
+  const counts = new Map<ActionCategory, number>();
+  for (const e of events) {
+    if (e.type !== "approved") continue;
+    const method = (e.detail as { authorization?: { method?: string } }).authorization?.method;
+    if (method !== "approved") continue;
+    const category = byId.get(e.action_id)?.category;
+    if (!category) continue;
+    counts.set(category, (counts.get(category) ?? 0) + 1);
+  }
+
+  const offers: AutonomyOffer[] = [];
+  for (const [category, count] of counts) {
+    if (count < AUTONOMY_THRESHOLD) continue;
+    const meta = CATEGORIES[category];
+    if (!meta || meta.pinned) continue;
+    const current = tiers?.[category] ?? meta.defaultTier;
+    if (current !== 2) continue; // already auto, or locked
+    if (signRequired(category, 2)) continue; // deliberate actions never auto
+    offers.push({ category, label: meta.label.toLowerCase(), count });
+  }
+  return offers.sort((a, b) => b.count - a.count).slice(0, 2);
 }
 
 /* ----------------------------------------------------- operational memory */

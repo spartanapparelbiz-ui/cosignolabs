@@ -141,11 +141,21 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
         {action && (
           <>
             <h2 className="mt-3 text-base font-extrabold leading-snug">{action.summary}</h2>
-            {auth?.signature_image && (
-              <div className="relative mt-3 rounded-btn bg-cream px-6 pb-2 pt-3 shadow-well">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={auth.signature_image} alt="authorizing signature" className="mx-auto h-14 object-contain" />
+            {auth?.method === "signed" && (
+              /* The Cosigno Seal — the user and cosigno co-sign important
+                 work: cosigno prepared and executed, the user authorized. */
+              <div className="relative mt-3 rounded-btn border border-ink/20 bg-cream px-6 pb-3 pt-3 shadow-well">
+                <p className="text-center text-[9px] font-black uppercase tracking-[0.22em] text-ink-soft">
+                  Signed by {auth.signed_name ?? "you"}
+                </p>
+                {auth.signature_image && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={auth.signature_image} alt="authorizing signature" className="mx-auto h-14 object-contain" />
+                )}
                 <div className="mx-2 border-b border-ink/30" aria-hidden="true" />
+                <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-ink-soft">
+                  <CosignoMark size={11} /> Authorized through Cosigno · {fmtTime(auth.authorized_at)}
+                </p>
               </div>
             )}
             <dl className="mt-4 flex flex-col">

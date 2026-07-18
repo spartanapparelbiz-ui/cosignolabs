@@ -196,9 +196,9 @@ for (const vp of VIEWPORTS) {
       // The delegation box + the live-operator section headings (stable
       // regardless of how much data exists in the shared demo store).
       await expect(page.getByPlaceholder(/Ask cosigno to handle something/)).toBeVisible();
-      await expect(page.getByRole("button", { name: /Start Mission/ })).toBeVisible();
-      await expect(page.getByText("Working").first()).toBeVisible();
-      await expect(page.getByText("Needs you").first()).toBeVisible();
+      await expect(page.getByRole("button", { name: /Delegate/ })).toBeVisible();
+      await expect(page.getByText("Now").first()).toBeVisible();
+      await expect(page.getByText("You're needed").first()).toBeVisible();
       await expect(page.getByText("Watching").first()).toBeVisible();
       await expect(page.getByText("Completed").first()).toBeVisible();
       await expect(page.getByText("Connected apps").first()).toBeVisible();

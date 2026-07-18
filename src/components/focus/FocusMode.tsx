@@ -227,12 +227,23 @@ export function FocusMode() {
   /* -------------------------------------------------------------- decision */
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-10">
-      {/* the handoff line: responsibility visually crosses to the user */}
+      {/* THE BOUNDARY: what cosigno can handle │ what only you can authorize.
+          The dot is the work — it crosses to your side, and returns after. */}
       <div className="flex items-center gap-3 text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
         <span className="flex items-center gap-1.5">
           <CosignoMark size={14} /> Cosigno
         </span>
         <span className="relative h-px flex-1 bg-line">
+          <span
+            className="absolute left-1/2 top-1/2 h-3 w-px -translate-x-1/2 -translate-y-1/2 bg-ink/40"
+            aria-hidden="true"
+          />
+          <span
+            className="absolute left-1/2 top-2 -translate-x-1/2 text-[8px] font-black tracking-[0.2em] text-ink-soft/70"
+            aria-hidden="true"
+          >
+            BOUNDARY
+          </span>
           <span
             className={`absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-signal transition-[left] duration-500 ease-brand-out ${
               phase === "returning" ? "left-0" : "left-[calc(100%-6px)]"

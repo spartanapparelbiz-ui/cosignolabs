@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Download, FileText, Plus, Trash2 } from "lucide-react";
 import type { FileRecord } from "@/lib/types";
+import { CosignoMark } from "@/components/brand/Logo";
 import { useToast } from "@/components/Toast";
 
 /**
@@ -46,6 +48,7 @@ function download(file: FileRecord) {
 }
 
 export function FilesPanel() {
+  const router = useRouter();
   const [files, setFiles] = useState<FileRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -218,6 +221,22 @@ export function FilesPanel() {
                 {new Date(f.updated_at).toLocaleDateString()}
               </p>
             </div>
+            {/* TAKE THIS — hand responsibility for this artifact to cosigno.
+                It lands in the delegation box with context; nothing starts
+                until the user confirms the agreement. */}
+            <button
+              onClick={() =>
+                router.push(
+                  `/app?handle=${encodeURIComponent(
+                    `Handle "${f.name}": review this file and prepare whatever follow-up it needs, then return to me before anything is sent.`
+                  )}`
+                )
+              }
+              className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink"
+              title="give cosigno responsibility for this file"
+            >
+              <CosignoMark size={11} /> take this
+            </button>
             <button
               onClick={() => download(f)}
               className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep"

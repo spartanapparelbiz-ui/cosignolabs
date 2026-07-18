@@ -35,8 +35,10 @@ const RULES: { re: RegExp; view: IntentView }[] = [
   { re: /^(show |open )?(my )?watch(es)?\b|what are you watching|being watched/i, view: "watch" },
   // activity / history
   { re: /^(show |open )?activity\b|history|what happened yesterday|everything (you|cosigno) did/i, view: "activity" },
-  // missions list
-  { re: /^(show |open )?(my )?missions?$/i, view: "missions" },
+  // delegations (missions) list
+  { re: /^(show |open )?(my )?(missions?|delegations?)$/i, view: "missions" },
+  // the boundary — where authority sits
+  { re: /^(show |open )?(the )?boundary$|take me to the boundary/i, view: "focus" },
   // a specific environment: "show me the launch", "open the summer launch",
   // "what's happening with the launch"
   { re: /^(show( me)?|open|go to) (the )?(?<q>.+)$/i, view: "environment" },

@@ -15,7 +15,7 @@ import {
   X,
 } from "lucide-react";
 import type { MissionSourceRecord, MissionSourceStatus } from "@/lib/types";
-import { classifyDelegation } from "@/lib/delegate";
+import { classifyDelegation, returnCondition } from "@/lib/delegate";
 import { useToast } from "@/components/Toast";
 
 /**
@@ -336,7 +336,7 @@ export function SourceComposer({ onStarted }: { onStarted: () => void }) {
         method: "POST",
         body: JSON.stringify({ goal: g, sourceIds: sources.map((s) => s.id) }),
       });
-      toast("success", "mission started — opening it now.");
+      toast("success", "delegated — cosigno has it.");
       setPreview(null);
       setGoal("");
       setSources([]);
@@ -348,44 +348,48 @@ export function SourceComposer({ onStarted }: { onStarted: () => void }) {
     }
   }
 
-  /* ---------------- understanding screen ---------------- */
+  /* ------------- the delegation agreement (I'll handle this) ------------- */
   if (preview) {
     const p = preview.plan;
+    const returns = returnCondition(goal);
     return (
       <div className="mt-5 flex flex-col gap-4 rounded-card border border-line/70 bg-cream/40 p-5">
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">I understand the goal</p>
+          <p className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
+            I&apos;ll handle this.
+          </p>
+          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft/70">Objective</p>
           <p className="mt-1 text-base font-extrabold">{preview.understood.normalizedGoal}</p>
-        </div>
-
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Information provided</p>
-          <ul className="mt-1.5 flex flex-col gap-1 text-sm">
-            {preview.understood.informationProvided.map((line, i) => (
-              <li key={i} className="flex gap-2">
-                <span className="text-ink-soft">•</span>
-                <span className="font-semibold">{line}</span>
-              </li>
-            ))}
-          </ul>
         </div>
 
         {preview.understood.willDo.length > 0 && (
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">I will help by</p>
-            <ol className="mt-1.5 flex flex-col gap-1 text-sm">
+            <p className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">I&apos;ll handle</p>
+            <ul className="mt-1.5 flex flex-col gap-1 text-sm">
               {preview.understood.willDo.map((w, i) => (
-                <li key={i} className="font-semibold">
-                  {i + 1}. {w}
+                <li key={i} className="flex gap-2 font-semibold">
+                  <span className="text-ink-soft">•</span>
+                  {w}
                 </li>
               ))}
-            </ol>
+            </ul>
           </div>
         )}
 
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Important boundaries</p>
-          <p className="mt-1.5 text-sm font-semibold">{preview.understood.boundary}</p>
+          <p className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">I&apos;ll ask before</p>
+          {p.approvalCheckpoints.length > 0 ? (
+            <ul className="mt-1.5 flex flex-col gap-1 text-sm">
+              {p.approvalCheckpoints.map((c, i) => (
+                <li key={i} className="flex gap-2 font-semibold">
+                  <span className="text-ink-soft">•</span>
+                  {c}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1.5 text-sm font-semibold">{preview.understood.boundary}</p>
+          )}
           {p.unsupported.length > 0 && (
             <div className="mt-2 flex flex-col gap-1 rounded-btn bg-signal/10 px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-signal/30">
               {p.unsupported.map((u, i) => (
@@ -394,6 +398,21 @@ export function SourceComposer({ onStarted }: { onStarted: () => void }) {
             </div>
           )}
         </div>
+
+        {returns && (
+          <p className="text-sm font-semibold">
+            <span className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
+              I&apos;ll return{" "}
+            </span>
+            when {returns}.
+          </p>
+        )}
+
+        {preview.understood.informationProvided.length > 0 && (
+          <p className="text-xs text-ink-soft">
+            Working from: {preview.understood.informationProvided.join(" · ")}
+          </p>
+        )}
 
         {p.expectedDeliverables.length > 0 && (
           <p className="text-sm text-ink-soft">
@@ -410,7 +429,7 @@ export function SourceComposer({ onStarted }: { onStarted: () => void }) {
               disabled={busy}
               className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:opacity-40"
             >
-              <Sparkles size={15} /> {busy ? "Starting…" : "Start Mission"}
+              <Sparkles size={15} /> {busy ? "Delegating…" : "Delegate →"}
             </button>
           )}
           <button
@@ -445,7 +464,7 @@ export function SourceComposer({ onStarted }: { onStarted: () => void }) {
           disabled={busy || !goal.trim()}
           className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-btn bg-signal px-6 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:opacity-40"
         >
-          <Sparkles size={16} /> {busy ? "Reading…" : "Start Mission"}
+          <Sparkles size={16} /> {busy ? "Reading…" : "Delegate"}
         </button>
       </div>
 

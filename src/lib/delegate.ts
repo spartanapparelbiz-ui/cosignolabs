@@ -43,6 +43,21 @@ function nameFrom(text: string): string {
   return capped.length > 80 ? `${capped.slice(0, 77)}…` : capped;
 }
 
+/**
+ * RETURN TO ME — the user can define when cosigno should hand control back:
+ * "research these companies and return to me when you've narrowed them to
+ * five." The condition is extracted for the Delegation Agreement (and the
+ * full text still flows to the planner unchanged, so the plan honors it).
+ */
+export function returnCondition(input: string): string | null {
+  const m =
+    /(?:\band\s+|\bthen\s+)?return(?:\s+(?:to\s+me|control))?\s+(?:when|if|once|after)\s+(.+)$/i.exec(
+      input.trim()
+    );
+  if (!m) return null;
+  return m[1].trim().replace(/[.!?]+$/, "");
+}
+
 export function classifyDelegation(input: string): DelegationIntent {
   const text = input.trim();
   if (WATCH_RE.test(text)) {

@@ -4,15 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-// Minimal, delegation-first: cosigno itself is the operator, so there is no
-// separate operator page. Autopilot, files, skills, and the advanced
-// surfaces (memory, team, health) stay reachable from home and the account
-// menu without widening the everyday nav.
+// Minimal fallback navigation — intent → interface is the primary model
+// (the Presence mark / ⌘K). Cosigno itself is the operator: NOW is the live
+// relationship, delegations are handed-over outcomes, the boundary is where
+// authority sits. Autopilot, files, skills, and advanced surfaces stay
+// reachable from home and the account menu.
 const LINKS = [
-  { href: "/app", label: "home" },
-  { href: "/app/missions", label: "missions" },
+  { href: "/app", label: "now" },
+  { href: "/app/missions", label: "delegations" },
   { href: "/app/watch", label: "watch" },
-  { href: "/app/decisions", label: "approvals" },
+  { href: "/app/focus", label: "boundary" },
   { href: "/app/activity", label: "activity" },
   { href: "/app/connections", label: "connections" },
   { href: "/app/settings", label: "settings" },

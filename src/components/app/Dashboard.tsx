@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { CalendarClock, Check, ChevronRight, Eye, PenLine, Repeat } from "lucide-react";
+import { CalendarClock, Check, ChevronRight, Eye, PenLine, Repeat, X } from "lucide-react";
 import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
-import type { CosignoState } from "@/lib/state";
+import type { AutonomyOffer, CosignoState } from "@/lib/state";
 import { signRequired } from "@/lib/sign";
+import { useDisplayName } from "@/lib/theme";
+import { useToast } from "@/components/Toast";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
 
@@ -128,6 +130,152 @@ interface ConnectionView {
   status: string;
 }
 
+/* ------------------------------------------------------------- briefing */
+
+const BRIEFING_SEEN_KEY = "cosigno_briefing_seen";
+
+/**
+ * The briefing: what happened while you were away, in a few honest lines —
+ * then straight into the decisions. Derived entirely from the state stream
+ * since the last dismissal; no invented urgency.
+ */
+function BriefingCard({ state }: { state: CosignoState }) {
+  const [displayName] = useDisplayName();
+  const [dismissed, setDismissed] = useState(false);
+  const [lastSeen] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const raw = localStorage.getItem(BRIEFING_SEEN_KEY);
+    if (!raw) {
+      // First visit: start the clock quietly; the briefing begins next time.
+      localStorage.setItem(BRIEFING_SEEN_KEY, String(Date.now()));
+      return null;
+    }
+    return Number(raw);
+  });
+
+  if (dismissed || lastSeen === null) return null;
+  const away = state.stream.filter((e) => Date.parse(e.at) > lastSeen);
+  const completed = away.filter((e) => e.kind === "executed").length;
+  const moved = away.filter((e) => !e.needs_you && e.kind !== "executed").length;
+  if (away.length === 0 && state.need_you === 0) return null;
+
+  const hour = new Date().getHours();
+  const daypart = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+  function close() {
+    localStorage.setItem(BRIEFING_SEEN_KEY, String(Date.now()));
+    setDismissed(true);
+  }
+
+  return (
+    <section className={`${CARD} mb-6 p-5`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-display text-lg font-bold">
+            {daypart}
+            {displayName.trim() ? `, ${displayName.trim()}` : ""}.
+          </p>
+          <p className="mt-1 text-sm font-semibold text-ink-soft">
+            While you were away:
+            {moved > 0 && ` ${moved} thing${moved === 1 ? "" : "s"} moved forward.`}
+            {completed > 0 && ` ${completed} completed.`}
+            {state.need_you > 0 &&
+              ` ${state.need_you} decision${state.need_you === 1 ? "" : "s"} need${state.need_you === 1 ? "s" : ""} you.`}
+            {moved === 0 && completed === 0 && state.need_you === 0 && " nothing meaningful changed."}
+            {state.blocked === 0 && " Nothing urgent is blocked."}
+          </p>
+        </div>
+        <button
+          onClick={close}
+          className="shrink-0 rounded-btn p-1 text-ink-soft hover:bg-cream-deep hover:text-ink"
+          aria-label="dismiss briefing"
+        >
+          <X size={15} />
+        </button>
+      </div>
+      {state.need_you > 0 && (
+        <Link
+          href="/app/focus"
+          onClick={close}
+          className="mt-3 inline-flex items-center gap-1 rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream"
+        >
+          Start briefing <ChevronRight size={14} />
+        </Link>
+      )}
+    </section>
+  );
+}
+
+/* -------------------------------------------------------- earned autonomy */
+
+/**
+ * Earned autonomy — cosigno noticed repeated one-click approvals and OFFERS
+ * to take the category over. Explicit, scoped, reversible (settings →
+ * permissions); declining is remembered and never re-asked for the category.
+ */
+function AutonomyOfferCard({ offer, onResolved }: { offer: AutonomyOffer; onResolved(): void }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const [hidden, setHidden] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(`cosigno_autonomy_declined_${offer.category}`) === "1";
+  });
+
+  if (hidden) return null;
+
+  async function accept() {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/settings/tiers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: offer.category, tier: 1 }),
+      });
+      if (!res.ok) throw new Error((await res.json()).message ?? "couldn't expand that.");
+      toast("success", `expanded — cosigno now handles ${offer.label} automatically. reversible in settings.`);
+      setHidden(true);
+      onResolved();
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "couldn't expand that.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function decline() {
+    localStorage.setItem(`cosigno_autonomy_declined_${offer.category}`, "1");
+    setHidden(true);
+  }
+
+  return (
+    <div className={CARD}>
+      <p className="text-sm font-extrabold">
+        You&apos;ve approved {offer.label} {offer.count} times.
+      </p>
+      <p className="mt-1 text-sm text-ink-soft">
+        Should cosigno handle these automatically from now on? Signed and locked actions are
+        never included, and you can reverse this any time in settings.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          onClick={accept}
+          disabled={busy}
+          className="rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream disabled:opacity-50"
+        >
+          {busy ? "Expanding…" : "Yes, expand permission"}
+        </button>
+        <button
+          onClick={decline}
+          disabled={busy}
+          className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
+        >
+          No, keep asking
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 
 const CARD = "rounded-card border border-line/70 bg-surface p-5 shadow-soft";
@@ -189,12 +337,15 @@ export function Dashboard() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
+      {/* ---------- briefing: what happened while you were away ---------- */}
+      {state && <BriefingCard state={state} />}
+
       {/* ---------- delegation: the biggest, clearest thing ---------- */}
       <section className={`${CARD} p-6 sm:p-8`}>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">What should cosigno handle?</h1>
         <p className="mt-1.5 text-sm font-semibold text-ink-soft">
-          Describe the result you want — a task, a whole mission, or something to watch. cosigno
-          figures out the rest and asks before anything important happens.
+          Give cosigno responsibility for an outcome — it handles the work between your
+          decisions and returns only when your authority is actually needed.
         </p>
         <SourceComposer onStarted={load} />
         {state && (
@@ -217,11 +368,19 @@ export function Dashboard() {
 
       {/* ---------- two columns on desktop, stacked on mobile ---------- */}
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1.4fr_1fr]">
-        {/* LEFT: working + completed */}
+        {/* LEFT: now (what cosigno is handling) + completed */}
         <div className="flex flex-col gap-8">
           <section>
             <div className="flex items-center justify-between">
-              <h2 className={SECTION_TITLE}>Working</h2>
+              <h2 className={SECTION_TITLE}>
+                Now
+                {state && state.moving + state.watching > 0 && (
+                  <span className="ml-2 normal-case tracking-normal text-ink-soft">
+                    · cosigno is handling {state.moving + state.watching} thing
+                    {state.moving + state.watching === 1 ? "" : "s"}
+                  </span>
+                )}
+              </h2>
               {active.length > 0 && (
                 <Link href="/app/missions" className="text-xs font-bold text-ink-soft hover:text-ink">
                   see all
@@ -324,13 +483,23 @@ export function Dashboard() {
         {/* RIGHT: autopilot digest + approvals + coming up + connected apps */}
         <div className="flex flex-col gap-8">
           <section>
-            <h2 className={SECTION_TITLE}>Needs you</h2>
+            <h2 className={SECTION_TITLE}>
+              You&apos;re needed
+              {approvals.length > 0 && (
+                <span className="ml-2 normal-case tracking-normal text-ink-soft">
+                  · for {approvals.length} thing{approvals.length === 1 ? "" : "s"}
+                </span>
+              )}
+            </h2>
             <div className="mt-3 flex flex-col gap-3">
+              {state && state.autonomy.length > 0 && (
+                <AutonomyOfferCard offer={state.autonomy[0]} onResolved={load} />
+              )}
               {approvals.length === 0 ? (
                 <div className={CARD}>
                   <p className="text-sm font-extrabold">Nothing needs you right now</p>
                   <p className="mt-1 text-sm text-ink-soft">
-                    cosigno will ask before anything important happens.
+                    cosigno will return the moment your authority is required.
                   </p>
                 </div>
               ) : (

@@ -13,12 +13,12 @@ export const dynamic = "force-dynamic";
 export default function WatchPage() {
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-      <h1 className="text-xl font-extrabold lowercase">watch</h1>
+      <h1 className="text-xl font-extrabold lowercase">watch &amp; standing orders</h1>
       <p className="mt-1 max-w-2xl text-sm text-ink-soft">
-        Tell cosigno what to keep an eye on — important emails, calendar conflicts, refund
-        requests, big orders. When something happens it can notify you, prepare the response
-        for your approval, or (only where you&apos;ve explicitly allowed it) act. You can also
-        say it from the{" "}
+        Ongoing responsibilities assigned to cosigno — watches on important emails, calendar
+        conflicts, refund requests, big orders; standing orders like &ldquo;every morning,
+        prepare my day.&rdquo; Each one observes, prepares for your approval, or (only where
+        you&apos;ve explicitly allowed it) operates. You can also say it from the{" "}
         <Link href="/app" className="font-bold underline underline-offset-2 hover:text-ink">
           home page
         </Link>

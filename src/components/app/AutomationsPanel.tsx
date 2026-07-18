@@ -19,14 +19,16 @@ const CADENCES = [
 ] as const;
 
 /**
- * What each run may do with what it finds. Execute is an explicit,
- * per-automation grant and is described honestly: routine (tier-2) proposals
- * run automatically; locked tier-3 actions always wait for a signature.
+ * Trust modes — what each standing order may do with what it finds:
+ * OBSERVE watches and reports, PREPARE readies work for approval, OPERATE
+ * is an explicit per-order grant to run its routine actions. Locked tier-3
+ * actions always wait for a signature, whatever the mode. (Stored values
+ * keep their original names; these are the honest labels.)
  */
 const MODES: { value: AutomationRecord["mode"]; label: string; detail: string }[] = [
   {
     value: "monitor",
-    label: "monitor",
+    label: "observe",
     detail: "watch and report only — nothing is proposed, nothing waits on you.",
   },
   {
@@ -36,11 +38,17 @@ const MODES: { value: AutomationRecord["mode"]; label: string; detail: string }[
   },
   {
     value: "execute",
-    label: "execute",
+    label: "operate",
     detail:
-      "you grant THIS rule permission to run its routine actions automatically. locked actions (payments, refunds, deletes) always wait for you.",
+      "you grant THIS order permission to run its routine actions automatically. signed and locked actions (external email, payments, refunds, deletes) always wait for you.",
   },
 ];
+
+const MODE_LABEL: Record<AutomationRecord["mode"], string> = {
+  monitor: "observe",
+  prepare: "prepare",
+  execute: "operate",
+};
 
 async function jsonFetch(url: string, init?: RequestInit) {
   const res = await fetch(url, {
@@ -95,7 +103,7 @@ export function AutomationsPanel() {
       setCommand("");
       setMode("prepare");
       setAddOpen(false);
-      toast("success", "automation created — its first run is scheduled.");
+      toast("success", "standing order created — its first run is scheduled.");
       await load();
     } catch (e) {
       toast("error", e instanceof Error ? e.message : "couldn't create that automation.");
@@ -193,14 +201,15 @@ export function AutomationsPanel() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold lowercase tracking-wide text-ink-soft">
-          every run goes through the same approval loop — scheduled work can
-          propose, only your signature executes.
+          standing orders are ongoing responsibilities — every run goes through
+          the same approval loop, and nothing important crosses the boundary
+          without you.
         </p>
         <button
           onClick={() => setAddOpen((v) => !v)}
           className="inline-flex shrink-0 items-center gap-1 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream"
         >
-          <Plus size={13} /> {addOpen ? "cancel" : "new watch or rule"}
+          <Plus size={13} /> {addOpen ? "cancel" : "new standing order"}
         </button>
       </div>
 
@@ -261,7 +270,7 @@ export function AutomationsPanel() {
             disabled={busy === "create" || !name.trim() || !command.trim()}
             className="self-start rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft disabled:opacity-40"
           >
-            {busy === "create" ? "creating…" : "create automation"}
+            {busy === "create" ? "creating…" : "create standing order"}
           </button>
         </div>
       )}
@@ -288,7 +297,7 @@ export function AutomationsPanel() {
               className="rounded-pill bg-cream-deep px-2.5 py-0.5 text-[10px] font-bold lowercase tracking-wide text-ink-soft"
               title={MODES.find((m) => m.value === a.mode)?.detail}
             >
-              {a.mode ?? "prepare"}
+              {MODE_LABEL[a.mode] ?? "prepare"}
             </span>
             <span
               className={`rounded-pill px-2.5 py-0.5 text-[10px] font-bold lowercase tracking-wide ${

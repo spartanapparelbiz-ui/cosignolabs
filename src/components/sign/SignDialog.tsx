@@ -261,7 +261,7 @@ export function SignDialog({ action, saved, defaultName, onAuthorize, onSaveSign
             <div className="mt-3 flex items-center justify-between">
               <div>
                 <p className="text-sm font-extrabold">Signed by {saved && !sealedImage ? saved.name : name}</p>
-                <p className="text-xs text-ink-soft">Authorized at {authorizedAt}</p>
+                <p className="text-xs text-ink-soft">Authorized through Cosigno · {authorizedAt}</p>
               </div>
               <div className="text-right text-xs font-bold text-ink-soft" aria-live="polite">
                 {phase === "executing" && (
