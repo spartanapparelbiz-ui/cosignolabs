@@ -1,0 +1,441 @@
+[
+  {
+    "folder": "01-marketing",
+    "file": "landing-desktop.png",
+    "note": "Public landing page",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "01-marketing",
+    "file": "product-desktop.png",
+    "note": "Product page",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "01-marketing",
+    "file": "operators-desktop.png",
+    "note": "Operators page",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "01-marketing",
+    "file": "pricing-desktop.png",
+    "note": "Pricing — free / pro / max",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "01-marketing",
+    "file": "security-desktop.png",
+    "note": "Security page",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "01-marketing",
+    "file": "templates-desktop.png",
+    "note": "Templates page",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "01-marketing",
+    "file": "demo-desktop.png",
+    "note": "Demo page",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "01-marketing",
+    "file": "privacy-desktop.png",
+    "note": "Privacy policy",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "01-marketing",
+    "file": "terms-desktop.png",
+    "note": "Terms",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "02-auth",
+    "file": "sign-in-desktop.png",
+    "note": "Sign in (Clerk unconfigured in demo)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "02-auth",
+    "file": "sign-up-desktop.png",
+    "note": "Sign up (Clerk unconfigured in demo)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "02-auth",
+    "file": "onboarding-1-desktop.png",
+    "note": "First-run intro, screen 1",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "02-auth",
+    "file": "onboarding-2-desktop.png",
+    "note": "First-run intro, screen 2",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "02-auth",
+    "file": "onboarding-3-desktop.png",
+    "note": "First-run intro, screen 3",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "03-now",
+    "file": "now-home-desktop.png",
+    "note": "NOW / home — current state, delegation box",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "03-now",
+    "file": "now-briefing-desktop.png",
+    "note": "NOW with morning briefing card",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "03-now",
+    "file": "now-capabilities-desktop.png",
+    "note": "What can you do right now — capability report",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "03-now",
+    "file": "presence-command-overlay-desktop.png",
+    "note": "Cosigno Presence — command overlay (Cmd/Ctrl-K)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "04-delegations",
+    "file": "delegations-list-desktop.png",
+    "note": "Delegations list — states, contextual actions",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "04-delegations",
+    "file": "delegation-brief-desktop.png",
+    "note": "Brief Me / Why is this waiting",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "04-delegations",
+    "file": "delegation-replay-desktop.png",
+    "note": "Delegation Replay timeline",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "05-objectives",
+    "file": "objectives-list-desktop.png",
+    "note": "Objectives list with progress",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "05-objectives",
+    "file": "objective-detail-desktop.png",
+    "note": "Objective detail — linked delegations, progress",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "06-boundary",
+    "file": "boundary-focus-desktop.png",
+    "note": "The Boundary / Handoff — Focus, needs you, why-me",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "06-boundary",
+    "file": "approval-bundle-desktop.png",
+    "note": "Approval bundle — review all together",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "06-boundary",
+    "file": "live-takeover-desktop.png",
+    "note": "Live Takeover — YOU HAVE CONTROL, editable",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "06-boundary",
+    "file": "continue-from-here-desktop.png",
+    "note": "Continue From Here — handed back",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "06-boundary",
+    "file": "sign-dialog-desktop.png",
+    "note": "Cosigno Sign — signature surface",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "06-boundary",
+    "file": "signature-drawn-desktop.png",
+    "note": "Signature drawn, ready to authorize",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "06-boundary",
+    "file": "signature-sealed-desktop.png",
+    "note": "Signature sealing — Signed by Nicholas",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "08-activity",
+    "file": "activity-ledger-desktop.png",
+    "note": "Activity ledger — filters, search, today",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "08-activity",
+    "file": "trust-receipt-desktop.png",
+    "note": "Trust Receipt with Cosigno Seal",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "08-activity",
+    "file": "trust-receipt-trace-desktop.png",
+    "note": "Trust Receipt — trace expanded",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "07-watch",
+    "file": "watch-standing-orders-desktop.png",
+    "note": "Watch & standing orders",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "07-watch",
+    "file": "standing-order-create-desktop.png",
+    "note": "New standing order — trust modes (observe/prepare/operate)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "09-connections",
+    "file": "connections-desktop.png",
+    "note": "Connections — connect apps",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "10-settings",
+    "file": "settings-desktop.png",
+    "note": "Settings landing",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "10-settings",
+    "file": "account-desktop.png",
+    "note": "Account center",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "10-settings",
+    "file": "account-permissions-desktop.png",
+    "note": "Permission tiers board (auto/approve/sign)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "10-settings",
+    "file": "account-profile-desktop.png",
+    "note": "Profile panel",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "10-settings",
+    "file": "account-security-desktop.png",
+    "note": "Security panel",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "10-settings",
+    "file": "account-usage-desktop.png",
+    "note": "Plan & usage panel (tab labeled \"plan & usage\", deep-linked)",
+    "ok": true
+  },
+  {
+    "folder": "10-settings",
+    "file": "account-integrations-desktop.png",
+    "note": "Connections/integrations panel (tab labeled \"connections\", deep-linked)",
+    "ok": true
+  },
+  {
+    "folder": "12-misc",
+    "file": "skills-desktop.png",
+    "note": "Skills marketplace",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "12-misc",
+    "file": "files-desktop.png",
+    "note": "Files (Take This entry point)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "12-misc",
+    "file": "rules-memory-desktop.png",
+    "note": "My Rules & Memory (personal operating rules)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "12-misc",
+    "file": "team-desktop.png",
+    "note": "Team",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "12-misc",
+    "file": "workspace-desktop.png",
+    "note": "Workspace (shared delegations)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "12-misc",
+    "file": "health-desktop.png",
+    "note": "Health / status",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "12-misc",
+    "file": "autopilot-desktop.png",
+    "note": "Autopilot brief (legacy intelligence layer)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "12-misc",
+    "file": "decisions-inbox-desktop.png",
+    "note": "Decision inbox (approval cards)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "03-now",
+    "file": "cosigno-hold-active-desktop.png",
+    "note": "Cosigno Hold active — banner + control",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "13-states",
+    "file": "watch-empty-desktop.png",
+    "note": "Watch empty state (no standing orders)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "mobile",
+    "file": "landing-mobile.png",
+    "note": "Landing (mobile)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "mobile",
+    "file": "pricing-mobile.png",
+    "note": "Pricing (mobile)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "mobile",
+    "file": "now-home-mobile.png",
+    "note": "NOW / home (mobile)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "mobile",
+    "file": "delegations-mobile.png",
+    "note": "Delegations (mobile)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "mobile",
+    "file": "objectives-mobile.png",
+    "note": "Objectives (mobile)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "mobile",
+    "file": "boundary-focus-mobile.png",
+    "note": "Boundary / Focus (mobile)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "mobile",
+    "file": "watch-mobile.png",
+    "note": "Watch (mobile)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "mobile",
+    "file": "activity-mobile.png",
+    "note": "Activity (mobile)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "mobile",
+    "file": "connections-mobile.png",
+    "note": "Connections (mobile)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "mobile",
+    "file": "sign-dialog-mobile.png",
+    "note": "Cosigno Sign (mobile)",
+    "ok": true,
+    "errors": []
+  }
+]
