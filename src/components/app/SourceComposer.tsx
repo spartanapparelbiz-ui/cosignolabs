@@ -173,6 +173,7 @@ export function SourceComposer({ onStarted }: { onStarted: () => void }) {
 
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [dragOver, setDragOver] = useState(false);
   const [addingLink, setAddingLink] = useState(false);
 
   const [preview, setPreview] = useState<CompilePreview | null>(null);
@@ -447,15 +448,47 @@ export function SourceComposer({ onStarted }: { onStarted: () => void }) {
   const controlBtn =
     "inline-flex items-center gap-1.5 rounded-pill border border-line/70 bg-cream/40 px-3.5 py-1.5 text-sm font-bold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink";
 
+  /* ---- drop zone: give cosigno context by dropping it anywhere here ---- */
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      onFiles(e.dataTransfer.files);
+      if (!goal.trim()) setGoal("What should I do with this? ");
+      return;
+    }
+    const uri = e.dataTransfer.getData("text/uri-list");
+    if (uri) {
+      setLinkOpen(true);
+      setLinkUrl(uri.split("\n")[0].trim());
+      return;
+    }
+    const text = e.dataTransfer.getData("text/plain");
+    if (text) setGoal((g) => (g ? `${g} ${text}` : text).slice(0, 500));
+  }
+
   return (
-    <div>
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={onDrop}
+      className={dragOver ? "rounded-card ring-2 ring-signal/60" : undefined}
+    >
+      {dragOver && (
+        <p className="mt-3 rounded-btn bg-signal/10 px-3 py-2 text-center text-xs font-extrabold text-ink">
+          Drop it — cosigno will take it from here.
+        </p>
+      )}
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">
         <input
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && review()}
           maxLength={500}
-          placeholder="Ask cosigno to handle something…"
+          placeholder="Ask cosigno to handle something… or drop a file, link, or text here"
           aria-label="what do you need handled"
           className="w-full rounded-btn border border-line/70 bg-cream/40 px-4 py-3.5 text-base font-semibold shadow-well placeholder:font-medium placeholder:text-ink-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
         />

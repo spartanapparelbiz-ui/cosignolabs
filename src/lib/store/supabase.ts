@@ -32,6 +32,7 @@ import {
   SignalStateRecord,
   SignalStateStatus,
   SignatureRecord,
+  TemporaryAuthorityRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -779,6 +780,48 @@ export class SupabaseStore implements Store {
     if (error) throw new Error(error.message);
   }
 
+  /* -- temporary authority -- */
+  async grantTemporaryAuthority(
+    userId: string,
+    category: TemporaryAuthorityRecord["category"],
+    expiresAt: string,
+    note: string | null
+  ): Promise<TemporaryAuthorityRecord> {
+    const { data, error } = await this.client
+      .from("temporary_authority")
+      .insert({ user_id: userId, category, tier: 1, expires_at: expiresAt, note })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as TemporaryAuthorityRecord;
+  }
+
+  async listTemporaryAuthority(userId: string): Promise<TemporaryAuthorityRecord[]> {
+    const { data, error } = await this.client
+      .from("temporary_authority")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as TemporaryAuthorityRecord[];
+  }
+
+  async revokeTemporaryAuthority(
+    userId: string,
+    id: string
+  ): Promise<TemporaryAuthorityRecord | null> {
+    const { data, error } = await this.client
+      .from("temporary_authority")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as TemporaryAuthorityRecord) ?? null;
+  }
+
   /* -- saved signature -- */
   async getSignature(userId: string): Promise<SignatureRecord | null> {
     const { data, error } = await this.client
@@ -1504,6 +1547,7 @@ export class SupabaseStore implements Store {
       "autopilot_signal_states",
       "autopilot_meta",
       "signatures",
+      "temporary_authority",
       "files",
       "memories",
       "user_prefs",

@@ -2,15 +2,24 @@ import { MemoryPanel } from "@/components/app/MemoryPanel";
 
 export const dynamic = "force-dynamic";
 
-/** Memory — user-controlled context the planner reads. Never agent-written. */
+/**
+ * My Rules & Memory — user-controlled operating principles and context the
+ * planner reads on every delegation. Never agent-written. Explicit rules
+ * override inferred preferences, and cosigno never silently changes one —
+ * the hard permission boundaries (tiers, SIGN, locked actions) are enforced
+ * by the server regardless of what's written here.
+ */
 export default function MemoryPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8">
-      <h1 className="font-display text-2xl font-bold lowercase">memory</h1>
+      <h1 className="font-display text-2xl font-bold lowercase">my rules &amp; memory</h1>
       <p className="mt-1 text-sm font-semibold text-ink-soft">
-        short notes you save about how you like things done — the operator
-        reads them as context. only you write here, and one switch turns it
-        all off.
+        your standing operating principles, in plain language — &ldquo;always prepare
+        external emails for review,&rdquo; &ldquo;never cancel a meeting without asking.&rdquo;
+        the operator reads every enabled rule as explicit context on every
+        delegation. only you write here; explicit rules override anything
+        cosigno has inferred, and one switch turns it all off. hard boundaries
+        (signatures, locked actions) are enforced server-side either way.
       </p>
       <div className="mt-6 flex-1">
         <MemoryPanel />

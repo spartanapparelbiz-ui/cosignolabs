@@ -154,6 +154,46 @@ export function assembleStream(
     .slice(0, limit);
 }
 
+/* ----------------------------------------------------------------- replay */
+
+/**
+ * DELEGATION REPLAY — the operational history of one delegation, in order:
+ * what was delegated, what cosigno prepared, where the boundary was
+ * reached, what the user authorized, what executed, and what the outcome
+ * was. Built ONLY from the audit record — concise operational evidence,
+ * never hidden reasoning.
+ */
+export interface ReplayLine {
+  at: string;
+  text: string;
+  kind: StreamEvent["kind"] | "delegated";
+}
+
+export function replayOf(
+  events: ActionEventRecord[],
+  actions: ActionRecord[],
+  delegatedAt?: string,
+  goal?: string
+): ReplayLine[] {
+  const byId = new Map(actions.map((a) => [a.id, a]));
+  const lines: ReplayLine[] = [];
+  if (delegatedAt) {
+    lines.push({ at: delegatedAt, text: `Delegation accepted: ${goal ?? "your objective"}`, kind: "delegated" });
+  }
+  for (const e of events) {
+    const action = byId.get(e.action_id);
+    if (!action) continue;
+    if (e.type === "proposed" && signRequired(action.category, action.tier)) {
+      // The boundary moment is worth naming explicitly in a replay.
+      lines.push({ at: e.created_at, text: `Boundary reached: "${action.summary}" needs your signature`, kind: "handoff" });
+      continue;
+    }
+    const item = eventText(e, action);
+    if (item) lines.push({ at: item.at, text: item.text, kind: item.kind });
+  }
+  return lines.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+}
+
 /* --------------------------------------------------------- state assembly */
 
 export interface CosignoState {

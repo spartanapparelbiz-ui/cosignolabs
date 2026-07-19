@@ -28,6 +28,11 @@ interface Props {
   saved: SignatureRecord | null;
   /** Display name fallback when no saved signature exists yet. */
   defaultName: string;
+  /**
+   * Bundle scope: when one signature authorizes several related actions,
+   * EVERY summary is listed here — nothing is ever hidden inside a bundle.
+   */
+  scope?: string[];
   /** Runs the real approval (confirmation + signature) — returns error or null. */
   onAuthorize(signature: { name: string; image?: string }): Promise<string | null>;
   /** Persist the signature for Hold to Sign next time (best effort). */
@@ -39,7 +44,7 @@ function timeNow(): string {
   return new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-export function SignDialog({ action, saved, defaultName, onAuthorize, onSaveSignature, onClose }: Props) {
+export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onSaveSignature, onClose }: Props) {
   const padRef = useRef<SignaturePadHandle | null>(null);
   const [phase, setPhase] = useState<Phase>("review");
   const [inked, setInked] = useState(false);
@@ -145,11 +150,33 @@ export function SignDialog({ action, saved, defaultName, onAuthorize, onSaveSign
         </div>
 
         {/* exactly what will happen */}
-        <h2 className="mt-3 text-lg font-extrabold leading-snug">{action.summary}</h2>
-        <p className="mt-1 text-sm text-ink-soft">{effectLine(action)}</p>
-        <p className="mt-2 text-[11px] font-semibold text-ink-soft">
-          Signing authorizes exactly this action, once. It is recorded in your audit trail.
-        </p>
+        {scope && scope.length > 1 ? (
+          <>
+            <h2 className="mt-3 text-lg font-extrabold leading-snug">
+              Authorize {scope.length} actions together
+            </h2>
+            <ul className="mt-2 flex max-h-40 flex-col gap-1 overflow-auto rounded-btn bg-cream-deep px-3 py-2">
+              {scope.map((s) => (
+                <li key={s} className="flex gap-2 text-sm font-semibold">
+                  <span className="text-ink-soft">•</span>
+                  {s}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[11px] font-semibold text-ink-soft">
+              One signature authorizes exactly these {scope.length} actions, once each — every
+              one gets its own authorization record in your audit trail.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="mt-3 text-lg font-extrabold leading-snug">{action.summary}</h2>
+            <p className="mt-1 text-sm text-ink-soft">{effectLine(action)}</p>
+            <p className="mt-2 text-[11px] font-semibold text-ink-soft">
+              Signing authorizes exactly this action, once. It is recorded in your audit trail.
+            </p>
+          </>
+        )}
 
         {/* ---------- review: draw or hold ---------- */}
         {phase === "review" && (

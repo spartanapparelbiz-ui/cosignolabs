@@ -33,6 +33,7 @@ import type {
   SignalStateRecord,
   SignalStateStatus,
   SignatureRecord,
+  TemporaryAuthorityRecord,
   SubscriptionRecord,
   TierSettingRecord,
   UsageRecord,
@@ -334,6 +335,17 @@ export interface Store {
   listDueAutomations(limit: number): Promise<AutomationRecord[]>;
   createAutomationRun(input: Omit<AutomationRunRecord, "id" | "created_at">): Promise<AutomationRunRecord>;
   listAutomationRuns(userId: string, automationId: string, limit?: number): Promise<AutomationRunRecord[]>;
+
+  /* -- temporary authority (scoped, expiring permission grants) -- */
+  grantTemporaryAuthority(
+    userId: string,
+    category: TemporaryAuthorityRecord["category"],
+    expiresAt: string,
+    note: string | null
+  ): Promise<TemporaryAuthorityRecord>;
+  /** Live + recent grants for the user (expired ones may be filtered by callers). */
+  listTemporaryAuthority(userId: string): Promise<TemporaryAuthorityRecord[]>;
+  revokeTemporaryAuthority(userId: string, id: string): Promise<TemporaryAuthorityRecord | null>;
 
   /* -- saved signature (Hold to Sign convenience; image bounded upstream) -- */
   getSignature(userId: string): Promise<SignatureRecord | null>;

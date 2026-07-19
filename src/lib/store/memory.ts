@@ -32,6 +32,7 @@ import {
   SignalStateRecord,
   SignalStateStatus,
   SignatureRecord,
+  TemporaryAuthorityRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -304,6 +305,7 @@ export class MemoryStore implements Store {
   private signalStates: SignalStateRecord[] = [];
   private autopilotViewedAt = new Map<string, string>();
   private signatures = new Map<string, SignatureRecord>();
+  private temporaryAuthority: TemporaryAuthorityRecord[] = [];
   private memories: MemoryRecord[] = [];
   private prefs = new Map<string, UserPrefs>();
   private files: FileRecord[] = [];
@@ -530,6 +532,43 @@ export class MemoryStore implements Store {
   }
 
 
+  /* -- temporary authority -- */
+  async grantTemporaryAuthority(
+    userId: string,
+    category: TemporaryAuthorityRecord["category"],
+    expiresAt: string,
+    note: string | null
+  ): Promise<TemporaryAuthorityRecord> {
+    const rec: TemporaryAuthorityRecord = {
+      id: randomUUID(),
+      user_id: userId,
+      category,
+      tier: 1,
+      expires_at: expiresAt,
+      note,
+      created_at: nowIso(),
+      revoked_at: null,
+    };
+    this.temporaryAuthority.push(rec);
+    return { ...rec };
+  }
+
+  async listTemporaryAuthority(userId: string): Promise<TemporaryAuthorityRecord[]> {
+    return this.temporaryAuthority
+      .filter((g) => g.user_id === userId)
+      .map((g) => ({ ...g }));
+  }
+
+  async revokeTemporaryAuthority(
+    userId: string,
+    id: string
+  ): Promise<TemporaryAuthorityRecord | null> {
+    const g = this.temporaryAuthority.find((x) => x.id === id && x.user_id === userId);
+    if (!g) return null;
+    g.revoked_at = nowIso();
+    return { ...g };
+  }
+
   /* -- saved signature -- */
   async getSignature(userId: string): Promise<SignatureRecord | null> {
     const s = this.signatures.get(userId);
@@ -552,6 +591,7 @@ export class MemoryStore implements Store {
 
   async deleteSignature(userId: string): Promise<void> {
     this.signatures.delete(userId);
+    this.temporaryAuthority = this.temporaryAuthority.filter((g) => g.user_id !== userId);
   }
 
   /* -- autopilot -- */

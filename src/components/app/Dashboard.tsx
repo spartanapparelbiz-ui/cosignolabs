@@ -206,6 +206,164 @@ function BriefingCard({ state }: { state: CosignoState }) {
   );
 }
 
+/* ---------------------------------------------------- temporary authority */
+
+interface GrantView {
+  id: string;
+  category: string;
+  expires_at: string;
+  note: string | null;
+}
+
+/** Categories eligible for a scoped, expiring grant (server re-validates). */
+const GRANTABLE = [
+  { category: "update_record", label: "record updates" },
+  { category: "connection_call", label: "connected-tool actions" },
+];
+
+const DURATIONS = [
+  { label: "30 minutes", minutes: 30 },
+  { label: "2 hours", minutes: 120 },
+  { label: "until end of day", minutes: 480 },
+];
+
+/**
+ * TEMPORARY AUTHORITY — scoped, time-limited, visible, revocable, recorded.
+ * Grants lower an eligible routine category to auto until they expire;
+ * signed and locked actions can never be granted. Base permissions are
+ * untouched — expiry simply restores the previous level.
+ */
+function TemporaryAuthorityCard() {
+  const toast = useToast();
+  const [grants, setGrants] = useState<GrantView[]>([]);
+  const [granting, setGranting] = useState(false);
+  const [category, setCategory] = useState(GRANTABLE[0].category);
+  const [minutes, setMinutes] = useState(120);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(() => {
+    jsonFetch("/api/authority")
+      .then((d) => setGrants(d.grants ?? []))
+      .catch(() => setGrants([]));
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function grant() {
+    setBusy(true);
+    try {
+      await jsonFetch("/api/authority", {
+        method: "POST",
+        body: JSON.stringify({ category, minutes }),
+      });
+      toast("success", "temporary authority granted — visible here until it expires.");
+      setGranting(false);
+      load();
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "couldn't grant that.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function revoke(id: string) {
+    setBusy(true);
+    try {
+      await jsonFetch(`/api/authority?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      toast("success", "revoked — the previous permission level applies again.");
+      load();
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "couldn't revoke that.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const labelOf = (c: string) => GRANTABLE.find((g) => g.category === c)?.label ?? c;
+
+  return (
+    <section>
+      <div className="flex items-center justify-between">
+        <h2 className={SECTION_TITLE}>Temporary authority</h2>
+        <button
+          onClick={() => setGranting((v) => !v)}
+          className="text-xs font-bold text-ink-soft hover:text-ink"
+        >
+          {granting ? "cancel" : "grant"}
+        </button>
+      </div>
+      <div className={`${CARD} mt-3`}>
+        {grants.length === 0 && !granting && (
+          <p className="text-sm text-ink-soft">
+            None active. Grant cosigno scoped authority that expires on its own — signed and
+            locked actions are never included.
+          </p>
+        )}
+        {grants.map((g) => (
+          <div key={g.id} className="flex items-center gap-3 border-b border-line/50 py-2 first:pt-0 last:border-0 last:pb-0">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-extrabold">{labelOf(g.category)} — automatic</p>
+              <p className="text-xs text-ink-soft">
+                expires {new Date(g.expires_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              </p>
+            </div>
+            <button
+              onClick={() => revoke(g.id)}
+              disabled={busy}
+              className="shrink-0 rounded-btn px-3 py-1.5 text-xs font-bold lowercase text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink disabled:opacity-50"
+            >
+              revoke
+            </button>
+          </div>
+        ))}
+        {granting && (
+          <div className="mt-3 flex flex-col gap-2 border-t border-line/50 pt-3 first:mt-0 first:border-0 first:pt-0">
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="rounded-btn bg-cream-deep px-3 py-1.5 text-sm font-semibold"
+                aria-label="what to allow"
+              >
+                {GRANTABLE.map((g) => (
+                  <option key={g.category} value={g.category}>
+                    {g.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={minutes}
+                onChange={(e) => setMinutes(Number(e.target.value))}
+                className="rounded-btn bg-cream-deep px-3 py-1.5 text-sm font-semibold"
+                aria-label="for how long"
+              >
+                {DURATIONS.map((d) => (
+                  <option key={d.minutes} value={d.minutes}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-[11px] text-ink-soft">
+              Cosigno may run {labelOf(category)} without asking until this expires. Revocable
+              any time; recorded in your audit trail.
+            </p>
+            <button
+              onClick={grant}
+              disabled={busy}
+              className="self-start rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream disabled:opacity-50"
+            >
+              {busy ? "Granting…" : "Grant temporary authority"}
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 /* -------------------------------------------------------- earned autonomy */
 
 /**
@@ -579,6 +737,8 @@ export function Dashboard() {
               )}
             </div>
           </section>
+
+          <TemporaryAuthorityCard />
 
           {state && state.stream.length > 0 && (
             <section>

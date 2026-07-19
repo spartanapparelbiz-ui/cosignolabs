@@ -332,6 +332,29 @@ export interface AutomationRunRecord {
   created_at: string;
 }
 
+/* ----------------------------------------------------- temporary authority */
+
+/**
+ * A scoped, time-limited authority grant: "for the next two hours, handle
+ * <category> without asking." Always explicit, visible, revocable, and
+ * recorded; when it expires, the previous permission level simply applies
+ * again (base tier settings are never touched). Only unpinned tier-2
+ * categories that don't require SIGN can be granted — locked and
+ * outward-facing actions always keep their boundary.
+ */
+export interface TemporaryAuthorityRecord {
+  id: string;
+  user_id: string;
+  category: ActionCategory;
+  /** The temporarily granted tier — always 1 (auto) in v1. */
+  tier: Tier;
+  expires_at: string;
+  /** Optional human note shown with the grant ("internal reschedules only"). */
+  note: string | null;
+  created_at: string;
+  revoked_at: string | null;
+}
+
 /* ------------------------------------------------------------- signatures */
 
 /**

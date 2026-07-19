@@ -6,7 +6,7 @@ import { Check, PenLine, ShieldAlert, X } from "lucide-react";
 import type { ActionRecord, SignatureRecord } from "@/lib/types";
 import type { CosignoState } from "@/lib/state";
 import { effectLine } from "@/lib/actionPresentation";
-import { afterApprovalLine, beforeApprovalLine } from "@/lib/clarity";
+import { afterApprovalLine, beforeApprovalLine, whyMe } from "@/lib/clarity";
 import { signRequired } from "@/lib/sign";
 import { SignDialog } from "@/components/sign/SignDialog";
 import { CosignoMark } from "@/components/brand/Logo";
@@ -51,7 +51,16 @@ export function FocusMode() {
   const [signOpen, setSignOpen] = useState(false);
   const [telling, setTelling] = useState(false);
   const [tellText, setTellText] = useState("");
-  const [editing, setEditing] = useState(false);
+  // FLUID CONTROL: who holds the work right now. Cosigno holds it by
+  // default; "I'll take it from here" hands it to the user (artifact
+  // becomes editable); "Cosigno, continue" hands it back with the user's
+  // changes kept — never restarted, never overwritten.
+  const [control, setControl] = useState<"cosigno" | "you">("cosigno");
+  // Approval bundle: review every waiting decision together (never hidden —
+  // the bundle lists each action, and one signature covers exactly them).
+  const [bundleMode, setBundleMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bundleSignOpen, setBundleSignOpen] = useState(false);
   const [draft, setDraft] = useState<{ to: string; subject: string; body: string } | null>(null);
   const [jsonDraft, setJsonDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -87,13 +96,18 @@ export function FocusMode() {
   // Reset per-decision state whenever the front of the queue changes.
   useEffect(() => {
     setPhase("review");
-    setEditing(false);
+    setControl("cosigno");
     setTelling(false);
     setTellText("");
     setError(null);
     setDraft(email ? { ...email } : null);
     setJsonDraft(action ? JSON.stringify(action.payload, null, 2) : "");
   }, [action?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Bundle selection defaults to every eligible (unflagged) decision.
+  useEffect(() => {
+    if (queue) setSelected(new Set(queue.filter((a) => !a.injection_flag).map((a) => a.id)));
+  }, [queue?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** The handshake completion: work returns to cosigno, queue advances. */
   const returnToCosigno = useCallback(() => {
@@ -112,7 +126,7 @@ export function FocusMode() {
       if (draft.to) payload.to = draft.to;
       if (draft.subject) payload.subject = draft.subject;
       if (draft.body) payload.body = draft.body;
-    } else if (editing) {
+    } else if (control === "you") {
       try {
         payload = JSON.parse(jsonDraft);
       } catch {
@@ -129,7 +143,82 @@ export function FocusMode() {
     } catch (e) {
       return e instanceof Error ? e.message : "couldn't save the change.";
     }
-  }, [action, draft, editing, email, jsonDraft]);
+  }, [action, control, draft, email, jsonDraft]);
+
+  /* ------------------------- fluid control: takeover + handback ---------- */
+
+  /** I'LL TAKE IT FROM HERE — pause cosigno's side; the artifact is yours. */
+  const takeOver = useCallback(() => {
+    setControl("you");
+  }, []);
+
+  /** COSIGNO, CONTINUE — hand it back with your changes kept, never redone. */
+  const handBack = useCallback(async () => {
+    setBusy(true);
+    const err = await saveEdits();
+    setBusy(false);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setControl("cosigno");
+    toast("success", "cosigno continues — your changes are kept.");
+  }, [saveEdits, toast]);
+
+  /** FINISH MYSELF — the user keeps the work; the card closes with a logged reason. */
+  const finishMyself = useCallback(async () => {
+    if (!action) return;
+    setBusy(true);
+    try {
+      await jsonFetch(`/api/actions/${action.id}/veto`, {
+        method: "POST",
+        body: JSON.stringify({ reason: "took over — finishing this myself" }),
+      });
+      toast("success", "all yours — cosigno stepped back and logged it.");
+      returnToCosigno();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "that didn't go through.");
+    } finally {
+      setBusy(false);
+    }
+  }, [action, returnToCosigno, toast]);
+
+  /* ------------------------------- approval bundle ----------------------- */
+
+  const bundleActions = (queue ?? []).filter((a) => selected.has(a.id) && !a.injection_flag);
+  const bundleNeedsSign = bundleActions.some((a) => signRequired(a.category, a.tier));
+
+  /** Authorize every selected action — one pass, one record each. */
+  const authorizeBundle = useCallback(
+    async (signature?: { name: string; image?: string }): Promise<string | null> => {
+      setBusy(true);
+      let failures = 0;
+      for (const a of bundleActions) {
+        try {
+          await jsonFetch(`/api/actions/${a.id}/approve`, {
+            method: "POST",
+            body: JSON.stringify({
+              ...(a.tier === 3 && signature ? { confirmation: a.category } : {}),
+              ...(signature ? { signature } : {}),
+            }),
+          });
+        } catch {
+          failures += 1;
+        }
+      }
+      setBusy(false);
+      setBundleMode(false);
+      setDoneCount((n) => n + bundleActions.length - failures);
+      await load();
+      if (failures > 0) {
+        toast("error", `${failures} of ${bundleActions.length} didn't complete — they stay in the queue.`);
+        return `${failures} actions didn't complete.`;
+      }
+      toast("success", `${bundleActions.length} authorized — cosigno continues.`);
+      return null;
+    },
+    [bundleActions, load, toast]
+  );
 
   const approve = useCallback(
     async (signature?: { name: string; image?: string }): Promise<string | null> => {
@@ -253,14 +342,38 @@ export function FocusMode() {
         </span>
         <span>You</span>
       </div>
-      <p className="mt-2 text-sm font-extrabold">
-        {phase === "returning" ? "Back with cosigno — continuing." : "I need your decision."}
-        {queue.length > 1 && phase === "review" && (
-          <span className="ml-2 font-semibold text-ink-soft">
-            {queue.length - 1} more after this
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-extrabold">
+          {phase === "returning" ? "Back with cosigno — continuing." : "I need your decision."}
+          {queue.length > 1 && phase === "review" && (
+            <span className="ml-2 font-semibold text-ink-soft">
+              {queue.length - 1} more after this
+            </span>
+          )}
+        </p>
+        <div className="flex items-center gap-2">
+          {/* who holds the work right now — quiet, but always answered */}
+          <span
+            className={`rounded-pill px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${
+              control === "you" ? "bg-signal/15 text-ink" : "bg-cream-deep text-ink-soft"
+            }`}
+          >
+            {phase === "returning"
+              ? "Cosigno continues"
+              : control === "you"
+                ? "You have control"
+                : "Cosigno has control"}
           </span>
-        )}
-      </p>
+          {queue.length > 1 && phase === "review" && control === "cosigno" && (
+            <button
+              onClick={() => setBundleMode((v) => !v)}
+              className="rounded-pill px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink"
+            >
+              {bundleMode ? "One at a time" : `Review all ${queue.length} together`}
+            </button>
+          )}
+        </div>
+      </div>
 
       <div
         key={action.id + phase}
@@ -276,16 +389,18 @@ export function FocusMode() {
           </div>
         )}
 
-        {/* ---------- the actual work, not a card about it ---------- */}
+        {/* ---------- the actual work, not a card about it ----------
+            Editable only while YOU have control — take it from here first. */}
         {email && draft ? (
-          <div className="rounded-btn bg-cream shadow-well">
+          <div className={`rounded-btn bg-cream shadow-well ${control === "cosigno" ? "opacity-95" : "ring-1 ring-inset ring-signal/40"}`}>
             <div className="border-b border-line/60 px-4 py-2.5">
               <label className="flex items-baseline gap-2 text-sm">
                 <span className="w-14 shrink-0 text-xs font-extrabold uppercase tracking-wide text-ink-soft">To</span>
                 <input
                   value={draft.to}
                   onChange={(e) => setDraft({ ...draft, to: e.target.value })}
-                  className="min-w-0 flex-1 bg-transparent font-semibold outline-none"
+                  readOnly={control === "cosigno"}
+                  className="min-w-0 flex-1 bg-transparent font-semibold outline-none read-only:cursor-default"
                   aria-label="recipient"
                 />
               </label>
@@ -296,7 +411,8 @@ export function FocusMode() {
                 <input
                   value={draft.subject}
                   onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
-                  className="min-w-0 flex-1 bg-transparent font-extrabold outline-none"
+                  readOnly={control === "cosigno"}
+                  className="min-w-0 flex-1 bg-transparent font-extrabold outline-none read-only:cursor-default"
                   aria-label="subject"
                 />
               </label>
@@ -304,15 +420,16 @@ export function FocusMode() {
             <textarea
               value={draft.body}
               onChange={(e) => setDraft({ ...draft, body: e.target.value })}
+              readOnly={control === "cosigno"}
               rows={Math.min(14, Math.max(6, draft.body.split("\n").length + 2))}
-              className="w-full resize-y bg-transparent px-4 py-3 text-sm leading-relaxed outline-none"
+              className="w-full resize-y bg-transparent px-4 py-3 text-sm leading-relaxed outline-none read-only:cursor-default"
               aria-label="message body"
             />
           </div>
         ) : (
           <div>
             <h1 className="text-lg font-extrabold leading-snug">{action.summary}</h1>
-            {!editing ? (
+            {control === "cosigno" ? (
               <dl className="mt-3 flex flex-col gap-1.5 rounded-btn bg-cream px-4 py-3 shadow-well">
                 {Object.entries(action.payload).slice(0, 8).map(([k, v]) => (
                   <div key={k} className="flex items-baseline gap-3 text-sm">
@@ -328,7 +445,7 @@ export function FocusMode() {
                 value={jsonDraft}
                 onChange={(e) => setJsonDraft(e.target.value)}
                 rows={10}
-                className="mt-3 w-full rounded-btn bg-cream p-3 font-mono text-[11px] leading-relaxed shadow-well"
+                className="mt-3 w-full rounded-btn bg-cream p-3 font-mono text-[11px] leading-relaxed shadow-well ring-1 ring-inset ring-signal/40"
                 aria-label="edit the exact payload (JSON)"
               />
             )}
@@ -344,6 +461,8 @@ export function FocusMode() {
           <p className="mt-1 text-xs text-ink-soft">
             {beforeApprovalLine(action.category)} {afterApprovalLine(action.category)}
           </p>
+          {/* WHY ME? — the boundary, explained in one honest sentence. */}
+          <p className="mt-1.5 text-xs font-semibold text-ink">{whyMe(action)}</p>
           {notes[0] && <p className="mt-1.5 text-xs text-ink-soft">{notes[0]}</p>}
         </div>
 
@@ -353,8 +472,32 @@ export function FocusMode() {
           </p>
         )}
 
-        {/* ---------- ready when you are ---------- */}
-        {phase === "review" && (
+        {/* ---------- ready when you are / fluid control ---------- */}
+        {phase === "review" && control === "you" ? (
+          /* YOU HAVE CONTROL — finish it yourself, or hand it back with
+             your changes kept. Cosigno never restarts or overwrites. */
+          <div className="mt-5">
+            <p className="text-xs font-bold text-ink-soft">
+              It&apos;s yours — edit anything above. Cosigno is paused on this one.
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                onClick={handBack}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.98] disabled:opacity-50"
+              >
+                {busy ? "Handing back…" : "Cosigno, continue"}
+              </button>
+              <button
+                onClick={finishMyself}
+                disabled={busy}
+                className="rounded-btn px-4 py-2.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50"
+              >
+                Finish myself
+              </button>
+            </div>
+          </div>
+        ) : phase === "review" ? (
           <div className="mt-5">
             <p className="text-xs font-bold text-ink-soft">Ready when you are.</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -376,15 +519,13 @@ export function FocusMode() {
                     <Check size={14} strokeWidth={3} /> {busy ? "Executing…" : "Approve"}
                   </button>
                 ))}
-              {!email && (
-                <button
-                  onClick={() => setEditing((v) => !v)}
-                  disabled={busy}
-                  className="rounded-btn px-4 py-2.5 text-sm font-bold text-ink-soft transition-colors hover:bg-cream-deep disabled:opacity-50"
-                >
-                  {editing ? "done changing" : "Change"}
-                </button>
-              )}
+              <button
+                onClick={takeOver}
+                disabled={busy}
+                className="rounded-btn px-4 py-2.5 text-sm font-bold text-ink-soft transition-colors hover:bg-cream-deep disabled:opacity-50"
+              >
+                I&apos;ll take it from here
+              </button>
               {!telling ? (
                 <button
                   onClick={() => setTelling(true)}
@@ -420,8 +561,69 @@ export function FocusMode() {
               )}
             </div>
           </div>
-        )}
+        ) : null}
       </div>
+
+      {/* ---------- the approval bundle: everything waiting, together ---------- */}
+      {bundleMode && phase === "review" && control === "cosigno" && (
+        <div className="mt-4 rounded-card border border-line/70 bg-surface p-5 shadow-depth">
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
+            Everything waiting on you
+          </p>
+          <ul className="mt-2 flex flex-col gap-2">
+            {queue.map((a) => {
+              const disabled = a.injection_flag;
+              const checked = selected.has(a.id) && !disabled;
+              return (
+                <li key={a.id} className="flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={(e) => {
+                      const next = new Set(selected);
+                      if (e.target.checked) next.add(a.id);
+                      else next.delete(a.id);
+                      setSelected(next);
+                    }}
+                    className="mt-1 accent-[#FF4B1F]"
+                    aria-label={`include: ${a.summary}`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-extrabold leading-snug">{a.summary}</p>
+                    <p className="text-[11px] text-ink-soft">
+                      {signRequired(a.category, a.tier) ? "requires signature" : "one-click approve"}
+                      {disabled && " · held: external content tried to direct it"}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => (bundleNeedsSign ? setBundleSignOpen(true) : authorizeBundle())}
+              disabled={busy || bundleActions.length === 0}
+              className={`inline-flex items-center gap-1.5 rounded-btn px-5 py-2.5 text-sm font-extrabold shadow-soft transition-transform active:scale-[0.98] disabled:opacity-50 ${
+                bundleNeedsSign ? "bg-ink text-cream" : "bg-signal text-ink"
+              }`}
+            >
+              {bundleNeedsSign ? (
+                <>
+                  <PenLine size={14} strokeWidth={2.6} /> Sign bundle ({bundleActions.length})
+                </>
+              ) : (
+                <>
+                  <Check size={14} strokeWidth={3} /> Approve {bundleActions.length}
+                </>
+              )}
+            </button>
+            <p className="text-[11px] font-semibold text-ink-soft">
+              Exactly the checked actions run — each gets its own authorization record.
+            </p>
+          </div>
+        </div>
+      )}
 
       {signOpen && (
         <SignDialog
@@ -431,6 +633,17 @@ export function FocusMode() {
           onAuthorize={(sig) => approve(sig)}
           onSaveSignature={onSaveSignature}
           onClose={() => setSignOpen(false)}
+        />
+      )}
+      {bundleSignOpen && (
+        <SignDialog
+          action={bundleActions.find((a) => signRequired(a.category, a.tier)) ?? action}
+          saved={saved}
+          defaultName={displayName.trim() || "Operator"}
+          scope={bundleActions.map((a) => a.summary)}
+          onAuthorize={(sig) => authorizeBundle(sig)}
+          onSaveSignature={onSaveSignature}
+          onClose={() => setBundleSignOpen(false)}
         />
       )}
     </div>

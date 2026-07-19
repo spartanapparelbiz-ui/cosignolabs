@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ActionRecord, SessionRecord } from "@/lib/types";
 import { EmptyIllustration } from "@/components/EmptyIllustration";
+import { ReplayModal } from "@/components/focus/ReplayModal";
 
 /**
  * Missions — every goal you've delegated, as a persistent unit of work (one
@@ -32,14 +33,14 @@ interface MissionRow {
 }
 
 /**
- * Momentum, not a score: Moving / Needs you / Blocked / Complete — derived
- * only from what the actions actually did.
+ * The responsibility model, not a score: who owns the work right now —
+ * derived only from what the actions actually did.
  */
 function statusOf(m: MissionRow): { label: string; key: string; cls: string } {
   if (m.proposed > 0)
-    return { label: `needs you · ${m.proposed}`, key: "needs_you", cls: "bg-signal text-cream" };
+    return { label: `at the boundary · ${m.proposed}`, key: "needs_you", cls: "bg-signal text-cream" };
   if (m.total === 0)
-    return { label: "moving", key: "moving", cls: "bg-ink text-cream" };
+    return { label: "cosigno owns it", key: "moving", cls: "bg-ink text-cream" };
   if (m.failed > 0)
     return { label: "blocked", key: "blocked", cls: "ring-1 ring-inset ring-ink/40 text-ink" };
   return { label: "complete", key: "complete", cls: "ring-1 ring-inset ring-signal/50 text-signal" };
@@ -82,6 +83,7 @@ export function MissionList() {
   const searchParams = useSearchParams();
   const q = (searchParams.get("q") ?? "").trim().toLowerCase();
   const filter = searchParams.get("filter");
+  const [replayFor, setReplayFor] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -215,18 +217,39 @@ export function MissionList() {
               {m.executed} executed · {m.vetoed} vetoed · {m.failed} failed ·{" "}
               {new Date(m.session.created_at).toLocaleDateString()}
             </p>
-            {m.proposed > 0 && (
-              <Link
-                href="/app/focus"
-                prefetch
-                className="mt-2 inline-block rounded-btn bg-ink px-3.5 py-1.5 text-xs font-bold text-cream transition-transform duration-fast hover:-translate-y-px"
-              >
-                review {m.proposed} decision{m.proposed === 1 ? "" : "s"}
-              </Link>
-            )}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {m.proposed > 0 && (
+                <Link
+                  href="/app/focus"
+                  prefetch
+                  className="inline-block rounded-btn bg-ink px-3.5 py-1.5 text-xs font-bold text-cream transition-transform duration-fast hover:-translate-y-px"
+                >
+                  review {m.proposed} decision{m.proposed === 1 ? "" : "s"}
+                </Link>
+              )}
+              {m.total > 0 && (
+                <button
+                  onClick={() => setReplayFor(m.session.id)}
+                  className="rounded-btn px-3 py-1.5 text-xs font-bold lowercase text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink"
+                >
+                  replay
+                </button>
+              )}
+              {statusOf(m).key === "complete" && m.executed > 0 && (
+                // LEARN FROM SUCCESS: turn a finished delegation into a
+                // standing order — prefilled, nothing created until confirmed.
+                <Link
+                  href={`/app/watch?name=${encodeURIComponent(m.session.title.slice(0, 80))}&command=${encodeURIComponent(m.session.title)}`}
+                  className="rounded-btn px-3 py-1.5 text-xs font-bold lowercase text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink"
+                >
+                  handle this the same way next time
+                </Link>
+              )}
+            </div>
           </div>
         );
       })}
+      {replayFor && <ReplayModal sessionId={replayFor} onClose={() => setReplayFor(null)} />}
     </div>
   );
 }

@@ -67,10 +67,14 @@ export async function runCommand(
   await store.incrementUsage(userId);
 
   const settings = await store.getTierSettings(userId);
+  // Live temporary-authority grants (scoped, expiring) may lower an eligible
+  // tier-2 category to auto until they lapse — resolveTier enforces the
+  // eligibility rules (never pinned, never SIGN categories).
+  const grants = await store.listTemporaryAuthority(userId);
 
   const actions: ActionRecord[] = [];
   for (const proposal of plan.proposals) {
-    const tier = resolveTier(proposal.category, settings);
+    const tier = resolveTier(proposal.category, settings, grants);
     let tierNote: string | null = null;
     if (proposal.requested_tier && proposal.requested_tier !== tier) {
       if (proposal.requested_tier < tier) {

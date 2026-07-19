@@ -35,6 +35,29 @@ const METHOD_LABEL: Record<Authorization["method"], string> = {
   signed: "Signed",
 };
 
+/**
+ * OUTCOME VERIFICATION — an action being executed is not the same as the
+ * outcome being achieved. This reads only what the result record actually
+ * claims: verified when the integration confirmed the expected result,
+ * otherwise an honest "executed, not independently verified". Never faked.
+ */
+function outcomeOf(
+  status: ActionRecord["status"],
+  result: Record<string, unknown> | null
+): string {
+  if (status === "failed") return "Failed — the intended result did not occur.";
+  if (status !== "executed") return "Waiting — execution hasn't completed.";
+  const verified =
+    result &&
+    ["verified", "delivered", "confirmed"].some((k) => {
+      const v = result[k];
+      return v === true || (typeof v === "string" && /^(true|yes|delivered|confirmed)$/i.test(v));
+    });
+  return verified
+    ? "Verified — the expected result was confirmed."
+    : "Executed — the outcome has not been independently verified.";
+}
+
 function fmtTime(iso: string | null | undefined): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleString([], {
@@ -97,6 +120,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
             ),
         },
         ...(result?.summary ? [{ label: "Result", value: result.summary }] : []),
+        { label: "Outcome", value: outcomeOf(action.status, action.result) },
       ]
     : [];
 

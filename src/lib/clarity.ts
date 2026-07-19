@@ -193,6 +193,41 @@ export function approveLabel(category: ActionCategory): string {
 }
 
 /** What has ALREADY happened (truth before approval). */
+/* --------------------------------------------------------------- why me? */
+
+const WHY_TIER3: Partial<Record<ActionCategory, string>> = {
+  delete: "this permanently removes something and can't be undone",
+  refund: "this returns money to a customer",
+  payment: "this moves money out of your accounts",
+};
+
+const WHY_SIGN2: Partial<Record<ActionCategory, string>> = {
+  send_email: "this sends information outside your workspace",
+  post_content: "this publishes something publicly",
+  spend: "this commits money under your spending rules",
+  webhook: "this fires an outbound call to an external system",
+};
+
+/**
+ * WHY ME? — every handoff can answer "why do you need me?" in one honest
+ * sentence, derived from the action's real category, tier, and flags. Makes
+ * the boundary understandable instead of arbitrary.
+ */
+export function whyMe(
+  action: Pick<ActionRecord, "category" | "tier" | "injection_flag">
+): string {
+  if (action.injection_flag) {
+    return "External content tried to direct this action — it's held so only a fresh command from you can do it.";
+  }
+  if (action.tier === 3) {
+    return `I'm asking because ${WHY_TIER3[action.category] ?? "this is a locked action"} — locked actions always need your deliberate signature.`;
+  }
+  if (WHY_SIGN2[action.category]) {
+    return `I'm asking because ${WHY_SIGN2[action.category]} — external actions always wait for your signature.`;
+  }
+  return "I'm asking because this changes data in a connected tool, and your permissions require your one-click approval first.";
+}
+
 export function beforeApprovalLine(category: ActionCategory): string {
   switch (category) {
     case "send_email":

@@ -182,6 +182,19 @@ export const automationPatchSchema = z
   })
   .strict();
 
+/**
+ * Grant temporary authority: an eligible category, for 15 minutes to 8
+ * hours. Eligibility (unpinned, tier-2, non-SIGN) is enforced server-side
+ * against the category — this only shapes the request.
+ */
+export const temporaryAuthoritySchema = z
+  .object({
+    category: categoryEnum,
+    minutes: z.coerce.number().int().min(15).max(480),
+    note: z.string().trim().max(160).optional(),
+  })
+  .strict();
+
 /** Install / uninstall a skill pack. */
 export const skillActionSchema = z
   .object({

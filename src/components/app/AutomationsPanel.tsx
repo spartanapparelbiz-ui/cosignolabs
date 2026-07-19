@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Pause, Play, Plus, Trash2, Zap } from "lucide-react";
 import type { AutomationRecord, AutomationRunRecord } from "@/lib/types";
 import { useToast } from "@/components/Toast";
@@ -76,6 +77,19 @@ export function AutomationsPanel() {
   const [command, setCommand] = useState("");
   const [hours, setHours] = useState<number>(24);
   const [mode, setMode] = useState<AutomationRecord["mode"]>("prepare");
+  const searchParams = useSearchParams();
+
+  // "Handle this the same way next time" lands here prefilled — the form
+  // opens with the delegation's goal, and nothing exists until confirmed.
+  useEffect(() => {
+    const prefillName = searchParams.get("name");
+    const prefillCommand = searchParams.get("command");
+    if (prefillName || prefillCommand) {
+      setName((prefillName ?? "").slice(0, 80));
+      setCommand((prefillCommand ?? "").slice(0, 2000));
+      setAddOpen(true);
+    }
+  }, [searchParams]);
   const toast = useToast();
 
   const load = useCallback(async () => {
