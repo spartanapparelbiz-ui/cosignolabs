@@ -220,6 +220,13 @@ export const holdSchema = z
   .object({ scope: z.enum(["none", "external", "all"]) })
   .strict();
 
+/* ----------------------------------------------------------- continuation */
+
+/** Finish this / Do everything you can / Rescue this. */
+export const continueSchema = z
+  .object({ mode: z.enum(["finish", "everything", "rescue"]) })
+  .strict();
+
 /**
  * Grant temporary authority: an eligible category, for 15 minutes to 8
  * hours. Eligibility (unpinned, tier-2, non-SIGN) is enforced server-side

@@ -10,6 +10,7 @@ import { useDisplayName } from "@/lib/theme";
 import { useToast } from "@/components/Toast";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
+import { CapabilitiesCard } from "@/components/app/CapabilitiesCard";
 
 /**
  * The home dashboard — one calm place that answers four questions:
@@ -925,6 +926,8 @@ export function Dashboard() {
               </div>
             </section>
           )}
+
+          <CapabilitiesCard />
 
           <section>
             <h2 className={SECTION_TITLE}>Connected apps</h2>

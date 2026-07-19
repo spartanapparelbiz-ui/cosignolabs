@@ -337,7 +337,7 @@ export function SourceComposer({ onStarted }: { onStarted: () => void }) {
         method: "POST",
         body: JSON.stringify({ goal: g, sourceIds: sources.map((s) => s.id) }),
       });
-      toast("success", "delegated — cosigno has it.");
+      toast("success", "I have it — cosigno is on it.");
       setPreview(null);
       setGoal("");
       setSources([]);

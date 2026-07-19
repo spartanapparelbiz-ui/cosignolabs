@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ActionRecord, SessionRecord } from "@/lib/types";
 import { EmptyIllustration } from "@/components/EmptyIllustration";
 import { ReplayModal } from "@/components/focus/ReplayModal";
+import { DelegationActions } from "@/components/app/DelegationActions";
 
 /**
  * Missions — every goal you've delegated, as a persistent unit of work (one
@@ -227,6 +228,9 @@ export function MissionList() {
                   review {m.proposed} decision{m.proposed === 1 ? "" : "s"}
                 </Link>
               )}
+              {/* Contextual continuation: brief me, finish this, rescue this —
+                  shown only where they make sense, run on the real pipeline. */}
+              <DelegationActions sessionId={m.session.id} statusKey={s.key} onChanged={load} />
               {m.total > 0 && (
                 <button
                   onClick={() => setReplayFor(m.session.id)}
