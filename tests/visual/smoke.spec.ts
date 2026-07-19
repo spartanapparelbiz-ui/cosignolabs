@@ -80,8 +80,13 @@ for (const vp of VIEWPORTS) {
       // (Presence → /api/state, the hold banner → /api/hold), so networkidle
       // may never settle — Playwright discourages it for exactly this reason.
       // A short settle after load lets client hydration/paint finish before
-      // the overflow check.
-      test.setTimeout(240_000);
+      // the overflow check. The per-nav timeout is generous (90s): this cold
+      // walk hits 25 routes back-to-back, and the Next dev compiler compiles
+      // each on first hit — under that contention a not-yet-compiled route
+      // can wait well past the config's default 40s navigationTimeout. In
+      // isolation these pages load in 2–4s cold / <0.5s warm, and production
+      // pre-compiles everything, so this budget only absorbs dev latency.
+      test.setTimeout(300_000);
       const errors: string[] = [];
       const IGNORE =
         /(React DevTools|ResizeObserver loop|favicon|\/_next\/|hydrat|Extra attributes from the server|Failed to load resource|net::ERR|status of 4|status of 5)/i;
@@ -90,7 +95,7 @@ for (const vp of VIEWPORTS) {
         if (m.type() === "error" && !IGNORE.test(m.text())) errors.push(`console: ${m.text()}`);
       });
       for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/objectives", "/app/autopilot", "/app/missions", "/app/watch", "/app/skills", "/app/focus", "/app/decisions", "/app/connections", "/app/memory", "/app/files", "/app/team", "/app/health", "/app/activity", "/app/account", "/app/workspace", "/sign-in"]) {
-        await page.goto(path, { waitUntil: "load" });
+        await page.goto(path, { waitUntil: "load", timeout: 90_000 });
         await page.waitForTimeout(500);
         await noHorizontalScroll(page);
       }
