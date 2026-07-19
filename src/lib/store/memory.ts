@@ -33,6 +33,9 @@ import {
   SignalStateStatus,
   SignatureRecord,
   TemporaryAuthorityRecord,
+  HoldRecord,
+  ObjectiveLinkRecord,
+  ObjectiveRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -306,6 +309,9 @@ export class MemoryStore implements Store {
   private autopilotViewedAt = new Map<string, string>();
   private signatures = new Map<string, SignatureRecord>();
   private temporaryAuthority: TemporaryAuthorityRecord[] = [];
+  private objectives: ObjectiveRecord[] = [];
+  private objectiveLinks: ObjectiveLinkRecord[] = [];
+  private holds = new Map<string, HoldRecord>();
   private memories: MemoryRecord[] = [];
   private prefs = new Map<string, UserPrefs>();
   private files: FileRecord[] = [];
@@ -532,6 +538,94 @@ export class MemoryStore implements Store {
   }
 
 
+  /* -- objectives -- */
+  async createObjective(
+    userId: string,
+    title: string,
+    targetDate: string | null
+  ): Promise<ObjectiveRecord> {
+    const now = nowIso();
+    const rec: ObjectiveRecord = {
+      id: randomUUID(),
+      user_id: userId,
+      title,
+      target_date: targetDate,
+      status: "active",
+      created_at: now,
+      updated_at: now,
+    };
+    this.objectives.push(rec);
+    return { ...rec };
+  }
+
+  async listObjectives(userId: string): Promise<ObjectiveRecord[]> {
+    return this.objectives
+      .filter((o) => o.user_id === userId)
+      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+      .map((o) => ({ ...o }));
+  }
+
+  async getObjective(userId: string, id: string): Promise<ObjectiveRecord | null> {
+    const o = this.objectives.find((x) => x.id === id && x.user_id === userId);
+    return o ? { ...o } : null;
+  }
+
+  async updateObjective(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<ObjectiveRecord, "title" | "target_date" | "status">>
+  ): Promise<ObjectiveRecord | null> {
+    const o = this.objectives.find((x) => x.id === id && x.user_id === userId);
+    if (!o) return null;
+    Object.assign(o, patch, { updated_at: nowIso() });
+    return { ...o };
+  }
+
+  async deleteObjective(userId: string, id: string): Promise<void> {
+    this.objectives = this.objectives.filter((o) => !(o.id === id && o.user_id === userId));
+    this.objectiveLinks = this.objectiveLinks.filter(
+      (l) => !(l.objective_id === id && l.user_id === userId)
+    );
+  }
+
+  async linkObjectiveDelegation(userId: string, objectiveId: string, sessionId: string): Promise<void> {
+    if (
+      this.objectiveLinks.some(
+        (l) => l.objective_id === objectiveId && l.session_id === sessionId && l.user_id === userId
+      )
+    )
+      return;
+    this.objectiveLinks.push({
+      objective_id: objectiveId,
+      session_id: sessionId,
+      user_id: userId,
+      created_at: nowIso(),
+    });
+  }
+
+  async unlinkObjectiveDelegation(userId: string, objectiveId: string, sessionId: string): Promise<void> {
+    this.objectiveLinks = this.objectiveLinks.filter(
+      (l) => !(l.objective_id === objectiveId && l.session_id === sessionId && l.user_id === userId)
+    );
+  }
+
+  async listObjectiveLinks(userId: string, objectiveId?: string): Promise<ObjectiveLinkRecord[]> {
+    return this.objectiveLinks
+      .filter((l) => l.user_id === userId && (!objectiveId || l.objective_id === objectiveId))
+      .map((l) => ({ ...l }));
+  }
+
+  /* -- cosigno hold -- */
+  async getHold(userId: string): Promise<HoldRecord> {
+    return this.holds.get(userId) ?? { user_id: userId, scope: "none", updated_at: nowIso() };
+  }
+
+  async setHold(userId: string, scope: HoldRecord["scope"]): Promise<HoldRecord> {
+    const rec: HoldRecord = { user_id: userId, scope, updated_at: nowIso() };
+    this.holds.set(userId, rec);
+    return { ...rec };
+  }
+
   /* -- temporary authority -- */
   async grantTemporaryAuthority(
     userId: string,
@@ -592,6 +686,9 @@ export class MemoryStore implements Store {
   async deleteSignature(userId: string): Promise<void> {
     this.signatures.delete(userId);
     this.temporaryAuthority = this.temporaryAuthority.filter((g) => g.user_id !== userId);
+    this.objectives = this.objectives.filter((o) => o.user_id !== userId);
+    this.objectiveLinks = this.objectiveLinks.filter((l) => l.user_id !== userId);
+    this.holds.delete(userId);
   }
 
   /* -- autopilot -- */

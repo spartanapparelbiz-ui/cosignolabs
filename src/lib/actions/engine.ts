@@ -1,6 +1,7 @@
 import { getStore, type ActionInsert } from "../store";
 import { getUserPlan } from "../billing";
 import { effectiveActionLimit, usageLimitMessage } from "../enforcement";
+import { holdBlocks, holdMessage } from "../hold";
 import { logSecurity } from "../log";
 import { authorizationHash } from "../signRecord";
 import { executeAction } from "./executor";
@@ -15,7 +16,8 @@ export class EngineError extends Error {
       | "confirmation_mismatch"
       | "usage_limit"
       | "forbidden"
-      | "injection_blocked",
+      | "injection_blocked"
+      | "on_hold",
     message: string
   ) {
     super(message);
@@ -67,6 +69,13 @@ export async function autoExecute(
   // Injection-flagged content never auto-executes, regardless of tier.
   if (action.injection_flag) return action;
   const store = getStore();
+  // Cosigno Hold: while an "all" hold is active, even tier-1 auto work waits.
+  // The card stays proposed and the pause is recorded once, so it's traceable.
+  const hold = await store.getHold(userId);
+  if (holdBlocks(hold.scope, action)) {
+    await store.logEvent(userId, action.id, "blocked", "system", { reason: "on_hold", scope: hold.scope });
+    return action;
+  }
   const usage = await store.getUsage(userId);
   if (usage.actions_executed >= (await effectiveActionLimit(userId))) return action;
 
@@ -142,6 +151,15 @@ export async function approveAction(
       "injection_blocked",
       "this card was held: external content attempted to direct the agent. it can't be executed — re-issue the command yourself if you want this done."
     );
+  }
+
+  // Cosigno Hold: while active for this action's scope, nothing new crosses
+  // the boundary. The card stays proposed; resuming lets it through
+  // unchanged. This is the authority brake — the user keeps final control.
+  const hold = await store.getHold(userId);
+  if (holdBlocks(hold.scope, action)) {
+    await store.logEvent(userId, actionId, "blocked", "system", { reason: "on_hold", scope: hold.scope });
+    throw new EngineError("on_hold", holdMessage(hold.scope));
   }
 
   // Delegated approvals are for routine writes only: tier 3 stays personal

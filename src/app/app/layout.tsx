@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/Toast";
 import { LogoHome } from "@/components/brand/LivingLogo";
 import { AccountChip } from "@/components/app/AccountChip";
 import { Presence } from "@/components/presence/Presence";
+import { HoldBanner } from "@/components/app/HoldBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,8 @@ function Chrome({
     <ToastProvider>
       <div className="flex min-h-screen [min-height:100dvh] flex-col">
         {guest && <SandboxBanner />}
+        {/* Cosigno Hold — the authority brake. Visible only while active. */}
+        <HoldBanner />
         <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
           <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
             <LogoHome href="/app" label="cosigno workspace" size={26} textClass="text-xl" />

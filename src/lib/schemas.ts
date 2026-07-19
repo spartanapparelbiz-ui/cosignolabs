@@ -182,6 +182,44 @@ export const automationPatchSchema = z
   })
   .strict();
 
+/* ------------------------------------------------------------- objectives */
+
+/** Create / edit an objective (an outcome owned over time). */
+export const objectiveSchema = z
+  .object({
+    title: z.string().trim().min(1).max(140),
+    // ISO day (YYYY-MM-DD) or omitted for no target.
+    target_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "target must be a YYYY-MM-DD date")
+      .optional()
+      .nullable(),
+  })
+  .strict();
+
+export const objectivePatchSchema = z
+  .object({
+    title: z.string().trim().min(1).max(140).optional(),
+    target_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "target must be a YYYY-MM-DD date")
+      .nullable()
+      .optional(),
+    status: z.enum(["active", "achieved", "archived"]).optional(),
+  })
+  .strict();
+
+/** Link / unlink a delegation (session) to an objective. */
+export const objectiveLinkSchema = z
+  .object({ session_id: uuid })
+  .strict();
+
+/* ------------------------------------------------------------ cosigno hold */
+
+export const holdSchema = z
+  .object({ scope: z.enum(["none", "external", "all"]) })
+  .strict();
+
 /**
  * Grant temporary authority: an eligible category, for 15 minutes to 8
  * hours. Eligibility (unpinned, tier-2, non-SIGN) is enforced server-side

@@ -33,6 +33,9 @@ import {
   SignalStateStatus,
   SignatureRecord,
   TemporaryAuthorityRecord,
+  HoldRecord,
+  ObjectiveLinkRecord,
+  ObjectiveRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -778,6 +781,116 @@ export class SupabaseStore implements Store {
       .eq("user_id", userId)
       .eq("id", id);
     if (error) throw new Error(error.message);
+  }
+
+  /* -- objectives -- */
+  async createObjective(
+    userId: string,
+    title: string,
+    targetDate: string | null
+  ): Promise<ObjectiveRecord> {
+    const { data, error } = await this.client
+      .from("objectives")
+      .insert({ user_id: userId, title, target_date: targetDate })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as ObjectiveRecord;
+  }
+
+  async listObjectives(userId: string): Promise<ObjectiveRecord[]> {
+    const { data, error } = await this.client
+      .from("objectives")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as ObjectiveRecord[];
+  }
+
+  async getObjective(userId: string, id: string): Promise<ObjectiveRecord | null> {
+    const { data, error } = await this.client
+      .from("objectives")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as ObjectiveRecord) ?? null;
+  }
+
+  async updateObjective(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<ObjectiveRecord, "title" | "target_date" | "status">>
+  ): Promise<ObjectiveRecord | null> {
+    const { data, error } = await this.client
+      .from("objectives")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as ObjectiveRecord) ?? null;
+  }
+
+  async deleteObjective(userId: string, id: string): Promise<void> {
+    const { error } = await this.client
+      .from("objectives")
+      .delete()
+      .eq("user_id", userId)
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+  }
+
+  async linkObjectiveDelegation(userId: string, objectiveId: string, sessionId: string): Promise<void> {
+    const { error } = await this.client
+      .from("objective_links")
+      .upsert(
+        { objective_id: objectiveId, session_id: sessionId, user_id: userId },
+        { onConflict: "objective_id,session_id", ignoreDuplicates: true }
+      );
+    if (error) throw new Error(error.message);
+  }
+
+  async unlinkObjectiveDelegation(userId: string, objectiveId: string, sessionId: string): Promise<void> {
+    const { error } = await this.client
+      .from("objective_links")
+      .delete()
+      .eq("user_id", userId)
+      .eq("objective_id", objectiveId)
+      .eq("session_id", sessionId);
+    if (error) throw new Error(error.message);
+  }
+
+  async listObjectiveLinks(userId: string, objectiveId?: string): Promise<ObjectiveLinkRecord[]> {
+    let query = this.client.from("objective_links").select("*").eq("user_id", userId);
+    if (objectiveId) query = query.eq("objective_id", objectiveId);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return (data ?? []) as ObjectiveLinkRecord[];
+  }
+
+  /* -- cosigno hold -- */
+  async getHold(userId: string): Promise<HoldRecord> {
+    const { data, error } = await this.client
+      .from("user_hold")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as HoldRecord) ?? { user_id: userId, scope: "none", updated_at: new Date().toISOString() };
+  }
+
+  async setHold(userId: string, scope: HoldRecord["scope"]): Promise<HoldRecord> {
+    const { data, error } = await this.client
+      .from("user_hold")
+      .upsert({ user_id: userId, scope, updated_at: new Date().toISOString() })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as HoldRecord;
   }
 
   /* -- temporary authority -- */
@@ -1548,6 +1661,9 @@ export class SupabaseStore implements Store {
       "autopilot_meta",
       "signatures",
       "temporary_authority",
+      "objective_links",
+      "objectives",
+      "user_hold",
       "files",
       "memories",
       "user_prefs",

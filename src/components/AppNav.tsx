@@ -11,6 +11,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 // reachable from home and the account menu.
 const LINKS = [
   { href: "/app", label: "now" },
+  { href: "/app/objectives", label: "objectives" },
   { href: "/app/missions", label: "delegations" },
   { href: "/app/watch", label: "watch" },
   { href: "/app/focus", label: "boundary" },

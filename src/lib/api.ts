@@ -47,6 +47,7 @@ const ENGINE_STATUS: Record<string, number> = {
   usage_limit: 402,
   forbidden: 403,
   injection_blocked: 403,
+  on_hold: 423, // Locked — cosigno is held; resume to continue.
 };
 
 /**

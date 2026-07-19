@@ -364,6 +364,152 @@ function TemporaryAuthorityCard() {
   );
 }
 
+/* ------------------------------------------------------------ cosigno hold */
+
+/**
+ * Cosigno Hold control — the authority brake. Pause external actions (or
+ * everything), or resume. It only changes execution: base permissions are
+ * untouched, so Resume restores exactly the prior behavior. Broadcasts
+ * `cosigno:hold-changed` so the global banner updates instantly.
+ */
+function HoldControl() {
+  const toast = useToast();
+  const [scope, setScope] = useState<"none" | "external" | "all">("none");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    jsonFetch("/api/hold")
+      .then((d) => setScope(d.hold?.scope ?? "none"))
+      .catch(() => setScope("none"));
+  }, []);
+
+  async function set(next: "none" | "external" | "all") {
+    setBusy(true);
+    try {
+      await jsonFetch("/api/hold", { method: "POST", body: JSON.stringify({ scope: next }) });
+      setScope(next);
+      window.dispatchEvent(new CustomEvent("cosigno:hold-changed", { detail: { scope: next } }));
+      toast(
+        "success",
+        next === "none"
+          ? "resumed — cosigno continues from exactly where it stopped."
+          : next === "all"
+            ? "all work paused. nothing executes until you resume."
+            : "external actions paused. cosigno keeps preparing; nothing crosses the boundary."
+      );
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "couldn't change that.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const held = scope !== "none";
+  return (
+    <section>
+      <h2 className={SECTION_TITLE}>Cosigno hold</h2>
+      <div className={`${CARD} mt-3`}>
+        {held ? (
+          <>
+            <p className="text-sm font-extrabold">
+              {scope === "all" ? "All work is paused." : "External actions are paused."}
+            </p>
+            <p className="mt-1 text-sm text-ink-soft">
+              Cosigno is holding at the boundary — nothing new executes until you resume. Your
+              permissions are unchanged.
+            </p>
+            <button
+              onClick={() => set("none")}
+              disabled={busy}
+              className="mt-3 rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream disabled:opacity-50"
+            >
+              {busy ? "Resuming…" : "Resume cosigno"}
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-ink-soft">
+              Pause cosigno instantly — an authority brake for when you want everything to wait.
+              Nothing is cancelled; resuming continues from where it stopped.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                onClick={() => set("external")}
+                disabled={busy}
+                className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50"
+              >
+                Hold external actions
+              </button>
+              <button
+                onClick={() => set("all")}
+                disabled={busy}
+                className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink/40 text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink disabled:opacity-50"
+              >
+                Pause everything
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* ---------------------------------------------------------------- objectives */
+
+interface ObjectiveSummary {
+  objective: { id: string; title: string; status: string };
+  progress: { fraction: number; momentum: string; needs_you: number; total: number; complete: number };
+}
+
+/** A compact NOW view of active objectives — the outcomes cosigno is moving toward. */
+function ObjectivesSummary() {
+  const [items, setItems] = useState<ObjectiveSummary[] | null>(null);
+
+  useEffect(() => {
+    jsonFetch("/api/objectives")
+      .then((d) => setItems(d.objectives ?? []))
+      .catch(() => setItems([]));
+  }, []);
+
+  const active = (items ?? []).filter((o) => o.objective.status === "active");
+  if (items === null || active.length === 0) return null;
+
+  return (
+    <section>
+      <div className="flex items-center justify-between">
+        <h2 className={SECTION_TITLE}>Objectives</h2>
+        <Link href="/app/objectives" className="text-xs font-bold text-ink-soft hover:text-ink">
+          see all
+        </Link>
+      </div>
+      <div className={`${CARD} mt-3 flex flex-col gap-3`}>
+        {active.slice(0, 3).map(({ objective, progress }) => (
+          <Link key={objective.id} href={`/app/objectives/${objective.id}`} className="block">
+            <div className="flex items-center justify-between gap-2">
+              <p className="min-w-0 flex-1 truncate text-sm font-extrabold">{objective.title}</p>
+              {progress.needs_you > 0 && (
+                <span className="shrink-0 rounded-pill bg-signal px-2 py-0.5 text-[10px] font-black text-ink">
+                  {progress.needs_you} need you
+                </span>
+              )}
+            </div>
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-pill bg-cream-deep">
+              <div
+                className="h-full rounded-pill bg-ink"
+                style={{ width: `${Math.round(progress.fraction * 100)}%` }}
+              />
+            </div>
+            <p className="mt-1 text-[10px] font-bold text-ink-soft">
+              {progress.complete} of {progress.total} complete
+            </p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* -------------------------------------------------------- earned autonomy */
 
 /**
@@ -638,8 +784,10 @@ export function Dashboard() {
           </section>
         </div>
 
-        {/* RIGHT: autopilot digest + approvals + coming up + connected apps */}
+        {/* RIGHT: objectives + you're needed + watching + hold + stream + apps */}
         <div className="flex flex-col gap-8">
+          <ObjectivesSummary />
+
           <section>
             <h2 className={SECTION_TITLE}>
               You&apos;re needed
@@ -737,6 +885,8 @@ export function Dashboard() {
               )}
             </div>
           </section>
+
+          <HoldControl />
 
           <TemporaryAuthorityCard />
 

@@ -16,12 +16,13 @@ export async function GET() {
   try {
     const userId = await requireUser();
     const store = getStore();
-    const [missions, actions, automations, events, tierSettings] = await Promise.all([
+    const [missions, actions, automations, events, tierSettings, hold] = await Promise.all([
       store.listMissions(userId, 100),
       store.listActions(userId, { limit: 1000 }),
       store.listAutomations(userId),
       store.listEvents(userId),
       store.getTierSettings(userId),
+      store.getHold(userId),
     ]);
     const tiers = Object.fromEntries(tierSettings.map((t) => [t.category, t.tier]));
     const state = assembleState({
@@ -31,6 +32,7 @@ export async function GET() {
       // Only recent events matter for the stream; the lib sorts and caps.
       events: events.slice(-400),
       tiers,
+      hold: hold.scope,
     });
     return NextResponse.json({ state });
   } catch (err) {

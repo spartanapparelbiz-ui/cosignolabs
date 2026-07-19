@@ -217,6 +217,9 @@ export type AccountAuditType =
   | "workspace_member_invited"
   | "workspace_member_removed"
   | "workspace_role_changed"
+  | "objective_created"
+  | "objective_deleted"
+  | "hold_changed"
   | "promo";
 
 /**
@@ -330,6 +333,57 @@ export interface AutomationRunRecord {
   /** The mission (session) this run created, if planning succeeded. */
   session_id: string | null;
   created_at: string;
+}
+
+/* ------------------------------------------------------------- objectives */
+
+/**
+ * An Objective is an outcome the user wants over time — the layer ABOVE
+ * Delegations. Delegations (sessions) are linked to it; cosigno derives
+ * what's complete, what's blocked, and what can happen next from the real
+ * state of those linked delegations. The user gives the destination; cosigno
+ * continuously helps move toward it.
+ */
+export type ObjectiveStatus = "active" | "achieved" | "archived";
+
+export interface ObjectiveRecord {
+  id: string;
+  user_id: string;
+  title: string;
+  /** ISO day the user wants it done by, or null. */
+  target_date: string | null;
+  status: ObjectiveStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Link between an Objective and a Delegation (session). */
+export interface ObjectiveLinkRecord {
+  objective_id: string;
+  session_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+/* ------------------------------------------------------------- cosigno hold */
+
+/**
+ * Cosigno Hold — a user-level authority brake, enforced in the engine before
+ * any execution. Nothing new crosses the boundary while held:
+ *   none     — normal operation.
+ *   external — pause execution of anything requiring approval or signature
+ *              (tier ≥ 2). Research and preparation continue; external actions
+ *              wait at the boundary until Resume.
+ *   all      — pause all execution, including tier-1 auto actions.
+ * Base permissions are never changed — Resume restores exactly the prior
+ * behavior. Every change is audited.
+ */
+export type HoldScope = "none" | "external" | "all";
+
+export interface HoldRecord {
+  user_id: string;
+  scope: HoldScope;
+  updated_at: string;
 }
 
 /* ----------------------------------------------------- temporary authority */

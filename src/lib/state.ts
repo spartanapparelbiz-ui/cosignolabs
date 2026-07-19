@@ -4,6 +4,7 @@ import type {
   ActionEventRecord,
   ActionRecord,
   AutomationRecord,
+  HoldScope,
   MissionRecord,
   Tier,
 } from "./types";
@@ -208,6 +209,8 @@ export interface CosignoState {
   notes: string[];
   /** Earned-autonomy offers: repeated one-click approvals cosigno could take over — only ever expanded by the user's explicit yes. */
   autonomy: AutonomyOffer[];
+  /** The authority brake: none / external / all. Presence and NOW reflect it. */
+  hold: HoldScope;
 }
 
 export interface StateInputs {
@@ -218,10 +221,12 @@ export interface StateInputs {
   events: ActionEventRecord[];
   /** Current effective tier per category (from the user's tier settings). */
   tiers?: Partial<Record<ActionCategory, Tier>>;
+  /** Current Cosigno Hold scope. */
+  hold?: HoldScope;
 }
 
 export function assembleState(inputs: StateInputs): CosignoState {
-  const { missions, actions, automations, events, tiers } = inputs;
+  const { missions, actions, automations, events, tiers, hold } = inputs;
   const proposals = actions.filter((a) => a.status === "proposed");
 
   const missionMomentum: MissionMomentum[] = missions.map((m) => ({
@@ -246,6 +251,7 @@ export function assembleState(inputs: StateInputs): CosignoState {
     stream: assembleStream(events, actions, missions),
     notes: operationalNotes(events, actions),
     autonomy: autonomyOffers(events, actions, tiers),
+    hold: hold ?? "none",
   };
 }
 

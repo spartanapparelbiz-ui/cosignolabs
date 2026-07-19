@@ -29,6 +29,9 @@ import type {
   MessageRecord,
   PromoOffer,
   PromoRecord,
+  HoldRecord,
+  ObjectiveLinkRecord,
+  ObjectiveRecord,
   SessionRecord,
   SignalStateRecord,
   SignalStateStatus,
@@ -335,6 +338,29 @@ export interface Store {
   listDueAutomations(limit: number): Promise<AutomationRecord[]>;
   createAutomationRun(input: Omit<AutomationRunRecord, "id" | "created_at">): Promise<AutomationRunRecord>;
   listAutomationRuns(userId: string, automationId: string, limit?: number): Promise<AutomationRunRecord[]>;
+
+  /* -- objectives (outcomes owned over time; delegations link to them) -- */
+  createObjective(
+    userId: string,
+    title: string,
+    targetDate: string | null
+  ): Promise<ObjectiveRecord>;
+  listObjectives(userId: string): Promise<ObjectiveRecord[]>;
+  getObjective(userId: string, id: string): Promise<ObjectiveRecord | null>;
+  updateObjective(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<ObjectiveRecord, "title" | "target_date" | "status">>
+  ): Promise<ObjectiveRecord | null>;
+  deleteObjective(userId: string, id: string): Promise<void>;
+  linkObjectiveDelegation(userId: string, objectiveId: string, sessionId: string): Promise<void>;
+  unlinkObjectiveDelegation(userId: string, objectiveId: string, sessionId: string): Promise<void>;
+  /** Links for one objective, or all of the user's links when objectiveId omitted. */
+  listObjectiveLinks(userId: string, objectiveId?: string): Promise<ObjectiveLinkRecord[]>;
+
+  /* -- cosigno hold (user-level authority brake; enforced in the engine) -- */
+  getHold(userId: string): Promise<HoldRecord>;
+  setHold(userId: string, scope: HoldRecord["scope"]): Promise<HoldRecord>;
 
   /* -- temporary authority (scoped, expiring permission grants) -- */
   grantTemporaryAuthority(

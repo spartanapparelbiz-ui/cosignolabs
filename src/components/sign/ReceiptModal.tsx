@@ -2,18 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import type { ActionEventRecord, ActionRecord } from "@/lib/types";
 import { operatorOf, resultPreview } from "@/lib/actionPresentation";
+import { signRequired } from "@/lib/sign";
 import { CosignoMark } from "@/components/brand/Logo";
 
 /**
- * A Cosigno Receipt — the permanent record of one completed action: what
- * was proposed, who authorized it and how (signed / approved / auto), when
- * it executed, and what happened. Everything shown comes from the stored
- * action + its audit events; the record hash is the server-computed
- * tamper-evident seal written at approval time.
+ * A Cosigno Trust Receipt — the permanent record of one completed action:
+ * what happened, WHY (which delegation), what permission was used, who
+ * authorized it and how, when it executed, and whether the outcome was
+ * verified. Plus an expandable TRACE: the full chain of responsibility from
+ * the audit record. Everything comes from stored data; the record hash is
+ * the server-computed tamper-evident seal written at approval time.
  */
+
+/** The permission that gated this action — plain language, from category/tier. */
+function permissionUsed(action: Pick<ActionRecord, "category" | "tier">): string {
+  const op = operatorOf(action.category);
+  if (action.tier === 3) return `${op} — locked, signature required`;
+  if (signRequired(action.category, 2)) return `${op} — external, signature required`;
+  if (action.tier === 2) return `${op} — approval required`;
+  return `${op} — auto (read-only / reversible)`;
+}
 
 interface Authorization {
   method: "auto" | "approved" | "signed";
@@ -68,9 +79,42 @@ function fmtTime(iso: string | null | undefined): string {
   });
 }
 
+/**
+ * TRACE — a transparent chain of responsibility built ONLY from the action's
+ * own audit events and result: prepared → authorized → executed → verified.
+ * No hidden reasoning, just the operational record.
+ */
+function traceLines(
+  action: ActionRecord,
+  events: ActionEventRecord[],
+  auth: Authorization | null
+): { time: string; text: string }[] {
+  const lines: { time: string; text: string }[] = [];
+  const proposed = events.find((e) => e.type === "proposed");
+  if (proposed) lines.push({ time: fmtTime(proposed.created_at), text: `Cosigno prepared: ${action.summary}` });
+  const flagged = events.find((e) => e.type === "flagged");
+  if (flagged) lines.push({ time: fmtTime(flagged.created_at), text: "Held: external content tried to direct the agent" });
+  if (auth) {
+    const verb = auth.method === "signed" ? "Signed" : auth.method === "auto" ? "Auto-authorized (tier 1)" : "Approved";
+    lines.push({
+      time: fmtTime(auth.authorized_at),
+      text: `${verb}${auth.signed_name ? ` by ${auth.signed_name}` : ""} — permission: ${permissionUsed(action)}`,
+    });
+  }
+  if (action.status === "executed") {
+    lines.push({ time: fmtTime(action.resolved_at), text: "Cosigno executed the action" });
+    lines.push({ time: fmtTime(action.resolved_at), text: outcomeOf(action.status, action.result) });
+  } else if (action.status === "failed") {
+    lines.push({ time: fmtTime(action.resolved_at), text: "Execution failed — nothing was left half-done" });
+  }
+  return lines;
+}
+
 export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(): void }) {
   const [action, setAction] = useState<ActionRecord | null>(null);
   const [events, setEvents] = useState<ActionEventRecord[]>([]);
+  const [why, setWhy] = useState<string | null>(null);
+  const [traceOpen, setTraceOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,6 +126,13 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
         if (!d.action) throw new Error(d.message || "couldn't load the receipt.");
         setAction(d.action);
         setEvents(d.events ?? []);
+        // Best-effort "why": the delegation this action belonged to.
+        if (d.action.session_id) {
+          fetch(`/api/sessions/${d.action.session_id}`)
+            .then((r) => r.json())
+            .then((s) => !cancelled && s.session?.title && setWhy(s.session.title))
+            .catch(() => null);
+        }
       })
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : "couldn't load the receipt."));
     return () => {
@@ -102,14 +153,16 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
 
   const rows: { label: string; value: React.ReactNode }[] = action
     ? [
+        { label: "Prepared by", value: "Cosigno" },
+        ...(why ? [{ label: "Why", value: why }] : []),
         {
           label: "Authorized by",
           value: auth?.signed_name ?? (auth?.method === "auto" ? "cosigno (your standing rule)" : "you"),
         },
         { label: "Authorization", value: auth ? METHOD_LABEL[auth.method] : "—" },
+        { label: "Permission used", value: permissionUsed(action) },
         { label: "Authorized at", value: fmtTime(auth?.authorized_at) },
         { label: "Executed", value: fmtTime(action.resolved_at) },
-        { label: "Operator", value: `${operatorOf(action.category)} · tier ${action.tier}` },
         {
           label: "Status",
           value:
@@ -195,6 +248,30 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
                 </div>
               ))}
             </dl>
+
+            {/* TRACE — the chain of responsibility, from the audit record. */}
+            <button
+              onClick={() => setTraceOpen((v) => !v)}
+              aria-expanded={traceOpen}
+              className="mt-3 inline-flex items-center gap-1 text-xs font-bold lowercase text-ink-soft underline underline-offset-2 hover:text-ink"
+            >
+              <ChevronDown size={12} className={`transition-transform ${traceOpen ? "rotate-180" : ""}`} />
+              {traceOpen ? "hide trace" : "trace"}
+            </button>
+            {traceOpen && (
+              <ol className="mt-2 flex flex-col gap-2 rounded-btn bg-cream-deep px-3 py-2.5">
+                {traceLines(action, events, auth).map((t, i) => (
+                  <li key={i} className="flex gap-2.5">
+                    <span className="mt-1 h-[6px] w-[6px] shrink-0 rounded-full bg-ink/40" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">{t.time}</p>
+                      <p className="text-xs font-semibold leading-snug">{t.text}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+
             {auth?.record_hash && (
               <p className="mt-3 break-all font-mono text-[10px] leading-relaxed text-ink-soft">
                 record {auth.record_hash.slice(0, 32)}… — tamper-evident hash of exactly what you
