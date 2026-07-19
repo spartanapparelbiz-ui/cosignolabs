@@ -49,7 +49,7 @@ for (const vp of VIEWPORTS) {
           /* ignore */
         }
       });
-      await page.goto("/app", { waitUntil: "networkidle" });
+      await page.goto("/app", { waitUntil: "load" });
       // Scope to the intro dialog — the dashboard shares this headline.
       await expect(
         page.getByRole("dialog").getByRole("heading", { name: "what do you need handled?" })
@@ -74,8 +74,13 @@ for (const vp of VIEWPORTS) {
     // (React DevTools banner, favicon/resource 404s, source maps, dev-only
     // hydration warnings) is filtered; real app errors + pageerrors are not.
     test("no uncaught errors + no overflow across surfaces", async ({ page }) => {
-      // A long walk (20+ surfaces, each waiting for networkidle) — give it
-      // room beyond the default 120s per-test budget.
+      // A long walk across 20+ surfaces. This asserts only "no uncaught
+      // errors + no horizontal overflow", so we wait for "load" (DOM +
+      // resources), NOT "networkidle": the app shell polls continuously
+      // (Presence → /api/state, the hold banner → /api/hold), so networkidle
+      // may never settle — Playwright discourages it for exactly this reason.
+      // A short settle after load lets client hydration/paint finish before
+      // the overflow check.
       test.setTimeout(240_000);
       const errors: string[] = [];
       const IGNORE =
@@ -85,8 +90,8 @@ for (const vp of VIEWPORTS) {
         if (m.type() === "error" && !IGNORE.test(m.text())) errors.push(`console: ${m.text()}`);
       });
       for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/objectives", "/app/autopilot", "/app/missions", "/app/watch", "/app/skills", "/app/focus", "/app/decisions", "/app/connections", "/app/memory", "/app/files", "/app/team", "/app/health", "/app/activity", "/app/account", "/app/workspace", "/sign-in"]) {
-        await page.goto(path, { waitUntil: "networkidle" });
-        await page.waitForTimeout(300);
+        await page.goto(path, { waitUntil: "load" });
+        await page.waitForTimeout(500);
         await noHorizontalScroll(page);
       }
       expect(errors, errors.join("\n")).toEqual([]);
@@ -191,7 +196,7 @@ for (const vp of VIEWPORTS) {
     });
 
     test("home dashboard: the live-operator layout", async ({ page }) => {
-      await page.goto("/app", { waitUntil: "networkidle" });
+      await page.goto("/app", { waitUntil: "load" });
       await expect(page.getByRole("heading", { name: "What should cosigno handle?" })).toBeVisible();
       // The delegation box + the live-operator section headings (stable
       // regardless of how much data exists in the shared demo store).
@@ -207,7 +212,7 @@ for (const vp of VIEWPORTS) {
     });
 
     test("ask box: file + link controls, and the paste-a-link field fits", async ({ page }) => {
-      await page.goto("/app", { waitUntil: "networkidle" });
+      await page.goto("/app", { waitUntil: "load" });
       // The four honest controls sit under the ask box (no voice).
       await expect(page.getByRole("button", { name: "Add file" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Add link" })).toBeVisible();
@@ -227,7 +232,7 @@ for (const vp of VIEWPORTS) {
       });
       expect(res.ok()).toBeTruthy();
       const { mission } = await res.json();
-      await page.goto(`/app/browser/${mission.id}`, { waitUntil: "networkidle" });
+      await page.goto(`/app/browser/${mission.id}`, { waitUntil: "load" });
 
       // The two-column truth: what it's doing, what it found, what's next,
       // and the standing read-only statement.
@@ -252,7 +257,7 @@ for (const vp of VIEWPORTS) {
     });
 
     test("workspace with a proposed card", async ({ page }) => {
-      await page.goto("/app/workspace", { waitUntil: "networkidle" });
+      await page.goto("/app/workspace", { waitUntil: "load" });
       const box = page.getByPlaceholder(/what do you want cosigno to handle/);
       await expect(box).toBeVisible();
       await box.fill("reprice these products for the summer sale");
@@ -302,7 +307,7 @@ for (const vp of VIEWPORTS) {
     });
 
     test("compiler: an open-ended goal becomes a real, previewed plan", async ({ page }) => {
-      await page.goto("/app/missions", { waitUntil: "networkidle" });
+      await page.goto("/app/missions", { waitUntil: "load" });
       const box = page.getByPlaceholder(/compare the best laptops/i);
       await expect(box).toBeVisible();
       await box.fill("compare the best laptops under $1,000");
@@ -343,7 +348,7 @@ for (const vp of VIEWPORTS) {
     });
 
     test("account center — all five panels", async ({ page }) => {
-      await page.goto("/app/account", { waitUntil: "networkidle" });
+      await page.goto("/app/account", { waitUntil: "load" });
       await expect(page.getByRole("heading", { name: "account", exact: true })).toBeVisible();
 
       // profile (default panel)
