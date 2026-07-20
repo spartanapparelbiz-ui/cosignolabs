@@ -34,7 +34,7 @@ function str(v: unknown): string | undefined {
 }
 
 /** Fill {name} placeholders in a path from args, URL-encoding each value. */
-function fillPath(path: string, args: Record<string, unknown>): string {
+export function fillPath(path: string, args: Record<string, unknown>): string {
   return path.replace(/\{([a-zA-Z0-9_]+)\}/g, (_m, key) => {
     const v = args[key];
     return encodeURIComponent(v == null ? "" : String(v));

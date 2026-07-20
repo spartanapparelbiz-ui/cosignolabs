@@ -26,6 +26,10 @@ interface Capability {
   mutates: boolean;
   tier: 1 | 2 | 3;
 }
+interface IntegrationBoundary {
+  data: { canAccess: string[]; cannotAccess: string[] };
+  actions: { id: string; summary: string; tier: 1 | 2 | 3; requirement: string }[];
+}
 interface ProviderMeta {
   key: string;
   name: string;
@@ -35,6 +39,17 @@ interface ProviderMeta {
   configured: boolean;
   icon: string;
   actions: Capability[];
+  boundary?: IntegrationBoundary;
+}
+
+interface PreviewResult {
+  ok: boolean;
+  tier?: 1 | 2 | 3;
+  wouldRequire?: string;
+  rules: { text: string; effect: string }[];
+  request?: { kind: string; description: string; method?: string; url?: string; keyPlacement?: string; args: Record<string, unknown> };
+  note: string;
+  error?: string;
 }
 
 const TIER_META: Record<number, { label: string; cls: string }> = {
@@ -114,6 +129,7 @@ export function ConnectionsPanel() {
   const [addOpen, setAddOpen] = useState(false);
   const [addApiOpen, setAddApiOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [preview, setPreview] = useState<PreviewResult | null>(null);
 
   async function load() {
     try {
@@ -188,13 +204,36 @@ export function ConnectionsPanel() {
     setBusy(`${connectionId}:${capability}`);
     setError(null);
     try {
-      await api(`/api/connections/${connectionId}/propose`, {
+      const { action } = await api(`/api/connections/${connectionId}/propose`, {
         method: "POST",
         body: JSON.stringify({ capability }),
       });
-      setNotice("proposed — review and approve it in your workspace.");
+      // Tier-1 (read-only) actions auto-run immediately; tier-2/3 wait at the
+      // boundary. Say which actually happened rather than implying it's pending.
+      if (action?.status === "executed") {
+        setNotice("that was read-only (tier 1), so it ran now — it's logged in activity.");
+      } else if (action?.status === "failed") {
+        setNotice("that read-only action ran but the endpoint didn't respond — see activity.");
+      } else {
+        setNotice("prepared — review and approve it at the boundary.");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "couldn't propose that action.");
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function runPreview(connectionId: string, capability: string) {
+    setBusy(`preview:${connectionId}:${capability}`);
+    setError(null);
+    try {
+      const { preview: p } = await api(`/api/connections/${connectionId}/preview`, {
+        method: "POST",
+        body: JSON.stringify({ capability }),
+      });
+      setPreview(p);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "couldn't preview that action.");
     } finally {
       setBusy(null);
     }
@@ -319,14 +358,24 @@ export function ConnectionsPanel() {
                           {a.summary}
                         </span>
                         {conn && conn.status === "connected" && (
-                          <button
-                            onClick={() => propose(conn.id, a.id)}
-                            disabled={busy === `${conn.id}:${a.id}`}
-                            className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50"
-                            title="propose this action to your workspace"
-                          >
-                            {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
-                          </button>
+                          <>
+                            <button
+                              onClick={() => runPreview(conn.id, a.id)}
+                              disabled={busy === `preview:${conn.id}:${a.id}`}
+                              className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:opacity-50"
+                              title="dry-run: see what this would do, without doing it"
+                            >
+                              {busy === `preview:${conn.id}:${a.id}` ? "…" : "dry run"}
+                            </button>
+                            <button
+                              onClick={() => propose(conn.id, a.id)}
+                              disabled={busy === `${conn.id}:${a.id}`}
+                              className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50"
+                              title="propose this action to your workspace"
+                            >
+                              {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
+                            </button>
+                          </>
                         )}
                       </div>
                     ))}
@@ -334,6 +383,26 @@ export function ConnectionsPanel() {
                       tiers are set by cosigno, not the app — t1 runs automatically, t2 waits for
                       your signature, t3 needs typed confirmation.
                     </p>
+                    {p.boundary && (
+                      <div className="mt-2 grid gap-1.5 rounded-btn bg-cream-deep/40 p-2.5 sm:grid-cols-2">
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-ink-soft">can access</p>
+                          <ul className="mt-0.5 space-y-0.5">
+                            {p.boundary.data.canAccess.map((s, k) => (
+                              <li key={k} className="text-[10px] text-ink-soft">• {s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-ink-soft">cannot</p>
+                          <ul className="mt-0.5 space-y-0.5">
+                            {p.boundary.data.cannotAccess.map((s, k) => (
+                              <li key={k} className="text-[10px] text-ink-soft">• {s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </details>
               )}
@@ -434,9 +503,97 @@ export function ConnectionsPanel() {
             busy={busy}
             onDisconnect={() => disconnect(c.id)}
             onPropose={(actionId) => propose(c.id, actionId)}
+            onPreview={(actionId) => runPreview(c.id, actionId)}
           />
         ))}
       </section>
+
+      {preview && <PreviewModal preview={preview} onClose={() => setPreview(null)} />}
+    </div>
+  );
+}
+
+/**
+ * The dry-run result: exactly what an action WOULD do — its tier, what it would
+ * require, the request (with the key's placement but never its value), and any
+ * permission rule that applies — with an unmissable "nothing happened" note.
+ */
+function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: () => void }) {
+  const req = preview.request;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-4 backdrop-blur-[2px]"
+      role="dialog"
+      aria-modal="true"
+      aria-label="action preview"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-md animate-spring-in rounded-card bg-surface p-6 shadow-depth-lift">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">cosigno would</p>
+          <button onClick={onClose} className="rounded-btn p-1 text-ink-soft hover:bg-cream-deep hover:text-ink" aria-label="close preview">
+            <X size={16} />
+          </button>
+        </div>
+        {preview.error ? (
+          <p className="mt-3 text-sm font-semibold text-signal">{preview.error}</p>
+        ) : (
+          <>
+            {req && (
+              <div className="mt-3 rounded-btn bg-cream-deep/60 p-3">
+                {req.method && req.url ? (
+                  <p className="break-all font-mono text-xs font-bold">
+                    <span className="text-signal">{req.method}</span> {req.url}
+                  </p>
+                ) : (
+                  <p className="text-sm font-bold">{req.description}</p>
+                )}
+                {req.keyPlacement && (
+                  <p className="mt-1 font-mono text-[10px] text-ink-soft">{req.keyPlacement}</p>
+                )}
+                {Object.keys(req.args).length > 0 && (
+                  <pre className="mt-1.5 overflow-x-auto rounded bg-surface/70 p-2 font-mono text-[10px] text-ink-soft">
+                    {JSON.stringify(req.args, null, 2)}
+                  </pre>
+                )}
+              </div>
+            )}
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <span className="font-bold">then it would require:</span>
+              <span
+                className={`rounded-pill px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                  preview.wouldRequire === "blocked"
+                    ? "bg-ink text-cream"
+                    : preview.wouldRequire === "auto"
+                      ? "bg-cream-deep text-ink-soft"
+                      : "bg-signal text-cream"
+                }`}
+              >
+                {preview.wouldRequire}
+              </span>
+              {preview.tier && <span className="text-ink-soft">tier {preview.tier}</span>}
+            </div>
+            {preview.rules.length > 0 && (
+              <div className="mt-2 flex flex-col gap-1">
+                {preview.rules.map((r, i) => (
+                  <p key={i} className="text-[11px] text-ink-soft">
+                    <span className="font-bold">rule:</span> “{r.text}” — {r.effect}
+                  </p>
+                ))}
+              </div>
+            )}
+            <p className="mt-3 text-[10px] text-ink-soft/80">
+              computed with no arguments — rules that depend on a specific amount or recipient
+              are evaluated when the real action runs, and can only tighten this further.
+            </p>
+            <p className="mt-2 rounded-btn bg-signal/10 px-3 py-2 text-[11px] font-semibold text-signal ring-1 ring-inset ring-signal/30">
+              {preview.note}
+            </p>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -786,11 +943,13 @@ function CustomApiCard({
   busy,
   onDisconnect,
   onPropose,
+  onPreview,
 }: {
   conn: ConnectionView;
   busy: string | null;
   onDisconnect: () => void;
   onPropose: (actionId: string) => void;
+  onPreview: (actionId: string) => void;
 }) {
   const meta = conn.metadata as { base_url?: string; actions?: CustomApiActionView[] };
   const actions = meta.actions ?? [];
@@ -823,13 +982,23 @@ function CustomApiCard({
               {a.summary}
             </span>
             {conn.status === "connected" && (
-              <button
-                onClick={() => onPropose(a.id)}
-                disabled={busy === `${conn.id}:${a.id}`}
-                className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50"
-              >
-                {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
-              </button>
+              <>
+                <button
+                  onClick={() => onPreview(a.id)}
+                  disabled={busy === `preview:${conn.id}:${a.id}`}
+                  className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:opacity-50"
+                  title="dry-run: see what this would do, without doing it"
+                >
+                  {busy === `preview:${conn.id}:${a.id}` ? "…" : "dry run"}
+                </button>
+                <button
+                  onClick={() => onPropose(a.id)}
+                  disabled={busy === `${conn.id}:${a.id}`}
+                  className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50"
+                >
+                  {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
+                </button>
+              </>
             )}
           </div>
         ))}
@@ -862,8 +1031,37 @@ function AddApiToolForm({
   ]);
   const [busy, setBusy] = useState(false);
 
+  // OpenAPI import — paste a spec, detect its operations, prefill the builder.
+  const [importOpen, setImportOpen] = useState(false);
+  const [spec, setSpec] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+
   function setAction(i: number, patch: Partial<DraftAction>) {
     setActions((prev) => prev.map((a, j) => (j === i ? { ...a, ...patch } : a)));
+  }
+
+  async function importSpec() {
+    setImporting(true);
+    setImportMsg(null);
+    try {
+      const { detected } = await api("/api/connections/openapi", {
+        method: "POST",
+        body: JSON.stringify({ spec }),
+      });
+      const found = detected.actions as { id: string; summary: string; method: string; path: string }[];
+      const capped = found.slice(0, 20);
+      if (!name.trim() && detected.title) setName(detected.title);
+      if (!baseUrl.trim() && detected.base_url) setBaseUrl(detected.base_url);
+      setActions(capped.map((a) => ({ id: a.id, summary: a.summary, method: a.method, path: a.path })));
+      const extra = found.length > 20 ? ` (showing the first 20 of ${found.length})` : "";
+      setImportMsg(`detected ${found.length} action${found.length === 1 ? "" : "s"}${extra}. review the tiers, add your key, then activate.`);
+      setImportOpen(false);
+    } catch (e) {
+      setImportMsg(e instanceof Error ? e.message : "couldn't parse that spec.");
+    } finally {
+      setImporting(false);
+    }
   }
 
   async function submit() {
@@ -893,6 +1091,37 @@ function AddApiToolForm({
 
   return (
     <div className="flex flex-col gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
+      {/* Import from an OpenAPI / Swagger spec — detects actions + risk tiers. */}
+      <div className="rounded-btn bg-cream-deep/50 p-3">
+        <button
+          type="button"
+          onClick={() => setImportOpen((v) => !v)}
+          className="text-xs font-bold lowercase text-ink underline underline-offset-2"
+        >
+          {importOpen ? "hide OpenAPI import" : "import from an OpenAPI spec"}
+        </button>
+        {importOpen && (
+          <div className="mt-2 flex flex-col gap-2">
+            <textarea
+              value={spec}
+              onChange={(e) => setSpec(e.target.value)}
+              rows={4}
+              placeholder='paste the OpenAPI/Swagger JSON — cosigno detects each operation and its risk tier. nothing is fetched or stored; you review and add your key below.'
+              className="w-full resize-y rounded-btn bg-surface px-3 py-2 font-mono text-[11px] shadow-soft"
+            />
+            <button
+              type="button"
+              onClick={importSpec}
+              disabled={importing || spec.trim().length < 2}
+              className="self-start rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:opacity-40"
+            >
+              {importing ? "detecting…" : "detect actions"}
+            </button>
+          </div>
+        )}
+        {importMsg && <p className="mt-2 text-[11px] font-semibold text-ink">{importMsg}</p>}
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2">
         <Labeled label="name">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme API" className={inputCls} />

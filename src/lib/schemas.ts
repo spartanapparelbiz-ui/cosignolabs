@@ -289,6 +289,26 @@ export const memoryPrefsSchema = z
   .object({ memory_enabled: z.boolean() })
   .strict();
 
+/* ---------------------------------------------------- permission rules */
+
+/** Create a permission rule from plain language (parsed server-side). */
+export const permissionRuleSchema = z
+  .object({ text: z.string().trim().min(3).max(240) })
+  .strict();
+
+/** Preview the parse of a rule without saving it. */
+export const permissionRulePreviewSchema = z
+  .object({ text: z.string().trim().min(1).max(240) })
+  .strict();
+
+/** Edit a rule: toggle it, or adjust its enforced level (never below floor). */
+export const permissionRulePatchSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    requirement: z.enum(["auto", "approve", "sign", "never"]).optional(),
+  })
+  .strict();
+
 /** Text-based files (deliverables + documents). Content ≤ 80k chars. */
 export const fileSchema = z
   .object({

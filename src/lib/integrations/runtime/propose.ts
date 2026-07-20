@@ -1,11 +1,13 @@
 import { autoExecute, proposeAction } from "../../actions/engine";
 import { logSecurity } from "../../log";
 import { getStore } from "../../store";
-import type { ActionRecord } from "../../types";
+import { applyRequirementToTier, applyRules, type RuleContext } from "../../rules";
+import type { ActionRecord, Tier } from "../../types";
 import { getProvider } from "../registry";
 import { isCallable } from "../mcp/consent";
 import { mcpToolRisk, resolveTier } from "../tiers";
 import type { CustomApiConfig, ProviderAction } from "../types";
+import { argAmount, argChannel } from "./ruleContext";
 
 export interface ProposeConnectorInput {
   connectionId: string;
@@ -71,7 +73,8 @@ export async function proposeConnectorAction(
     payload = { kind: "mcp", connection_id: conn.id, tool: tool.name, args: input.args ?? {} };
   }
 
-  const { tier, clamped } = resolveTier(risk, input.requestedTier);
+  const { tier: baseTier, clamped } = resolveTier(risk, input.requestedTier);
+  let tier: Tier = baseTier;
   let tierNote: string | null = null;
   if (clamped) {
     logSecurity("tier_clamped", {
@@ -82,6 +85,41 @@ export async function proposeConnectorAction(
       connection: conn.id,
     });
     tierNote = `the connector asked for tier ${input.requestedTier}; the server enforced tier ${tier} from the capability's risk. connectors cannot lower their own approval level.`;
+  }
+
+  // Custom permission rules — the user's plain-language policy over their
+  // tools. Rules only ever TIGHTEN: they can raise the tier (require approval /
+  // signature) or FORBID the action, never lower the server's floor.
+  const rules = await store.listPermissionRules(userId).catch(() => []);
+  if (rules.length > 0) {
+    const ctx: RuleContext = {
+      target: conn.provider_key,
+      category: conn.kind,
+      summary,
+      amount: argAmount(input.args ?? {}),
+      channel: argChannel(input.args ?? {}),
+    };
+    const decision = applyRules(rules, ctx);
+    if (decision.requirement) {
+      const folded = applyRequirementToTier(tier, decision.requirement);
+      if (folded.blocked) {
+        logSecurity("rule_blocked", {
+          userId,
+          connection: conn.id,
+          capability: input.capability,
+          rule: decision.rule?.id,
+        });
+        return {
+          ok: false,
+          error: `a permission rule blocks this: "${decision.rule?.text ?? "no action allowed"}". change or remove the rule to allow it.`,
+        };
+      }
+      if (folded.tier > tier) {
+        tier = folded.tier;
+        const raised = `a permission rule raised this to tier ${tier}: "${decision.rule?.text ?? ""}".`;
+        tierNote = tierNote ? `${tierNote} ${raised}` : raised;
+      }
+    }
   }
 
   let action = await proposeAction({

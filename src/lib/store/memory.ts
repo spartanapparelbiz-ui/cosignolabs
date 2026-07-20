@@ -18,6 +18,7 @@ import {
   AutomationRecord,
   AutomationRunRecord,
   MemoryRecord,
+  PermissionRuleRecord,
   UserPrefs,
   FileRecord,
   WorkspaceRecord,
@@ -313,6 +314,7 @@ export class MemoryStore implements Store {
   private objectiveLinks: ObjectiveLinkRecord[] = [];
   private holds = new Map<string, HoldRecord>();
   private memories: MemoryRecord[] = [];
+  private permissionRules: PermissionRuleRecord[] = [];
   private prefs = new Map<string, UserPrefs>();
   private files: FileRecord[] = [];
   private oauthStates = new Map<string, OAuthStateRow>();
@@ -774,6 +776,52 @@ export class MemoryStore implements Store {
 
   async deleteMemory(userId: string, id: string): Promise<void> {
     this.memories = this.memories.filter((x) => !(x.id === id && x.user_id === userId));
+  }
+
+  async createPermissionRule(
+    userId: string,
+    input: import("./index").PermissionRuleInsert
+  ): Promise<PermissionRuleRecord> {
+    const now = new Date().toISOString();
+    const rec: PermissionRuleRecord = {
+      id: randomUUID(),
+      user_id: userId,
+      text: input.text,
+      target: input.target,
+      verb: input.verb,
+      condition: input.condition,
+      requirement: input.requirement,
+      confidence: input.confidence,
+      enabled: true,
+      created_at: now,
+      updated_at: now,
+    };
+    this.permissionRules.push(rec);
+    return { ...rec };
+  }
+
+  async listPermissionRules(userId: string): Promise<PermissionRuleRecord[]> {
+    return this.permissionRules
+      .filter((r) => r.user_id === userId)
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .map((r) => ({ ...r }));
+  }
+
+  async updatePermissionRule(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<PermissionRuleRecord, "enabled" | "requirement">>
+  ): Promise<PermissionRuleRecord | null> {
+    const r = this.permissionRules.find((x) => x.id === id && x.user_id === userId);
+    if (!r) return null;
+    Object.assign(r, patch, { updated_at: new Date().toISOString() });
+    return { ...r };
+  }
+
+  async deletePermissionRule(userId: string, id: string): Promise<void> {
+    this.permissionRules = this.permissionRules.filter(
+      (x) => !(x.id === id && x.user_id === userId)
+    );
   }
 
   async getPrefs(userId: string): Promise<UserPrefs> {
@@ -1298,6 +1346,7 @@ export class MemoryStore implements Store {
     this.automations = this.automations.filter((a) => a.user_id !== userId);
     this.automationRuns = this.automationRuns.filter((r) => r.user_id !== userId);
     this.memories = this.memories.filter((m) => m.user_id !== userId);
+    this.permissionRules = this.permissionRules.filter((r) => r.user_id !== userId);
     this.prefs.delete(userId);
     this.files = this.files.filter((f) => f.user_id !== userId);
     this.missions = this.missions.filter((m) => m.user_id !== userId);

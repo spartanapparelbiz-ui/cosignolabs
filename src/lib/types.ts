@@ -220,6 +220,8 @@ export type AccountAuditType =
   | "objective_created"
   | "objective_deleted"
   | "hold_changed"
+  | "rule_created"
+  | "rule_deleted"
   | "promo";
 
 /**
@@ -449,6 +451,44 @@ export interface MemoryRecord {
   id: string;
   user_id: string;
   content: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * A custom PERMISSION RULE — a user's standing policy over what cosigno may do
+ * across their connected tools, in plain language, turned into a visible,
+ * editable structured constraint. Rules can only ever make an action MORE
+ * restrictive (raise its approval level, or forbid it); they can never lower a
+ * boundary. The structured fields are derived deterministically from `text`.
+ */
+export type RuleRequirement = "auto" | "approve" | "sign" | "never";
+
+export interface RuleCondition {
+  /** What the condition tests, if anything. */
+  kind: "none" | "amount" | "channel" | "label";
+  /** Comparator for an amount condition. */
+  op?: ">" | ">=" | "<" | "<=";
+  /** Numeric threshold for an amount condition (dollars). */
+  value?: number;
+  /** Literal match for a channel/label condition (e.g. "#announcements"). */
+  match?: string;
+}
+
+export interface PermissionRuleRecord {
+  id: string;
+  user_id: string;
+  /** The original natural-language rule, kept verbatim. */
+  text: string;
+  /** Integration key / category the rule targets, or "any". */
+  target: string;
+  /** Action verb the rule targets (refund, post, delete…), or "any". */
+  verb: string;
+  condition: RuleCondition;
+  requirement: RuleRequirement;
+  /** "low" when the parser couldn't extract clear structure — surfaced to the user. */
+  confidence: "high" | "low";
   enabled: boolean;
   created_at: string;
   updated_at: string;

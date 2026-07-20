@@ -2,6 +2,9 @@ import type {
   AutomationRecord,
   AutomationRunRecord,
   MemoryRecord,
+  PermissionRuleRecord,
+  RuleCondition,
+  RuleRequirement,
   UserPrefs,
   FileRecord,
   WorkspaceRecord,
@@ -77,6 +80,16 @@ export interface FileInsert {
   name: string;
   mime: FileRecord["mime"];
   content: string;
+}
+
+/** New permission-rule insert — the parsed structure plus the original text. */
+export interface PermissionRuleInsert {
+  text: string;
+  target: string;
+  verb: string;
+  condition: RuleCondition;
+  requirement: RuleRequirement;
+  confidence: PermissionRuleRecord["confidence"];
 }
 
 export interface ConnectionPatch {
@@ -407,6 +420,16 @@ export interface Store {
   deleteMemory(userId: string, id: string): Promise<void>;
   getPrefs(userId: string): Promise<UserPrefs>;
   setMemoryEnabled(userId: string, enabled: boolean): Promise<void>;
+
+  /* -- permission rules (structured, tighten-only policy over tools) -- */
+  createPermissionRule(userId: string, input: PermissionRuleInsert): Promise<PermissionRuleRecord>;
+  listPermissionRules(userId: string): Promise<PermissionRuleRecord[]>;
+  updatePermissionRule(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<PermissionRuleRecord, "enabled" | "requirement">>
+  ): Promise<PermissionRuleRecord | null>;
+  deletePermissionRule(userId: string, id: string): Promise<void>;
 
   /* -- files (text-based, mission-aware) -- */
   createFile(input: FileInsert): Promise<FileRecord>;

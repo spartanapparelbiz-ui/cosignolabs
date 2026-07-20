@@ -1,4 +1,5 @@
 import { ConnectionsPanel } from "@/components/account/ConnectionsPanel";
+import { PermissionRules } from "@/components/account/PermissionRules";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ export default function ConnectionsPage() {
       <div className="mt-6 flex-1">
         <ConnectionsPanel />
       </div>
+      <hr className="my-8 border-ink/10" />
+      <PermissionRules />
     </div>
   );
 }

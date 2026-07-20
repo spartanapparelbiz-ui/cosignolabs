@@ -1,6 +1,7 @@
 import type { Tier } from "../types";
 import type { IntegrationProvider } from "./types";
 import { bundledLogo, GENERIC_MCP_LOGO } from "./logos";
+import { providerBoundary, type IntegrationBoundary } from "./boundaries";
 import { serverTier } from "./tiers";
 import { githubProvider } from "./providers/github";
 import { gmailProvider } from "./providers/gmail";
@@ -51,6 +52,8 @@ export interface ProviderMeta {
   icon: string;
   /** Each capability with the SERVER-assigned tier it would be proposed at. */
   actions: { id: string; summary: string; mutates: boolean; tier: Tier }[];
+  /** Explicit data + action boundary, in plain English (no secrets). */
+  boundary: IntegrationBoundary;
 }
 
 export function providerMeta(p: IntegrationProvider): ProviderMeta {
@@ -68,6 +71,7 @@ export function providerMeta(p: IntegrationProvider): ProviderMeta {
       mutates: a.mutates,
       tier: serverTier(a),
     })),
+    boundary: providerBoundary(p),
   };
 }
 

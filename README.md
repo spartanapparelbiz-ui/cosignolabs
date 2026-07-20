@@ -5,7 +5,8 @@ outcomes, handles the work between your decisions across your tools, and
 returns to you only when your authority is actually required — nothing
 important crosses the boundary without your approval or signature.
 (See `docs/CONTINUATION.md`, `docs/OBJECTIVES_HOLD.md`, `docs/FLUID_CONTROL.md`,
-`docs/RESPONSIBILITY.md`, `docs/ENVIRONMENT.md`, `docs/SIGN.md`.)
+`docs/RESPONSIBILITY.md`, `docs/ENVIRONMENT.md`, `docs/SIGN.md`,
+`docs/CONNECT_ANYTHING.md`.)
 
 Live at [cosignolabs.com](https://cosignolabs.com).
 

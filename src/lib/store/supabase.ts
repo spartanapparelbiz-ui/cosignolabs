@@ -18,6 +18,7 @@ import {
   AutomationRecord,
   AutomationRunRecord,
   MemoryRecord,
+  PermissionRuleRecord,
   UserPrefs,
   FileRecord,
   WorkspaceRecord,
@@ -777,6 +778,63 @@ export class SupabaseStore implements Store {
   async deleteMemory(userId: string, id: string): Promise<void> {
     const { error } = await this.client
       .from("memories")
+      .delete()
+      .eq("user_id", userId)
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+  }
+
+  /* -- permission rules -- */
+  async createPermissionRule(
+    userId: string,
+    input: import("./index").PermissionRuleInsert
+  ): Promise<PermissionRuleRecord> {
+    const { data, error } = await this.client
+      .from("permission_rules")
+      .insert({
+        user_id: userId,
+        text: input.text,
+        target: input.target,
+        verb: input.verb,
+        condition: input.condition,
+        requirement: input.requirement,
+        confidence: input.confidence,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data as PermissionRuleRecord;
+  }
+
+  async listPermissionRules(userId: string): Promise<PermissionRuleRecord[]> {
+    const { data, error } = await this.client
+      .from("permission_rules")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as PermissionRuleRecord[];
+  }
+
+  async updatePermissionRule(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<PermissionRuleRecord, "enabled" | "requirement">>
+  ): Promise<PermissionRuleRecord | null> {
+    const { data, error } = await this.client
+      .from("permission_rules")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as PermissionRuleRecord) ?? null;
+  }
+
+  async deletePermissionRule(userId: string, id: string): Promise<void> {
+    const { error } = await this.client
+      .from("permission_rules")
       .delete()
       .eq("user_id", userId)
       .eq("id", id);
@@ -1665,6 +1723,7 @@ export class SupabaseStore implements Store {
       "objectives",
       "user_hold",
       "files",
+      "permission_rules",
       "memories",
       "user_prefs",
       "automation_runs",
