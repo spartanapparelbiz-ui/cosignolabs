@@ -69,9 +69,9 @@ const WARMING_HTML = `<!doctype html>
   @media (prefers-reduced-motion:reduce){svg,svg .tick{animation:none}}
 </style></head>
 <body>
-  <svg viewBox="0 0 100 100" aria-hidden="true">
-    <path d="M 76.0 66.9 A 31 31 0 1 1 76.0 33.1" fill="none" stroke="#FF4B22" stroke-width="26" stroke-linecap="round"/>
-    <path class="tick" d="M 38 51 L 53 65 L 83 29" fill="none" stroke="#171512" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+  <svg viewBox="0 0 160 160" aria-hidden="true">
+    <path d="M112 35C91 17 59 17 37 37C13 59 13 101 37 123C59 143 91 143 112 125" fill="none" stroke="#FF4B22" stroke-width="22" stroke-linecap="round"/>
+    <path class="tick" d="M44 81L69 106L121 54" fill="none" stroke="#171512" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
   <h1>cosigno is warming up</h1>
   <p>the workspace is being configured &mdash; back shortly.<br/>the rest of the site works right now &mdash; including the full demo.</p>

@@ -120,7 +120,7 @@ export function CheckoutCard({ state, scale = 1 }: { state: CardState; scale?: n
               {/* faint oversized brand check across the face */}
               <svg
                 className="pointer-events-none absolute -right-6 top-2 h-[130%] w-[80%]"
-                viewBox="0 0 100 100"
+                viewBox="0 0 160 160"
                 fill="none"
               >
                 <path
@@ -215,9 +215,9 @@ export function CheckoutCard({ state, scale = 1 }: { state: CardState; scale?: n
                     </p>
                   </div>
                   {/* embossed C+check mark */}
-                  <svg width="26" height="26" viewBox="0 0 100 100" fill="none" className="ml-2 shrink-0">
-                    <path d="M 76 66.9 A 31 31 0 1 1 76 33.1" fill="none" stroke={SIGNAL} strokeWidth="14" strokeLinecap="round" />
-                    <path d="M 38 51 L 53 65 L 83 29" fill="none" stroke={CREAM} strokeOpacity="0.9" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" />
+                  <svg width="26" height="26" viewBox="0 0 160 160" fill="none" className="ml-2 shrink-0">
+                    <path d="M112 35C91 17 59 17 37 37C13 59 13 101 37 123C59 143 91 143 112 125" fill="none" stroke={SIGNAL} strokeWidth="22" strokeLinecap="round" />
+                    <path d="M44 81L69 106L121 54" fill="none" stroke={CREAM} strokeOpacity="0.9" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
               </div>

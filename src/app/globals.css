@@ -20,9 +20,10 @@
      palette so the mark renders identically everywhere and flips with the
      theme without a flash (data-theme is set before paint). Light: orange C,
      ink check + wordmark, orange i-dot. */
-  --logo-orange: #ff4b22;
-  --logo-fg: #171512; /* integrated check */
-  --logo-word: #171512; /* wordmark */
+  --logo-c: #ff4b22;
+  --logo-check: #171512;
+  --logo-wordmark: #171512;
+  --logo-dot: #ff4b22;
 }
 
 :root[data-theme="dark"] {
@@ -36,8 +37,24 @@
   --c-surface: 34 30 24; /* raised cards, one step above the page */
 
   /* Dark: orange C, CREAM check + wordmark, orange i-dot. */
-  --logo-fg: #f7f0e5;
-  --logo-word: #f7f0e5;
+  --logo-check: #f7f0e5;
+  --logo-wordmark: #f7f0e5;
+}
+
+/* Wordmark i-dot: the dotless "ı" carries an orange dot positioned above it. */
+.cosigno-i {
+  position: relative;
+  display: inline-block;
+}
+.cosigno-dot {
+  position: absolute;
+  left: 50%;
+  top: 0.02em;
+  height: 0.15em;
+  width: 0.15em;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: var(--logo-dot);
 }
 
 /* A smooth cross-fade when the theme is toggled (only fires on change, since

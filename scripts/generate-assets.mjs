@@ -30,7 +30,7 @@ function markPaths(cColor, checkColor) {
 
 /** A standalone icon SVG. `bg` fills a rounded-square plate; null = transparent. */
 function iconSvg({ size = 100, pad = 8, cColor = SIGNAL, checkColor = INK, bg = null, radius = 0.22 }) {
-  const scale = (size - pad * 2) / 100;
+  const scale = (size - pad * 2) / 160;
   const plate = bg ? `<rect width="${size}" height="${size}" rx="${size * radius}" fill="${bg}"/>` : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   ${plate}
@@ -40,7 +40,7 @@ function iconSvg({ size = 100, pad = 8, cColor = SIGNAL, checkColor = INK, bg = 
 
 /** Theme-adaptive transparent icon (check repaints ink→cream via the OS theme). */
 function adaptiveIconSvg({ size = 100, pad = 20 }) {
-  const scale = (size - pad * 2) / 100;
+  const scale = (size - pad * 2) / 160;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   <style>.k{stroke:${INK}}@media (prefers-color-scheme:dark){.k{stroke:${CREAM}}}</style>
   <g transform="translate(${pad},${pad}) scale(${scale})">
@@ -61,14 +61,14 @@ function lockupSvg({ cColor = SIGNAL, checkColor = INK, wordFill = INK, bg = nul
   const plate = bg ? `<rect width="300" height="88" fill="${bg}"/>` : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="88" viewBox="0 0 300 88" role="img" aria-label="cosigno">
   ${plate}
-  <g transform="translate(2,10) scale(0.68)">${markPaths(cColor, checkColor)}</g>
+  <g transform="translate(2,11) scale(0.42)">${markPaths(cColor, checkColor)}</g>
   ${wordmark(80, 62, 46, 4.2, 78, 30, wordFill)}
 </svg>`;
 }
 
 function maskIconSvg() {
   // Single-color silhouette Safari recolors. No dot.
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
   <path d="${C.d}" fill="none" stroke="#000" stroke-width="${C.stroke}" stroke-linecap="round"/>
   <path d="${CHECK.d}" fill="none" stroke="#000" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
@@ -78,7 +78,7 @@ function maskIconSvg() {
 function ogSvg() {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <rect width="1200" height="630" fill="${CREAM}"/>
-  <g transform="translate(600,232) scale(2.1) translate(-50,-50)">${markPaths(SIGNAL, INK)}</g>
+  <g transform="translate(600,232) scale(1.85) translate(-80,-80)">${markPaths(SIGNAL, INK)}</g>
   ${wordmark(600 - 158, 452, 88, 8, 150, 57, INK)}
   <text x="600" y="524" text-anchor="middle" font-family="Nunito Sans, DejaVu Sans, sans-serif" font-weight="800" font-size="30" fill="${INK_SOFT}">the AI operator that asks first.</text>
 </svg>`;

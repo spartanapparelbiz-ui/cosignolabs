@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { CosignoMark, CosignoWordmark } from "./Logo";
+import { CosignoLogo, CosignoMark, CosignoWordmark } from "./Logo";
 import { useBreathing } from "@/lib/useBreathing";
 
 /**
@@ -75,24 +74,24 @@ export function LivingLockup({
 export function LogoHome({
   href = "/",
   size = 30,
-  textClass = "text-2xl",
-  label = "cosigno home",
-  prefetch = true,
+  label = "Cosigno",
 }: {
   href?: string;
   size?: number;
+  /** kept for back-compat; ignored (CosignoLogo picks the balanced size) */
   textClass?: string;
   label?: string;
   prefetch?: boolean;
 }) {
+  // The header brand IS the shared CosignoLogo, as a home link (single
+  // accessible label "Cosigno home"), with a tasteful hover pill.
   return (
-    <Link
+    <CosignoLogo
+      variant="full"
       href={href}
-      aria-label={label}
-      prefetch={prefetch}
-      className="group -mx-2 -my-1 inline-flex rounded-btn px-2 py-1 transition duration-fast ease-brand-out hover:-translate-y-px hover:bg-cream-deep/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-cream motion-safe:group-hover:scale-[1.01]"
-    >
-      <LivingLockup size={size} textClass={textClass} lift />
-    </Link>
+      size={size}
+      label={label}
+      className="group -mx-2 -my-1 rounded-btn px-2 py-1 transition duration-fast ease-brand-out hover:-translate-y-px hover:bg-cream-deep/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
+    />
   );
 }

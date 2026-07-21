@@ -36,9 +36,9 @@ export default function GlobalError({
           padding: "0 24px",
         }}
       >
-        <svg width="48" height="48" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-          <path d="M 76 66.9 A 31 31 0 1 1 76 33.1" stroke="#FF4B22" strokeWidth={26} strokeLinecap="round" />
-          <path d="M 38 51 L 53 65 L 83 29" stroke="#171512" strokeWidth={17} strokeLinecap="round" strokeLinejoin="round" />
+        <svg width="48" height="48" viewBox="0 0 160 160" fill="none" aria-hidden="true">
+          <path d="M112 35C91 17 59 17 37 37C13 59 13 101 37 123C59 143 91 143 112 125" stroke="#FF4B22" strokeWidth={22} strokeLinecap="round" />
+          <path d="M44 81L69 106L121 54" stroke="#171512" strokeWidth={18} strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, textTransform: "lowercase" }}>

@@ -32,8 +32,8 @@ export type LogoStatusState =
   | "success"
   | "error";
 
-const C_PATH = "M 76.0 66.9 A 31 31 0 1 1 76.0 33.1";
-const CHECK_PATH = "M 38 51 L 53 65 L 83 29";
+const C_PATH = "M112 35C91 17 59 17 37 37C13 59 13 101 37 123C59 143 91 143 112 125";
+const CHECK_PATH = "M44 81L69 106L121 54";
 
 /** Label text beside the mark — exported for tests and reuse. */
 export function statusLabel(state: LogoStatusState, awaiting: number): string {
@@ -115,14 +115,14 @@ export function LogoStatus({
           <svg
             width={size}
             height={size}
-            viewBox="0 0 100 100"
+            viewBox="0 0 160 160"
             fill="none"
             aria-hidden="true"
           >
             <path
               d={C_PATH}
-              stroke="var(--logo-orange)"
-              strokeWidth={26}
+              stroke="var(--logo-c)"
+              strokeWidth={22}
               strokeLinecap="round"
             />
             {/* traveling gloss around the arc — listening/working only.
@@ -145,8 +145,8 @@ export function LogoStatus({
             )}
             <path
               d={CHECK_PATH}
-              stroke="var(--logo-fg)"
-              strokeWidth={17}
+              stroke="var(--logo-check)"
+              strokeWidth={18}
               strokeLinecap="round"
               strokeLinejoin="round"
               pathLength={1}

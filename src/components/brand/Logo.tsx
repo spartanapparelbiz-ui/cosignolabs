@@ -1,46 +1,46 @@
 import type { CSSProperties } from "react";
+import Link from "next/link";
 
 /**
- * The cosigno mark — one unified, proprietary symbol: a thick ORANGE open C
- * (opening on the right) with an integrated CHECK that begins in the lower-left
- * interior and rises confidently up-right through the opening. The C is
- * cosigno; the check is approval, permission, completion, signing off. No dot
- * on the icon — the orange accent dot lives over the "i" in the wordmark.
+ * The cosigno mark — one unified, proprietary symbol: a bold open ORANGE C
+ * (opening on the right) with a real CHECK rising through the opening. The C is
+ * cosigno; the check is approval / permission / completion / signing off. No
+ * circle, no shield, no signature, no gradient/shadow/glow. No dot on the icon
+ * — the orange dot lives over the "i" in the wordmark.
  *
  * Colors are driven entirely by CSS custom properties so the mark flips with
  * the theme WITHOUT a flash (data-theme is set before paint) and stays
  * hydration-safe (no JS/state):
- *   --logo-orange  the C (and the i-dot)          — #FF4B22 in every theme
- *   --logo-fg      the integrated check           — #171512 light / #F7F0E5 dark
- *   --logo-word    the wordmark                    — #171512 light / #F7F0E5 dark
- * An explicit `theme` prop overrides these inline (used for OLED and for known
- * light/dark surfaces such as the OG image or a fixed-dark footer).
+ *   --logo-c         the C                — #FF4B22 in every theme
+ *   --logo-check     the checkmark        — #171512 light / #F7F0E5 dark / #FF4B22 oled
+ *   --logo-wordmark  the wordmark         — #171512 light / #F7F0E5 dark / #FFFFFF oled
+ *   --logo-dot       the i-dot            — #FF4B22 in every theme
+ * An explicit `theme` prop overrides these inline (OLED, or a known fixed
+ * light/dark surface such as the OG image or a dark footer).
  *
- * Geometry mirrors scripts/logo-geometry.mjs (viewBox 0 0 100 100). The check
- * stays fully recognizable at 16px; the strokes never carry thin details.
+ * Geometry mirrors scripts/logo-geometry.mjs (viewBox 0 0 160 160). The check
+ * stays fully recognizable at a 20px mark; strokes carry no thin details.
  */
 
 /* --- shared geometry (single source; mirrored in scripts/logo-geometry.mjs) */
-export const LOGO_C_PATH = "M 76 66.9 A 31 31 0 1 1 76 33.1";
-export const LOGO_CHECK_PATH = "M 38 51 L 53 65 L 83 29";
-export const LOGO_C_WIDTH = 26;
-export const LOGO_CHECK_WIDTH = 17;
+export const LOGO_VIEWBOX = "0 0 160 160";
+export const LOGO_C_PATH =
+  "M112 35C91 17 59 17 37 37C13 59 13 101 37 123C59 143 91 143 112 125";
+export const LOGO_CHECK_PATH = "M44 81L69 106L121 54";
+export const LOGO_C_WIDTH = 22;
+export const LOGO_CHECK_WIDTH = 18;
 
 export type LogoTheme = "light" | "dark" | "oled" | "auto";
-export type LogoSize = "sm" | "md" | "lg";
 
 /** Inline CSS-var overrides for an explicit theme; `auto` inherits the globals. */
 const THEME_VARS: Record<Exclude<LogoTheme, "auto">, CSSProperties> = {
-  light: { "--logo-orange": "#FF4B22", "--logo-fg": "#171512", "--logo-word": "#171512" } as CSSProperties,
-  dark: { "--logo-orange": "#FF4B22", "--logo-fg": "#F7F0E5", "--logo-word": "#F7F0E5" } as CSSProperties,
-  oled: { "--logo-orange": "#FF4B22", "--logo-fg": "#FF4B22", "--logo-word": "#FFFFFF" } as CSSProperties,
+  light: { "--logo-c": "#FF4B22", "--logo-check": "#171512", "--logo-wordmark": "#171512", "--logo-dot": "#FF4B22" } as CSSProperties,
+  dark: { "--logo-c": "#FF4B22", "--logo-check": "#F7F0E5", "--logo-wordmark": "#F7F0E5", "--logo-dot": "#FF4B22" } as CSSProperties,
+  oled: { "--logo-c": "#FF4B22", "--logo-check": "#FF4B22", "--logo-wordmark": "#FFFFFF", "--logo-dot": "#FF4B22" } as CSSProperties,
 };
 
-const ICON_PX: Record<LogoSize, number> = { sm: 20, md: 28, lg: 40 };
-const TEXT_CLS: Record<LogoSize, string> = { sm: "text-lg", md: "text-2xl", lg: "text-4xl" };
-
 /**
- * The bare icon (C + integrated check). `mono` renders it in a single color
+ * The bare icon (C + real checkmark). `mono` renders it in a single color
  * (currentColor) for one-color contexts; otherwise the C is orange and the
  * check is theme-aware. `checkClassName` lets the living-logo drive the check.
  */
@@ -53,10 +53,10 @@ export function CosignoMark({
   checkClassName?: string;
   mono?: boolean;
 }) {
-  const cColor = mono ? "currentColor" : "var(--logo-orange)";
-  const checkColor = mono ? "currentColor" : "var(--logo-fg)";
+  const cColor = mono ? "currentColor" : "var(--logo-c)";
+  const checkColor = mono ? "currentColor" : "var(--logo-check)";
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" aria-hidden="true">
+    <svg width={size} height={size} viewBox={LOGO_VIEWBOX} fill="none" aria-hidden="true">
       <path
         d={LOGO_C_PATH}
         stroke={cColor}
@@ -75,23 +75,18 @@ export function CosignoMark({
   );
 }
 
-/** Lowercase "cosigno" wordmark with the orange i-dot. */
+/** Lowercase "cosigno" wordmark with the orange i-dot over a dotless "ı". */
 export function CosignoWordmark({ className = "" }: { className?: string }) {
   return (
     <span
+      aria-hidden="true"
       className={`font-extrabold lowercase tracking-tight ${className}`}
-      style={{ color: "var(--logo-word)" }}
+      style={{ color: "var(--logo-wordmark)" }}
     >
       cos
-      <span className="relative inline-block">
-        <span className="relative">
-          ı
-          <span
-            aria-hidden="true"
-            className="absolute left-1/2 top-[0.04em] h-[0.15em] w-[0.15em] -translate-x-1/2 rounded-full"
-            style={{ backgroundColor: "var(--logo-orange)" }}
-          />
-        </span>
+      <span className="cosigno-i">
+        ı
+        <span className="cosigno-dot" />
       </span>
       gno
     </span>
@@ -113,53 +108,69 @@ export function LogoLockup({
   );
 }
 
+/** Pick a wordmark text size that optically balances the given mark height. */
+function wordClassFor(size: number): string {
+  if (size <= 22) return "text-lg";
+  if (size <= 30) return "text-2xl";
+  if (size <= 40) return "text-3xl";
+  return "text-4xl";
+}
+
 /**
- * The single canonical, theme-aware logo component. Prefer this everywhere.
+ * The single canonical, theme-aware logo. Prefer this everywhere.
  *
- *   <Logo variant="full" | "icon" theme="light" | "dark" | "oled" | "auto"
- *         size="sm" | "md" | "lg" label="cosigno" decorative animate />
+ *   <CosignoLogo variant="full" | "mark" theme="auto" size={30} className href />
  *
- * - theme defaults to "auto": it follows the app theme via CSS vars, with no
- *   hydration mismatch and no wrong-theme flash on load.
- * - Accessible by default (role="img" + label); pass `decorative` for
- *   aria-hidden when nearby text already names the brand.
- * - Never stretches: fixed aspect via the intrinsic SVG + inline-flex.
+ * - theme "auto" (default) follows the app theme via CSS vars — no hydration
+ *   mismatch, no wrong-theme flash on load.
+ * - `href` renders a home link with a single accessible label "Cosigno home"
+ *   (the visual pieces are aria-hidden — no duplicate text). Without `href` the
+ *   whole mark carries role="img" + aria-label="Cosigno".
+ * - Fixed aspect, inline-flex, 8px gap; never stretches or shrinks.
  */
-export function Logo({
+export function CosignoLogo({
   variant = "full",
   theme = "auto",
-  size = "md",
+  size = 30,
   className = "",
-  label = "cosigno",
-  decorative = false,
-  animate = false,
+  href,
+  label = "Cosigno",
 }: {
-  variant?: "full" | "icon";
+  variant?: "full" | "mark";
   theme?: LogoTheme;
-  size?: LogoSize;
+  size?: number;
   className?: string;
+  href?: string;
   label?: string;
-  decorative?: boolean;
-  animate?: boolean;
 }) {
   const style = theme === "auto" ? undefined : THEME_VARS[theme];
-  const a11y = decorative
-    ? { "aria-hidden": true as const }
-    : { role: "img" as const, "aria-label": label };
-  const iconPx = ICON_PX[size];
-  const checkAnim = animate ? "motion-safe:animate-logo-check" : "";
+  const inner = (
+    <>
+      <CosignoMark size={size} />
+      {variant === "full" && <CosignoWordmark className={wordClassFor(size)} />}
+    </>
+  );
+  const shell = "inline-flex shrink-0 items-center gap-2 [&>svg]:shrink-0";
 
-  if (variant === "icon") {
+  if (href) {
     return (
-      <span className={`inline-flex ${className}`} style={style} {...a11y}>
-        <CosignoMark size={iconPx} checkClassName={checkAnim} />
-      </span>
+      <Link
+        href={href}
+        aria-label={`${label} home`}
+        prefetch
+        className={`${shell} ${className}`}
+        style={style}
+      >
+        {inner}
+      </Link>
     );
   }
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`} style={style} {...a11y}>
-      <CosignoMark size={iconPx} checkClassName={checkAnim} />
-      <CosignoWordmark className={`${TEXT_CLS[size]} ${animate ? "motion-safe:animate-word-in" : ""}`} />
+    <span role="img" aria-label={label} className={`${shell} ${className}`} style={style}>
+      {inner}
     </span>
   );
 }
+
+/** Back-compat alias for earlier call sites. */
+export const Logo = CosignoLogo;
