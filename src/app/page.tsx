@@ -2,7 +2,10 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { LivingLockup, LivingMark, LogoHome } from "@/components/brand/LivingLogo";
 import { BetaForm } from "@/components/landing/BetaForm";
-import { HeroSignatureCard } from "@/components/landing/HeroSignatureCard";
+import { HeroMissionDemo } from "@/components/landing/HeroMissionDemo";
+import { OutcomeStrip } from "@/components/landing/OutcomeStrip";
+import { LaunchJobs } from "@/components/landing/LaunchJobs";
+import { Comparison } from "@/components/landing/Comparison";
 import { ProofBand } from "@/components/landing/ProofBand";
 import { StaggerHeadline } from "@/components/landing/StaggerHeadline";
 import { BenefitGlyph } from "@/components/landing/BenefitGlyphs";
@@ -10,6 +13,7 @@ import { CheckDivider } from "@/components/landing/CheckDivider";
 import { Island } from "@/components/landing/Island";
 import { ApplyViewTracker, PricingLink } from "@/components/landing/Track";
 import { Reveal } from "@/components/Reveal";
+import { PLANS, PLAN_ORDER } from "@/lib/plans";
 
 // The sandbox is below the fold — lazy-loaded so it never touches LCP.
 const LivePreview = dynamic(() => import("@/components/landing/LivePreview"), {
@@ -30,8 +34,22 @@ const TierBoard = dynamic(() => import("@/components/landing/TierBoard"), {
   ),
 });
 
-// Primary conversion: self-serve signup ("start with cosigno"). The founding
-// cohort application remains as a secondary, discovery-rich path at the close.
+/** Rough, labeled translation of an action allowance into job runs (~5/run). */
+function runsEstimate(actions: number): string {
+  return `≈ ${Math.floor(actions / 5).toLocaleString()} job runs`;
+}
+
+const TEMPLATE_TITLES = [
+  "clean up my inbox",
+  "prepare my follow-ups",
+  "build my morning brief",
+  "build tomorrow's meeting brief",
+  "compare three laptops under $1,000",
+];
+
+// Section order follows the conversion spec: hero → outcomes → interactive
+// story + sandbox → the three launch jobs → comparison → proof → signature
+// system → templates → security → pricing preview → founder close.
 
 export default function LandingPage() {
   return (
@@ -74,7 +92,7 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        {/* 1 · Hero — outcome first. The result, not the mechanism. */}
+        {/* 1 · Hero — the working mission demo beside the promise */}
         <section className="relative mx-auto grid min-h-[62dvh] w-full max-w-6xl content-center items-center gap-10 px-4 pb-16 pt-8 lg:min-h-[calc(100dvh-160px)] lg:grid-cols-2 lg:pt-8">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-signal">
@@ -110,13 +128,14 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="flex justify-center lg:justify-end">
-            <HeroSignatureCard />
+            <HeroMissionDemo />
           </div>
         </section>
 
-        {/* 2 · The demo — promoted directly under the hero. The differentiator.
-            The guided injected-email catch is the centerpiece "aha"; the open
-            sandbox lives just below it. */}
+        {/* 2 · Outcome strip — the three results, each backed by a shipped job */}
+        <OutcomeStrip />
+
+        {/* 3 · The interactive approval story + open sandbox — the "aha" */}
         <section id="try" className="bg-cream-deep/50">
           <div className="mx-auto w-full max-w-6xl px-4 py-16">
             <Reveal className="text-center">
@@ -163,7 +182,13 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* 3 · Proof band — receipt · video · builder */}
+        {/* 4 · The three launch jobs — exact before/after, sandbox-labeled */}
+        <LaunchJobs />
+
+        {/* 5 · Why not another chatbot? */}
+        <Comparison />
+
+        {/* 6 · Proof band — receipt · video · builder. real assets only */}
         <section className="mx-auto w-full max-w-6xl px-4 py-16">
           <Reveal className="text-center">
             <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
@@ -179,42 +204,37 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* 4 · Real execution, not chat — the engine, confirmed after the demo */}
-        <section className="bg-cream-deep/60">
-          <div className="mx-auto grid w-full max-w-5xl items-center gap-8 px-4 py-16 md:grid-cols-[auto_1fr]">
-            <Reveal>
-              <BenefitGlyph kind="card" />
-            </Reveal>
-            <Reveal delay={80}>
-              <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
-                real execution, not chat
-              </h2>
-              <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
-                cosigno doesn&apos;t hand you advice and wish you luck. it plans
-                across your tools and does the work — archives, drafts, updates,
-                sends — as concrete actions with exact payloads, in plain
-                english, each tagged with its risk tier.
-              </p>
-            </Reveal>
-          </div>
-        </section>
+        <CheckDivider />
 
-        {/* 5 · The trust mechanism — the brakes, positioned as the unlock */}
+        {/* 7 · How the signature system works — the loop + the tiers */}
         <section className="mx-auto w-full max-w-6xl px-4 py-16">
           <Reveal className="flex flex-col items-center">
             <BenefitGlyph kind="check" />
             <h2 className="mt-4 text-center text-2xl font-extrabold lowercase sm:text-3xl">
-              every action is your call
+              how the signature system works
             </h2>
             <p className="mt-3 max-w-2xl text-center text-base leading-relaxed text-ink-soft">
               anything that sends, posts, changes, or spends stops at an action
               card and waits for your signature. destructive moves need typed
               confirmation on top. every action sits in a tier — auto, approve,
               or locked — and the agent can never escalate its own permissions.
-              that&apos;s exactly why you can hand it real work.
             </p>
           </Reveal>
-          <Reveal className="mt-10 flex flex-col items-center">
+          <div className="mx-auto mt-10 grid max-w-4xl gap-6 sm:grid-cols-4">
+            {[
+              ["command", "tell it what you want in plain language."],
+              ["proposal", "it plans and lays out action cards — exact payloads, plain english, risk tier."],
+              ["signature", "you approve, edit, or veto. locked actions need typed confirmation."],
+              ["receipt", "approved actions execute, get verified, and land in your permanent audit trail."],
+            ].map(([title, body], i) => (
+              <Reveal key={title} delay={i * 80} className="rounded-card bg-surface/70 p-4 shadow-soft">
+                <span className="text-xs font-extrabold text-signal">0{i + 1}</span>
+                <h3 className="mt-1 font-extrabold lowercase">{title}</h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{body}</p>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal className="mt-12 flex flex-col items-center">
             <p className="max-w-xl text-center text-sm font-bold lowercase text-ink">
               you set the rope. move one and see what changes.
             </p>
@@ -226,53 +246,108 @@ export default function LandingPage() {
           </Reveal>
         </section>
 
-        {/* 6 · Total audit trail — the enterprise wedge in one line */}
-        <section className="bg-cream-deep/60">
-          <div className="mx-auto grid w-full max-w-5xl items-center gap-8 px-4 py-16 md:grid-cols-[auto_1fr]">
+        {/* 8 · Templates — the installable jobs, one link away */}
+        <section className="bg-cream-deep/50">
+          <div className="mx-auto w-full max-w-5xl px-4 py-14 text-center">
             <Reveal>
-              <BenefitGlyph kind="ledger" />
-            </Reveal>
-            <Reveal delay={80}>
               <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
-                total audit trail
+                start from a template
               </h2>
-              <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
-                every proposal, approval, veto, and execution is permanently
-                logged with its exact payload — filterable, exportable, and
-                yours. you can always answer the only question that matters:
-                <span className="font-bold text-ink"> what did it do, and who said yes?</span>
+              <p className="mx-auto mt-3 max-w-xl text-sm font-semibold text-ink-soft">
+                every template is a job that actually runs end to end — with its
+                auto/signature split spelled out before you start it.
               </p>
+              <div className="mt-6 flex flex-wrap justify-center gap-2">
+                {TEMPLATE_TITLES.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-pill bg-surface px-3.5 py-1.5 text-sm font-bold lowercase shadow-soft ring-1 ring-inset ring-line/70"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <Link
+                href="/templates"
+                prefetch
+                className="mt-6 inline-block text-sm font-bold lowercase underline decoration-signal decoration-2 underline-offset-4 transition-colors hover:text-signal"
+              >
+                browse the templates →
+              </Link>
             </Reveal>
           </div>
         </section>
 
-        <CheckDivider />
-
-        {/* 7 · The loop — four beats */}
-        <section className="mx-auto w-full max-w-6xl px-4 py-16">
+        {/* 9 · Security + the audit trail */}
+        <section className="mx-auto grid w-full max-w-5xl items-center gap-8 px-4 py-16 md:grid-cols-[auto_1fr]">
           <Reveal>
-            <h2 className="text-center text-2xl font-extrabold lowercase sm:text-3xl">
-              one loop. no surprises.
-            </h2>
+            <BenefitGlyph kind="ledger" />
           </Reveal>
-          <div className="mx-auto mt-10 grid max-w-4xl gap-6 sm:grid-cols-4">
-            {[
-              ["command", "tell it what you want in plain language."],
-              ["proposal", "it plans and lays out action cards — exact payloads, plain english, risk tier."],
-              ["signature", "you approve, edit, or veto. locked actions need typed confirmation."],
-              ["receipt", "approved actions execute and land in your permanent audit trail."],
-            ].map(([title, body], i) => (
-              <Reveal key={title} delay={i * 80} className="rounded-card bg-surface/70 p-4 shadow-soft">
-                <span className="text-xs font-extrabold text-signal">0{i + 1}</span>
-                <h3 className="mt-1 font-extrabold lowercase">{title}</h3>
-                <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{body}</p>
-              </Reveal>
-            ))}
+          <Reveal delay={80}>
+            <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
+              security, permissions, and a total audit trail
+            </h2>
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
+              connections request minimum scopes, secrets stay server-side, and
+              every proposal, approval, veto, and execution is permanently
+              logged with its exact payload — filterable, exportable, and
+              yours. you can always answer the only question that matters:
+              <span className="font-bold text-ink"> what did it do, and who said yes?</span>
+            </p>
+            <Link
+              href="/security"
+              prefetch
+              className="mt-4 inline-block text-sm font-bold lowercase underline decoration-signal decoration-2 underline-offset-4 transition-colors hover:text-signal"
+            >
+              read the security guarantees →
+            </Link>
+          </Reveal>
+        </section>
+
+        {/* 10 · Pricing preview — straight from the enforced plans SSOT */}
+        <section className="bg-cream-deep/50">
+          <div className="mx-auto w-full max-w-5xl px-4 py-14">
+            <Reveal className="text-center">
+              <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
+                simple pricing
+              </h2>
+            </Reveal>
+            <div className="mx-auto mt-8 grid max-w-3xl gap-4 sm:grid-cols-3">
+              {PLAN_ORDER.map((id, i) => {
+                const p = PLANS[id];
+                return (
+                  <Reveal
+                    key={id}
+                    delay={i * 70}
+                    className={`rounded-card bg-surface p-5 text-center shadow-soft ${
+                      id === "pro" ? "ring-2 ring-signal" : "ring-1 ring-inset ring-line/70"
+                    }`}
+                  >
+                    <h3 className="text-sm font-extrabold lowercase">{p.name}</h3>
+                    <p className="mt-1 font-display text-2xl font-bold">
+                      {p.price.monthly === 0 ? "$0" : `$${p.price.monthly}`}
+                      {p.price.monthly > 0 && <span className="text-sm font-semibold text-ink-soft">/mo</span>}
+                    </p>
+                    <p className="mt-1.5 text-xs font-semibold text-ink-soft">
+                      {p.actionLimit.toLocaleString()} actions / month
+                    </p>
+                    <p className="text-[11px] font-semibold text-ink-soft">
+                      {runsEstimate(p.actionLimit)} (estimate)
+                    </p>
+                  </Reveal>
+                );
+              })}
+            </div>
+            <Reveal className="mt-6 text-center">
+              <PricingLink className="text-sm font-bold lowercase underline decoration-signal decoration-2 underline-offset-4 transition-colors hover:text-signal">
+                see full pricing →
+              </PricingLink>
+            </Reveal>
           </div>
         </section>
 
-        {/* 8 · Application close — the one thing to do */}
-        <section id="beta" className="bg-cream-deep/60">
+        {/* 11 · Founder close — the one thing to do */}
+        <section id="beta">
           <ApplyViewTracker />
           <Reveal className="mx-auto w-full max-w-2xl px-4 py-16">
             <div className="flex flex-col items-center text-center">
@@ -280,7 +355,13 @@ export default function LandingPage() {
               <h2 className="mt-4 text-2xl font-extrabold lowercase sm:text-3xl">
                 hand your busywork to an operator that asks first.
               </h2>
-              <div className="mt-5">
+              <p className="mt-4 max-w-xl text-sm font-semibold leading-relaxed text-ink-soft">
+                cosigno is built independently, in the open, on one conviction:
+                an AI that acts in your accounts should show you exactly what it
+                will do and wait for your signature — every time, enforced by
+                the server, never by promises. that&apos;s the whole product.
+              </p>
+              <div className="mt-6">
                 <Link
                   href="/sign-up"
                   prefetch

@@ -6,6 +6,7 @@ import { CalendarClock, Check, ChevronRight, Repeat } from "lucide-react";
 import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
+import { StarterJobs } from "@/components/app/StarterJobs";
 
 /**
  * The home dashboard — one calm place that answers four questions:
@@ -212,6 +213,7 @@ export function Dashboard() {
               : undefined
           }
         />
+        <StarterJobs />
       </section>
 
       {/* quiet connection-health warning — only when an app needs attention */}

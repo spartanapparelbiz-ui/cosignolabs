@@ -1,53 +1,116 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, ListChecks, PenLine, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Inbox, PenLine, Reply, ShieldCheck, Sunrise } from "lucide-react";
+import { useToast } from "@/components/Toast";
 
 /**
- * First-time guided introduction — three short screens, shown once (a
- * localStorage flag). Plain language only: what to ask for, how the loop
- * works, and the control promise. Dismissable at every step; never blocks
- * a returning user.
+ * First-run onboarding — one question, one recommendation, one real mission.
+ * "What steals the most time?" maps straight onto a shipped starter job;
+ * choosing one starts the actual template mission (sandbox-labeled until the
+ * app is connected) and lands in its isolated workspace. Shown once
+ * (localStorage flag), dismissable at every step, never blocks a returning
+ * user. No workspace configuration, no permission matrices, no pricing.
  */
 
 const SEEN_KEY = "cosigno_intro_seen";
 
-const EXAMPLES = [
-  "plan my weekend trip",
-  "prepare tomorrow's meeting",
-  "research the best laptop under $1,000",
-  "review my inbox and prepare replies",
-];
+interface Choice {
+  key: string;
+  icon: typeof Inbox;
+  label: string;
+  template: string;
+  job: string;
+  auto: string;
+  signature: string;
+}
 
-const PROCESS = [
-  { icon: PenLine, text: "you give cosigno a goal" },
-  { icon: ListChecks, text: "cosigno creates a plan" },
-  { icon: Search, text: "cosigno begins preparing the work" },
-  { icon: CheckCircle2, text: "you approve important actions" },
-  { icon: ShieldCheck, text: "cosigno completes and verifies the task" },
+const CHOICES: Choice[] = [
+  {
+    key: "inbox",
+    icon: Inbox,
+    label: "my inbox",
+    template: "inbox_cleanup",
+    job: "clean up my inbox",
+    auto: "scans, summarizes what matters, and drafts replies — drafts can never send.",
+    signature: "archiving the newsletter clutter. nothing is ever deleted.",
+  },
+  {
+    key: "followups",
+    icon: Reply,
+    label: "follow-ups I owe",
+    template: "followups",
+    job: "prepare my follow-ups",
+    auto: "finds waiting threads, drafts follow-ups, proposes a send time from your calendar.",
+    signature: "sending — and it's verified in Sent Mail after you sign.",
+  },
+  {
+    key: "calendar",
+    icon: Sunrise,
+    label: "my calendar + mornings",
+    template: "daily_brief",
+    job: "build my morning brief",
+    auto: "reads your schedule and overnight inbox signals, writes the brief.",
+    signature: "blocking time for the top item — a separate card.",
+  },
 ];
 
 export function FirstRunIntro() {
-  const [screen, setScreen] = useState<0 | 1 | 2 | 3>(0); // 0 = hidden
+  const router = useRouter();
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [picked, setPicked] = useState<Choice | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     try {
-      if (!window.localStorage.getItem(SEEN_KEY)) setScreen(1);
+      if (!window.localStorage.getItem(SEEN_KEY)) setOpen(true);
     } catch {
       // storage unavailable → never block the app
     }
   }, []);
 
-  function dismiss() {
+  function markSeen() {
     try {
       window.localStorage.setItem(SEEN_KEY, "1");
     } catch {
       // ignore
     }
-    setScreen(0);
   }
 
-  if (screen === 0) return null;
+  function dismiss() {
+    markSeen();
+    setOpen(false);
+  }
+
+  function somethingElse() {
+    dismiss();
+    // Hand focus to the ask box — the dashboard's composer textarea.
+    setTimeout(() => document.querySelector<HTMLTextAreaElement>("textarea")?.focus(), 50);
+  }
+
+  async function start(choice: Choice) {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/missions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ template: choice.template }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "couldn't start the mission.");
+      markSeen();
+      setOpen(false);
+      toast("success", "your first mission is running.");
+      router.push(`/app/missions/${data.mission.id}`);
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "couldn't start the mission.");
+      setBusy(false);
+    }
+  }
+
+  if (!open) return null;
 
   return (
     <div
@@ -61,79 +124,81 @@ export function FirstRunIntro() {
         className="w-full max-w-md animate-modal-in rounded-card bg-cream p-6 shadow-lift"
         onClick={(e) => e.stopPropagation()}
       >
-        {screen === 1 && (
+        {!picked ? (
           <>
-            <Sparkles size={20} className="text-signal" aria-hidden="true" />
-            <h2 className="mt-2 font-display text-xl font-bold lowercase">what do you need handled?</h2>
+            <h2 className="font-display text-xl font-bold lowercase">what steals the most time?</h2>
             <p className="mt-1.5 text-sm font-semibold text-ink-soft">
-              describe the result you want. cosigno will turn it into a clear
-              plan and guide you through every step.
+              pick one and cosigno recommends a real starter job — you&apos;ll
+              see exactly what runs on its own and what waits for your
+              signature.
             </p>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {EXAMPLES.map((ex) => (
-                <span key={ex} className="rounded-pill bg-cream-deep px-2.5 py-1 text-xs font-semibold">
-                  {ex}
-                </span>
+            <div className="mt-4 flex flex-col gap-2">
+              {CHOICES.map((c) => (
+                <button
+                  key={c.key}
+                  onClick={() => setPicked(c)}
+                  className="flex items-center gap-3 rounded-btn bg-cream-deep px-4 py-3 text-left text-sm font-bold lowercase transition-colors hover:bg-signal/15"
+                >
+                  <c.icon size={16} className="shrink-0 text-ink-soft" aria-hidden="true" />
+                  {c.label}
+                </button>
               ))}
-            </div>
-            <div className="mt-5 flex items-center gap-3">
               <button
-                onClick={() => setScreen(2)}
-                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink"
+                onClick={somethingElse}
+                className="flex items-center gap-3 rounded-btn bg-cream-deep px-4 py-3 text-left text-sm font-bold lowercase transition-colors hover:bg-signal/15"
               >
-                see how it works
-              </button>
-              <button onClick={dismiss} className="text-sm font-bold lowercase text-ink-soft underline underline-offset-2">
-                skip — start a mission
+                <PenLine size={16} className="shrink-0 text-ink-soft" aria-hidden="true" />
+                something else — I&apos;ll type it
               </button>
             </div>
-          </>
-        )}
-
-        {screen === 2 && (
-          <>
-            <h2 className="font-display text-xl font-bold lowercase">how a mission works</h2>
-            <ol className="mt-4 flex flex-col gap-3">
-              {PROCESS.map((step, i) => (
-                <li key={step.text} className="flex items-center gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-btn bg-cream-deep">
-                    <step.icon size={15} aria-hidden="true" />
-                  </span>
-                  <span className="text-sm font-semibold">
-                    {i + 1}. {step.text}
-                  </span>
-                </li>
-              ))}
-            </ol>
-            <div className="mt-5 flex items-center gap-3">
-              <button
-                onClick={() => setScreen(3)}
-                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink"
-              >
-                one more thing
-              </button>
-              <button onClick={dismiss} className="text-sm font-bold lowercase text-ink-soft underline underline-offset-2">
-                skip
-              </button>
-            </div>
-          </>
-        )}
-
-        {screen === 3 && (
-          <>
-            <ShieldCheck size={20} className="text-signal" aria-hidden="true" />
-            <h2 className="mt-2 font-display text-xl font-bold lowercase">you stay in control</h2>
-            <p className="mt-1.5 text-sm font-semibold text-ink-soft">
-              cosigno can research, organize, draft, and prepare automatically.
-              before it sends, buys, books, publishes, deletes, or changes
-              anything important, it asks you first.
-            </p>
             <button
               onClick={dismiss}
-              className="mt-5 rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold text-cream"
+              className="mt-4 text-sm font-bold lowercase text-ink-soft underline underline-offset-2"
             >
-              i understand — start a mission
+              skip — just show me the dashboard
             </button>
+          </>
+        ) : (
+          <>
+            <h2 className="font-display text-xl font-bold lowercase">start “{picked.job}”</h2>
+            <dl className="mt-3 flex flex-col gap-2.5 text-sm">
+              <div>
+                <dt className="text-xs font-extrabold lowercase text-ink-soft">runs automatically</dt>
+                <dd className="mt-0.5 font-semibold">{picked.auto}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-extrabold lowercase text-ink-soft">needs your signature</dt>
+                <dd className="mt-0.5 font-semibold">{picked.signature}</dd>
+              </div>
+            </dl>
+            <p className="mt-3 flex items-start gap-2 rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold text-ink-soft">
+              <ShieldCheck size={14} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
+              before your apps are connected, this runs in a clearly-labeled
+              sandbox — you&apos;ll see the whole flow with nothing at stake.
+            </p>
+            <div className="mt-5 flex items-center gap-3">
+              <button
+                onClick={() => start(picked)}
+                disabled={busy}
+                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink disabled:opacity-40"
+              >
+                {busy ? "starting…" : "start this job"}
+              </button>
+              <button
+                onClick={() => setPicked(null)}
+                disabled={busy}
+                className="text-sm font-bold lowercase text-ink-soft underline underline-offset-2"
+              >
+                back
+              </button>
+              <button
+                onClick={dismiss}
+                disabled={busy}
+                className="ml-auto text-sm font-bold lowercase text-ink-soft underline underline-offset-2"
+              >
+                not now
+              </button>
+            </div>
           </>
         )}
       </div>

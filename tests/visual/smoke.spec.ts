@@ -41,7 +41,7 @@ for (const vp of VIEWPORTS) {
       });
     });
 
-    test("first-run intro: three screens, once", async ({ page }) => {
+    test("first-run onboarding: one question → recommended job → real mission", async ({ page }) => {
       await page.addInitScript(() => {
         try {
           window.localStorage.removeItem("cosigno_intro_seen");
@@ -50,20 +50,22 @@ for (const vp of VIEWPORTS) {
         }
       });
       await page.goto("/app", { waitUntil: "networkidle" });
-      // Scope to the intro dialog — the dashboard shares this headline.
+      const dialog = page.getByRole("dialog");
       await expect(
-        page.getByRole("dialog").getByRole("heading", { name: "what do you need handled?" })
+        dialog.getByRole("heading", { name: "what steals the most time?" })
       ).toBeVisible();
-      await page.getByRole("button", { name: "see how it works" }).click();
-      await expect(page.getByRole("heading", { name: "how a mission works" })).toBeVisible();
-      await page.getByRole("button", { name: "one more thing" }).click();
-      await expect(page.getByRole("heading", { name: "you stay in control" })).toBeVisible();
-      await page.screenshot({ path: join(OUT, `intro-control-${vp.name}.png`) });
-      await page.getByRole("button", { name: /i understand/ }).click();
+      await page.screenshot({ path: join(OUT, `intro-question-${vp.name}.png`) });
+      // Pick inbox → the recommendation spells out the auto/signature split.
+      await dialog.getByRole("button", { name: "my inbox" }).click();
+      await expect(dialog.getByText("runs automatically")).toBeVisible();
+      await expect(dialog.getByText("needs your signature")).toBeVisible();
+      await expect(dialog.getByText(/clearly-labeled sandbox/)).toBeVisible();
+      await page.screenshot({ path: join(OUT, `intro-recommend-${vp.name}.png`) });
+      // Starting creates the REAL template mission and lands in its workspace.
+      await dialog.getByRole("button", { name: "start this job" }).click();
+      await page.waitForURL(/\/app\/missions\/[a-z0-9-]+/i, { timeout: 20_000 });
       await expect(page.getByRole("dialog")).toHaveCount(0);
-      // Dismissing persisted the seen flag — future visits skip the intro.
-      // (A reload here would re-run this test's flag-clearing init script,
-      // so the flag itself is the assertion.)
+      // The seen flag persisted — future visits skip the intro.
       expect(
         await page.evaluate(() => window.localStorage.getItem("cosigno_intro_seen"))
       ).toBe("1");
@@ -97,6 +99,17 @@ for (const vp of VIEWPORTS) {
       await expect(
         page.getByRole("heading", { name: "give cosigno the work. keep the final say." })
       ).toBeVisible();
+      // The rebuilt section order: outcomes, launch jobs, comparison,
+      // templates, pricing preview — each pinned by its anchor copy.
+      await expect(page.getByText("inbox cleared")).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "three real jobs, working today" })
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "why not another chatbot?" })
+      ).toBeVisible();
+      await expect(page.getByRole("heading", { name: "start from a template" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "simple pricing" })).toBeVisible();
       // Hero viewport capture FIRST, while the composed scene is pristine at
       // the top of the page — its floating cards use scroll-driven parallax,
       // which the fullPage tiling below would otherwise disturb.
