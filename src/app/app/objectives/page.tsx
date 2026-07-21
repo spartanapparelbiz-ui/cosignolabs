@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  */
 export default function ObjectivesPage() {
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8">
+    <div className="mx-auto flex w-full max-w-none flex-1 flex-col px-6 lg:px-10 py-8">
       <h1 className="font-display text-2xl font-bold lowercase">objectives</h1>
       <p className="mt-1 text-sm font-semibold text-ink-soft">
         outcomes you own over time. delegate the pieces; cosigno understands what contributes,

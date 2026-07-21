@@ -285,7 +285,7 @@ export function FocusMode() {
   /* ---------------------------------------------------------- empty/clear */
   if (queue === null) {
     return (
-      <div className="mx-auto w-full max-w-2xl px-4 py-16" aria-busy="true">
+      <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-16" aria-busy="true">
         <div className="h-64 animate-pulse rounded-card bg-cream-deep" />
       </div>
     );
@@ -293,7 +293,7 @@ export function FocusMode() {
 
   if (!action) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-4 py-20 text-center">
+      <div className="mx-auto flex w-full max-w-none flex-col items-center px-6 lg:px-10 py-20 text-center">
         <CosignoMark size={30} />
         <h1 className="mt-4 font-display text-2xl font-bold">
           {doneCount > 0 ? "All clear." : "Nothing needs you."}
@@ -315,7 +315,7 @@ export function FocusMode() {
 
   /* -------------------------------------------------------------- decision */
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-10">
+    <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-10">
       {/* THE BOUNDARY: what cosigno can handle │ what only you can authorize.
           The dot is the work — it crosses to your side, and returns after. */}
       <div className="flex items-center gap-3 text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">

@@ -14,7 +14,7 @@ export default async function BrowserMissionPage({
 }) {
   const { missionId } = await params;
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8">
+    <div className="mx-auto flex w-full max-w-none flex-1 flex-col px-6 lg:px-10 py-8">
       <BrowserOperatorView missionId={missionId} />
     </div>
   );

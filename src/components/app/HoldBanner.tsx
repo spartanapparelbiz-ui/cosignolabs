@@ -71,7 +71,7 @@ export function HoldBanner() {
 
   return (
     <div className="bg-ink text-cream">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-center text-[12px] font-bold">
+      <div className="mx-auto flex w-full max-w-none flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-center text-[12px] font-bold">
         <PauseCircle size={15} className="shrink-0" aria-hidden="true" />
         <span>{MESSAGE[scope]}</span>
         <button

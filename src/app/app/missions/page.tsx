@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 /** Delegations — every outcome handed to cosigno, active until it's done. */
 export default function MissionsPage() {
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8">
+    <div className="mx-auto flex w-full max-w-none flex-1 flex-col px-6 lg:px-10 py-8">
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-2xl font-bold lowercase">delegations</h1>

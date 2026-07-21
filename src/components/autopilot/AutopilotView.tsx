@@ -191,7 +191,7 @@ export function AutopilotView() {
 
   if (error) {
     return (
-      <div className="mx-auto w-full max-w-6xl px-4 py-8">
+      <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-8">
         <div className={`${CARD} text-center`}>
           <p className="text-sm font-extrabold">Autopilot couldn&apos;t load</p>
           <p className="mt-1 text-sm text-ink-soft">{error}</p>
@@ -202,7 +202,7 @@ export function AutopilotView() {
 
   if (!overview) {
     return (
-      <div className="mx-auto w-full max-w-6xl px-4 py-8" aria-busy="true">
+      <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-8" aria-busy="true">
         <div className="h-40 animate-pulse rounded-card bg-cream-deep" />
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="h-64 animate-pulse rounded-card bg-cream-deep" />
@@ -215,7 +215,7 @@ export function AutopilotView() {
   const o = overview;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8">
+    <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-8">
       {/* ---------- header + honest data label ---------- */}
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Autopilot</h1>

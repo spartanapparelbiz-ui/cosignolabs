@@ -9,7 +9,7 @@ export default async function ObjectiveDetailPage({
 }) {
   const { id } = await params;
   return (
-    <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
+    <div className="mx-auto w-full max-w-none flex-1 px-6 lg:px-10 py-8">
       <ObjectiveDetail id={id} />
     </div>
   );

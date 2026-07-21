@@ -75,7 +75,7 @@ export function TodayStrip() {
     : null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pt-3" aria-label="today">
+    <div className="mx-auto w-full max-w-none px-4 pt-3" aria-label="today">
       {tiles ? (
         <div className="flex flex-wrap gap-2">
           {tiles.map((t) => (

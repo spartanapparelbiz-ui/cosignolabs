@@ -9,7 +9,7 @@ export default async function PlanPage({
 }) {
   const { status } = await searchParams;
   return (
-    <div className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+    <div className="mx-auto w-full max-w-none flex-1 px-6 lg:px-10 py-6">
       <h1 className="text-xl font-extrabold lowercase">account</h1>
       <p className="mt-1 text-sm text-ink-soft">
         your plan, usage, and billing.

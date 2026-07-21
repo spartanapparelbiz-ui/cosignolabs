@@ -60,7 +60,7 @@ export function OfferBanner() {
   }
 
   return (
-    <div className="animate-rise-in mx-auto mb-4 flex w-full max-w-6xl items-center gap-3 rounded-card bg-ink px-4 py-3 text-cream shadow-lift">
+    <div className="animate-rise-in mx-auto mb-4 flex w-full max-w-none items-center gap-3 rounded-card bg-ink px-4 py-3 text-cream shadow-lift">
       <p className="min-w-0 flex-1 text-sm font-semibold">{body}</p>
       <Link
         href={href}

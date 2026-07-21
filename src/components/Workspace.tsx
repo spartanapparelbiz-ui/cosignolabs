@@ -374,7 +374,7 @@ export function Workspace() {
     <OfferBanner />
     {/* flex-1 + stretched row: both panels fill the viewport below the nav
         instead of sitting content-height with a dead zone beneath. */}
-    <div className="mx-auto grid w-full max-w-6xl flex-1 grid-rows-[auto_minmax(0,1fr)] gap-6 lg:min-h-0 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)] lg:grid-rows-[minmax(0,1fr)]">
+    <div className="mx-auto grid w-full max-w-none flex-1 grid-rows-[auto_minmax(0,1fr)] gap-6 lg:min-h-0 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)] lg:grid-rows-[minmax(0,1fr)]">
       {/* Left: command input + session thread */}
       <section className="flex min-w-0 flex-col gap-4">
         <div className={`rounded-card bg-surface/70 p-4 shadow-lift ${thinking ? "animate-ring-flash" : ""}`}>

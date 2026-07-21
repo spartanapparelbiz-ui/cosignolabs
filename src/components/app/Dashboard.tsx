@@ -641,7 +641,7 @@ export function Dashboard() {
   const completed = (missions ?? []).filter((m) => m.state === "completed" || m.state === "partial").slice(0, 3);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8">
+    <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-8">
       {/* ---------- briefing: what happened while you were away ---------- */}
       {state && <BriefingCard state={state} />}
 

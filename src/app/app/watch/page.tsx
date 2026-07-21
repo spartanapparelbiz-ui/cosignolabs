@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  */
 export default function WatchPage() {
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+    <div className="mx-auto w-full max-w-none flex-1 px-6 lg:px-10 py-6">
       <h1 className="text-xl font-extrabold lowercase">watch &amp; standing orders</h1>
       <p className="mt-1 max-w-2xl text-sm text-ink-soft">
         Ongoing responsibilities assigned to cosigno — watches on important emails, calendar
