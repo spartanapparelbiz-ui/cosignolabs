@@ -24,11 +24,11 @@ export const C = {
 // Check — a real checkmark: short tail low-left, vertex at the bottom, long arm
 // rising up-right through the C's opening. Chunky rounded stroke.
 export const CHECK = {
-  stroke: 18,
+  stroke: 20,
   points: [
-    [44, 81], // short tail
-    [69, 106], // vertex
-    [121, 54], // long arm through the opening
+    [42, 83], // short tail
+    [68, 111], // vertex
+    [136, 42], // long arm bursting up-right through (and past) the opening
   ],
-  d: "M44 81L69 106L121 54",
+  d: "M42 83L68 111L136 42",
 };

@@ -17,7 +17,7 @@ const LINK_ID = "favicon-status";
 // The mark with a filled orange notification badge in the lower-right.
 const PENDING_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
 <path d="M112 35C91 17 59 17 37 37C13 59 13 101 37 123C59 143 91 143 112 125" fill="none" stroke="#FF4B22" stroke-width="22" stroke-linecap="round"/>
-<path d="M44 81L69 106L121 54" fill="none" stroke="#171512" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M42 83L68 111L136 42" fill="none" stroke="#171512" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
 <circle cx="132" cy="132" r="26" fill="#FF4B22" stroke="#FBF4EA" stroke-width="8"/>
 </svg>`;
 

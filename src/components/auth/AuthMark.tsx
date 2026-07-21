@@ -24,7 +24,7 @@
  */
 
 const C_PATH = "M112 35C91 17 59 17 37 37C13 59 13 101 37 123C59 143 91 143 112 125";
-const CHECK_PATH = "M44 81L69 106L121 54";
+const CHECK_PATH = "M42 83L68 111L136 42";
 
 function clamp01(n: number): number {
   if (!Number.isFinite(n)) return 0;
@@ -90,7 +90,7 @@ export function AuthMark({
         <path
           d={CHECK_PATH}
           stroke="var(--logo-check)"
-          strokeWidth={18}
+          strokeWidth={20}
           strokeLinecap="round"
           strokeLinejoin="round"
           opacity={0.28}
@@ -119,7 +119,7 @@ export function AuthMark({
         <path
           d={CHECK_PATH}
           stroke="var(--logo-check)"
-          strokeWidth={18}
+          strokeWidth={20}
           strokeLinecap="round"
           strokeLinejoin="round"
           pathLength={1}

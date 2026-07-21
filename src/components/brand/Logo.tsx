@@ -26,9 +26,9 @@ import Link from "next/link";
 export const LOGO_VIEWBOX = "0 0 160 160";
 export const LOGO_C_PATH =
   "M112 35C91 17 59 17 37 37C13 59 13 101 37 123C59 143 91 143 112 125";
-export const LOGO_CHECK_PATH = "M44 81L69 106L121 54";
+export const LOGO_CHECK_PATH = "M42 83L68 111L136 42";
 export const LOGO_C_WIDTH = 22;
-export const LOGO_CHECK_WIDTH = 18;
+export const LOGO_CHECK_WIDTH = 20;
 
 export type LogoTheme = "light" | "dark" | "oled" | "auto";
 
