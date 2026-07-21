@@ -488,14 +488,22 @@ export function MissionRunner() {
 
             {open && (
               <div className="flex flex-col gap-3 border-t border-line/60 px-4 py-3">
-                {usesBrowser && (
+                <div className="flex flex-wrap gap-2">
                   <Link
-                    href={`/app/browser/${m.id}`}
+                    href={`/app/missions/${m.id}`}
                     className="inline-flex w-fit items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                   >
-                    <Globe size={13} aria-hidden="true" /> open the browser view
+                    open the mission workspace
                   </Link>
-                )}
+                  {usesBrowser && (
+                    <Link
+                      href={`/app/browser/${m.id}`}
+                      className="inline-flex w-fit items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
+                    >
+                      <Globe size={13} aria-hidden="true" /> open the browser view
+                    </Link>
+                  )}
+                </div>
 
                 {/* pending question */}
                 {m.pending_question && (
@@ -527,7 +535,7 @@ export function MissionRunner() {
                 {m.state === "awaiting_approval" && (
                   <p className="rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold">
                     a consequential step is waiting for your signature —{" "}
-                    <Link href="/app/decisions" className="underline underline-offset-2">
+                    <Link href="/app/approvals" className="underline underline-offset-2">
                       open decisions
                     </Link>
                     . the mission resumes automatically after you decide.

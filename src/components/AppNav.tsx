@@ -10,7 +10,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 const LINKS = [
   { href: "/app", label: "home" },
   { href: "/app/missions", label: "missions" },
-  { href: "/app/decisions", label: "approvals" },
+  { href: "/app/approvals", label: "approvals" },
   { href: "/app/automations", label: "automations" },
   { href: "/app/connections", label: "connections" },
   { href: "/app/files", label: "files" },

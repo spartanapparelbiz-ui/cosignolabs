@@ -152,7 +152,14 @@ function SourceRow({ source, onRemove }: { source: MissionSourceRecord; onRemove
 
 /* ------------------------------------------------------------------ */
 
-export function SourceComposer({ onStarted }: { onStarted: () => void }) {
+export function SourceComposer({
+  onStarted,
+  suggestions,
+}: {
+  onStarted: () => void;
+  /** Contextual delegation prompts (from real connected apps); defaults to the generic set. */
+  suggestions?: string[];
+}) {
   const router = useRouter();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -478,7 +485,7 @@ export function SourceComposer({ onStarted }: { onStarted: () => void }) {
 
       {/* examples */}
       <div className="mt-4 flex flex-wrap gap-2">
-        {EXAMPLES.map((ex) => (
+        {(suggestions ?? EXAMPLES).map((ex) => (
           <button
             key={ex}
             onClick={() => setGoal(ex)}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { clerkConfigured, getUserId } from "@/lib/auth";
 import { isGuestId } from "@/lib/publicMode";
-import { AppNav } from "@/components/AppNav";
+import { AppRail, AppBottomNav } from "@/components/AppRail";
 import { ToastProvider } from "@/components/Toast";
 import { LogoHome } from "@/components/brand/LivingLogo";
 import { AccountChip } from "@/components/app/AccountChip";
@@ -36,34 +36,39 @@ function Chrome({
 }) {
   return (
     <ToastProvider>
-      <div className="flex min-h-screen [min-height:100dvh] flex-col">
-        {guest && <SandboxBanner />}
-        <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
-          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-            <LogoHome href="/app" label="cosigno workspace" size={26} textClass="text-xl" />
-            {/* On mobile the nav drops to its own full-width row (order-3);
-                on sm+ it sits inline between the logo and the user slot. */}
-            <div className="order-3 w-full sm:order-none sm:w-auto">
-              <AppNav />
+      <div className="flex min-h-screen [min-height:100dvh]">
+        {/* desktop: compact left rail */}
+        <AppRail />
+        <div className="flex min-w-0 flex-1 flex-col">
+          {guest && <SandboxBanner />}
+          <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
+            <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
+              {/* mobile shows the logo up top; desktop's logo lives in the rail */}
+              <div className="lg:hidden">
+                <LogoHome href="/app" label="cosigno workspace" size={26} textClass="text-xl" />
+              </div>
+              <div className="ml-auto flex items-center gap-3">{userSlot}</div>
             </div>
-            <div className="ml-auto flex items-center gap-3">{userSlot}</div>
-          </div>
-        </header>
-        <main className="flex flex-1 flex-col">{children}</main>
-        <footer className="border-t border-line/60">
-          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-4 text-[11px] font-semibold lowercase tracking-wide text-ink-soft">
-            <span>© {new Date().getFullYear()} aethric llc</span>
-            <Link href="/privacy" className="hover:text-ink">
-              privacy
-            </Link>
-            <Link href="/terms" className="hover:text-ink">
-              terms
-            </Link>
-            <a href="mailto:hello@aethric.llc" className="hover:text-ink">
-              hello@aethric.llc
-            </a>
-          </div>
-        </footer>
+          </header>
+          {/* bottom padding keeps content clear of the mobile bottom bar */}
+          <main className="flex flex-1 flex-col pb-20 lg:pb-0">{children}</main>
+          <footer className="border-t border-line/60">
+            <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-4 text-[11px] font-semibold lowercase tracking-wide text-ink-soft">
+              <span>© {new Date().getFullYear()} aethric llc</span>
+              <Link href="/privacy" className="hover:text-ink">
+                privacy
+              </Link>
+              <Link href="/terms" className="hover:text-ink">
+                terms
+              </Link>
+              <a href="mailto:hello@aethric.llc" className="hover:text-ink">
+                hello@aethric.llc
+              </a>
+            </div>
+          </footer>
+        </div>
+        {/* mobile: bottom navigation bar */}
+        <AppBottomNav />
       </div>
     </ToastProvider>
   );

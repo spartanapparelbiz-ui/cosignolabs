@@ -137,6 +137,20 @@ export function Dashboard() {
   const [approvals, setApprovals] = useState<ActionRecord[]>([]);
   const [automation, setAutomation] = useState<AutomationRecord | null>(null);
   const [connections, setConnections] = useState<ConnectionView[]>([]);
+  const [unhealthy, setUnhealthy] = useState<ConnectionView[]>([]);
+  const [pausing, setPausing] = useState<string | null>(null);
+
+  async function pauseMission(id: string) {
+    setPausing(id);
+    try {
+      await jsonFetch(`/api/missions/${id}/control`, { method: "POST", body: JSON.stringify({ op: "pause" }) });
+      await load();
+    } catch {
+      /* the row keeps its live state; the mission page has full controls */
+    } finally {
+      setPausing(null);
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -152,7 +166,9 @@ export function Dashboard() {
       const enabled: AutomationRecord[] = (au.automations ?? []).filter((x: AutomationRecord) => x.enabled);
       enabled.sort((x, y) => new Date(x.next_run_at).getTime() - new Date(y.next_run_at).getTime());
       setAutomation(enabled[0] ?? null);
-      setConnections((c.connections ?? []).filter((x: ConnectionView) => x.kind === "app" && x.status === "connected"));
+      const appConns = (c.connections ?? []).filter((x: ConnectionView) => x.kind === "app");
+      setConnections(appConns.filter((x: ConnectionView) => x.status === "connected"));
+      setUnhealthy(appConns.filter((x: ConnectionView) => x.status !== "connected"));
 
       // Fetch steps for the active missions we'll show (up to 4).
       const active = ms.filter((x) => ACTIVE_STATES.has(x.state)).slice(0, 4);
@@ -182,14 +198,33 @@ export function Dashboard() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      {/* ---------- ask box: the biggest, clearest thing ---------- */}
+      {/* ---------- the command composer: the biggest, clearest thing ---------- */}
       <section className={`${CARD} p-6 sm:p-8`}>
-        <h1 className="font-display text-2xl font-bold sm:text-3xl">What do you need handled?</h1>
+        <h1 className="font-display text-2xl font-bold sm:text-3xl">What should Cosigno handle?</h1>
         <p className="mt-1.5 text-sm font-semibold text-ink-soft">
           Tell cosigno what you want done. Add a file or link when it helps explain the task.
         </p>
-        <SourceComposer onStarted={load} />
+        <SourceComposer
+          onStarted={load}
+          suggestions={
+            connections.some((c) => c.provider_key.startsWith("google"))
+              ? ["prepare tomorrow's meeting", "review my unread emails", "follow up on unanswered threads", "research the best option"]
+              : undefined
+          }
+        />
       </section>
+
+      {/* quiet connection-health warning — only when an app needs attention */}
+      {unhealthy.length > 0 && (
+        <p className="mt-4 rounded-btn bg-cream-deep px-3.5 py-2 text-xs font-semibold text-ink-soft">
+          {unhealthy.map((c) => c.display_name).join(", ")}{" "}
+          {unhealthy.length === 1 ? "needs" : "need"} attention —{" "}
+          <Link href="/app/connections" className="font-bold underline underline-offset-2">
+            check connections
+          </Link>
+          .
+        </p>
+      )}
 
       {/* ---------- two columns on desktop, stacked on mobile ---------- */}
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1.4fr_1fr]">
@@ -231,6 +266,7 @@ export function Dashboard() {
                       {ms.length > 0 && (
                         <p className="mt-2 text-sm font-bold text-ink">
                           {done} of {ms.length} steps complete
+                          <span className="font-semibold text-ink-soft"> · running {timeAgo(m.created_at).replace(" ago", "")}</span>
                         </p>
                       )}
                       <div className="mt-3 flex items-center justify-between gap-3">
@@ -239,12 +275,23 @@ export function Dashboard() {
                             <ConnectorLogo key={k} kind="app" providerKey={k} displayName={PROVIDER_NAME[k] ?? k} size={22} />
                           ))}
                         </div>
-                        <Link
-                          href="/app/missions"
-                          className="inline-flex items-center gap-1 rounded-btn px-3.5 py-1.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
-                        >
-                          Open Mission <ChevronRight size={14} />
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          {m.state !== "paused" && !["completed", "partial", "failed", "stopped"].includes(m.state) && (
+                            <button
+                              onClick={() => pauseMission(m.id)}
+                              disabled={pausing === m.id}
+                              className="rounded-btn px-3 py-1.5 text-sm font-bold text-ink-soft ring-1 ring-inset ring-ink/20 hover:bg-cream-deep hover:text-ink disabled:opacity-40"
+                            >
+                              {pausing === m.id ? "Pausing…" : "Pause"}
+                            </button>
+                          )}
+                          <Link
+                            href={`/app/missions/${m.id}`}
+                            className="inline-flex items-center gap-1 rounded-btn px-3.5 py-1.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
+                          >
+                            Open Mission <ChevronRight size={14} />
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   );
@@ -328,7 +375,7 @@ export function Dashboard() {
                         </div>
                       </div>
                       <Link
-                        href="/app/decisions"
+                        href="/app/approvals"
                         className="mt-3 inline-flex w-full items-center justify-center rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95"
                       >
                         Review

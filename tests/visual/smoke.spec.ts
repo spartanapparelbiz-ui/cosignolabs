@@ -84,7 +84,7 @@ for (const vp of VIEWPORTS) {
       page.on("console", (m) => {
         if (m.type() === "error" && !IGNORE.test(m.text())) errors.push(`console: ${m.text()}`);
       });
-      for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/missions", "/app/decisions", "/app/automations", "/app/connections", "/app/memory", "/app/files", "/app/team", "/app/health", "/app/activity", "/app/account", "/app/workspace", "/sign-in"]) {
+      for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/missions", "/app/approvals", "/app/templates", "/app/decisions", "/app/automations", "/app/connections", "/app/memory", "/app/files", "/app/team", "/app/health", "/app/activity", "/app/account", "/app/workspace", "/sign-in"]) {
         await page.goto(path, { waitUntil: "networkidle" });
         await page.waitForTimeout(300);
         await noHorizontalScroll(page);
@@ -202,7 +202,7 @@ for (const vp of VIEWPORTS) {
 
     test("home dashboard: the four-question layout", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "What do you need handled?" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "What should Cosigno handle?" })).toBeVisible();
       // The ask box + the four honest section headings (stable regardless of
       // how much data exists in the shared demo store).
       await expect(page.getByPlaceholder(/Ask cosigno to handle something/)).toBeVisible();
@@ -257,6 +257,32 @@ for (const vp of VIEWPORTS) {
       await expect(page.getByText(/Prices and availability may change/)).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `browser-result-${vp.name}.png`), fullPage: true });
+    });
+
+    test("app shell + templates + isolated mission workspace", async ({ page }) => {
+      // Templates: only REAL installable jobs, each with the auto/signature split.
+      await page.goto("/app/templates", { waitUntil: "networkidle" });
+      await expect(page.getByRole("heading", { name: "templates" })).toBeVisible();
+      await expect(page.getByText("build tomorrow's meeting brief")).toBeVisible();
+      await expect(page.getByText("compare three laptops under $1,000")).toBeVisible();
+      await expect(page.getByText("needs your signature").first()).toBeVisible();
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `templates-${vp.name}.png`), fullPage: true });
+
+      // The isolated mission workspace: start a real mission, open its page.
+      const res = await page.request.post("/api/missions", {
+        data: { template: "laptop_compare" },
+      });
+      expect(res.ok()).toBeTruthy();
+      const { mission } = await res.json();
+      await page.goto(`/app/missions/${mission.id}`, { waitUntil: "networkidle" });
+      await expect(page.getByText("Timeline")).toBeVisible();
+      await expect(page.getByText("Plan", { exact: true })).toBeVisible();
+      await expect(page.getByText(/steps complete/)).toBeVisible();
+      await expect(page.getByRole("button", { name: /Pause|Resume/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `mission-workspace-${vp.name}.png`), fullPage: true });
     });
 
     test("workspace with a proposed card", async ({ page }) => {

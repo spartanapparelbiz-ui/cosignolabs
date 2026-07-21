@@ -151,7 +151,7 @@ export function MissionList() {
             </p>
             {m.proposed > 0 && (
               <Link
-                href="/app/decisions"
+                href="/app/approvals"
                 prefetch
                 className="mt-2 inline-block rounded-btn bg-ink px-3.5 py-1.5 text-xs font-bold text-cream transition-transform duration-fast hover:-translate-y-px"
               >
