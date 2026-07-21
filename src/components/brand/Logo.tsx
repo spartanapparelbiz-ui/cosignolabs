@@ -68,11 +68,12 @@ export function CosignoWordmark({ className = "" }: { className?: string }) {
   return (
     <span
       aria-hidden="true"
-      className={`font-black lowercase tracking-tight ${className}`}
+      className={`font-bold lowercase ${className}`}
       style={{
         color: "var(--logo-wordmark)",
         fontFamily: "var(--font-wordmark), system-ui, sans-serif",
-        fontWeight: 900,
+        fontWeight: 700,
+        letterSpacing: "-0.01em",
       }}
     >
       cos
