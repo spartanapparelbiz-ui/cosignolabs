@@ -53,6 +53,20 @@ export async function POST(req: NextRequest) {
     const plan = planWithMock(command, blocks);
     const injectionSuspected = blocks.some((b) => b.injectionSuspected);
 
+    // Honesty rule: when no simulated domain matched, the demo says so and
+    // shows how cosigno WOULD break the task down — it never substitutes a
+    // different canned mission or pretends to execute unsupported tools.
+    if (!plan.supported) {
+      return NextResponse.json({
+        unsupported: true,
+        message:
+          "the public demo currently simulates inbox, follow-up, and calendar missions. here's how cosigno would break your task down — but i won't pretend to execute tools that aren't connected.",
+        planPreview: plan.planPreview,
+        reasoning: null,
+        cards: [],
+      });
+    }
+
     const cards = plan.proposals.slice(0, 4).map((p) => {
       const tier = resolveTier(p.category, []);
       return {

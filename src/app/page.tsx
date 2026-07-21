@@ -41,7 +41,6 @@ export default function LandingPage() {
         <nav className="flex items-center gap-1 sm:gap-2">
           {[
             ["/product", "product"],
-            ["/operators", "operators"],
             ["/templates", "templates"],
             ["/security", "security"],
           ].map(([href, label]) => (
@@ -78,32 +77,37 @@ export default function LandingPage() {
         {/* 1 · Hero — outcome first. The result, not the mechanism. */}
         <section className="relative mx-auto grid min-h-[62dvh] w-full max-w-6xl content-center items-center gap-10 px-4 pb-16 pt-8 lg:min-h-[calc(100dvh-160px)] lg:grid-cols-2 lg:pt-8">
           <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-signal">
+              the AI operator that asks first
+            </p>
             <StaggerHeadline
-              text="tell cosigno what you need done."
-              className="font-display text-4xl font-bold leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.3rem]"
+              text="give cosigno the work. keep the final say."
+              className="mt-3 font-display text-4xl font-bold leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.3rem]"
             />
             <p className="mt-5 max-w-xl text-lg font-semibold text-ink-soft animate-word-in [animation-delay:520ms]">
-              cosigno makes the plan, uses your connected apps, handles the
-              work, and asks before anything important happens.
+              cosigno handles inbox, follow-ups, calendar work, and updates
+              across your apps — then stops for your signature before anything
+              important happens.
             </p>
-            <p className="mt-3 max-w-xl text-base font-bold animate-word-in [animation-delay:600ms]">
-              most AI gives you an answer. cosigno carries the task forward.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4 animate-word-in [animation-delay:700ms]">
+            <div className="mt-8 flex flex-wrap items-center gap-4 animate-word-in [animation-delay:600ms]">
               <Link
-                href="/sign-up"
+                href="/demo"
                 prefetch
                 className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95"
               >
-                give cosigno a task
+                try a real mission
               </Link>
               <a
                 href="#try"
                 className="text-base font-bold lowercase text-ink underline decoration-signal decoration-2 underline-offset-4 transition-colors hover:text-signal"
               >
-                watch cosigno work ↓
+                or try it right here ↓
               </a>
             </div>
+            <p className="mt-4 text-xs font-semibold text-ink-soft animate-word-in [animation-delay:700ms]">
+              no credit card · no installation required · simulated tools in the
+              demo · nothing sends without approval
+            </p>
           </div>
           <div className="flex justify-center lg:justify-end">
             <HeroSignatureCard />

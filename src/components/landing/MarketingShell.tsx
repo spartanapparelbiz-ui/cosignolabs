@@ -9,9 +9,10 @@ import { PricingLink } from "@/components/landing/Track";
  * auth, no client state; these pages must render for every anonymous visitor.
  */
 
+// "operators" describes internal architecture, not a customer decision — it
+// stays reachable at /operators but is out of the primary navigation.
 const NAV = [
   { href: "/product", label: "product" },
-  { href: "/operators", label: "operators" },
   { href: "/templates", label: "templates" },
   { href: "/security", label: "security" },
 ] as const;

@@ -1,67 +1,49 @@
-import { FileCheck2, PlayCircle } from "lucide-react";
+import Link from "next/link";
+import { ShieldAlert } from "lucide-react";
 
 /**
- * Proof band — the section the page was missing entirely. Three slots with a
- * permanent home so real proof drops straight in the moment it exists:
+ * Proof band — REAL assets only, per the proof rules: never "coming soon"
+ * inside a proof section, never a dressed-up placeholder. What's real today:
  *
- *   1. a real completed-action receipt (redacted screenshot of an actual
- *      executed action + payload + timestamp),
- *   2. a 60–90s demo video (the injected-email catch against a real tool),
- *   3. the builder line — one human sentence + @aethric.hq.
+ *   1. the live injected-email catch — the visitor can run it themselves,
+ *      right now, in the sandbox above (that IS the proof);
+ *   2. the builder line — one human sentence + @aethric.hq.
  *
- * Slots 1 and 2 are HONEST placeholders: labelled "coming" to the visitor,
- * never dressed up as a real receipt or a real recording. The builder line
- * is real today. Drop a redacted PNG into /public and a video id into the
- * embed to fill them — no layout shift, the frames are already sized.
+ * When a redacted production receipt or a real recording exists, it takes
+ * the open slot — until then the section stays honest and smaller.
  */
 export function ProofBand() {
   return (
-    <div className="mx-auto grid w-full max-w-5xl gap-5 md:grid-cols-3">
-      {/* 1 · real receipt slot */}
-      <figure className="flex flex-col rounded-card bg-surface p-5 shadow-soft ring-1 ring-inset ring-ink/10">
-        <div className="flex items-center gap-2 text-ink-soft">
-          <FileCheck2 size={16} strokeWidth={2.4} aria-hidden="true" />
-          <span className="text-[11px] font-bold lowercase tracking-wide">
-            executed-action receipt
-          </span>
-        </div>
-        {/* sized frame → no CLS when the real PNG lands */}
-        <div className="mt-3 flex aspect-[4/3] flex-col justify-between rounded-btn bg-cream-deep/70 p-3">
-          <div className="space-y-1.5">
-            <div className="h-2 w-2/3 rounded-full bg-ink/10" />
-            <div className="h-2 w-1/2 rounded-full bg-ink/10" />
+    <div className="mx-auto grid w-full max-w-4xl gap-5 md:grid-cols-2">
+      {/* 1 · runnable proof — the injection catch, live in this page */}
+      <figure className="flex flex-col justify-between rounded-card bg-surface p-5 shadow-soft ring-1 ring-inset ring-ink/10">
+        <div>
+          <div className="flex items-center gap-2 text-ink-soft">
+            <ShieldAlert size={16} strokeWidth={2.4} aria-hidden="true" />
+            <span className="text-[11px] font-bold lowercase tracking-wide">
+              proof you can run yourself
+            </span>
           </div>
-          <p className="font-mono text-[10px] leading-relaxed text-ink-soft/70">
-            gmail.archive · 47 matches
-            <br />
-            2026-07-xx · signed by you
+          <p className="mt-3 text-[15px] font-semibold leading-relaxed">
+            don&apos;t take a screenshot&apos;s word for it. in the sandbox
+            above, type{" "}
+            <code className="rounded bg-cream-deep px-1.5 py-0.5 font-mono text-[12px]">
+              check my mail
+            </code>{" "}
+            — a planted hostile email tries to hijack the agent, and you watch
+            cosigno flag and hold it. every card, every tier, every audit row
+            is the same code path the real product runs.
           </p>
         </div>
-        <figcaption className="mt-3 text-[11px] font-semibold lowercase text-ink-soft">
-          real redacted receipt — <span className="text-signal">coming with the founding cohort</span>
-        </figcaption>
+        <Link
+          href="#try"
+          className="mt-4 inline-block text-[13px] font-extrabold lowercase text-signal underline-offset-2 hover:underline"
+        >
+          run the injected-email catch ↑
+        </Link>
       </figure>
 
-      {/* 2 · demo video slot */}
-      <figure className="flex flex-col rounded-card bg-surface p-5 shadow-soft ring-1 ring-inset ring-ink/10">
-        <div className="flex items-center gap-2 text-ink-soft">
-          <PlayCircle size={16} strokeWidth={2.4} aria-hidden="true" />
-          <span className="text-[11px] font-bold lowercase tracking-wide">
-            90-second walkthrough
-          </span>
-        </div>
-        <div className="mt-3 flex aspect-[4/3] items-center justify-center rounded-btn bg-ink/[0.92]">
-          <span className="flex flex-col items-center gap-2 text-cream/70">
-            <PlayCircle size={34} strokeWidth={1.6} aria-hidden="true" />
-            <span className="text-[11px] font-semibold lowercase">the injected-email catch</span>
-          </span>
-        </div>
-        <figcaption className="mt-3 text-[11px] font-semibold lowercase text-ink-soft">
-          recorded against a real tool — <span className="text-signal">coming soon</span>
-        </figcaption>
-      </figure>
-
-      {/* 3 · builder line (real today) */}
+      {/* 2 · builder line (real today) */}
       <figure className="flex flex-col justify-between rounded-card bg-ink p-5 text-cream shadow-soft">
         <div>
           <span className="text-[11px] font-bold lowercase tracking-wide text-cream/60">

@@ -95,7 +95,7 @@ for (const vp of VIEWPORTS) {
     test("landing", async ({ page }) => {
       await page.goto("/", { waitUntil: "networkidle" });
       await expect(
-        page.getByRole("heading", { name: "tell cosigno what you need done." })
+        page.getByRole("heading", { name: "give cosigno the work. keep the final say." })
       ).toBeVisible();
       // Hero viewport capture FIRST, while the composed scene is pristine at
       // the top of the page — its floating cards use scroll-driven parallax,
@@ -140,15 +140,15 @@ for (const vp of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `pricing-${vp.name}.png`), fullPage: true });
     });
 
-    test("live preview: command palette + executed card + audit row", async ({ page }) => {
+    test("live preview: starter mission + isolation + honest unsupported answer", async ({ page }) => {
       await page.goto("/", { waitUntil: "networkidle" });
       const preview = page.locator("#sandbox");
       await preview.scrollIntoViewIfNeeded();
       // Wait for the lazy-loaded sandbox to hydrate.
       await expect(preview.getByText(/sandbox — simulated tools/)).toBeVisible();
-      // focusing the input opens the command palette; pick a grouped suggestion
-      await preview.getByPlaceholder(/type a command/).click();
-      await preview.getByRole("option", { name: "clear my inbox of newsletters" }).click();
+      // One-click starter mission (the spec'd demo opening state).
+      await preview.getByRole("button", { name: "clean my newsletter clutter" }).click();
+      await expect(preview.getByText(/mission:/).first()).toBeVisible();
       // A tier-1 card auto-executes; approve the tier-2 card too.
       await preview.getByRole("button", { name: "approve" }).first().click();
       await expect(preview.getByText(/simulated/i).first()).toBeVisible();
@@ -156,8 +156,18 @@ for (const vp of VIEWPORTS) {
       await preview.getByRole("button", { name: /what just happened/i }).first().click();
       await expect(preview.getByText(/audit_log/i)).toBeVisible();
       await noHorizontalScroll(page);
-      await preview.scrollIntoViewIfNeeded();
       await preview.screenshot({ path: join(OUT, `preview-${vp.name}.png`) });
+
+      // Mission isolation: an out-of-domain command becomes its OWN mission
+      // with an honest plan-only answer; the earlier mission collapses into
+      // history and its cards never mix into the new board.
+      await preview.getByLabel("sandbox command").fill("negotiate my office lease renewal");
+      await preview.getByRole("button", { name: "send" }).click();
+      await expect(preview.getByText(/won't pretend/i)).toBeVisible();
+      await expect(preview.getByText("previous missions")).toBeVisible();
+      // the newsletter cards live only in history now — no approve buttons on the board
+      await expect(preview.getByRole("button", { name: "approve" })).toHaveCount(0);
+      await preview.screenshot({ path: join(OUT, `preview-honest-${vp.name}.png`) });
     });
 
     test("landing interactive widgets", async ({ page }) => {
