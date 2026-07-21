@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Nunito_Sans } from "next/font/google";
+import { Fraunces, Nunito_Sans, Poppins } from "next/font/google";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -23,6 +23,17 @@ const fraunces = Fraunces({
   weight: ["600", "700"],
   display: "swap",
   fallback: ["Georgia", "serif"],
+  adjustFontFallback: true,
+});
+
+// Wordmark face — a geometric sans (perfect-circle bowls, single-story g) that
+// matches the cosigno logo identity. Used ONLY by the wordmark, not body text.
+const poppins = Poppins({
+  subsets: ["latin"],
+  variable: "--font-wordmark",
+  weight: ["700", "800"],
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
   adjustFontFallback: true,
 });
 
@@ -83,7 +94,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${nunito.variable} ${fraunces.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${nunito.variable} ${fraunces.variable} ${poppins.variable}`} suppressHydrationWarning>
       <head>
         {/* Set the theme before first paint so there's no flash of the wrong
             palette. Reads the saved preference (or the OS setting). */}

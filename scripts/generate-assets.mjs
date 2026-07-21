@@ -52,7 +52,7 @@ function adaptiveIconSvg({ size = 100, pad = 20 }) {
 
 /** "cosigno" wordmark with the orange i-dot, at (x,y) baseline. */
 function wordmark(x, y, fs, dotR, dotDx, dotDy, fill = INK) {
-  return `<text x="${x}" y="${y}" font-family="Nunito Sans, DejaVu Sans, sans-serif" font-weight="900" font-size="${fs}" letter-spacing="-2" fill="${fill}">cos<tspan>ı</tspan>gno</text>
+  return `<text x="${x}" y="${y}" font-family="Poppins, DejaVu Sans, sans-serif" font-weight="900" font-size="${fs}" letter-spacing="-2" fill="${fill}">cos<tspan>ı</tspan>gno</text>
   <circle cx="${x + dotDx}" cy="${y - dotDy}" r="${dotR}" fill="${SIGNAL}"/>`;
 }
 
@@ -80,7 +80,7 @@ function ogSvg() {
   <rect width="1200" height="630" fill="${CREAM}"/>
   <g transform="translate(600,232) scale(1.85) translate(-80,-80)">${markPaths(SIGNAL, INK)}</g>
   ${wordmark(600 - 158, 452, 88, 8, 150, 57, INK)}
-  <text x="600" y="524" text-anchor="middle" font-family="Nunito Sans, DejaVu Sans, sans-serif" font-weight="800" font-size="30" fill="${INK_SOFT}">the AI operator that asks first.</text>
+  <text x="600" y="524" text-anchor="middle" font-family="Poppins, DejaVu Sans, sans-serif" font-weight="800" font-size="30" fill="${INK_SOFT}">the AI operator that asks first.</text>
 </svg>`;
 }
 

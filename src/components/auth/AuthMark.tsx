@@ -24,7 +24,7 @@
  */
 
 const C_PATH = "M112 35C91 17 59 17 37 37C13 59 13 101 37 123C59 143 91 143 112 125";
-const CHECK_PATH = "M42 83L68 111L136 42";
+const CHECK_PATH = "M44 82L68 110L126 46";
 
 function clamp01(n: number): number {
   if (!Number.isFinite(n)) return 0;

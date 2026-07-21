@@ -2,7 +2,7 @@
   
   <g transform="translate(2,11) scale(0.42)">
   <path d="M112 35C91 17 59 17 37 37C13 59 13 101 37 123C59 143 91 143 112 125" fill="none" stroke="#FF4B22" stroke-width="22" stroke-linecap="round"/>
-  <path d="M42 83L68 111L136 42" fill="none" stroke="#171512" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/></g>
-  <text x="80" y="62" font-family="Nunito Sans, DejaVu Sans, sans-serif" font-weight="900" font-size="46" letter-spacing="-2" fill="#171512">cos<tspan>ı</tspan>gno</text>
+  <path d="M44 82L68 110L126 46" fill="none" stroke="#171512" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <text x="80" y="62" font-family="Poppins, DejaVu Sans, sans-serif" font-weight="900" font-size="46" letter-spacing="-2" fill="#171512">cos<tspan>ı</tspan>gno</text>
   <circle cx="158" cy="32" r="4.2" fill="#FF4B22"/>
 </svg>

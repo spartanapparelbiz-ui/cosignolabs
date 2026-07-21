@@ -26,9 +26,9 @@ export const C = {
 export const CHECK = {
   stroke: 20,
   points: [
-    [42, 83], // short tail
-    [68, 111], // vertex
-    [136, 42], // long arm bursting up-right through (and past) the opening
+    [44, 82], // short tail
+    [68, 110], // vertex
+    [126, 46], // long arm rising up-right through the opening
   ],
-  d: "M42 83L68 111L136 42",
+  d: "M44 82L68 110L126 46",
 };

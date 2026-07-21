@@ -71,7 +71,7 @@ const WARMING_HTML = `<!doctype html>
 <body>
   <svg viewBox="0 0 160 160" aria-hidden="true">
     <path d="M112 35C91 17 59 17 37 37C13 59 13 101 37 123C59 143 91 143 112 125" fill="none" stroke="#FF4B22" stroke-width="22" stroke-linecap="round"/>
-    <path class="tick" d="M42 83L68 111L136 42" fill="none" stroke="#171512" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <path class="tick" d="M44 82L68 110L126 46" fill="none" stroke="#171512" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
   <h1>cosigno is warming up</h1>
   <p>the workspace is being configured &mdash; back shortly.<br/>the rest of the site works right now &mdash; including the full demo.</p>

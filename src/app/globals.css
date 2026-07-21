@@ -49,9 +49,9 @@
 .cosigno-dot {
   position: absolute;
   left: 50%;
-  top: 0.02em;
-  height: 0.15em;
-  width: 0.15em;
+  top: 0.22em;
+  height: 0.16em;
+  width: 0.16em;
   transform: translateX(-50%);
   border-radius: 9999px;
   background: var(--logo-dot);
