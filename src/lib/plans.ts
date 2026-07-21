@@ -125,3 +125,24 @@ export function priceLabel(plan: Plan, interval: Interval): string {
     ? `$${plan.price.annual}/yr`
     : `$${plan.price.monthly}/mo`;
 }
+
+/**
+ * The first-month intro price for pro. The real discount is applied by a Stripe
+ * coupon (see promos.introCoupon); this constant is only the number shown to the
+ * customer, kept here so pricing copy has a single source.
+ */
+export const INTRO_FIRST_MONTH_PRICE = 9;
+
+/** The quota bullet, derived from actionLimit, e.g. "1,000 actions / month". */
+export function actionLimitLabel(plan: Plan): string {
+  return `${plan.actionLimit.toLocaleString()} actions / month`;
+}
+
+/**
+ * The ONE canonical intro-offer sentence, used everywhere the first-month
+ * promotion is mentioned so no two places can disagree:
+ * "first month $9, then $29/mo".
+ */
+export function introOfferLabel(): string {
+  return `first month $${INTRO_FIRST_MONTH_PRICE}, then ${priceLabel(PLANS.pro, "monthly")}`;
+}

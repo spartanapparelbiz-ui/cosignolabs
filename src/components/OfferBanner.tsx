@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { track } from "@/lib/analytics";
+import { INTRO_FIRST_MONTH_PRICE, PLANS } from "@/lib/plans";
 
 interface Offers {
   usageOffer: boolean;
@@ -41,8 +42,8 @@ export function OfferBanner() {
     event = "offer_usage";
     body = (
       <>
-        you&apos;ve used all 25 free actions this week — keep going with{" "}
-        <span className="font-extrabold">pro for $9 your first month</span>.
+        you&apos;ve used all {PLANS.free.actionLimit} free actions this month — keep going with{" "}
+        <span className="font-extrabold">pro for ${INTRO_FIRST_MONTH_PRICE} your first month</span>.
       </>
     );
   } else if (offers.annualNudge) {

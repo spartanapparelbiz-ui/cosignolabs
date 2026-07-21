@@ -124,10 +124,10 @@ export default function TemplatesPage() {
                     {t.approvals}
                   </p>
                   <Link
-                    href="/demo"
+                    href={`/demo?task=${encodeURIComponent(t.command)}`}
                     className="mt-auto pt-3 text-xs font-bold lowercase underline decoration-signal underline-offset-4 hover:text-signal"
                   >
-                    try it in the demo dashboard →
+                    try this in the demo dashboard →
                   </Link>
                 </Reveal>
               ))}

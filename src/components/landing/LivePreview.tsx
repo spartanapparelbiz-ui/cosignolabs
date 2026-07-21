@@ -1,21 +1,31 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Lock, Pencil, ShieldAlert, Search } from "lucide-react";
+import { Lock, Pencil, RotateCcw, ShieldAlert, Search } from "lucide-react";
 import { CREAM } from "@/lib/brand";
 import { track } from "@/lib/analytics";
+import {
+  DEMO_IRREVERSIBLE,
+  demoInitialStatus,
+  demoNormalizeCommand,
+  demoResolveEnter,
+} from "@/lib/demoAuthority";
 
 /**
- * The landing-page sandbox: the real approval loop against simulated tools.
- * Cards live in this component's state only — reload and they're gone. The
- * backing route is stateless and physically cannot reach the model or the
+ * The landing-page + /demo sandbox: the real approval loop against simulated
+ * tools. Cards live in this component's state only — reload and they're gone.
+ * The backing route is stateless and physically cannot reach the model or the
  * database (see /api/preview).
  *
- * Interactivity: a command palette (press "/" or focus the input) with six
- * grouped suggestions, arrow-key navigable; a "what just happened" expander
- * on each executed card revealing the audit row that was written; and a
- * shareable outcome link once the session cap is reached.
+ * Authority behavior mirrors the real product exactly:
+ *   - Tier 1 (read-only: search / summarize / draft) runs AUTOMATICALLY and
+ *     reads "completed automatically" — it never asks for approval.
+ *   - Tier 2 (send / post / update) waits for an explicit approval.
+ *   - Tier 3 (delete / refund / payment) is locked: it needs a typed
+ *     confirmation of the action name before it can execute.
+ * Executed cards become receipts. Nothing here can hang: planning has a hard
+ * timeout with a retry, and every path resets the busy state.
  */
 
 interface PaletteItem {
@@ -33,6 +43,8 @@ const PALETTE: PaletteItem[] = [
 ];
 
 const MAX_COMMANDS = 5;
+/** Hard client-side ceiling so planning can never appear stuck. */
+const PLAN_TIMEOUT_MS = 9000;
 
 interface PreviewCard {
   id: string;
@@ -45,7 +57,7 @@ interface PreviewCard {
   status: "proposed" | "executing" | "executed" | "vetoed";
   result?: string;
   error?: string;
-  /** how it resolved, for the audit row */
+  /** how it resolved, for the receipt + audit row */
   audit?: { via: "auto" | "approved"; at: string };
 }
 
@@ -63,6 +75,8 @@ const RESULTS: Record<string, string> = {
   payment: "payment sent (simulated).",
 };
 
+const TIER_LABEL: Record<1 | 2 | 3, string> = { 1: "auto", 2: "approve", 3: "locked" };
+
 function TierChip({ tier }: { tier: 1 | 2 | 3 }) {
   return (
     <span
@@ -75,17 +89,44 @@ function TierChip({ tier }: { tier: 1 | 2 | 3 }) {
       }`}
     >
       {tier === 3 && <Lock size={9} strokeWidth={2.5} aria-hidden="true" />}
-      tier {tier} · {tier === 1 ? "auto" : tier === 2 ? "approve" : "locked"}
+      tier {tier} · {TIER_LABEL[tier]}
     </span>
   );
 }
 
-export default function LivePreview() {
+/** The status pill — worded by tier so a tier-1 read never says "awaiting you". */
+function StatusPill({ card }: { card: PreviewCard }) {
+  let label: string;
+  let cls = "bg-cream-deep text-ink-soft";
+  if (card.status === "executed") {
+    label = card.tier === 1 && card.audit?.via === "auto" ? "completed automatically" : "receipt";
+    cls = "bg-signal text-cream";
+  } else if (card.status === "executing") {
+    label = card.tier === 1 ? "running automatically…" : "executing…";
+  } else if (card.injection_flag) {
+    label = "held for review";
+    cls = "bg-ink text-cream";
+  } else if (card.tier === 1) {
+    label = "read-only";
+  } else if (card.tier === 3) {
+    label = "locked — needs confirmation";
+    cls = "ring-1 ring-inset ring-ink/40 text-ink";
+  } else {
+    label = "needs your approval";
+    cls = "ring-1 ring-inset ring-signal/50 text-signal";
+  }
+  return (
+    <span className={`rounded-pill px-2 py-0.5 text-[10px] font-bold lowercase ${cls}`}>{label}</span>
+  );
+}
+
+export default function LivePreview({ initialCommand }: { initialCommand?: string } = {}) {
   const [cards, setCards] = useState<PreviewCard[]>([]);
   const [reasoning, setReasoning] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCmd, setRetryCmd] = useState<string | null>(null);
   const [used, setUsed] = useState(0);
   const [approvals, setApprovals] = useState(0);
   const [confirmFor, setConfirmFor] = useState<string | null>(null);
@@ -98,8 +139,88 @@ export default function LivePreview() {
 
   const capped = used >= MAX_COMMANDS;
 
-  // "/" focuses the sandbox input and opens the palette, unless the visitor
-  // is already typing in a field elsewhere on the page.
+  function patch(id: string, p: Partial<PreviewCard>) {
+    setCards((cs) => cs.map((c) => (c.id === id ? { ...c, ...p } : c)));
+  }
+
+  const execute = useCallback((id: string, category: string, via: "auto" | "approved") => {
+    patch(id, { status: "executing" });
+    setTimeout(() => {
+      patch(id, {
+        status: "executed",
+        result: RESULTS[category] ?? "done (simulated).",
+        audit: { via, at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
+      });
+    }, 600);
+  }, []);
+
+  const run = useCallback(
+    async (command: string) => {
+      const cmd = demoNormalizeCommand(command);
+      if (!cmd || busy || capped) return;
+      setPaletteOpen(false);
+      setBusy(true);
+      setError(null);
+      setRetryCmd(null);
+      setInput("");
+      track("preview_command");
+
+      // Hard timeout so "planning…" can never persist indefinitely.
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), PLAN_TIMEOUT_MS);
+      try {
+        const res = await fetch("/api/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ command: cmd }),
+          signal: controller.signal,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || "the sandbox hiccuped — try again.");
+        setUsed((u) => u + 1);
+        setReasoning(data.reasoning ?? null);
+        const fresh: PreviewCard[] = (data.cards ?? []).map((c: Omit<PreviewCard, "status">) => ({
+          ...c,
+          // Tier-1 read-only actions run automatically — they never enter the
+          // "proposed" (approve/veto) state. Injection-flagged cards are always
+          // held, whatever their tier.
+          status: demoInitialStatus(c.tier, c.injection_flag),
+        }));
+        setCards((cs) => [...fresh, ...cs]);
+        for (const c of fresh) {
+          if (c.status === "executing") execute(c.id, c.category, "auto");
+        }
+      } catch (err) {
+        const aborted = err instanceof DOMException && err.name === "AbortError";
+        setError(
+          aborted
+            ? "planning took too long — the sandbox timed out. try again."
+            : err instanceof Error
+              ? err.message
+              : "the sandbox hiccuped — try again."
+        );
+        setRetryCmd(cmd);
+        setInput(cmd);
+      } finally {
+        clearTimeout(timer);
+        setBusy(false);
+      }
+    },
+    [busy, capped, execute]
+  );
+
+  // Templates deep-link a command in: load it into the input, ready to send.
+  useEffect(() => {
+    if (initialCommand && !capped) {
+      setInput(initialCommand.slice(0, 200));
+      inputRef.current?.focus();
+    }
+    // run once on mount for the given command
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // "/" focuses the sandbox input and opens the palette, unless the visitor is
+  // already typing in a field elsewhere on the page.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (
@@ -115,57 +236,6 @@ export default function LivePreview() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [capped]);
-
-  function patch(id: string, p: Partial<PreviewCard>) {
-    setCards((cs) => cs.map((c) => (c.id === id ? { ...c, ...p } : c)));
-  }
-
-  async function run(command: string) {
-    const cmd = command.trim().slice(0, 200);
-    if (!cmd || busy || capped) return;
-    setPaletteOpen(false);
-    setBusy(true);
-    setError(null);
-    setInput("");
-    track("preview_command");
-    try {
-      const res = await fetch("/api/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command: cmd }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "the sandbox hiccuped — try again.");
-      setUsed((u) => u + 1);
-      setReasoning(data.reasoning);
-      const fresh: PreviewCard[] = data.cards.map((c: Omit<PreviewCard, "status">) => ({
-        ...c,
-        status: "proposed" as const,
-      }));
-      setCards((cs) => [...fresh, ...cs]);
-      for (const c of fresh) {
-        if (c.tier === 1 && !c.injection_flag) {
-          setTimeout(() => execute(c.id, c.category, "auto"), 700);
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "the sandbox hiccuped — try again.");
-      setInput(cmd);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function execute(id: string, category: string, via: "auto" | "approved") {
-    patch(id, { status: "executing" });
-    setTimeout(() => {
-      patch(id, {
-        status: "executed",
-        result: RESULTS[category] ?? "done (simulated).",
-        audit: { via, at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
-      });
-    }, 650);
-  }
 
   function approve(card: PreviewCard) {
     if (card.injection_flag) {
@@ -207,7 +277,7 @@ export default function LivePreview() {
 
   async function copyShare() {
     const url =
-      typeof window !== "undefined" ? `${window.location.origin}/#try` : "https://cosignolabs.com/#try";
+      typeof window !== "undefined" ? `${window.location.origin}/demo` : "https://cosignolabs.com/demo";
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -234,13 +304,17 @@ export default function LivePreview() {
         setPaletteOpen(false);
         return;
       }
-      if (e.key === "Enter" && !input.trim()) {
-        e.preventDefault();
-        run(PALETTE[paletteIdx].command);
-        return;
-      }
     }
-    if (e.key === "Enter") run(input);
+    if (e.key !== "Enter") return;
+    // Central rule: a highlighted suggestion wins over an empty/"/" input;
+    // never submit "/" as a command.
+    const decision = demoResolveEnter({ input, paletteOpen, paletteIdx, paletteLen: PALETTE.length });
+    if (decision.kind === "palette") {
+      e.preventDefault();
+      run(PALETTE[decision.index].command);
+    } else if (decision.kind === "typed") {
+      run(decision.command);
+    }
   }
 
   return (
@@ -249,8 +323,8 @@ export default function LivePreview() {
         <span className="rounded-pill bg-cream-deep px-2.5 py-1 text-[10px] font-bold lowercase tracking-widest text-ink-soft">
           sandbox — simulated tools
         </span>
-        <span className="ml-auto text-[11px] text-ink-soft">
-          {capped ? "session cap reached" : `${MAX_COMMANDS - used} commands left`}
+        <span className="ml-auto text-[11px] font-semibold text-ink-soft">
+          {capped ? "session cap reached" : `${MAX_COMMANDS - used} of ${MAX_COMMANDS} demo missions left`}
         </span>
       </div>
 
@@ -273,8 +347,8 @@ export default function LivePreview() {
                   onBlur={() => setTimeout(() => setPaletteOpen(false), 120)}
                   onKeyDown={onInputKeyDown}
                   maxLength={200}
-                  placeholder='type a command, or press "/" for suggestions'
-                  className="w-full rounded-btn bg-cream-deep py-2 pl-9 pr-3 text-sm font-semibold placeholder:text-ink-soft/60"
+                  placeholder="type a command, or pick one below"
+                  className="w-full rounded-btn bg-cream-deep py-2 pl-9 pr-3 text-sm font-semibold placeholder:text-ink-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
                   aria-label="sandbox command"
                   role="combobox"
                   aria-expanded={paletteOpen}
@@ -284,13 +358,13 @@ export default function LivePreview() {
               <button
                 onClick={() => run(input)}
                 disabled={busy || !input.trim()}
-                className="rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream transition-transform active:scale-95 disabled:opacity-40"
+                className="min-h-[40px] rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream transition-transform active:scale-95 disabled:opacity-40"
               >
                 {busy ? "planning…" : "send"}
               </button>
             </div>
 
-            {/* command palette */}
+            {/* command palette (power-user shortcut; visible buttons below are primary) */}
             {paletteOpen && (
               <div
                 id="preview-palette"
@@ -329,6 +403,23 @@ export default function LivePreview() {
               </div>
             )}
           </div>
+
+          {/* six ALWAYS-VISIBLE suggestions — no keyboard knowledge needed */}
+          <div className="mt-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">try one</p>
+            <div className="mt-1.5 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              {PALETTE.map((item) => (
+                <button
+                  key={item.command}
+                  onClick={() => run(item.command)}
+                  disabled={busy}
+                  className="min-h-[40px] rounded-btn bg-cream-deep px-3 py-2 text-left text-xs font-semibold text-ink transition-colors hover:bg-signal/10 disabled:opacity-50"
+                >
+                  {item.command}
+                </button>
+              ))}
+            </div>
+          </div>
         </>
       ) : (
         <div className="mt-4 rounded-card bg-cream-deep p-4 text-center">
@@ -338,10 +429,11 @@ export default function LivePreview() {
           <p className="mt-1 text-xs text-ink-soft">want it on your real tools?</p>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
             <Link
-              href="#beta"
+              href="/sign-up"
+              prefetch
               className="inline-flex min-h-[44px] items-center rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink transition-transform hover:scale-[1.02]"
             >
-              apply for the founding beta
+              start free
             </Link>
             <button
               onClick={copyShare}
@@ -354,9 +446,18 @@ export default function LivePreview() {
       )}
 
       {error && (
-        <p className="mt-3 rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold" role="alert">
-          {error}
-        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold" role="alert">
+          <span>{error}</span>
+          {retryCmd && (
+            <button
+              onClick={() => run(retryCmd)}
+              disabled={busy}
+              className="inline-flex items-center gap-1 rounded-pill bg-ink px-2.5 py-1 text-[11px] font-bold lowercase text-cream disabled:opacity-50"
+            >
+              <RotateCcw size={11} aria-hidden="true" /> retry
+            </button>
+          )}
+        </div>
       )}
 
       {reasoning && (
@@ -386,19 +487,7 @@ export default function LivePreview() {
             >
               <div className="flex flex-wrap items-center gap-2">
                 <TierChip tier={card.tier} />
-                <span
-                  className={`rounded-pill px-2 py-0.5 text-[10px] font-bold lowercase ${
-                    card.status === "executed"
-                      ? "bg-signal text-cream"
-                      : "bg-cream-deep text-ink-soft"
-                  }`}
-                >
-                  {card.status === "proposed"
-                    ? "awaiting your sign-off"
-                    : card.status === "executing"
-                      ? "executing…"
-                      : "executed"}
-                </span>
+                <StatusPill card={card} />
               </div>
 
               {card.injection_flag && (
@@ -424,6 +513,14 @@ export default function LivePreview() {
                 </p>
               )}
 
+              {/* Tier-1 read-only note — it runs on its own, never asks. */}
+              {card.tier === 1 && !card.injection_flag && card.status !== "executed" && (
+                <p className="mt-2 text-[11px] font-semibold text-ink-soft">
+                  read-only — runs automatically, no approval needed.
+                </p>
+              )}
+
+              {/* Tier-3 typed confirmation */}
               {card.status === "proposed" && confirmFor === card.id && (
                 <div className="mt-2 rounded-btn bg-cream-deep p-2.5">
                   <p className="text-[11px] font-bold">
@@ -439,38 +536,48 @@ export default function LivePreview() {
                 </div>
               )}
 
+              {/* Controls: only tier-2/3 (and held-injection dismiss) ever show these. */}
               {card.status === "proposed" && (
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    onClick={() => approve(card)}
-                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink transition-transform hover:scale-[1.03] active:scale-95"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path
-                        d="M4.5 12.5 10 18 20 6.5"
-                        stroke="currentColor"
-                        strokeWidth="3.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    {confirmFor === card.id ? "confirm & approve" : "approve"}
-                  </button>
+                  {!card.injection_flag && (
+                    <button
+                      onClick={() => approve(card)}
+                      className="inline-flex min-h-[40px] items-center gap-1.5 rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink transition-transform hover:scale-[1.03] active:scale-95"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M4.5 12.5 10 18 20 6.5"
+                          stroke="currentColor"
+                          strokeWidth="3.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      {card.tier === 3
+                        ? confirmFor === card.id
+                          ? "confirm & approve"
+                          : "review & confirm"
+                        : "approve"}
+                    </button>
+                  )}
                   <button
                     onClick={() => patch(card.id, { status: "vetoed" })}
                     className="min-h-[40px] rounded-btn px-3.5 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
                   >
-                    veto
+                    {card.injection_flag ? "dismiss" : "veto"}
                   </button>
-                  <span className="inline-flex items-center gap-1 text-[10px] lowercase text-ink-soft">
-                    <Pencil size={10} aria-hidden="true" /> edit lives in the full app
-                  </span>
+                  {!card.injection_flag && (
+                    <span className="inline-flex items-center gap-1 text-[10px] lowercase text-ink-soft">
+                      <Pencil size={10} aria-hidden="true" /> edit lives in the full app
+                    </span>
+                  )}
                 </div>
               )}
 
+              {/* Executed → RECEIPT */}
               {card.status === "executed" && (
-                <>
-                  <div className="mt-2.5 flex items-center gap-1.5 text-signal">
+                <div className="mt-2.5">
+                  <div className="flex items-center gap-1.5 text-signal">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="animate-check-pop" aria-hidden="true">
                       <circle cx="12" cy="12" r="11" fill="currentColor" />
                       <path
@@ -485,6 +592,30 @@ export default function LivePreview() {
                     </svg>
                     <span className="text-[11px] font-extrabold lowercase">{card.result}</span>
                   </div>
+                  <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 rounded-btn bg-cream-deep/60 px-3 py-2 text-[10px]">
+                    <div>
+                      <dt className="font-bold uppercase tracking-wide text-ink-soft">completed</dt>
+                      <dd className="font-semibold">{card.audit?.at}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-bold uppercase tracking-wide text-ink-soft">approved by</dt>
+                      <dd className="font-semibold">
+                        {card.audit?.via === "auto"
+                          ? "automatic (read-only)"
+                          : card.tier === 3
+                            ? "typed confirmation"
+                            : "you — approved"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-bold uppercase tracking-wide text-ink-soft">reversible</dt>
+                      <dd className="font-semibold">{DEMO_IRREVERSIBLE.has(card.category) ? "irreversible" : "reversible"}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-bold uppercase tracking-wide text-ink-soft">reference</dt>
+                      <dd className="truncate font-mono font-semibold" title={card.id}>#{card.id.slice(0, 8)}</dd>
+                    </div>
+                  </dl>
                   {/* what just happened — the audit row that was written */}
                   <button
                     onClick={() => toggleAudit(card.id)}
@@ -505,7 +636,7 @@ export default function LivePreview() {
 }`}
                     </pre>
                   )}
-                </>
+                </div>
               )}
             </article>
           )

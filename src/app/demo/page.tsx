@@ -26,7 +26,13 @@ const LivePreview = dynamic(() => import("@/components/landing/LivePreview"), {
  * browser, nothing external ever moves. Demo data can never mix with live
  * data because there is no account here at all.
  */
-export default function DemoPage() {
+export default async function DemoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ task?: string }>;
+}) {
+  const { task } = await searchParams;
+  const initialCommand = typeof task === "string" ? task.slice(0, 200) : undefined;
   return (
     <div className="flex min-h-screen [min-height:100dvh] flex-col overflow-x-hidden">
       <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
@@ -67,7 +73,7 @@ export default function DemoPage() {
         </div>
 
         <div className="mt-8 flex-1">
-          <LivePreview />
+          <LivePreview initialCommand={initialCommand} />
         </div>
 
         <p className="mx-auto mt-8 max-w-xl text-center text-xs font-semibold text-ink-soft">

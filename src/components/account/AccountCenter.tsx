@@ -13,6 +13,7 @@ import {
   UserRound,
 } from "lucide-react";
 import type { AccountAuditRecord, ActionRecord, CategoryMeta, Tier, UsageRecord } from "@/lib/types";
+import { PLANS, priceLabel } from "@/lib/plans";
 import { SkeletonRows } from "@/components/Skeleton";
 import { useKeyboardHints } from "@/lib/useKeyboardHints";
 import { useDisplayName, initialsFor } from "@/lib/theme";
@@ -611,11 +612,13 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
                 <div className="mt-4 rounded-btn bg-cream-deep p-4">
                   <p className="text-sm font-bold lowercase">pro unlocks more room</p>
                   <ul className="mt-2 flex flex-col gap-1 text-xs text-ink-soft">
-                    <li>1,000 actions / month</li><li>unlimited integrations</li><li>CSV export &amp; priority planning</li>
+                    {PLANS.pro.features.map((f) => (
+                      <li key={f}>{f}</li>
+                    ))}
                   </ul>
                   <button onClick={() => go("upgrade")} disabled={busy === "upgrade"} className="group relative mt-3 inline-flex overflow-hidden rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold text-cream disabled:opacity-60">
                     <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-[280ms] ease-brand-out group-hover:scale-x-100" />
-                    <span className="relative transition-colors group-hover:text-ink">{busy === "upgrade" ? "starting…" : "upgrade to pro — $29/mo"}</span>
+                    <span className="relative transition-colors group-hover:text-ink">{busy === "upgrade" ? "starting…" : `upgrade to pro — ${priceLabel(PLANS.pro, "monthly")}`}</span>
                   </button>
                 </div>
               ) : (

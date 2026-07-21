@@ -27,7 +27,7 @@ const fraunces = Fraunces({
 });
 
 const DESCRIPTION =
-  "cosigno plans, drafts, and executes across your tools — and nothing moves without your signature.";
+  "give cosigno a task, review the important actions, and let it handle the work across your connected tools. nothing sends, changes, or spends until you approve it.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://cosignolabs.com"),

@@ -231,7 +231,7 @@ export function BetaForm() {
         </span>
       </button>
       <p className="text-center text-xs text-ink-soft">
-        the founding cohort locks pro at $29/mo. applications reviewed weekly.
+        we shape the first integrations around your workflow. applications reviewed weekly.
       </p>
     </form>
   );

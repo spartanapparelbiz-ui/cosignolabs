@@ -1,6 +1,6 @@
 import { getUserPlan } from "./billing";
 import { plannerModel, type PlannerTier } from "./agent/provider";
-import { PLANS } from "./plans";
+import { PLANS, priceLabel } from "./plans";
 import { logInfo, logSecurity } from "./log";
 import { ApiError } from "./api";
 import { getStore } from "./store";
@@ -11,15 +11,19 @@ export async function effectiveActionLimit(userId: string): Promise<number> {
   return plan.actionLimit;
 }
 
-/** Plan-aware copy shown when the action limit is reached. */
+/** Plan-aware copy shown when the action limit is reached — derived from plans.ts. */
 export function usageLimitMessage(planId: string): string {
+  const free = PLANS.free.actionLimit.toLocaleString();
+  const pro = PLANS.pro.actionLimit.toLocaleString();
+  const max = PLANS.max.actionLimit.toLocaleString();
+  const proPrice = priceLabel(PLANS.pro, "monthly");
   if (planId === "free") {
-    return "you've used your 25 actions this month. pro is $29/mo for 1,000.";
+    return `you've used your ${free} actions this month. pro is ${proPrice} for ${pro}.`;
   }
   if (planId === "pro") {
-    return "you've hit this month's 1,000 actions. max raises the ceiling to 10,000.";
+    return `you've hit this month's ${pro} actions. max raises the ceiling to ${max}.`;
   }
-  return "you've hit this month's 10,000 actions. reach out and we'll raise your ceiling.";
+  return `you've hit this month's ${max} actions. reach out and we'll raise your ceiling.`;
 }
 
 /**
@@ -50,7 +54,7 @@ export async function assertIntegrationCapacity(
       402,
       "upgrade_required",
       planId === "free"
-        ? "free connects one integration. pro is $29/mo for unlimited."
+        ? `free connects one integration. pro is ${priceLabel(PLANS.pro, "monthly")} for unlimited.`
         : "you've reached your plan's connection limit."
     );
   }

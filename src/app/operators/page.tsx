@@ -4,7 +4,7 @@ import { MarketingShell } from "@/components/landing/MarketingShell";
 import { Reveal } from "@/components/Reveal";
 
 export const metadata: Metadata = {
-  title: "cosigno — operators",
+  title: "cosigno — what cosigno can do",
   description:
     "the specialist capabilities cosigno routes your missions through — each with a defined job, real tools, and a hard authority ceiling.",
   alternates: { canonical: "https://cosignolabs.com/operators" },
@@ -74,7 +74,7 @@ export default function OperatorsPage() {
     <MarketingShell current="/operators">
       <section className="mx-auto w-full max-w-4xl px-4 pb-10 pt-10 text-center">
         <h1 className="font-display text-4xl font-bold lowercase tracking-tight sm:text-5xl">
-          one operator, many specialists
+          what cosigno can do
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg font-semibold text-ink-soft">
           when you give cosigno a mission, the planner routes the work through

@@ -4,12 +4,12 @@ import { LivingLockup, LivingMark, LogoHome } from "@/components/brand/LivingLog
 import { BetaForm } from "@/components/landing/BetaForm";
 import { HeroSignatureCard } from "@/components/landing/HeroSignatureCard";
 import { ProofBand } from "@/components/landing/ProofBand";
-import { StaggerHeadline } from "@/components/landing/StaggerHeadline";
 import { BenefitGlyph } from "@/components/landing/BenefitGlyphs";
 import { CheckDivider } from "@/components/landing/CheckDivider";
 import { Island } from "@/components/landing/Island";
 import { ApplyViewTracker, PricingLink } from "@/components/landing/Track";
 import { Reveal } from "@/components/Reveal";
+import { PLANS, introOfferLabel, priceLabel } from "@/lib/plans";
 
 // The sandbox is below the fold — lazy-loaded so it never touches LCP.
 const LivePreview = dynamic(() => import("@/components/landing/LivePreview"), {
@@ -41,8 +41,8 @@ export default function LandingPage() {
         <nav className="flex items-center gap-1 sm:gap-2">
           {[
             ["/product", "product"],
-            ["/operators", "operators"],
-            ["/templates", "templates"],
+            ["/operators", "capabilities"],
+            ["/templates", "use cases"],
             ["/security", "security"],
           ].map(([href, label]) => (
             <Link
@@ -69,7 +69,7 @@ export default function LandingPage() {
             prefetch
             className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-all duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
           >
-            start free
+            try cosigno
           </Link>
         </nav>
       </header>
@@ -78,24 +78,27 @@ export default function LandingPage() {
         {/* 1 · Hero — outcome first. The result, not the mechanism. */}
         <section className="relative mx-auto grid min-h-[62dvh] w-full max-w-6xl content-center items-center gap-10 px-4 pb-16 pt-8 lg:min-h-[calc(100dvh-160px)] lg:grid-cols-2 lg:pt-8">
           <div>
-            <StaggerHeadline
-              text="tell cosigno what you need done."
-              className="font-display text-4xl font-bold leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.3rem]"
-            />
-            <p className="mt-5 max-w-xl text-lg font-semibold text-ink-soft animate-word-in [animation-delay:520ms]">
-              cosigno makes the plan, uses your connected apps, handles the
-              work, and asks before anything important happens.
+            {/* The full promise is visible immediately — no word-by-word entrance.
+                A single, fast whole-block fade (< 700ms) that never gates reading. */}
+            <h1 className="font-display text-4xl font-bold leading-[1.06] tracking-tight animate-word-in sm:text-5xl lg:text-[3.3rem]">
+              give cosigno a task.
+              <br />
+              approve what matters.
+              <br />
+              it handles the rest.
+            </h1>
+            <p className="mt-5 max-w-xl text-lg font-semibold text-ink-soft animate-word-in [animation-delay:120ms]">
+              clear your inbox, prepare meetings, follow up, research decisions,
+              and update your tools from one command. nothing sends, changes, or
+              spends until you approve it.
             </p>
-            <p className="mt-3 max-w-xl text-base font-bold animate-word-in [animation-delay:600ms]">
-              most AI gives you an answer. cosigno carries the task forward.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4 animate-word-in [animation-delay:700ms]">
+            <div className="mt-8 flex flex-wrap items-center gap-4 animate-word-in [animation-delay:220ms]">
               <Link
-                href="/sign-up"
+                href="/demo"
                 prefetch
                 className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95"
               >
-                give cosigno a task
+                try a task now
               </Link>
               <a
                 href="#try"
@@ -159,15 +162,15 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* 3 · Proof band — receipt · video · builder */}
+        {/* 3 · Who's building this — real founder info (no placeholder "proof") */}
         <section className="mx-auto w-full max-w-6xl px-4 py-16">
           <Reveal className="text-center">
             <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
-              proof, not promises
+              built in the open
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm font-semibold text-ink-soft">
-              we don&apos;t fake receipts. here&apos;s the real thing as it
-              lands, and the human building it.
+              no fabricated receipts, logos, or testimonials. the real proof is
+              the demo above — and the person building it.
             </p>
           </Reveal>
           <div className="mt-10">
@@ -294,9 +297,9 @@ export default function LandingPage() {
             <div className="mt-6">
               <BetaForm />
             </div>
-            {/* the single, de-emphasised pricing mention on the page */}
+            {/* the single, de-emphasised pricing mention on the page — one offer, everywhere */}
             <p className="mt-5 text-center text-xs font-semibold text-ink-soft">
-              the founding cohort locks pro at $29/mo.{" "}
+              pro is {priceLabel(PLANS.pro, "monthly")} — {introOfferLabel()}.{" "}
               <PricingLink className="underline decoration-signal underline-offset-2 hover:text-ink">
                 see what&apos;s included
               </PricingLink>
