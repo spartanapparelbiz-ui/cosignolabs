@@ -15,6 +15,14 @@
   --c-line: 228 217 200;
   --c-signal: 255 75 31;
   --c-surface: 255 255 255;
+
+  /* Logo identity tokens — exact brand values, independent of the product
+     palette so the mark renders identically everywhere and flips with the
+     theme without a flash (data-theme is set before paint). Light: orange C,
+     ink check + wordmark, orange i-dot. */
+  --logo-orange: #ff4b22;
+  --logo-fg: #171512; /* integrated check */
+  --logo-word: #171512; /* wordmark */
 }
 
 :root[data-theme="dark"] {
@@ -26,6 +34,10 @@
   --c-line: 58 52 43; /* hairline borders */
   --c-signal: 255 99 64; /* the orange lifts a touch so it pops on dark */
   --c-surface: 34 30 24; /* raised cards, one step above the page */
+
+  /* Dark: orange C, CREAM check + wordmark, orange i-dot. */
+  --logo-fg: #f7f0e5;
+  --logo-word: #f7f0e5;
 }
 
 /* A smooth cross-fade when the theme is toggled (only fires on change, since

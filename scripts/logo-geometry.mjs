@@ -8,8 +8,12 @@
 // signal dot that sits over the "i" in the wordmark. On dark surfaces the
 // check flips to cream; the C and the dot stay orange in every variant.
 
-export const INK = "#141414";
-export const SIGNAL = "#FF4B1F";
+// Exact rebrand tokens (see BRAND.md / src/lib/brand.ts LOGO_*).
+export const INK = "#171512"; // integrated check + wordmark (light)
+export const SIGNAL = "#FF4B22"; // the C (and the i-dot)
+export const CREAM = "#F7F0E5"; // check + wordmark on dark
+export const WHITE = "#FFFFFF"; // wordmark on OLED
+export const BLACK = "#090909"; // OLED background
 
 // C — stroked arc, opening centered on the right (0deg), gap +/-33deg.
 export const C = {

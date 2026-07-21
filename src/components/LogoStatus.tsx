@@ -1,6 +1,5 @@
 "use client";
 
-import { INK, SIGNAL } from "@/lib/brand";
 
 /**
  * The Cosigno mark as the workspace's live status indicator — the logo IS
@@ -122,7 +121,7 @@ export function LogoStatus({
           >
             <path
               d={C_PATH}
-              stroke={SIGNAL}
+              stroke="var(--logo-orange)"
               strokeWidth={26}
               strokeLinecap="round"
             />
@@ -146,7 +145,7 @@ export function LogoStatus({
             )}
             <path
               d={CHECK_PATH}
-              stroke={INK}
+              stroke="var(--logo-fg)"
               strokeWidth={17}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -164,8 +163,6 @@ export function LogoStatus({
                     : undefined,
               }}
             />
-            {/* the signal accent dot */}
-            <circle cx={72} cy={18} r={7} fill={SIGNAL} style={{ opacity: "var(--ls-check)" }} />
           </svg>
         </span>
       </span>

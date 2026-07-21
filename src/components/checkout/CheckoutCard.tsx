@@ -218,7 +218,6 @@ export function CheckoutCard({ state, scale = 1 }: { state: CardState; scale?: n
                   <svg width="26" height="26" viewBox="0 0 100 100" fill="none" className="ml-2 shrink-0">
                     <path d="M 76 66.9 A 31 31 0 1 1 76 33.1" fill="none" stroke={SIGNAL} strokeWidth="14" strokeLinecap="round" />
                     <path d="M 38 51 L 53 65 L 83 29" fill="none" stroke={CREAM} strokeOpacity="0.9" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" />
-                    <circle cx="72" cy="18" r="7" fill={SIGNAL} />
                   </svg>
                 </div>
               </div>

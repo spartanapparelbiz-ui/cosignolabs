@@ -11,9 +11,31 @@ Never hard-code a hex value in a component — use a token.
 | `ink` | `#141414` | text, primary surfaces (dark buttons, header) |
 | `cream` | `#FBF4EA` | page background |
 | `cream-deep` | `#F3E9DA` | cards / wells / payload blocks on cream |
-| `signal` | `#FF4B1F` | **only**: the Approve button, executed/success states, the logo **C + accent dot**, the i-dot, focus rings, active nav, progress fill |
+| `signal` | `#FF4B1F` | **only**: the Approve button, executed/success states, the logo **C** and the wordmark **i-dot**, focus rings, active nav, progress fill |
 | `ink-soft` | `#5C5650` | secondary text |
 | `line` | `#E4D9C8` | the one hairline (orb track) — avoid; prefer shadow |
+
+### Logo identity tokens (exact)
+
+The mark renders with its own precise brand values (distinct from the product
+palette so it's identical everywhere and flips cleanly per theme). Mirrored in
+`src/lib/brand.ts` (`LOGO_*`), the `--logo-*` CSS vars, and
+`scripts/logo-geometry.mjs`.
+
+| Token | Hex |
+|---|---|
+| `--cosigno-orange` | `#FF4B22` — the C (and the i-dot), every theme |
+| `--cosigno-ink` | `#171512` — integrated check + wordmark, **light** |
+| `--cosigno-cream` | `#F7F0E5` — integrated check + wordmark, **dark** |
+| `--cosigno-white` | `#FFFFFF` — wordmark, **OLED** |
+| `--cosigno-black` | `#090909` — **OLED** background |
+
+The symbol is a bold open **C** with an integrated **check** rising through the
+opening — **no dot on the icon** (the orange dot lives over the wordmark "i").
+Use the one shared component: `<Logo variant="full|icon" theme="light|dark|oled|auto"
+size="sm|md|lg" />` (`src/components/brand/Logo.tsx`), `theme="auto"` by default.
+Geometry is single-sourced (component ↔ `scripts/logo-geometry.mjs`); only colors
+change between themes. Regenerate assets with `node scripts/generate-assets.mjs`.
 
 Rules:
 - **Orange is the signature, not decoration.** If it isn't approval, success,
