@@ -84,7 +84,10 @@ async function gmailExecute(
         { headers: bearer(creds), retries: 2 }
       );
       const n = res.messages?.length ?? 0;
-      return { ok: true, summary: `found ${n} message${n === 1 ? "" : "s"}${q ? ` matching “${q}”` : ""}.`, detail: { count: n, untrusted: true } };
+      // Message ids let a mission read individual matches (bounded); ids are
+      // opaque references, but the result set as a whole stays untrusted.
+      const ids = (res.messages ?? []).map((m) => m.id).slice(0, MAX_BATCH);
+      return { ok: true, summary: `found ${n} message${n === 1 ? "" : "s"}${q ? ` matching “${q}”` : ""}.`, detail: { count: n, ids, untrusted: true } };
     }
     case "read_message": {
       const id = str(payload.id);
@@ -95,8 +98,9 @@ async function gmailExecute(
       );
       const headers = res.payload?.headers ?? [];
       const subject = headers.find((h) => h.name === "Subject")?.value ?? "(no subject)";
+      const from = headers.find((h) => h.name === "From")?.value ?? "";
       // The subject/sender are UNTRUSTED content — carried as data, never instructions.
-      return { ok: true, summary: `read message: “${subject}”.`, detail: { subject, untrusted: true } };
+      return { ok: true, summary: `read message: “${subject}”.`, detail: { id, subject, from, untrusted: true } };
     }
     case "create_draft": {
       const to = str(payload.to) ?? "";

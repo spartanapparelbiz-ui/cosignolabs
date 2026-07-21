@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CalendarClock, Globe } from "lucide-react";
+import { CalendarClock, Globe, Inbox, Reply, Sunrise } from "lucide-react";
 import { useToast } from "@/components/Toast";
 
 /**
@@ -14,7 +14,7 @@ import { useToast } from "@/components/Toast";
  */
 
 interface TemplateJob {
-  key: "meeting_prep" | "laptop_compare";
+  key: "meeting_prep" | "laptop_compare" | "inbox_cleanup" | "followups" | "daily_brief";
   icon: typeof CalendarClock;
   title: string;
   outcome: string;
@@ -27,6 +27,39 @@ interface TemplateJob {
 }
 
 const JOBS: TemplateJob[] = [
+  {
+    key: "inbox_cleanup",
+    icon: Inbox,
+    title: "clean up my inbox",
+    outcome: "a summary of what matters, reply drafts for waiting threads, and the clutter archived.",
+    apps: "Gmail — or a clearly-labeled sandbox until it's connected.",
+    auto: "scans, summarizes, and drafts replies (drafts can never send).",
+    signature: "archiving the newsletter clutter — verified by read-back, nothing is deleted.",
+    usage: "≈ 5 actions per run",
+    dest: (id) => `/app/missions/${id}`,
+  },
+  {
+    key: "followups",
+    icon: Reply,
+    title: "prepare my follow-ups",
+    outcome: "context-aware follow-up drafts, a conflict-checked send time, and an optional reminder.",
+    apps: "Gmail and Google Calendar — or the labeled sandbox.",
+    auto: "finds waiting threads, drafts follow-ups, proposes a send time.",
+    signature: "sending the follow-up (verified in Sent Mail) and adding the calendar reminder.",
+    usage: "≈ 5 actions per run",
+    dest: (id) => `/app/missions/${id}`,
+  },
+  {
+    key: "daily_brief",
+    icon: Sunrise,
+    title: "build my morning brief",
+    outcome: "one morning brief from your calendar and overnight inbox, with suggested priorities.",
+    apps: "Google Calendar and Gmail — or the labeled sandbox.",
+    auto: "reads the schedule and inbox signals, writes the brief.",
+    signature: "blocking time for the top item — a separate approval card.",
+    usage: "≈ 5 actions per run",
+    dest: (id) => `/app/missions/${id}`,
+  },
   {
     key: "meeting_prep",
     icon: CalendarClock,

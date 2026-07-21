@@ -265,6 +265,9 @@ for (const vp of VIEWPORTS) {
       await expect(page.getByRole("heading", { name: "templates" })).toBeVisible();
       await expect(page.getByText("build tomorrow's meeting brief")).toBeVisible();
       await expect(page.getByText("compare three laptops under $1,000")).toBeVisible();
+      await expect(page.getByText("clean up my inbox")).toBeVisible();
+      await expect(page.getByText("prepare my follow-ups")).toBeVisible();
+      await expect(page.getByText("build my morning brief")).toBeVisible();
       await expect(page.getByText("needs your signature").first()).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `templates-${vp.name}.png`), fullPage: true });
@@ -283,6 +286,25 @@ for (const vp of VIEWPORTS) {
       await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `mission-workspace-${vp.name}.png`), fullPage: true });
+    });
+
+    test("inbox cleanup job runs to its approval gate and the card reaches approvals", async ({ page }) => {
+      // The Inbox Operator: reads + drafts run automatically, then the mission
+      // stops on the archive card — visible in the workspace and in approvals.
+      const res = await page.request.post("/api/missions", {
+        data: { template: "inbox_cleanup" },
+      });
+      expect(res.ok()).toBeTruthy();
+      const { mission } = await res.json();
+      await page.goto(`/app/missions/${mission.id}`, { waitUntil: "networkidle" });
+      await expect(page.getByText(/waiting for your signature/i).first()).toBeVisible({ timeout: 15_000 });
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `inbox-mission-${vp.name}.png`), fullPage: true });
+
+      await page.goto("/app/approvals", { waitUntil: "networkidle" });
+      await expect(page.getByText(/archive .* newsletter/i).first()).toBeVisible();
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `inbox-approval-${vp.name}.png`), fullPage: true });
     });
 
     test("workspace with a proposed card", async ({ page }) => {
