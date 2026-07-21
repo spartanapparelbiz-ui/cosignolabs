@@ -24,8 +24,8 @@ mkdirSync(PUB, { recursive: true });
 /** The two-path icon (C + integrated check), colored explicitly. No dot. */
 function markPaths(cColor, checkColor) {
   return `
-  <path d="${C.d}" fill="none" stroke="${cColor}" stroke-width="${C.stroke}" stroke-linecap="round"/>
-  <path d="${CHECK.d}" fill="none" stroke="${checkColor}" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  <path d="${C.d}" fill="${cColor}"/>
+  <path d="${CHECK.d}" fill="${checkColor}"/>`;
 }
 
 /** A standalone icon SVG. `bg` fills a rounded-square plate; null = transparent. */
@@ -42,10 +42,10 @@ function iconSvg({ size = 100, pad = 8, cColor = SIGNAL, checkColor = INK, bg = 
 function adaptiveIconSvg({ size = 100, pad = 20 }) {
   const scale = (size - pad * 2) / 160;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <style>.k{stroke:${INK}}@media (prefers-color-scheme:dark){.k{stroke:${CREAM}}}</style>
+  <style>.k{fill:${INK}}@media (prefers-color-scheme:dark){.k{fill:${CREAM}}}</style>
   <g transform="translate(${pad},${pad}) scale(${scale})">
-  <path d="${C.d}" fill="none" stroke="${SIGNAL}" stroke-width="${C.stroke}" stroke-linecap="round"/>
-  <path d="${CHECK.d}" fill="none" class="k" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="${C.d}" fill="${SIGNAL}"/>
+  <path d="${CHECK.d}" class="k"/>
   </g>
 </svg>`;
 }
@@ -69,8 +69,8 @@ function lockupSvg({ cColor = SIGNAL, checkColor = INK, wordFill = INK, bg = nul
 function maskIconSvg() {
   // Single-color silhouette Safari recolors. No dot.
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
-  <path d="${C.d}" fill="none" stroke="#000" stroke-width="${C.stroke}" stroke-linecap="round"/>
-  <path d="${CHECK.d}" fill="none" stroke="#000" stroke-width="${CHECK.stroke}" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="${C.d}" fill="#000"/>
+  <path d="${CHECK.d}" fill="#000"/>
 </svg>`;
 }
 
