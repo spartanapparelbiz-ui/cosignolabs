@@ -31,7 +31,7 @@ const fraunces = Fraunces({
 const poppins = Poppins({
   subsets: ["latin"],
   variable: "--font-wordmark",
-  weight: ["700", "800"],
+  weight: ["700", "800", "900"],
   display: "swap",
   fallback: ["system-ui", "sans-serif"],
   adjustFontFallback: true,
