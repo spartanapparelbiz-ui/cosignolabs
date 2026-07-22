@@ -209,7 +209,8 @@ export default function LandingPage() {
         {/* 3 · Who's building this — real founder info (no placeholder "proof") */}
         <section className="mx-auto w-full max-w-6xl px-4 py-16">
           <Reveal className="text-center">
-            <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-signal">the proof</p>
+            <h2 className="mt-3 font-display text-2xl font-bold lowercase sm:text-3xl">
               built in the open
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm font-semibold text-ink-soft">
@@ -229,7 +230,8 @@ export default function LandingPage() {
               <BenefitGlyph kind="card" />
             </Reveal>
             <Reveal delay={80}>
-              <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-signal">the engine</p>
+              <h2 className="mt-2 font-display text-2xl font-bold lowercase sm:text-3xl">
                 real execution, not chat
               </h2>
               <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
@@ -246,7 +248,8 @@ export default function LandingPage() {
         <section className="mx-auto w-full max-w-6xl px-4 py-16">
           <Reveal className="flex flex-col items-center">
             <BenefitGlyph kind="check" />
-            <h2 className="mt-4 text-center text-2xl font-extrabold lowercase sm:text-3xl">
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.28em] text-signal">your control</p>
+            <h2 className="mt-2 text-center text-2xl font-extrabold lowercase sm:text-3xl">
               every action is your call
             </h2>
             <p className="mt-3 max-w-2xl text-center text-base leading-relaxed text-ink-soft">
@@ -276,7 +279,8 @@ export default function LandingPage() {
               <BenefitGlyph kind="ledger" />
             </Reveal>
             <Reveal delay={80}>
-              <h2 className="font-display text-2xl font-bold lowercase sm:text-3xl">
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-signal">the record</p>
+              <h2 className="mt-2 font-display text-2xl font-bold lowercase sm:text-3xl">
                 total audit trail
               </h2>
               <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
@@ -293,22 +297,35 @@ export default function LandingPage() {
 
         {/* 7 · The loop — four beats */}
         <section className="mx-auto w-full max-w-6xl px-4 py-16">
-          <Reveal>
-            <h2 className="text-center text-2xl font-extrabold lowercase sm:text-3xl">
+          <Reveal className="text-center">
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-signal">how it works</p>
+            <h2 className="mt-3 text-center text-2xl font-extrabold lowercase sm:text-3xl">
               one loop. no surprises.
             </h2>
           </Reveal>
-          <div className="mx-auto mt-10 grid max-w-4xl gap-6 sm:grid-cols-4">
+          <div className="mx-auto mt-10 grid max-w-4xl gap-4 sm:grid-cols-4">
             {[
               ["command", "tell it what you want in plain language."],
               ["proposal", "it plans and lays out action cards — exact payloads, plain english, risk tier."],
               ["signature", "you approve, edit, or veto. locked actions need typed confirmation."],
               ["receipt", "approved actions execute and land in your permanent audit trail."],
             ].map(([title, body], i) => (
-              <Reveal key={title} delay={i * 80} className="rounded-card bg-surface/70 p-4 shadow-soft">
-                <span className="text-xs font-extrabold text-signal">0{i + 1}</span>
-                <h3 className="mt-1 font-extrabold lowercase">{title}</h3>
-                <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{body}</p>
+              <Reveal
+                key={title}
+                delay={i * 80}
+                className="group relative overflow-hidden rounded-card border border-line bg-surface/80 p-5 shadow-soft transition-all duration-base ease-brand-out hover:-translate-y-1 hover:shadow-lift"
+              >
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-1 -top-2 font-display text-5xl font-bold leading-none text-signal/10 transition-colors duration-base group-hover:text-signal/20"
+                >
+                  0{i + 1}
+                </span>
+                <span className="relative text-[10px] font-black uppercase tracking-[0.18em] text-signal">
+                  step 0{i + 1}
+                </span>
+                <h3 className="relative mt-2 font-extrabold lowercase">{title}</h3>
+                <p className="relative mt-1.5 text-xs leading-relaxed text-ink-soft">{body}</p>
               </Reveal>
             ))}
           </div>
@@ -320,7 +337,8 @@ export default function LandingPage() {
           <Reveal className="mx-auto w-full max-w-2xl px-4 py-16">
             <div className="flex flex-col items-center text-center">
               <LivingMark size={44} />
-              <h2 className="mt-4 text-2xl font-extrabold lowercase sm:text-3xl">
+              <p className="mt-4 text-xs font-black uppercase tracking-[0.28em] text-signal">get started</p>
+              <h2 className="mt-2 text-2xl font-extrabold lowercase sm:text-3xl">
                 hand your busywork to an operator that asks first.
               </h2>
               <div className="mt-5">
