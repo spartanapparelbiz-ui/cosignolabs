@@ -1,6 +1,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { LivingLockup, LivingMark, LogoHome } from "@/components/brand/LivingLogo";
+import { CosignoMark } from "@/components/brand/Logo";
 import { BetaForm } from "@/components/landing/BetaForm";
 import { HeroSignatureCard } from "@/components/landing/HeroSignatureCard";
 import { ProofBand } from "@/components/landing/ProofBand";
@@ -107,6 +108,14 @@ export default function LandingPage() {
                 watch cosigno work ↓
               </a>
             </div>
+            <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold lowercase text-ink-soft animate-word-in [animation-delay:300ms]">
+              {["no account needed", "runs in your tab", "nothing sends without you"].map((t) => (
+                <span key={t} className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-signal" aria-hidden="true" />
+                  {t}
+                </span>
+              ))}
+            </div>
           </div>
           <div className="flex justify-center lg:justify-end">
             <HeroSignatureCard />
@@ -159,6 +168,41 @@ export default function LandingPage() {
           </Reveal>
           <div className="mt-6">
             <LivePreview />
+          </div>
+        </section>
+
+        {/* Dark manifesto band — the operating principle in high contrast.
+            Always dark (explicit colors, not theme tokens) so it reads as a
+            deliberate premium break in the cream rhythm, in every theme. */}
+        <section className="relative overflow-hidden bg-[#141414]">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-28 -right-16 text-signal opacity-[0.07]"
+          >
+            <CosignoMark mono size={540} />
+          </div>
+          <div className="relative mx-auto max-w-5xl px-4 py-24 text-center sm:py-32">
+            <Reveal>
+              <p className="text-xs font-black uppercase tracking-[0.34em] text-signal">
+                the operating principle
+              </p>
+              <h2 className="mx-auto mt-6 max-w-3xl font-display text-4xl font-bold leading-[1.05] tracking-tight text-[#F8F0E8] sm:text-5xl lg:text-6xl">
+                nothing sends, changes, or spends until you sign.
+              </h2>
+              <p className="mx-auto mt-6 max-w-xl text-lg font-medium leading-relaxed text-[#F8F0E8]/60">
+                the agent proposes. you decide. it executes — and every step is
+                permanently logged. that&apos;s the whole product.
+              </p>
+              <div className="mt-9 flex justify-center">
+                <Link
+                  href="/demo"
+                  prefetch
+                  className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95"
+                >
+                  see it work
+                </Link>
+              </div>
+            </Reveal>
           </div>
         </section>
 
