@@ -78,9 +78,9 @@ const config: Config = {
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "ring-flash": {
-          "0%": { boxShadow: "0 0 0 0 rgba(255,75,31,0)" },
-          "30%": { boxShadow: "0 0 0 2px rgba(255,75,31,0.9)" },
-          "100%": { boxShadow: "0 0 0 0 rgba(255,75,31,0)" },
+          "0%": { boxShadow: "0 0 0 0 rgba(251, 76, 32,0)" },
+          "30%": { boxShadow: "0 0 0 2px rgba(251, 76, 32,0.9)" },
+          "100%": { boxShadow: "0 0 0 0 rgba(251, 76, 32,0)" },
         },
         "chip-pulse": {
           "0%, 100%": { transform: "scale(1)" },
@@ -167,8 +167,8 @@ const config: Config = {
         // Attention pulse that does NOT move the element (box-shadow only), so
         // continuously-pulsing CTAs stay layout-stable.
         "pulse-glow": {
-          "0%, 100%": { boxShadow: "0 0 0 0 rgba(255,75,31,0)" },
-          "50%": { boxShadow: "0 0 0 5px rgba(255,75,31,0.30)" },
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(251, 76, 32,0)" },
+          "50%": { boxShadow: "0 0 0 5px rgba(251, 76, 32,0.30)" },
         },
         shimmer: {
           "0%": { opacity: "0.5" },

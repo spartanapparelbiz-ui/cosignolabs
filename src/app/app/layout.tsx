@@ -97,10 +97,10 @@ export default async function AppLayout({
     const { ClerkProvider } = await import("@clerk/nextjs");
     const appearance = {
       variables: {
-        colorPrimary: "#FF4B1F",
+        colorPrimary: "#FB4C20",
         colorText: "#141414",
-        colorBackground: "#FBF4EA",
-        colorInputBackground: "#F3E9DA",
+        colorBackground: "#F8F0E8",
+        colorInputBackground: "#EFE5D7",
         borderRadius: "10px",
         fontFamily: "var(--font-nunito), system-ui, sans-serif",
       },

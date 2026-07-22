@@ -109,7 +109,7 @@ export function CheckoutCard({ state, scale = 1 }: { state: CardState; scale?: n
                   ? "linear-gradient(145deg,#1c1c1c 0%,#0d0d0d 55%,#161616 100%)"
                   : "linear-gradient(145deg,#232323 0%,#141414 60%,#0e0e0e 100%)",
                 boxShadow: isMax
-                  ? "inset 0 1px 0 rgba(255,255,255,0.14), 0 0 0 1px rgba(255,75,31,0.35), 0 20px 50px rgba(20,20,20,0.4), 0 0 30px rgba(255,75,31,0.18)"
+                  ? "inset 0 1px 0 rgba(255,255,255,0.14), 0 0 0 1px rgba(251, 76, 32,0.35), 0 20px 50px rgba(20,20,20,0.4), 0 0 30px rgba(251, 76, 32,0.18)"
                   : "inset 0 1px 0 rgba(255,255,255,0.12), 0 20px 44px rgba(20,20,20,0.34)",
               }}
             >

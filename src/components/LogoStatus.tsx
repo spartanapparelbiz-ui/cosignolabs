@@ -129,7 +129,7 @@ export function LogoStatus({
                 opacity: "var(--ls-check)",
                 filter:
                   state === "awaiting"
-                    ? "drop-shadow(0 0 5px rgba(255,75,31,0.55))"
+                    ? "drop-shadow(0 0 5px rgba(251, 76, 32,0.55))"
                     : undefined,
               }}
             />

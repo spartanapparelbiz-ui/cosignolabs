@@ -60,7 +60,7 @@ export const metadata: Metadata = {
       { url: "/icon-512.png?v=4", type: "image/png", sizes: "512x512" },
     ],
     apple: [{ url: "/apple-touch-icon.png?v=4", sizes: "180x180" }],
-    other: [{ rel: "mask-icon", url: "/mask-icon.svg?v=4", color: "#FF4B22" }],
+    other: [{ rel: "mask-icon", url: "/mask-icon.svg?v=4", color: "#FB4C20" }],
   },
   manifest: "/manifest.webmanifest",
   openGraph: {
@@ -83,7 +83,7 @@ export const metadata: Metadata = {
 // visitor is actually looking at: cream in light, ink in dark.
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FBF4EA" },
+    { media: "(prefers-color-scheme: light)", color: "#F8F0E8" },
     { media: "(prefers-color-scheme: dark)", color: "#141414" },
   ],
 };

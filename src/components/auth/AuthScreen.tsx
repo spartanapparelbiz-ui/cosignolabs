@@ -31,7 +31,7 @@ export function AuthScreen({
       {/* soft brand wash so the cream field isn't flat */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 opacity-60 [background:radial-gradient(60%_50%_at_50%_-10%,rgba(255,75,31,0.07),transparent_70%),radial-gradient(50%_40%_at_100%_100%,rgba(20,20,20,0.05),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 -z-10 opacity-60 [background:radial-gradient(60%_50%_at_50%_-10%,rgba(251, 76, 32,0.07),transparent_70%),radial-gradient(50%_40%_at_100%_100%,rgba(20,20,20,0.05),transparent_70%)]"
       />
       <Link
         href="/"

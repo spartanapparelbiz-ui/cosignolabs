@@ -243,7 +243,7 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
                       type="checkbox"
                       checked={remember}
                       onChange={(e) => setRemember(e.target.checked)}
-                      className="mt-0.5 accent-[#FF4B1F]"
+                      className="mt-0.5 accent-[#FB4C20]"
                     />
                     <span>
                       Save my signature for one-press signing. It represents your approval inside

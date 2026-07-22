@@ -56,7 +56,7 @@ export function monogram(name: string): string {
   const text = initials(name)
     .replace(/[^A-Z0-9•]/g, "")
     .slice(0, 2) || "•";
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#141414"/><text x="20" y="21" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" font-weight="800" fill="#FBF4EA" text-anchor="middle" dominant-baseline="central">${text}</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#141414"/><text x="20" y="21" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="17" font-weight="800" fill="#F8F0E8" text-anchor="middle" dominant-baseline="central">${text}</text></svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 

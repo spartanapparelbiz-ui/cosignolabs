@@ -9,21 +9,21 @@
 :root {
   color-scheme: light;
   --c-ink: 20 20 20;
-  --c-cream: 251 244 234;
-  --c-cream-deep: 243 233 218;
+  --c-cream: 248 240 232;
+  --c-cream-deep: 239 229 215;
   --c-ink-soft: 92 86 80;
   --c-line: 228 217 200;
-  --c-signal: 255 75 31;
+  --c-signal: 251 76 32;
   --c-surface: 255 255 255;
 
   /* Logo identity tokens — exact brand values, independent of the product
      palette so the mark renders identically everywhere and flips with the
      theme without a flash (data-theme is set before paint). Light: orange C,
      ink check + wordmark, orange i-dot. */
-  --logo-c: #ff4b22;
+  --logo-c: #fb4c20;
   --logo-check: #171512;
   --logo-wordmark: #171512;
-  --logo-dot: #ff4b22;
+  --logo-dot: #fb4c20;
 }
 
 :root[data-theme="dark"] {
@@ -77,12 +77,12 @@ body {
 }
 
 ::selection {
-  background: rgba(255, 75, 31, 0.2);
+  background: rgba(251, 76, 32, 0.2);
 }
 
 /* Focus is always the signal ring — one of the few sanctioned uses of orange. */
 *:focus-visible {
-  outline: 2px solid #ff4b1f;
+  outline: 2px solid #fb4c20;
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -94,8 +94,8 @@ body {
 .tier3-texture {
   background-image: repeating-linear-gradient(
     -45deg,
-    rgba(255, 75, 31, 0.06) 0,
-    rgba(255, 75, 31, 0.06) 1px,
+    rgba(251, 76, 32, 0.06) 0,
+    rgba(251, 76, 32, 0.06) 1px,
     transparent 1px,
     transparent 8px
   );
@@ -118,7 +118,7 @@ body {
   top: 0.32em;
   width: 0.85em;
   height: 0.85em;
-  background-color: #ff4b1f;
+  background-color: #fb4c20;
   /* a check-shaped mask so the bullet is the brand tick, not a dot */
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4.5 12.5 10 18 20 6.5' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   mask-repeat: no-repeat;

@@ -8,7 +8,7 @@
 
 // Exact rebrand tokens (see BRAND.md / src/lib/brand.ts LOGO_*).
 export const INK = "#171512"; // integrated check + wordmark (light)
-export const SIGNAL = "#FF4B22"; // the C (and the i-dot)
+export const SIGNAL = "#FB4C20"; // the C (and the i-dot)
 export const CREAM = "#F7F0E5"; // check + wordmark on dark
 export const WHITE = "#FFFFFF"; // wordmark on OLED
 export const BLACK = "#090909"; // OLED background

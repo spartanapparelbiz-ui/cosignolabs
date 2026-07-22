@@ -11,10 +11,10 @@ import Link from "next/link";
  * Colors are driven entirely by CSS custom properties so the mark flips with
  * the theme WITHOUT a flash (data-theme is set before paint) and stays
  * hydration-safe (no JS/state):
- *   --logo-c         the C                — #FF4B22 in every theme
- *   --logo-check     the checkmark        — #171512 light / #F7F0E5 dark / #FF4B22 oled
+ *   --logo-c         the C                — #FB4C20 in every theme
+ *   --logo-check     the checkmark        — #171512 light / #F7F0E5 dark / #FB4C20 oled
  *   --logo-wordmark  the wordmark         — #171512 light / #F7F0E5 dark / #FFFFFF oled
- *   --logo-dot       the i-dot            — #FF4B22 in every theme
+ *   --logo-dot       the i-dot            — #FB4C20 in every theme
  * An explicit `theme` prop overrides these inline (OLED, or a known fixed
  * light/dark surface such as the OG image or a dark footer).
  *
@@ -34,9 +34,9 @@ export type LogoTheme = "light" | "dark" | "oled" | "auto";
 
 /** Inline CSS-var overrides for an explicit theme; `auto` inherits the globals. */
 const THEME_VARS: Record<Exclude<LogoTheme, "auto">, CSSProperties> = {
-  light: { "--logo-c": "#FF4B22", "--logo-check": "#171512", "--logo-wordmark": "#171512", "--logo-dot": "#FF4B22" } as CSSProperties,
-  dark: { "--logo-c": "#FF4B22", "--logo-check": "#F7F0E5", "--logo-wordmark": "#F7F0E5", "--logo-dot": "#FF4B22" } as CSSProperties,
-  oled: { "--logo-c": "#FF4B22", "--logo-check": "#FF4B22", "--logo-wordmark": "#FFFFFF", "--logo-dot": "#FF4B22" } as CSSProperties,
+  light: { "--logo-c": "#FB4C20", "--logo-check": "#171512", "--logo-wordmark": "#171512", "--logo-dot": "#FB4C20" } as CSSProperties,
+  dark: { "--logo-c": "#FB4C20", "--logo-check": "#F7F0E5", "--logo-wordmark": "#F7F0E5", "--logo-dot": "#FB4C20" } as CSSProperties,
+  oled: { "--logo-c": "#FB4C20", "--logo-check": "#FB4C20", "--logo-wordmark": "#FFFFFF", "--logo-dot": "#FB4C20" } as CSSProperties,
 };
 
 /**

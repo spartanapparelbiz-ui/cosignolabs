@@ -22,9 +22,9 @@ export default async function AuthLayout({
       signUpUrl="/sign-up"
       appearance={{
         variables: {
-          colorPrimary: "#FF4B1F",
+          colorPrimary: "#FB4C20",
           colorText: "#141414",
-          colorBackground: "#FBF4EA",
+          colorBackground: "#F8F0E8",
           fontFamily: "var(--font-nunito), system-ui, sans-serif",
         },
       }}
