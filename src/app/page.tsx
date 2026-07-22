@@ -371,23 +371,58 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="bg-cream-deep/60">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-ink-soft">
-          <LivingLockup size={20} textClass="text-base" />
-          <div className="flex items-center gap-4 font-semibold">
-            <PricingLink className="hover:text-ink">pricing</PricingLink>
-            <Link href="/privacy" className="hover:text-ink">
-              privacy
-            </Link>
-            <Link href="/terms" className="hover:text-ink">
-              terms
-            </Link>
-            <a href="mailto:hello@aethric.llc" className="hover:text-ink">
-              hello@aethric.llc
-            </a>
-            <a href="https://instagram.com/aethric.hq" className="hover:text-ink">
-              @aethric.hq
-            </a>
+      <footer className="border-t border-line bg-cream-deep/60">
+        <div className="mx-auto w-full max-w-6xl px-4 py-14">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
+            <div>
+              <LivingLockup size={24} textClass="text-lg" />
+              <p className="mt-4 max-w-xs text-sm font-medium leading-relaxed text-ink-soft">
+                the AI operator that asks first. it prepares the work; you
+                approve what matters; nothing sends, changes, or spends without
+                your signature.
+              </p>
+            </div>
+            {[
+              ["product", [
+                ["/product", "overview"],
+                ["/operators", "capabilities"],
+                ["/templates", "use cases"],
+                ["/demo", "try the demo"],
+              ]],
+              ["trust", [
+                ["/security", "security"],
+                ["__pricing", "pricing"],
+                ["/privacy", "privacy"],
+                ["/terms", "terms"],
+              ]],
+              ["company", [
+                ["mailto:hello@aethric.llc", "hello@aethric.llc"],
+                ["https://instagram.com/aethric.hq", "@aethric.hq"],
+                ["/sign-in", "sign in"],
+                ["/sign-up", "get started"],
+              ]],
+            ].map(([heading, links]) => (
+              <div key={heading as string}>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-ink">{heading as string}</p>
+                <ul className="mt-4 flex flex-col gap-2.5 text-sm font-semibold text-ink-soft">
+                  {(links as string[][]).map(([href, label]) => (
+                    <li key={label}>
+                      {href === "__pricing" ? (
+                        <PricingLink className="hover:text-signal">{label}</PricingLink>
+                      ) : href.startsWith("/") ? (
+                        <Link href={href} className="hover:text-signal">{label}</Link>
+                      ) : (
+                        <a href={href} className="hover:text-signal">{label}</a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-line pt-6 text-xs font-semibold text-ink-soft sm:flex-row">
+            <span>© cosigno — built in the open by aethric.</span>
+            <span className="text-signal">nothing sends, changes, or spends until you sign.</span>
           </div>
         </div>
       </footer>
