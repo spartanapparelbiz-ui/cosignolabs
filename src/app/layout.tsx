@@ -49,18 +49,18 @@ export const metadata: Metadata = {
   icons: {
     // Rebranded C + integrated check (no dot). The SVG favicon adapts the check
     // ink→cream by OS theme; the orange C reads on any tab bar. App icons sit on
-    // a cream rounded plate. ?v=4 busts the old cached icons. SVG first
+    // a cream rounded plate. ?v=5 busts the old cached icons. SVG first
     // (crispest + adaptive), then .ico, then PNGs.
     icon: [
-      { url: "/favicon.svg?v=4", type: "image/svg+xml" },
-      { url: "/favicon.ico?v=4", sizes: "any" },
-      { url: "/icon-16.png?v=4", type: "image/png", sizes: "16x16" },
-      { url: "/icon-32.png?v=4", type: "image/png", sizes: "32x32" },
-      { url: "/icon-192.png?v=4", type: "image/png", sizes: "192x192" },
-      { url: "/icon-512.png?v=4", type: "image/png", sizes: "512x512" },
+      { url: "/favicon.svg?v=5", type: "image/svg+xml" },
+      { url: "/favicon.ico?v=5", sizes: "any" },
+      { url: "/icon-16.png?v=5", type: "image/png", sizes: "16x16" },
+      { url: "/icon-32.png?v=5", type: "image/png", sizes: "32x32" },
+      { url: "/icon-192.png?v=5", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png?v=5", type: "image/png", sizes: "512x512" },
     ],
-    apple: [{ url: "/apple-touch-icon.png?v=4", sizes: "180x180" }],
-    other: [{ rel: "mask-icon", url: "/mask-icon.svg?v=4", color: "#FB4C20" }],
+    apple: [{ url: "/apple-touch-icon.png?v=5", sizes: "180x180" }],
+    other: [{ rel: "mask-icon", url: "/mask-icon.svg?v=5", color: "#FB4C20" }],
   },
   manifest: "/manifest.webmanifest",
   openGraph: {
