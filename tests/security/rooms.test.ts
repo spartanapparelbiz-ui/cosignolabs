@@ -101,6 +101,33 @@ describe("room gate", () => {
     await expect(approveAction("owner", action.id)).rejects.toMatchObject({ code: "room_pending" });
   });
 
+  it("edit-then-reapprove works and never deadlocks the room", async () => {
+    await setupWorkspace();
+    const action = await proposeAction(insert());
+    const room = await createRoomForAction("owner", "owner@acme.com", action.id, {
+      approverEmails: ["partner@acme.com"],
+    });
+    await decideRoom("partner", "partner@acme.com", room.room.id, "approve");
+
+    // Owner must NOT edit inline at approval (that would strand co-signers).
+    await expect(
+      approveAction("owner", action.id, { payload: { amount: "5000", destination: "porto" } })
+    ).rejects.toMatchObject({ code: "forbidden" });
+
+    // The correct flow: edit (persists + re-binds room), co-signer re-approves
+    // the plan they can actually see, owner approves with no inline edit.
+    await editAction("owner", action.id, { payload: { amount: "5000", destination: "porto" } });
+    const reboundHash = (await store.getRoom("owner", room.room.id))!.plan_hash;
+    // The co-signer sees the persisted new plan; its hash matches the room.
+    const fresh = await store.getAction("owner", action.id);
+    const { planHash } = await import("../../src/lib/planHash");
+    expect(planHash(fresh!.payload)).toBe(reboundHash);
+
+    await decideRoom("partner", "partner@acme.com", room.room.id, "approve");
+    const executed = await approveAction("owner", action.id);
+    expect(executed.status).toBe("executed");
+  });
+
   it("rejects co-signers who are not workspace members", async () => {
     await setupWorkspace();
     const action = await proposeAction(insert());

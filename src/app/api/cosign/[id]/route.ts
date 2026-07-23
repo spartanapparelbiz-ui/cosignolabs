@@ -23,8 +23,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const action = await store.getAction(userId, id);
     if (!action) throw new ApiError(404, "not_found", "we couldn't find that card.");
 
-    // Attach the mission goal when the card belongs to a mission step.
+    // Attach the mission goal when the card belongs to a mission (matched by
+    // the shared session id — the caller's own missions only).
     let missionGoal: string | undefined;
+    if (action.session_id) {
+      const missions = await store.listMissions(userId, 200);
+      missionGoal = missions.find((m) => m.session_id === action.session_id)?.goal;
+    }
     const room = await store.getRoomByAction(userId, id);
 
     const card = buildCosignCard(action, missionGoal);

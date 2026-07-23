@@ -343,6 +343,21 @@ export async function approveAction(
     }
   }
 
+  // A room-gated card can't be edited inline AT approval time: the edit has
+  // to be persisted and the room re-bound so co-signers actually see (and
+  // re-approve) the new plan. Persisting only after the gate would deadlock
+  // the room, so we require the dedicated edit path (which re-binds the room)
+  // first. Without a room, inline edits at approval are fine (below).
+  if (opts.payload) {
+    const existingRoom = await store.getRoomByAction(userId, actionId);
+    if (existingRoom && !["cancelled", "expired", "revoked"].includes(existingRoom.status)) {
+      throw new EngineError(
+        "forbidden",
+        "this card has a co-sign room. edit the plan first (that resets the room), let your co-signers re-approve, then approve."
+      );
+    }
+  }
+
   const approvedPayload = opts.payload ?? action.payload;
 
   // CoSign Room gate: with a room attached, the owner's approval only
