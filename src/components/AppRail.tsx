@@ -4,33 +4,33 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  Activity,
+  BookLock,
   Home,
-  LayoutTemplate,
-  PenLine,
   Plug,
+  Radar,
+  Receipt,
   Rocket,
-  Settings,
+  ShieldCheck,
 } from "lucide-react";
 import { LogoHome } from "@/components/brand/LivingLogo";
 
 /**
  * The app's navigation chrome: a compact left rail on desktop, a bottom bar
- * on mobile. The seven everyday destinations — nothing else lives here (no
- * upgrade ads, per the shell rules). The approvals item carries a count badge
- * ONLY when something actually needs a signature. Advanced surfaces (memory,
- * team, health, automations, files) stay reachable from their in-page links
- * and settings.
+ * on mobile. The everyday destinations — nothing else lives here (no upgrade
+ * ads, per the shell rules). "Needs Me" carries a count badge ONLY when
+ * something actually needs you. Advanced surfaces (team, health, automations,
+ * files, activity, templates) stay reachable from their in-page links and
+ * Memory & Rules / Security.
  */
 
 const ITEMS = [
   { href: "/app", label: "home", icon: Home },
+  { href: "/app/needs-me", label: "needs me", icon: Radar },
   { href: "/app/missions", label: "missions", icon: Rocket },
-  { href: "/app/approvals", label: "approvals", icon: PenLine },
-  { href: "/app/activity", label: "activity", icon: Activity },
+  { href: "/app/receipts", label: "receipts", icon: Receipt },
   { href: "/app/connections", label: "connections", icon: Plug },
-  { href: "/app/templates", label: "templates", icon: LayoutTemplate },
-  { href: "/app/settings", label: "settings", icon: Settings },
+  { href: "/app/memory", label: "memory & rules", icon: BookLock },
+  { href: "/app/security", label: "security", icon: ShieldCheck },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
@@ -97,7 +97,7 @@ export function AppRail() {
           >
             <span className="relative">
               <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
-              {label === "approvals" && <Badge count={pending} />}
+              {label === "needs me" && <Badge count={pending} />}
             </span>
             {label}
           </Link>
@@ -130,7 +130,7 @@ export function AppBottomNav() {
           >
             <span className={`relative rounded-pill px-2.5 py-0.5 ${active ? "bg-signal/20" : ""}`}>
               <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
-              {label === "approvals" && <Badge count={pending} />}
+              {label === "needs me" && <Badge count={pending} />}
             </span>
             <span className="truncate">{label}</span>
           </Link>

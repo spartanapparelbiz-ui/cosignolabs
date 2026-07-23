@@ -37,6 +37,12 @@ import {
   HoldRecord,
   ObjectiveLinkRecord,
   ObjectiveRecord,
+  ReceiptRecord,
+  SecurityEventRecord,
+  RadarStateRecord,
+  CosignRoomRecord,
+  RoomApproverRecord,
+  RoomEventRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -889,6 +895,7 @@ export class MemoryStore implements Store {
       user_id: input.user_id,
       session_id: input.session_id,
       goal: input.goal,
+      fork_key: input.fork_key ?? null,
       state: "queued",
       plan_version: 1,
       pending_question: null,
@@ -1327,6 +1334,260 @@ export class MemoryStore implements Store {
       .map((a) => ({ ...a }));
   }
 
+  /* -- proof receipts -- */
+  private receipts: ReceiptRecord[] = [];
+
+  async recordReceipt(input: import("./index").ReceiptInsert): Promise<ReceiptRecord> {
+    const rec: ReceiptRecord = {
+      id: randomUUID(),
+      user_id: input.user_id,
+      correlation_id: input.correlation_id,
+      action_id: input.action_id ?? null,
+      mission_id: input.mission_id ?? null,
+      plan_hash: input.plan_hash,
+      plan_version: input.plan_version ?? null,
+      approved_by: input.approved_by,
+      authorization_method: input.authorization_method,
+      category: input.category,
+      integration: input.integration ?? "internal",
+      operation: input.operation,
+      status: input.status,
+      result_summary: input.result_summary ?? null,
+      verification: input.verification ?? null,
+      failure_reason: input.failure_reason ?? null,
+      undo_available: input.undo_available ?? false,
+      undo_hint: input.undo_hint ?? null,
+      external_ref: input.external_ref ?? null,
+      executed_at: nowIso(),
+      created_at: nowIso(),
+    };
+    // Append-only: stored frozen so even a buggy in-process caller can't
+    // mutate a receipt after the fact (mirrors the Postgres trigger).
+    this.receipts.unshift(Object.freeze(rec) as ReceiptRecord);
+    return { ...rec };
+  }
+
+  async listReceipts(userId: string, limit = 100): Promise<ReceiptRecord[]> {
+    return this.receipts
+      .filter((r) => r.user_id === userId)
+      .slice(0, limit)
+      .map((r) => ({ ...r }));
+  }
+
+  async getReceipt(userId: string, id: string): Promise<ReceiptRecord | null> {
+    const r = this.receipts.find((x) => x.id === id && x.user_id === userId);
+    return r ? { ...r } : null;
+  }
+
+  /* -- durable security events -- */
+  private securityEvents: SecurityEventRecord[] = [];
+
+  async recordSecurityEvent(input: import("./index").SecurityEventInsert): Promise<void> {
+    this.securityEvents.unshift({
+      id: randomUUID(),
+      user_id: input.user_id,
+      event: input.event,
+      severity: input.severity ?? "info",
+      correlation_id: input.correlation_id ?? null,
+      detail: { ...(input.detail ?? {}) },
+      created_at: nowIso(),
+    });
+  }
+
+  async listSecurityEvents(userId: string, limit = 100): Promise<SecurityEventRecord[]> {
+    return this.securityEvents
+      .filter((e) => e.user_id === userId)
+      .slice(0, limit)
+      .map((e) => ({ ...e }));
+  }
+
+  /* -- radar dispositions -- */
+  private radarStates: RadarStateRecord[] = [];
+
+  async ensureRadarStates(userId: string, keys: string[]): Promise<RadarStateRecord[]> {
+    const now = nowIso();
+    for (const key of keys) {
+      if (!this.radarStates.some((s) => s.user_id === userId && s.item_key === key)) {
+        this.radarStates.push({
+          user_id: userId,
+          item_key: key,
+          status: "new",
+          snoozed_until: null,
+          first_seen: now,
+          updated_at: now,
+        });
+      }
+    }
+    const wanted = new Set(keys);
+    return this.radarStates
+      .filter((s) => s.user_id === userId && wanted.has(s.item_key))
+      .map((s) => ({ ...s }));
+  }
+
+  async setRadarStatus(
+    userId: string,
+    itemKey: string,
+    status: RadarStateRecord["status"],
+    snoozedUntil: string | null = null
+  ): Promise<RadarStateRecord | null> {
+    const s = this.radarStates.find(
+      (x) => x.user_id === userId && x.item_key === itemKey
+    );
+    if (!s) return null;
+    s.status = status;
+    s.snoozed_until = status === "snoozed" ? snoozedUntil : null;
+    s.updated_at = nowIso();
+    return { ...s };
+  }
+
+  /* -- cosign rooms -- */
+  private rooms: CosignRoomRecord[] = [];
+  private roomApprovers: RoomApproverRecord[] = [];
+  private roomEvents: RoomEventRecord[] = [];
+
+  async createRoom(input: import("./index").RoomInsert): Promise<CosignRoomRecord> {
+    const now = nowIso();
+    const room: CosignRoomRecord = {
+      id: randomUUID(),
+      user_id: input.user_id,
+      action_id: input.action_id,
+      mission_id: input.mission_id ?? null,
+      name: input.name,
+      require_all: input.require_all,
+      ordered: input.ordered,
+      status: "open",
+      plan_hash: input.plan_hash,
+      expires_at: input.expires_at,
+      created_at: now,
+      updated_at: now,
+    };
+    this.rooms.unshift(room);
+    return { ...room };
+  }
+
+  async addRoomApprovers(
+    roomId: string,
+    userId: string,
+    approvers: { email: string; position: number }[]
+  ): Promise<RoomApproverRecord[]> {
+    const created = approvers.map((a) => ({
+      id: randomUUID(),
+      room_id: roomId,
+      user_id: userId,
+      approver_email: a.email.toLowerCase(),
+      approver_user_id: null,
+      position: a.position,
+      decision: "pending" as const,
+      decided_plan_hash: null,
+      comment: null,
+      decided_at: null,
+      revoked_at: null,
+      created_at: nowIso(),
+    }));
+    this.roomApprovers.push(...created);
+    return created.map((c) => ({ ...c }));
+  }
+
+  async getRoom(userId: string, id: string): Promise<CosignRoomRecord | null> {
+    const r = this.rooms.find((x) => x.id === id && x.user_id === userId);
+    return r ? { ...r } : null;
+  }
+
+  async getRoomByAction(userId: string, actionId: string): Promise<CosignRoomRecord | null> {
+    const r = this.rooms.find(
+      (x) => x.action_id === actionId && x.user_id === userId
+    );
+    return r ? { ...r } : null;
+  }
+
+  async listRooms(userId: string, limit = 50): Promise<CosignRoomRecord[]> {
+    return this.rooms
+      .filter((r) => r.user_id === userId)
+      .slice(0, limit)
+      .map((r) => ({ ...r }));
+  }
+
+  async listRoomsForApprover(email: string, limit = 50): Promise<CosignRoomRecord[]> {
+    const mine = new Set(
+      this.roomApprovers
+        .filter((a) => a.approver_email === email.toLowerCase())
+        .map((a) => a.room_id)
+    );
+    return this.rooms
+      .filter((r) => mine.has(r.id))
+      .slice(0, limit)
+      .map((r) => ({ ...r }));
+  }
+
+  async updateRoom(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<CosignRoomRecord, "status" | "plan_hash" | "expires_at">>
+  ): Promise<CosignRoomRecord | null> {
+    const r = this.rooms.find((x) => x.id === id && x.user_id === userId);
+    if (!r) return null;
+    Object.assign(r, patch, { updated_at: nowIso() });
+    return { ...r };
+  }
+
+  async listRoomApprovers(roomId: string): Promise<RoomApproverRecord[]> {
+    return this.roomApprovers
+      .filter((a) => a.room_id === roomId)
+      .sort((a, b) => a.position - b.position)
+      .map((a) => ({ ...a }));
+  }
+
+  async updateRoomApprover(
+    roomId: string,
+    approverId: string,
+    patch: Partial<
+      Pick<
+        RoomApproverRecord,
+        "decision" | "decided_plan_hash" | "comment" | "decided_at" | "revoked_at" | "approver_user_id"
+      >
+    >
+  ): Promise<RoomApproverRecord | null> {
+    const a = this.roomApprovers.find(
+      (x) => x.id === approverId && x.room_id === roomId
+    );
+    if (!a) return null;
+    Object.assign(a, patch);
+    return { ...a };
+  }
+
+  async logRoomEvent(
+    roomId: string,
+    userId: string,
+    actorEmail: string,
+    type: RoomEventRecord["type"],
+    detail: Record<string, unknown> = {}
+  ): Promise<void> {
+    this.roomEvents.push({
+      id: randomUUID(),
+      room_id: roomId,
+      user_id: userId,
+      actor_email: actorEmail,
+      type,
+      detail: { ...detail },
+      created_at: nowIso(),
+    });
+  }
+
+  async listRoomEvents(userId: string, roomId: string): Promise<RoomEventRecord[]> {
+    return this.roomEvents
+      .filter((e) => e.room_id === roomId && e.user_id === userId)
+      .map((e) => ({ ...e }));
+  }
+
+  /* -- webhook replay guard -- */
+  private webhookEvents = new Set<string>();
+
+  async claimWebhookEvent(id: string, _type: string, _created: number): Promise<boolean> {
+    if (this.webhookEvents.has(id)) return false;
+    this.webhookEvents.add(id);
+    return true;
+  }
+
   async deleteAllUserData(userId: string): Promise<void> {
     this.sessions = this.sessions.filter((s) => s.user_id !== userId);
     this.messages = this.messages.filter((m) => m.user_id !== userId);
@@ -1366,5 +1627,16 @@ export class MemoryStore implements Store {
     this.workspaceMembers = this.workspaceMembers.filter(
       (m) => !owned.has(m.workspace_id) && m.user_id !== userId
     );
+    // Radar → CoSign → Proof rows (receipts included — account deletion is
+    // the single sanctioned removal path for a user's receipts).
+    this.receipts = this.receipts.filter((r) => r.user_id !== userId);
+    this.securityEvents = this.securityEvents.filter((e) => e.user_id !== userId);
+    this.radarStates = this.radarStates.filter((s) => s.user_id !== userId);
+    const goneRooms = new Set(
+      this.rooms.filter((r) => r.user_id === userId).map((r) => r.id)
+    );
+    this.rooms = this.rooms.filter((r) => r.user_id !== userId);
+    this.roomApprovers = this.roomApprovers.filter((a) => !goneRooms.has(a.room_id));
+    this.roomEvents = this.roomEvents.filter((e) => !goneRooms.has(e.room_id));
   }
 }

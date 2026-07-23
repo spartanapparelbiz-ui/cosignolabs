@@ -1,4 +1,5 @@
 import { DecisionInbox } from "@/components/app/DecisionInbox";
+import { RoomsPanel } from "@/components/rooms/RoomsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ export default function ApprovalsPage() {
         approving executes it; vetoing kills it. nothing runs on its own.
       </p>
       <div className="mt-6 flex-1">
+        <RoomsPanel />
         <DecisionInbox />
       </div>
     </div>

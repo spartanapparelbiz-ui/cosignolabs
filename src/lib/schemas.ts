@@ -410,6 +410,63 @@ export const actionsQuerySchema = z
 
 export const idParamSchema = uuid;
 
+/* ------------------------------------------------ radar · rooms · security */
+
+/** Radar item dispositions. Snooze is bounded to 1h..30d. */
+export const radarStatusSchema = z
+  .object({
+    key: z.string().min(1).max(120),
+    status: z.enum(["seen", "dismissed", "snoozed"]),
+    snooze_hours: z.number().int().min(1).max(720).optional(),
+  })
+  .strict();
+
+/** Radar → "Prepare Mission": server recompiles from the item key only. */
+export const radarPrepareSchema = z
+  .object({
+    key: z.string().min(1).max(120),
+  })
+  .strict();
+
+const emailSchema = z.string().trim().toLowerCase().email().max(200);
+
+export const roomCreateSchema = z
+  .object({
+    actionId: uuid,
+    name: z.string().trim().min(1).max(120).optional(),
+    approvers: z.array(emailSchema).min(1).max(6),
+    requireAll: z.boolean().optional(),
+    ordered: z.boolean().optional(),
+    expiresInHours: z.number().int().min(1).max(336).optional(),
+  })
+  .strict();
+
+export const roomDecisionSchema = z
+  .object({
+    decision: z.enum(["approve", "reject", "request_changes"]),
+    comment: z.string().max(500).optional(),
+  })
+  .strict();
+
+/** Revoke a session (one id) or all sessions — exactly one of the two. */
+export const sessionRevokeSchema = z
+  .object({
+    sessionId: z.string().min(8).max(64).optional(),
+    all: z.boolean().optional(),
+  })
+  .strict()
+  .refine((v) => Boolean(v.all) !== Boolean(v.sessionId), {
+    message: "pass either a sessionId or all: true.",
+  });
+
+/** Mission fork selection at create time (server recompiles the plan). */
+export const forkKeySchema = z.enum([
+  "recommended",
+  "fastest",
+  "cheapest",
+  "safest",
+]);
+
 /**
  * Read a JSON body with a hard size cap (100 kB) — 413 when exceeded,
  * 400 when unparseable.

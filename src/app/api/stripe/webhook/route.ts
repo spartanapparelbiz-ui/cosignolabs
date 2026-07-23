@@ -33,12 +33,27 @@ export async function POST(req: NextRequest) {
     if (!sig) throw new Error("missing signature");
     event = stripe.webhooks.constructEvent(body, sig, secret);
   } catch (err) {
-    logSecurity("turnstile_failed", {
+    logSecurity("webhook_verification_failed", {
       at: "stripe_webhook",
       reason: err instanceof Error ? err.message : "bad_signature",
     });
     // Reject unsigned / bad signature; nothing is written.
     return NextResponse.json({ error: "bad_signature" }, { status: 400 });
+  }
+
+  // Replay/duplicate guard: each Stripe event id is processed exactly once.
+  // A re-delivery (Stripe retries, or a replayed capture) is acknowledged
+  // with 200 so Stripe stops retrying — but changes nothing.
+  try {
+    const fresh = await getStore().claimWebhookEvent(event.id, event.type, event.created);
+    if (!fresh) {
+      logSecurity("webhook_replay_blocked", { id: event.id, type: event.type });
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+  } catch {
+    // The dedup store being briefly unavailable must not drop the event:
+    // fall through and process (Stripe-side retries are idempotent per the
+    // out-of-order guard below).
   }
 
   try {
@@ -48,7 +63,7 @@ export async function POST(req: NextRequest) {
         const userId = session.client_reference_id || session.metadata?.cosigno_user_id;
         if (userId && session.subscription) {
           const sub = await stripe.subscriptions.retrieve(String(session.subscription));
-          await writeSubscription(stripe, userId, sub, String(session.customer));
+          await writeSubscription(stripe, userId, sub, String(session.customer), event.created);
         }
         break;
       }
@@ -56,7 +71,7 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.created": {
         const sub = event.data.object as Stripe.Subscription;
         const userId = await resolveUserId(sub.metadata?.cosigno_user_id, String(sub.customer));
-        if (userId) await writeSubscription(stripe, userId, sub, String(sub.customer));
+        if (userId) await writeSubscription(stripe, userId, sub, String(sub.customer), event.created);
         break;
       }
       case "customer.subscription.deleted": {
@@ -64,6 +79,7 @@ export async function POST(req: NextRequest) {
         const userId = await resolveUserId(sub.metadata?.cosigno_user_id, String(sub.customer));
         if (userId) {
           const existing = await getStore().getSubscription(userId);
+          if (staleEvent(existing, event.created)) break;
           await getStore().upsertSubscription({
             ...(existing ?? emptyRow(userId)),
             stripe_customer_id: String(sub.customer),
@@ -71,6 +87,7 @@ export async function POST(req: NextRequest) {
             status: "canceled",
             current_period_end: currentPeriodEnd(sub),
             cancel_at_period_end: true,
+            last_event_at: event.created,
             updated_at: new Date().toISOString(),
           });
         }
@@ -79,12 +96,13 @@ export async function POST(req: NextRequest) {
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         const existing = await getStore().getSubscriptionByCustomer(String(invoice.customer));
-        if (existing) {
+        if (existing && !staleEvent(existing, event.created)) {
           const now = Math.floor(Date.now() / 1000);
           await getStore().upsertSubscription({
             ...existing,
             status: "past_due",
             past_due_since: existing.past_due_since ?? now,
+            last_event_at: event.created,
             updated_at: new Date().toISOString(),
           });
         }
@@ -127,8 +145,27 @@ function emptyRow(userId: string): SubscriptionRecord {
     cancel_at_period_end: false,
     past_due_since: null,
     started_at: null,
+    last_event_at: null,
     updated_at: new Date().toISOString(),
   };
+}
+
+/**
+ * Out-of-order guard: Stripe does not guarantee delivery order. An event
+ * older than the newest one already applied to this subscription row must
+ * never overwrite fresher state — it is skipped (and logged).
+ */
+function staleEvent(existing: SubscriptionRecord | null, eventCreated: number): boolean {
+  const stale = Boolean(
+    existing?.last_event_at && eventCreated < existing.last_event_at
+  );
+  if (stale) {
+    logSecurity("webhook_stale_event_skipped", {
+      last_applied: existing?.last_event_at,
+      event_created: eventCreated,
+    });
+  }
+  return stale;
 }
 
 async function resolveUserId(
@@ -182,11 +219,13 @@ async function writeSubscription(
   _stripe: Stripe,
   userId: string,
   sub: Stripe.Subscription,
-  customerId: string
+  customerId: string,
+  eventCreated: number
 ): Promise<void> {
   const { plan, interval } = planFromSubscription(sub);
   const status = mapStatus(sub.status);
   const existing = await getStore().getSubscription(userId);
+  if (staleEvent(existing, eventCreated)) return;
   await getStore().upsertSubscription({
     user_id: userId,
     stripe_customer_id: customerId,
@@ -202,6 +241,7 @@ async function writeSubscription(
         ? existing?.past_due_since ?? Math.floor(Date.now() / 1000)
         : null,
     started_at: existing?.started_at ?? sub.created ?? Math.floor(Date.now() / 1000),
+    last_event_at: eventCreated,
     updated_at: new Date().toISOString(),
   });
   // The first time a subscription is truly active, mark the customer as having

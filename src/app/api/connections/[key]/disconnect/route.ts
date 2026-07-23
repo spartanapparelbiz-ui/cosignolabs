@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { errorResponse, requireUser } from "@/lib/api";
 import { enforceLimit } from "@/lib/ratelimit";
+import { recordSecurityEvent } from "@/lib/securityEvents";
 import { getStore } from "@/lib/store";
 import { disconnect } from "@/lib/integrations/runtime/connections";
 
@@ -27,6 +28,9 @@ export async function POST(
       await getStore().logAudit(userId, "integration_disconnected", {
         provider: existing.provider_key,
         kind: existing.kind,
+      });
+      await recordSecurityEvent(userId, "oauth_disconnected", {
+        detail: { provider: existing.provider_key, kind: existing.kind },
       });
     }
     return NextResponse.json({ ok: true });

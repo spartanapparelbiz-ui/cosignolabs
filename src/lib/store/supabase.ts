@@ -37,6 +37,12 @@ import {
   HoldRecord,
   ObjectiveLinkRecord,
   ObjectiveRecord,
+  ReceiptRecord,
+  SecurityEventRecord,
+  RadarStateRecord,
+  CosignRoomRecord,
+  RoomApproverRecord,
+  RoomEventRecord,
 } from "../types";
 import type {
   ActionInsert,
@@ -1174,7 +1180,12 @@ export class SupabaseStore implements Store {
   async createMission(input: import("./index").MissionInsert): Promise<MissionRecord> {
     const { data, error } = await this.client
       .from("missions")
-      .insert({ user_id: input.user_id, session_id: input.session_id, goal: input.goal })
+      .insert({
+        user_id: input.user_id,
+        session_id: input.session_id,
+        goal: input.goal,
+        fork_key: input.fork_key ?? null,
+      })
       .select()
       .single();
     if (error) throw new Error(error.message);
@@ -1688,6 +1699,305 @@ export class SupabaseStore implements Store {
     return (data ?? []) as ActionRecord[];
   }
 
+  /* -- proof receipts -- */
+  async recordReceipt(input: import("./index").ReceiptInsert): Promise<ReceiptRecord> {
+    return this.one(
+      this.client
+        .from("receipts")
+        .insert({
+          user_id: input.user_id,
+          correlation_id: input.correlation_id,
+          action_id: input.action_id ?? null,
+          mission_id: input.mission_id ?? null,
+          plan_hash: input.plan_hash,
+          plan_version: input.plan_version ?? null,
+          approved_by: input.approved_by,
+          authorization_method: input.authorization_method,
+          category: input.category,
+          integration: input.integration ?? "internal",
+          operation: input.operation,
+          status: input.status,
+          result_summary: input.result_summary ?? null,
+          verification: input.verification ?? null,
+          failure_reason: input.failure_reason ?? null,
+          undo_available: input.undo_available ?? false,
+          undo_hint: input.undo_hint ?? null,
+          external_ref: input.external_ref ?? null,
+        })
+        .select()
+        .single()
+    );
+  }
+
+  async listReceipts(userId: string, limit = 100): Promise<ReceiptRecord[]> {
+    const { data, error } = await this.client
+      .from("receipts")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as ReceiptRecord[];
+  }
+
+  async getReceipt(userId: string, id: string): Promise<ReceiptRecord | null> {
+    const { data, error } = await this.client
+      .from("receipts")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as ReceiptRecord) ?? null;
+  }
+
+  /* -- durable security events -- */
+  async recordSecurityEvent(input: import("./index").SecurityEventInsert): Promise<void> {
+    const { error } = await this.client.from("security_events").insert({
+      user_id: input.user_id,
+      event: input.event,
+      severity: input.severity ?? "info",
+      correlation_id: input.correlation_id ?? null,
+      detail: input.detail ?? {},
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  async listSecurityEvents(userId: string, limit = 100): Promise<SecurityEventRecord[]> {
+    const { data, error } = await this.client
+      .from("security_events")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as SecurityEventRecord[];
+  }
+
+  /* -- radar dispositions -- */
+  async ensureRadarStates(userId: string, keys: string[]): Promise<RadarStateRecord[]> {
+    if (keys.length === 0) return [];
+    const now = new Date().toISOString();
+    const { error: upsertError } = await this.client.from("radar_states").upsert(
+      keys.map((item_key) => ({
+        user_id: userId,
+        item_key,
+        status: "new",
+        first_seen: now,
+        updated_at: now,
+      })),
+      { onConflict: "user_id,item_key", ignoreDuplicates: true }
+    );
+    if (upsertError) throw new Error(upsertError.message);
+    const { data, error } = await this.client
+      .from("radar_states")
+      .select("*")
+      .eq("user_id", userId)
+      .in("item_key", keys);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as RadarStateRecord[];
+  }
+
+  async setRadarStatus(
+    userId: string,
+    itemKey: string,
+    status: RadarStateRecord["status"],
+    snoozedUntil: string | null = null
+  ): Promise<RadarStateRecord | null> {
+    const { data, error } = await this.client
+      .from("radar_states")
+      .update({
+        status,
+        snoozed_until: status === "snoozed" ? snoozedUntil : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .eq("item_key", itemKey)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as RadarStateRecord) ?? null;
+  }
+
+  /* -- cosign rooms -- */
+  async createRoom(input: import("./index").RoomInsert): Promise<CosignRoomRecord> {
+    return this.one(
+      this.client
+        .from("cosign_rooms")
+        .insert({
+          user_id: input.user_id,
+          action_id: input.action_id,
+          mission_id: input.mission_id ?? null,
+          name: input.name,
+          require_all: input.require_all,
+          ordered: input.ordered,
+          plan_hash: input.plan_hash,
+          expires_at: input.expires_at,
+        })
+        .select()
+        .single()
+    );
+  }
+
+  async addRoomApprovers(
+    roomId: string,
+    userId: string,
+    approvers: { email: string; position: number }[]
+  ): Promise<RoomApproverRecord[]> {
+    const { data, error } = await this.client
+      .from("cosign_room_approvers")
+      .insert(
+        approvers.map((a) => ({
+          room_id: roomId,
+          user_id: userId,
+          approver_email: a.email.toLowerCase(),
+          position: a.position,
+        }))
+      )
+      .select();
+    if (error) throw new Error(error.message);
+    return (data ?? []) as RoomApproverRecord[];
+  }
+
+  async getRoom(userId: string, id: string): Promise<CosignRoomRecord | null> {
+    const { data, error } = await this.client
+      .from("cosign_rooms")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as CosignRoomRecord) ?? null;
+  }
+
+  async getRoomByAction(userId: string, actionId: string): Promise<CosignRoomRecord | null> {
+    const { data, error } = await this.client
+      .from("cosign_rooms")
+      .select("*")
+      .eq("action_id", actionId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as CosignRoomRecord) ?? null;
+  }
+
+  async listRooms(userId: string, limit = 50): Promise<CosignRoomRecord[]> {
+    const { data, error } = await this.client
+      .from("cosign_rooms")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as CosignRoomRecord[];
+  }
+
+  async listRoomsForApprover(email: string, limit = 50): Promise<CosignRoomRecord[]> {
+    const { data: rows, error } = await this.client
+      .from("cosign_room_approvers")
+      .select("room_id")
+      .eq("approver_email", email.toLowerCase())
+      .limit(200);
+    if (error) throw new Error(error.message);
+    const ids = Array.from(new Set((rows ?? []).map((r) => r.room_id as string)));
+    if (ids.length === 0) return [];
+    const { data, error: roomErr } = await this.client
+      .from("cosign_rooms")
+      .select("*")
+      .in("id", ids)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (roomErr) throw new Error(roomErr.message);
+    return (data ?? []) as CosignRoomRecord[];
+  }
+
+  async updateRoom(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<CosignRoomRecord, "status" | "plan_hash" | "expires_at">>
+  ): Promise<CosignRoomRecord | null> {
+    const { data, error } = await this.client
+      .from("cosign_rooms")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("user_id", userId)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as CosignRoomRecord) ?? null;
+  }
+
+  async listRoomApprovers(roomId: string): Promise<RoomApproverRecord[]> {
+    const { data, error } = await this.client
+      .from("cosign_room_approvers")
+      .select("*")
+      .eq("room_id", roomId)
+      .order("position", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as RoomApproverRecord[];
+  }
+
+  async updateRoomApprover(
+    roomId: string,
+    approverId: string,
+    patch: Partial<
+      Pick<
+        RoomApproverRecord,
+        "decision" | "decided_plan_hash" | "comment" | "decided_at" | "revoked_at" | "approver_user_id"
+      >
+    >
+  ): Promise<RoomApproverRecord | null> {
+    const { data, error } = await this.client
+      .from("cosign_room_approvers")
+      .update(patch)
+      .eq("id", approverId)
+      .eq("room_id", roomId)
+      .select()
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as RoomApproverRecord) ?? null;
+  }
+
+  async logRoomEvent(
+    roomId: string,
+    userId: string,
+    actorEmail: string,
+    type: RoomEventRecord["type"],
+    detail: Record<string, unknown> = {}
+  ): Promise<void> {
+    const { error } = await this.client.from("cosign_room_events").insert({
+      room_id: roomId,
+      user_id: userId,
+      actor_email: actorEmail,
+      type,
+      detail,
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  async listRoomEvents(userId: string, roomId: string): Promise<RoomEventRecord[]> {
+    const { data, error } = await this.client
+      .from("cosign_room_events")
+      .select("*")
+      .eq("room_id", roomId)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as RoomEventRecord[];
+  }
+
+  /* -- webhook replay guard -- */
+  async claimWebhookEvent(id: string, type: string, created: number): Promise<boolean> {
+    // INSERT ... ON CONFLICT DO NOTHING via upsert+ignoreDuplicates: the row
+    // count tells us atomically whether this delivery was the first.
+    const { data, error } = await this.client
+      .from("webhook_events")
+      .upsert({ id, type, created }, { onConflict: "id", ignoreDuplicates: true })
+      .select();
+    if (error) throw new Error(error.message);
+    return (data ?? []).length > 0;
+  }
+
   async deleteAllUserData(userId: string): Promise<void> {
     // Workspaces they OWN dissolve entirely (members cascade); memberships
     // elsewhere are removed below.
@@ -1709,6 +2019,12 @@ export class SupabaseStore implements Store {
     // CASCADE; the rest are deleted explicitly. Missions cascade to
     // mission_steps + browser_sessions + browser_actions via FK.
     for (const table of [
+      "receipts",
+      "security_events",
+      "radar_states",
+      "cosign_room_events",
+      "cosign_room_approvers",
+      "cosign_rooms",
       "browser_products",
       "browser_actions",
       "browser_sessions",

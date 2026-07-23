@@ -52,6 +52,13 @@ const securityHeaders = [
     value: "max-age=63072000; includeSubDomains; preload",
   },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  // Cross-origin isolation posture. COOP severs window references from other
+  // origins (Stripe/Clerk/Turnstile use iframes + redirects, not window
+  // handles, so same-origin is compatible). CORP stops other origins from
+  // embedding our resources; same-origin is safe because all product assets
+  // are consumed same-origin only.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
 ];
 
 /** @type {import('next').NextConfig} */
