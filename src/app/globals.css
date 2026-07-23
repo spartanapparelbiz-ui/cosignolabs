@@ -15,6 +15,11 @@
   --c-line: 228 217 200;
   --c-signal: 251 76 32;
   --c-surface: 255 255 255;
+  /* Semantic status colors, used SPARINGLY per the brand rules:
+     verified = green ONLY for confirmed completion; danger = red ONLY for
+     warnings and blocked actions. Never decorative. */
+  --c-verified: 22 121 74;
+  --c-danger: 176 42 34;
 
   /* Logo identity tokens — exact brand values, independent of the product
      palette so the mark renders identically everywhere and flips with the
@@ -35,6 +40,8 @@
   --c-line: 58 52 43; /* hairline borders */
   --c-signal: 255 99 64; /* the orange lifts a touch so it pops on dark */
   --c-surface: 34 30 24; /* raised cards, one step above the page */
+  --c-verified: 74 197 142; /* green lifts on dark for contrast */
+  --c-danger: 240 118 108; /* red lifts on dark for contrast */
 
   /* Dark: orange C, CREAM check + wordmark, orange i-dot. */
   --logo-check: #f7f0e5;

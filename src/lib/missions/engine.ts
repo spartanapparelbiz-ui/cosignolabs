@@ -1,6 +1,7 @@
 import { getStore } from "../store";
 import { proposeAction, vetoAction } from "../actions/engine";
-import { logError, logInfo, newRequestId } from "../log";
+import { logError, logInfo, logSecurity, newRequestId } from "../log";
+import { recordSecurityEvent } from "../securityEvents";
 import { CATEGORIES } from "../types";
 import type {
   MissionRecord,
@@ -418,7 +419,27 @@ export async function tickMissions(limit = 5, worker = newRequestId()): Promise<
   const missions = await store.listRunnableMissions(limit);
   let advanced = 0;
   let skipped = 0;
+  const holdCache = new Map<string, boolean>();
   for (const m of missions) {
+    // Emergency Stop / full hold is SERVER state and binds scheduled work
+    // too: while a user's hold scope is "all", the tick does not advance
+    // their missions at all — no reads, no drafts, nothing. Recorded once
+    // per tick so the pause is traceable.
+    let held = holdCache.get(m.user_id);
+    if (held === undefined) {
+      held = (await store.getHold(m.user_id)).scope === "all";
+      holdCache.set(m.user_id, held);
+      if (held) {
+        logSecurity("scheduled_run_skipped_on_hold", { missionId: m.id });
+        await recordSecurityEvent(m.user_id, "scheduled_run_skipped_on_hold", {
+          detail: { kind: "mission_tick", mission_id: m.id },
+        });
+      }
+    }
+    if (held) {
+      skipped += 1;
+      continue;
+    }
     const leased = await store.claimMissionLease(m.id, worker, LEASE_TTL_MS);
     if (!leased) {
       skipped += 1; // another worker holds a live lease — don't double-run

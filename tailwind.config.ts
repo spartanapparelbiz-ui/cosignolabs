@@ -21,6 +21,9 @@ const config: Config = {
         signal: "rgb(var(--c-signal) / <alpha-value>)",
         "ink-soft": "rgb(var(--c-ink-soft) / <alpha-value>)",
         line: "rgb(var(--c-line) / <alpha-value>)",
+        // Green ONLY for verified completion; red ONLY for warnings/blocked.
+        verified: "rgb(var(--c-verified) / <alpha-value>)",
+        danger: "rgb(var(--c-danger) / <alpha-value>)",
         // Raised card surface (was literal white); themed so cards read in dark.
         surface: "rgb(var(--c-surface) / <alpha-value>)",
       },

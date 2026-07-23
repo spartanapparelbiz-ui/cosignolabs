@@ -12,6 +12,13 @@ export interface ExecutionResult {
 /** Execution context threaded from the engine (who owns the action). */
 export interface ExecContext {
   userId?: string;
+  /**
+   * Stable per-action idempotency key (sha-256 derived, engine-issued).
+   * Handlers performing external side effects must pass it to providers
+   * that support idempotent calls, so a retried dispatch of the same
+   * approved plan can never double-send.
+   */
+  idempotencyKey?: string;
 }
 
 type Handler = (

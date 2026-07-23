@@ -7,6 +7,7 @@ import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord }
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
 import { StarterJobs } from "@/components/app/StarterJobs";
+import { DailyCosignBanner } from "@/components/app/DailyCosignBanner";
 
 /**
  * The home dashboard — one calm place that answers four questions:
@@ -215,6 +216,9 @@ export function Dashboard() {
         />
         <StarterJobs />
       </section>
+
+      {/* Daily CoSign — today's review, each item approved individually */}
+      <DailyCosignBanner />
 
       {/* quiet connection-health warning — only when an app needs attention */}
       {unhealthy.length > 0 && (

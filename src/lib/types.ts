@@ -276,6 +276,12 @@ export interface SubscriptionRecord {
   past_due_since: number | null;
   /** unix seconds the Stripe subscription was created — powers the 14-day refund window. */
   started_at: number | null;
+  /**
+   * Stripe `event.created` (unix seconds) of the newest event applied to this
+   * row — the out-of-order guard: an older event can never overwrite newer
+   * subscription state. Optional so pre-existing rows/fixtures stay valid.
+   */
+  last_event_at?: number | null;
   updated_at: string;
 }
 
@@ -581,6 +587,8 @@ export interface MissionRecord {
   user_id: string;
   session_id: string;
   goal: string;
+  /** Which Mission Fork this plan came from (recommended/fastest/…), if any. */
+  fork_key?: string | null;
   state: MissionRunState;
   plan_version: number;
   pending_question: MissionQuestion | null;
@@ -746,6 +754,175 @@ export interface BrowserActionRecord {
   verification: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
+}
+
+/* ---------------------------------------------------------- proof receipts */
+
+/**
+ * A Proof Receipt: the immutable record of every attempted external action —
+ * executed, failed, or refused at the gate. Written only by the server-side
+ * execution dispatcher; never updated, never client-writable. Receipts never
+ * contain tokens, secrets, or full message bodies — bounded summaries only.
+ */
+export type ReceiptStatus = "executed" | "failed" | "rejected";
+
+export interface ReceiptRecord {
+  id: string;
+  user_id: string;
+  /** Correlation id tying the receipt to server logs + security events. */
+  correlation_id: string;
+  action_id: string | null;
+  mission_id: string | null;
+  /** sha-256 over the canonical approved payload (src/lib/planHash.ts). */
+  plan_hash: string;
+  /** Mission plan version at execution, when mission-linked. */
+  plan_version: number | null;
+  /** Who authorized it: the approving user id, or "system:auto" for tier 1. */
+  approved_by: string;
+  /** auto | approved | signed (+ ":room" suffix when a CoSign Room gated it). */
+  authorization_method: string;
+  category: string;
+  /** Integration/provider key involved, or "internal". */
+  integration: string;
+  /** The exact operation attempted (tool/category-level, human-readable). */
+  operation: string;
+  status: ReceiptStatus;
+  /** Bounded, safe summary of the result (never a raw payload dump). */
+  result_summary: string | null;
+  verification: Record<string, unknown> | null;
+  failure_reason: string | null;
+  undo_available: boolean;
+  undo_hint: string | null;
+  /** Relevant external identifier (message id, PR number…), when one exists. */
+  external_ref: string | null;
+  executed_at: string;
+  created_at: string;
+}
+
+/* --------------------------------------------------------- security events */
+
+export type SecurityEventSeverity = "info" | "notice" | "warning" | "critical";
+
+/**
+ * Durable, user-visible security events backing the Security Center. Written
+ * server-side only (fail-safe: a logging failure never blocks or bypasses
+ * authorization). Never contains secrets, tokens, or message content.
+ */
+export interface SecurityEventRecord {
+  id: string;
+  user_id: string;
+  event: string;
+  severity: SecurityEventSeverity;
+  correlation_id: string | null;
+  detail: Record<string, unknown>;
+  created_at: string;
+}
+
+/* ------------------------------------------------------------------- radar */
+
+/**
+ * Cosigno Radar — proactive detection over the user's OWN state (missions,
+ * cards, automations, connections, subscription, sources). Radar NEVER
+ * executes anything: its only outputs are suggestions and prepared Missions
+ * that enter the same approval gate as everything else. Detection is
+ * deterministic server code — no LLM in the loop, so "observed" facts are
+ * exactly database state.
+ */
+export type RadarCategory =
+  | "at_risk"
+  | "forgotten"
+  | "opportunity"
+  | "routine"
+  | "waiting"
+  | "needs_you";
+
+export type RadarStateStatus = "new" | "seen" | "dismissed" | "snoozed" | "prepared";
+
+/** Persisted disposition on a radar item (keyed by its stable item key). */
+export interface RadarStateRecord {
+  user_id: string;
+  item_key: string;
+  status: RadarStateStatus;
+  snoozed_until: string | null;
+  first_seen: string;
+  updated_at: string;
+}
+
+/* ------------------------------------------------------------ cosign rooms */
+
+/**
+ * CoSign Rooms — a Mission/action that requires MULTIPLE approvals before the
+ * owner's final approve can execute it. Every approver decision binds to the
+ * exact plan hash it was made against; any material payload change voids all
+ * prior decisions and requires reapproval. Rooms only ever ADD a gate on top
+ * of the normal approval state machine — they can never bypass it.
+ */
+export type RoomStatus =
+  | "open"
+  | "satisfied"
+  | "changes_requested"
+  | "expired"
+  | "revoked"
+  | "cancelled";
+
+export interface CosignRoomRecord {
+  id: string;
+  /** The action owner (whose card is gated). */
+  user_id: string;
+  action_id: string;
+  mission_id: string | null;
+  name: string;
+  /** true → every approver must approve (unanimous). false → any one suffices. */
+  require_all: boolean;
+  /** true → approvers must decide in position order. */
+  ordered: boolean;
+  status: RoomStatus;
+  /** Plan hash the room is currently collecting approvals against. */
+  plan_hash: string;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type RoomDecision = "pending" | "approved" | "rejected" | "changes_requested";
+
+export interface RoomApproverRecord {
+  id: string;
+  room_id: string;
+  /** Room owner's user id (denormalized for scoping). */
+  user_id: string;
+  approver_email: string;
+  /** Bound to the approver's verified user id the moment they decide. */
+  approver_user_id: string | null;
+  position: number;
+  decision: RoomDecision;
+  /** The plan hash the decision was made against. */
+  decided_plan_hash: string | null;
+  comment: string | null;
+  decided_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+/** Complete audit history of a room. Append-only. */
+export interface RoomEventRecord {
+  id: string;
+  room_id: string;
+  user_id: string;
+  actor_email: string;
+  type:
+    | "created"
+    | "approved"
+    | "rejected"
+    | "changes_requested"
+    | "approval_revoked"
+    | "plan_changed"
+    | "reapproval_required"
+    | "satisfied"
+    | "expired"
+    | "cancelled";
+  detail: Record<string, unknown>;
+  created_at: string;
 }
 
 /* ------------------------------------------------------ mission sources */

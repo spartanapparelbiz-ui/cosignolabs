@@ -1,6 +1,7 @@
 import { runCommand } from "./agent/pipeline";
 import { approveAction, EngineError } from "./actions/engine";
-import { logInfo } from "./log";
+import { logInfo, logSecurity } from "./log";
+import { recordSecurityEvent } from "./securityEvents";
 import { enforceGlobalPlanningBudget, enforceLimit, RateLimitError } from "./ratelimit";
 import { getStore } from "./store";
 import type { AutomationRecord, AutomationRunRecord } from "./types";
@@ -28,6 +29,30 @@ export async function runAutomation(
   let status: AutomationRunRecord["status"] = "ok";
   let detail: string | null = null;
   let sessionId: string | null = null;
+
+  // Emergency Stop / holds bind scheduled work server-side: a held user's
+  // automations do not run at all (scope "all"), and with external actions
+  // paused ("external") the run is skipped too — a recurring rule exists to
+  // prepare consequential work, which is exactly what's paused. The schedule
+  // still advances so a released hold doesn't unleash a backlog burst.
+  const hold = await store.getHold(userId);
+  if (hold.scope !== "none") {
+    logSecurity("scheduled_run_skipped_on_hold", { automationId: automation.id, scope: hold.scope });
+    await recordSecurityEvent(userId, "scheduled_run_skipped_on_hold", {
+      detail: { kind: "automation", automation_id: automation.id, scope: hold.scope },
+    });
+    await store.updateAutomation(userId, automation.id, {
+      last_run_at: new Date().toISOString(),
+      next_run_at: nextRunAt(automation.interval_hours),
+    });
+    return store.createAutomationRun({
+      automation_id: automation.id,
+      user_id: userId,
+      status: "ok",
+      detail: "skipped — cosigno is on hold. resume to let scheduled runs continue.",
+      session_id: null,
+    });
+  }
 
   try {
     // The owner's own cost gates apply to scheduled work exactly as they do

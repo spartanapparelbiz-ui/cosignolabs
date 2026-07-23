@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MissionList } from "@/components/app/MissionList";
 import { MissionRunner } from "@/components/app/MissionRunner";
+import { ForksExplorer } from "@/components/missions/ForksExplorer";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,9 @@ export default function MissionsPage() {
       </div>
       <div className="mt-6">
         <MissionRunner />
+      </div>
+      <div className="mt-4">
+        <ForksExplorer />
       </div>
       <h2 className="mt-8 text-sm font-extrabold lowercase tracking-widest text-ink-soft">
         command threads

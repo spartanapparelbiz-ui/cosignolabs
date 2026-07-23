@@ -1,6 +1,13 @@
 import type {
   AutomationRecord,
   AutomationRunRecord,
+  CosignRoomRecord,
+  RadarStateRecord,
+  RadarStateStatus,
+  ReceiptRecord,
+  RoomApproverRecord,
+  RoomEventRecord,
+  SecurityEventRecord,
   MemoryRecord,
   PermissionRuleRecord,
   RuleCondition,
@@ -114,6 +121,49 @@ export interface MissionInsert {
   user_id: string;
   session_id: string;
   goal: string;
+  /** Mission Fork provenance (recommended/fastest/cheapest/safest), if any. */
+  fork_key?: string | null;
+}
+
+/** Immutable Proof Receipt insert — written only by the execution dispatcher. */
+export interface ReceiptInsert {
+  user_id: string;
+  correlation_id: string;
+  action_id?: string | null;
+  mission_id?: string | null;
+  plan_hash: string;
+  plan_version?: number | null;
+  approved_by: string;
+  authorization_method: string;
+  category: string;
+  integration?: string;
+  operation: string;
+  status: ReceiptRecord["status"];
+  result_summary?: string | null;
+  verification?: Record<string, unknown> | null;
+  failure_reason?: string | null;
+  undo_available?: boolean;
+  undo_hint?: string | null;
+  external_ref?: string | null;
+}
+
+export interface SecurityEventInsert {
+  user_id: string;
+  event: string;
+  severity?: SecurityEventRecord["severity"];
+  correlation_id?: string | null;
+  detail?: Record<string, unknown>;
+}
+
+export interface RoomInsert {
+  user_id: string;
+  action_id: string;
+  mission_id?: string | null;
+  name: string;
+  require_all: boolean;
+  ordered: boolean;
+  plan_hash: string;
+  expires_at: string;
 }
 
 export interface MissionStepInsert {
@@ -559,6 +609,68 @@ export interface Store {
   deleteWorkspace(id: string): Promise<void>;
   /** Proposed actions across a set of users — delegated-decision listing. */
   listProposedActionsForUsers(userIds: string[], limit?: number): Promise<ActionRecord[]>;
+
+  /* -- proof receipts (immutable; written only by the execution dispatcher) -- */
+  recordReceipt(input: ReceiptInsert): Promise<ReceiptRecord>;
+  listReceipts(userId: string, limit?: number): Promise<ReceiptRecord[]>;
+  getReceipt(userId: string, id: string): Promise<ReceiptRecord | null>;
+
+  /* -- durable security events (user-visible; fail-safe at the caller) -- */
+  recordSecurityEvent(input: SecurityEventInsert): Promise<void>;
+  listSecurityEvents(userId: string, limit?: number): Promise<SecurityEventRecord[]>;
+
+  /* -- radar dispositions (dismiss / snooze / prepared) -- */
+  ensureRadarStates(userId: string, keys: string[]): Promise<RadarStateRecord[]>;
+  setRadarStatus(
+    userId: string,
+    itemKey: string,
+    status: RadarStateStatus,
+    snoozedUntil?: string | null
+  ): Promise<RadarStateRecord | null>;
+
+  /* -- cosign rooms (multi-approver gates; approvals bind to plan hashes) -- */
+  createRoom(input: RoomInsert): Promise<CosignRoomRecord>;
+  addRoomApprovers(
+    roomId: string,
+    userId: string,
+    approvers: { email: string; position: number }[]
+  ): Promise<RoomApproverRecord[]>;
+  getRoom(userId: string, id: string): Promise<CosignRoomRecord | null>;
+  getRoomByAction(userId: string, actionId: string): Promise<CosignRoomRecord | null>;
+  listRooms(userId: string, limit?: number): Promise<CosignRoomRecord[]>;
+  /** Rooms across ALL owners where this email is an approver (server-mediated). */
+  listRoomsForApprover(email: string, limit?: number): Promise<CosignRoomRecord[]>;
+  updateRoom(
+    userId: string,
+    id: string,
+    patch: Partial<Pick<CosignRoomRecord, "status" | "plan_hash" | "expires_at">>
+  ): Promise<CosignRoomRecord | null>;
+  listRoomApprovers(roomId: string): Promise<RoomApproverRecord[]>;
+  updateRoomApprover(
+    roomId: string,
+    approverId: string,
+    patch: Partial<
+      Pick<
+        RoomApproverRecord,
+        "decision" | "decided_plan_hash" | "comment" | "decided_at" | "revoked_at" | "approver_user_id"
+      >
+    >
+  ): Promise<RoomApproverRecord | null>;
+  logRoomEvent(
+    roomId: string,
+    userId: string,
+    actorEmail: string,
+    type: RoomEventRecord["type"],
+    detail?: Record<string, unknown>
+  ): Promise<void>;
+  listRoomEvents(userId: string, roomId: string): Promise<RoomEventRecord[]>;
+
+  /**
+   * Webhook replay guard: atomically claim a webhook event id. Returns true
+   * exactly once per id — a duplicate delivery returns false and must be
+   * acknowledged without reprocessing.
+   */
+  claimWebhookEvent(id: string, type: string, created: number): Promise<boolean>;
 
   /** Cascade-delete everything owned by a user (account deletion). */
   deleteAllUserData(userId: string): Promise<void>;

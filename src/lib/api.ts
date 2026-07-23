@@ -48,6 +48,8 @@ const ENGINE_STATUS: Record<string, number> = {
   forbidden: 403,
   injection_blocked: 403,
   on_hold: 423, // Locked — cosigno is held; resume to continue.
+  approval_expired: 410, // Gone — the proposal aged out; ask again for a fresh plan.
+  room_pending: 409, // The CoSign Room isn't satisfied against the current plan.
 };
 
 /**

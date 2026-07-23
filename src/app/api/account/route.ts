@@ -6,6 +6,7 @@ import { isGuestId } from "@/lib/publicMode";
 import { logSecurity } from "@/lib/log";
 import { enforceLimit } from "@/lib/ratelimit";
 import { parseStrict, readJsonBody } from "@/lib/schemas";
+import { recordSecurityEvent } from "@/lib/securityEvents";
 import { getStore } from "@/lib/store";
 import { getStripe } from "@/lib/stripe";
 
@@ -41,7 +42,21 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
+    // Revoke connected-app tokens UPSTREAM before wiping the ciphertext:
+    // deleting rows alone would leave live grants sitting at the providers.
+    // Best-effort per connection (a dead provider must not block deletion);
+    // disconnect() also hard-deletes each row + cached tools.
+    try {
+      const { disconnect } = await import("@/lib/integrations/runtime/connections");
+      for (const c of await store.listConnections(userId)) {
+        await disconnect(userId, c.id).catch(() => {});
+      }
+    } catch {
+      // listing failed — cascade delete below still removes local secrets
+    }
+
     await store.logAudit(userId, "account_deleted", {});
+    await recordSecurityEvent(userId, "account_deleted", {});
     await store.deleteAllUserData(userId);
 
     // Delete the SIGN-IN account too. Without this the auth provider keeps

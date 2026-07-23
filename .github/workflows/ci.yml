@@ -5,19 +5,54 @@ on:
     branches: ["**"]
   pull_request:
 
+# Least-privilege token: this workflow only reads the repo.
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
+      # Official, maintained actions only. Third-party actions MUST be pinned
+      # to a full commit SHA (none are used here).
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - name: Audit (fail on critical)
+
+      - name: Install (locked)
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Migration validation (RLS + non-destructive)
+        run: npm run check:migrations
+
+      - name: Source secret scan
+        run: npm run check:secrets
+
+      # Blocking gate: fail on any CRITICAL advisory (there are none today).
+      # High/moderate are reported but non-blocking, because the current highs
+      # are framework advisories (Next.js/sharp) with NO fixed version released
+      # upstream — see docs/security-operations.md §5 for the tracked list and
+      # in-app mitigations. Blocking on them would wedge every PR for something
+      # we cannot patch. Revisit when Next ships a fixed release.
+      - name: Dependency vulnerability audit (fail on critical)
         run: npm audit --audit-level=critical
-      - name: Build + bundle secret scan
+      - name: Dependency advisory report (high, non-blocking)
+        run: npm audit --audit-level=high || true
+
+      # The production build runs the client-bundle secret scan and the
+      # vendor-name gate (scripts/check-bundle.mjs + check-vendor.mjs).
+      - name: Production build (+ bundle secret & vendor gates)
         run: npm run build
-      - name: Tests (acceptance + security suite)
+
+      # The full vitest suite includes the security tests: two-user isolation
+      # (build-blocking), approval-gate binding/expiry/single-use, CoSign Rooms,
+      # emergency stop, webhook idempotency, prompt-injection, and SSRF. A
+      # failure here fails the build — the implementation is not "done" while a
+      # critical security test is red.
+      - name: Tests (unit + security suite, incl. isolation)
         run: npm test

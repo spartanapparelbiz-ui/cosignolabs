@@ -28,7 +28,13 @@ function stepUsesContext(tool: string): boolean {
 export async function instantiateCompiledMission(
   userId: string,
   plan: CompiledPlan,
-  opts: { sourceIds?: string[]; sources?: SourceContext[] } = {}
+  opts: {
+    sourceIds?: string[];
+    sources?: SourceContext[];
+    /** Mission Fork provenance + its engine-enforced budget (tool-call cap). */
+    forkKey?: string | null;
+    budgetCents?: number;
+  } = {}
 ): Promise<{ mission: MissionRecord; steps: MissionStepRecord[] }> {
   const store = getStore();
   const session = await store.createSession(userId, plan.normalizedGoal);
@@ -36,7 +42,14 @@ export async function instantiateCompiledMission(
     user_id: userId,
     session_id: session.id,
     goal: plan.normalizedGoal,
+    fork_key: opts.forkKey ?? null,
   });
+  // A chosen fork's budget is a REAL constraint: the engine caps tool calls at
+  // floor(budget_cents / 5), so "cheapest"/"fastest" genuinely do less work.
+  if (typeof opts.budgetCents === "number" && opts.budgetCents !== mission.budget_cents) {
+    await store.updateMission(userId, mission.id, { budget_cents: opts.budgetCents });
+    mission.budget_cents = opts.budgetCents;
+  }
 
   const usable = (opts.sources ?? []).filter(sourceIsUsable);
   // Untrusted, bounded context the reasoning steps read (never instructions).

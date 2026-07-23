@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { appUrl } from "../stripe";
 import { getStore } from "../store";
+import { recordSecurityEvent } from "../securityEvents";
 import { encryptSecret, randomToken } from "./crypto";
 import { getProvider } from "./registry";
 import type { ConnectionRecord, IntegrationProvider } from "./types";
@@ -59,7 +60,14 @@ export async function completeOAuth(args: {
   const store = getStore();
   const stateRow = await store.consumeOAuthState(args.state);
   // State must exist, be unexpired, and match the provider it was issued for.
+  // A missing/mismatched state is exactly what an account-swap or CSRF attempt
+  // looks like — record it (bound to the initiating user when we know them).
   if (!stateRow || stateRow.provider_key !== args.providerKey) {
+    if (stateRow?.user_id) {
+      await recordSecurityEvent(stateRow.user_id, "oauth_state_rejected", {
+        detail: { provider: args.providerKey },
+      });
+    }
     return { ok: false, reason: "bad_state" };
   }
   const provider = getProvider(args.providerKey);
@@ -82,6 +90,9 @@ export async function completeOAuth(args: {
       scopes: creds.scope ?? provider.scopeSummary,
       status: health.ok ? "connected" : "needs_reauth",
       metadata: health.ok && health.label ? { account: health.label } : {},
+    });
+    await recordSecurityEvent(stateRow.user_id, "oauth_connected", {
+      detail: { provider: provider.key, scopes: creds.scope ?? provider.scopeSummary },
     });
     return { ok: true, connection };
   } catch {
