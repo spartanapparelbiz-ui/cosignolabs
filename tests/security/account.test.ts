@@ -18,6 +18,13 @@ vi.mock("@/lib/auth", () => ({
   getUserId: vi.fn(async () => currentUser.id),
 }));
 
+// Account deletion now also deletes the Clerk user (so the email frees up
+// for re-signup) — stub the provider client; its behavior is pinned in
+// account-delete.test.ts.
+vi.mock("@clerk/nextjs/server", () => ({
+  clerkClient: async () => ({ users: { deleteUser: vi.fn(async () => ({})) } }),
+}));
+
 let store: MemoryStore;
 
 function jsonReq(url: string, method: string, body: unknown): NextRequest {

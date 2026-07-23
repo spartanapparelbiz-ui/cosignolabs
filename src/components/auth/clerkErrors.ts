@@ -14,6 +14,18 @@ export function clerkErrorCode(err: unknown): string {
   return (err as ClerkApiError)?.errors?.[0]?.code ?? "";
 }
 
+/** The email is already taken in this Clerk instance (real account OR a
+ *  half-finished signup that reserved it) — the flow can try to recover. */
+export function isIdentifierExists(err: unknown): boolean {
+  return clerkErrorCode(err) === "form_identifier_exists";
+}
+
+/** The visitor already has an active session — signing up/in is moot; the
+ *  right move is going to the app, not an "already exists" style error. */
+export function isSessionExists(err: unknown): boolean {
+  return clerkErrorCode(err) === "session_exists";
+}
+
 export function friendlyClerkError(
   err: unknown,
   mode: "sign-in" | "sign-up"
@@ -26,7 +38,9 @@ export function friendlyClerkError(
     case "form_password_validation_failed":
       return "that password doesn't match — try again.";
     case "form_identifier_exists":
-      return "an account with that email already exists — try signing in.";
+      return "that email is already registered — sign in instead.";
+    case "session_exists":
+      return "you're already signed in on this device.";
     case "form_param_format_invalid":
       return "that email doesn't look right.";
     case "form_password_length_too_short":
