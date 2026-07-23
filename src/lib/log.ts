@@ -25,6 +25,7 @@ export type SecurityEvent =
   | "turnstile_failed"
   | "invalid_input"
   | "account_deleted"
+  | "account_delete_signin_cleanup_failed"
   | "refund_issued"
   | "refund_failed";
 

@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSignIn, useSignUp } from "@clerk/nextjs";
 import { AuthForm } from "./AuthForm";
-import { clerkErrorCode, friendlyClerkError } from "./clerkErrors";
+import {
+  clerkErrorCode,
+  friendlyClerkError,
+  isIdentifierExists,
+  isSessionExists,
+} from "./clerkErrors";
 
 /**
  * Surface a calm message to the user, but keep the STABLE provider error code
@@ -44,6 +49,7 @@ export function ClerkAuthFlow({
   const [phase, setPhase] = useState<"credentials" | "verify">("credentials");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorAction, setErrorAction] = useState<{ href: string; label: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [stamped, setStamped] = useState(false);
 
@@ -71,20 +77,68 @@ export function ClerkAuthFlow({
     }
   }
 
+  /**
+   * "Already registered" recovery: Clerk reserves an email the moment a
+   * sign-up attempt is created — including attempts abandoned before the
+   * 6-digit code was entered. So `form_identifier_exists` does NOT always
+   * mean a real account; it can be the user's own half-finished signup. The
+   * graceful path: quietly try signing in with the credentials they just
+   * typed. If that works, they're in — no error at all. Only when the email
+   * truly belongs to an account with a different password do we say so, with
+   * a direct link to sign-in.
+   */
+  async function recoverExistingIdentifier(email: string, password: string) {
+    const { signIn, setActive } = signInHook;
+    if (signIn) {
+      try {
+        const res = await signIn.create({ identifier: email, password });
+        if (res.status === "complete") {
+          succeed(res.createdSessionId, setActive);
+          return;
+        }
+      } catch {
+        // fall through to the honest message
+      }
+    }
+    setError("that email is already registered — sign in instead.");
+    setErrorAction({ href: switchHref, label: "go to sign in" });
+  }
+
   async function handleSignUp(email: string, password: string) {
-    const { signUp } = signUpHook;
+    const { signUp, setActive } = signUpHook;
     if (!signUp) return;
-    // The form only reaches here once the Terms + Privacy checkbox is ticked,
-    // so we stamp the consent onto the user record for our records.
-    await signUp.create({
-      emailAddress: email,
-      password,
-      unsafeMetadata: {
-        termsAcceptedAt: new Date().toISOString(),
-        termsVersion: "2026-07-08",
-        privacyVersion: "2026-07-09",
-      },
-    });
+    let res;
+    try {
+      // The form only reaches here once the Terms + Privacy checkbox is ticked,
+      // so we stamp the consent onto the user record for our records.
+      res = await signUp.create({
+        emailAddress: email,
+        password,
+        unsafeMetadata: {
+          termsAcceptedAt: new Date().toISOString(),
+          termsVersion: "2026-07-08",
+          privacyVersion: "2026-07-09",
+        },
+      });
+    } catch (err) {
+      if (isSessionExists(err)) {
+        // Already signed in — signing up is moot; go to the app.
+        router.push(dest);
+        return;
+      }
+      if (isIdentifierExists(err)) {
+        await recoverExistingIdentifier(email, password);
+        return;
+      }
+      throw err;
+    }
+    if (res.status === "complete") {
+      // The instance didn't require verification — the account exists NOW.
+      // Ignoring this and pushing into the code phase is how a retry turns
+      // into a bogus "already exists".
+      succeed(res.createdSessionId, setActive);
+      return;
+    }
     await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
     setNotice(`we sent a 6-digit code to ${email}.`);
     setPhase("verify");
@@ -93,11 +147,16 @@ export function ClerkAuthFlow({
   async function submitCredentials(email: string, password: string) {
     if (!loaded || busy) return;
     setError(null);
+    setErrorAction(null);
     setBusy(true);
     try {
       if (mode === "sign-in") await handleSignIn(email, password);
       else await handleSignUp(email, password);
     } catch (err) {
+      if (isSessionExists(err)) {
+        router.push(dest);
+        return;
+      }
       setError(describeAuthError(err, mode));
     } finally {
       setBusy(false);
@@ -148,6 +207,7 @@ export function ClerkAuthFlow({
       phase={phase}
       busy={busy || !loaded}
       error={error}
+      errorAction={errorAction}
       notice={notice}
       googleEnabled={googleEnabled}
       stamped={stamped}

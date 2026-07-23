@@ -28,6 +28,8 @@ export interface AuthFormProps {
   busy: boolean;
   /** Calm, brand-voice error text (already user-safe). */
   error: string | null;
+  /** Optional action rendered with the error, e.g. a "go to sign in" link. */
+  errorAction?: { href: string; label: string } | null;
   /** Neutral status line, e.g. "we sent a 6-digit code to …". */
   notice: string | null;
   googleEnabled: boolean;
@@ -63,6 +65,7 @@ export function AuthForm(props: AuthFormProps) {
     phase,
     busy,
     error,
+    errorAction,
     notice,
     googleEnabled,
     stamped,
@@ -234,7 +237,23 @@ export function AuthForm(props: AuthFormProps) {
                 invisible until Clerk needs to show a challenge. */}
             {mode === "sign-up" && <div id="clerk-captcha" className="empty:hidden" />}
 
-            {error && <ErrorLine>{error}</ErrorLine>}
+            {error && (
+              <ErrorLine>
+                {error}
+                {errorAction && (
+                  <>
+                    {" "}
+                    <Link
+                      href={errorAction.href}
+                      prefetch
+                      className="font-bold underline underline-offset-2"
+                    >
+                      {errorAction.label}
+                    </Link>
+                  </>
+                )}
+              </ErrorLine>
+            )}
 
             <SubmitButton lit={ready} busy={busy}>
               {copy.submit}

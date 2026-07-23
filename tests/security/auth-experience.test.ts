@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryStore } from "../../src/lib/store/memory";
 import { resetRateLimitsForTests } from "../../src/lib/ratelimit";
 import { safeRedirect, withRedirect } from "@/components/auth/authRedirect";
-import { friendlyClerkError } from "@/components/auth/clerkErrors";
+import {
+  friendlyClerkError,
+  isIdentifierExists,
+  isSessionExists,
+} from "@/components/auth/clerkErrors";
 
 /**
  * The custom auth surface keeps Clerk as the engine but replaces the look and
@@ -54,10 +58,23 @@ describe("clerk errors → calm copy, never the raw cause", () => {
     ).toMatch(/password/i);
     expect(
       friendlyClerkError({ errors: [{ code: "form_identifier_exists" }] }, "sign-up")
-    ).toMatch(/already exists/i);
+    ).toMatch(/already registered — sign in instead/i);
     expect(
       friendlyClerkError({ errors: [{ code: "form_code_incorrect" }] }, "sign-up")
     ).toMatch(/code/i);
+  });
+
+  it("an active session is never reported as an existing account", () => {
+    // session_exists = the visitor is already signed in. Reporting THAT as
+    // "account already exists" was exactly the misleading failure reported
+    // on signup — the two codes must stay distinguishable.
+    expect(
+      friendlyClerkError({ errors: [{ code: "session_exists" }] }, "sign-up")
+    ).toMatch(/already signed in/i);
+    expect(isSessionExists({ errors: [{ code: "session_exists" }] })).toBe(true);
+    expect(isSessionExists({ errors: [{ code: "form_identifier_exists" }] })).toBe(false);
+    expect(isIdentifierExists({ errors: [{ code: "form_identifier_exists" }] })).toBe(true);
+    expect(isIdentifierExists(null)).toBe(false);
   });
 
   it("maps production bot-protection and restriction failures honestly (never a silent shrug)", () => {
