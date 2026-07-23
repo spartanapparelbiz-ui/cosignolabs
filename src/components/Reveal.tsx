@@ -1,11 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useReveal } from "@/lib/useReveal";
 
 /**
- * Fades + rises its children 12px the first time they scroll into view,
- * once. Reduced motion → revealed immediately. Used for landing section
- * blocks so first-scroll feels composed without re-triggering.
+ * Entrance motion for landing sections — ADDITIVE, never gating. The
+ * legibility rule: content begins fully readable (server render and no-JS
+ * both show it at full opacity) and never remains faded because the user
+ * hasn't scrolled, hovered, or waited.
+ *
+ * How: the pre-reveal (hidden) state is applied ONLY after hydration, and
+ * ONLY to elements still below the viewport at that moment — everything
+ * already on screen stays visible and simply doesn't animate. Elements
+ * below the fold rise in when they enter view; if the observer never fires,
+ * the safety fallback in useReveal shows them anyway.
  */
 export function Reveal({
   children,
@@ -19,14 +27,28 @@ export function Reveal({
   as?: "div" | "section" | "li";
 }) {
   const { ref, shown } = useReveal<HTMLDivElement>();
+  // Armed only after mount, and only for elements that were still below the
+  // viewport then — so first paint is always fully legible.
+  const [armed, setArmed] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || shown) return;
+    const rect = el.getBoundingClientRect();
+    const below = rect.top > window.innerHeight * 0.9;
+    if (below) setArmed(true);
+    // If it's already on screen, never hide it — useReveal will mark it shown.
+  }, [ref, shown]);
+
+  const hidden = armed && !shown;
   return (
     <Tag
       // @ts-expect-error ref is valid for the small union of tags used here
       ref={ref}
       className={`${className} transition-[opacity,transform] duration-[420ms] ease-brand-out ${
-        shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+        hidden ? "opacity-0 translate-y-3" : "opacity-100 translate-y-0"
       }`}
-      style={{ transitionDelay: shown ? `${delay}ms` : "0ms" }}
+      style={{ transitionDelay: hidden ? "0ms" : `${delay}ms` }}
     >
       {children}
     </Tag>

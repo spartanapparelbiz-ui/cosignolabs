@@ -184,6 +184,13 @@ export function PricingCards() {
           );
         })}
       </div>
+
+      {/* "actions" translated into normal missions — labeled as an estimate */}
+      <p className="mx-auto mt-6 max-w-2xl text-center text-xs font-semibold text-ink-soft">
+        what an action buys, roughly: free ≈ 2 inbox cleanups a month · pro ≈ 80
+        inbox cleanups or 200 drafted follow-ups · max ≈ 10× pro. estimates —
+        actual usage depends on mission size.
+      </p>
     </div>
   );
 }

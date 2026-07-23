@@ -67,6 +67,29 @@ describe("sandbox isolation", () => {
     expect(body.cards.every((c: { injection_flag: boolean }) => c.injection_flag)).toBe(true);
   });
 
+  it("an invoice command NEVER produces a substituted lead-reply scenario", async () => {
+    // Spec acceptance #1: the demo must plan from the user's own words.
+    const { POST } = await import("../../src/app/api/preview/route");
+    const res = await POST(previewReq("follow up on the unpaid invoices"));
+    const body = await res.json();
+    expect(body.cards.length).toBeGreaterThan(0);
+    const all = JSON.stringify(body.cards);
+    expect(all).toContain("unpaid invoices"); // the user's actual subject
+    expect(all).not.toMatch(/unanswered leads/); // never the canned scenario
+  });
+
+  it("a command outside the simulated domains gets an honest plan-only answer", async () => {
+    const { POST } = await import("../../src/app/api/preview/route");
+    const res = await POST(previewReq("negotiate my office lease renewal"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.unsupported).toBe(true);
+    expect(body.cards).toHaveLength(0); // nothing pretends to execute
+    expect(body.message).toMatch(/won't pretend/i);
+    expect(body.planPreview.join(" ")).toMatch(/office lease renewal/);
+    expect(body.planPreview.join(" ")).toMatch(/signature/);
+  });
+
   it("commands over 200 chars are rejected", async () => {
     const { POST } = await import("../../src/app/api/preview/route");
     const res = await POST(previewReq("x".repeat(201)));

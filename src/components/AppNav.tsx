@@ -4,20 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-// Minimal fallback navigation — intent → interface is the primary model
-// (the Presence mark / ⌘K). Cosigno itself is the operator: NOW is the live
-// relationship, delegations are handed-over outcomes, the boundary is where
-// authority sits. Autopilot, files, skills, and advanced surfaces stay
-// reachable from home and the account menu.
+// The seven everyday pages. Advanced surfaces (memory, team, health) are
+// reachable from the account/settings menu, not the main nav — the dashboard
+// stays about the four simple questions.
 const LINKS = [
-  { href: "/app", label: "now" },
-  { href: "/app/objectives", label: "objectives" },
-  { href: "/app/missions", label: "delegations" },
-  { href: "/app/watch", label: "watch" },
-  { href: "/app/focus", label: "boundary" },
-  { href: "/app/activity", label: "activity" },
+  { href: "/app", label: "home" },
+  { href: "/app/missions", label: "missions" },
+  { href: "/app/approvals", label: "approvals" },
+  { href: "/app/automations", label: "automations" },
   { href: "/app/connections", label: "connections" },
-  { href: "/app/settings", label: "settings" },
+  { href: "/app/files", label: "files" },
+  { href: "/app/activity", label: "activity" },
 ];
 
 function activeIndex(pathname: string): number {

@@ -332,7 +332,9 @@ export const filePatchSchema = z
 /** Durable missions. A mission starts from a template OR a compiled goal. */
 export const missionCreateSchema = z
   .object({
-    template: z.enum(["meeting_prep", "laptop_compare"]).optional(),
+    template: z
+      .enum(["meeting_prep", "laptop_compare", "inbox_cleanup", "followups", "daily_brief"])
+      .optional(),
     goal: z.string().trim().min(3).max(500).optional(),
     // staged file/link sources (ask-box context) to attach to the mission
     sourceIds: z.array(uuid).max(20).optional(),

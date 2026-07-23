@@ -2,15 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { CalendarClock, Check, ChevronRight, Eye, PenLine, Repeat, X } from "lucide-react";
+import { CalendarClock, Check, ChevronRight, Repeat } from "lucide-react";
 import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
-import type { AutonomyOffer, CosignoState } from "@/lib/state";
-import { signRequired } from "@/lib/sign";
-import { useDisplayName } from "@/lib/theme";
-import { useToast } from "@/components/Toast";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
-import { CapabilitiesCard } from "@/components/app/CapabilitiesCard";
+import { StarterJobs } from "@/components/app/StarterJobs";
 
 /**
  * The home dashboard — one calm place that answers four questions:
@@ -131,456 +127,6 @@ interface ConnectionView {
   status: string;
 }
 
-/* ------------------------------------------------------------- briefing */
-
-const BRIEFING_SEEN_KEY = "cosigno_briefing_seen";
-
-/**
- * The briefing: what happened while you were away, in a few honest lines —
- * then straight into the decisions. Derived entirely from the state stream
- * since the last dismissal; no invented urgency.
- */
-function BriefingCard({ state }: { state: CosignoState }) {
-  const [displayName] = useDisplayName();
-  const [dismissed, setDismissed] = useState(false);
-  const [lastSeen] = useState<number | null>(() => {
-    if (typeof window === "undefined") return null;
-    const raw = localStorage.getItem(BRIEFING_SEEN_KEY);
-    if (!raw) {
-      // First visit: start the clock quietly; the briefing begins next time.
-      localStorage.setItem(BRIEFING_SEEN_KEY, String(Date.now()));
-      return null;
-    }
-    return Number(raw);
-  });
-
-  if (dismissed || lastSeen === null) return null;
-  const away = state.stream.filter((e) => Date.parse(e.at) > lastSeen);
-  const completed = away.filter((e) => e.kind === "executed").length;
-  const moved = away.filter((e) => !e.needs_you && e.kind !== "executed").length;
-  if (away.length === 0 && state.need_you === 0) return null;
-
-  const hour = new Date().getHours();
-  const daypart = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-
-  function close() {
-    localStorage.setItem(BRIEFING_SEEN_KEY, String(Date.now()));
-    setDismissed(true);
-  }
-
-  return (
-    <section className={`${CARD} mb-6 p-5`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-display text-lg font-bold">
-            {daypart}
-            {displayName.trim() ? `, ${displayName.trim()}` : ""}.
-          </p>
-          <p className="mt-1 text-sm font-semibold text-ink-soft">
-            While you were away:
-            {moved > 0 && ` ${moved} thing${moved === 1 ? "" : "s"} moved forward.`}
-            {completed > 0 && ` ${completed} completed.`}
-            {state.need_you > 0 &&
-              ` ${state.need_you} decision${state.need_you === 1 ? "" : "s"} need${state.need_you === 1 ? "s" : ""} you.`}
-            {moved === 0 && completed === 0 && state.need_you === 0 && " nothing meaningful changed."}
-            {state.blocked === 0 && " Nothing urgent is blocked."}
-          </p>
-        </div>
-        <button
-          onClick={close}
-          className="shrink-0 rounded-btn p-1 text-ink-soft hover:bg-cream-deep hover:text-ink"
-          aria-label="dismiss briefing"
-        >
-          <X size={15} />
-        </button>
-      </div>
-      {state.need_you > 0 && (
-        <Link
-          href="/app/focus"
-          onClick={close}
-          className="mt-3 inline-flex items-center gap-1 rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream"
-        >
-          Start briefing <ChevronRight size={14} />
-        </Link>
-      )}
-    </section>
-  );
-}
-
-/* ---------------------------------------------------- temporary authority */
-
-interface GrantView {
-  id: string;
-  category: string;
-  expires_at: string;
-  note: string | null;
-}
-
-/** Categories eligible for a scoped, expiring grant (server re-validates). */
-const GRANTABLE = [
-  { category: "update_record", label: "record updates" },
-  { category: "connection_call", label: "connected-tool actions" },
-];
-
-const DURATIONS = [
-  { label: "30 minutes", minutes: 30 },
-  { label: "2 hours", minutes: 120 },
-  { label: "until end of day", minutes: 480 },
-];
-
-/**
- * TEMPORARY AUTHORITY — scoped, time-limited, visible, revocable, recorded.
- * Grants lower an eligible routine category to auto until they expire;
- * signed and locked actions can never be granted. Base permissions are
- * untouched — expiry simply restores the previous level.
- */
-function TemporaryAuthorityCard() {
-  const toast = useToast();
-  const [grants, setGrants] = useState<GrantView[]>([]);
-  const [granting, setGranting] = useState(false);
-  const [category, setCategory] = useState(GRANTABLE[0].category);
-  const [minutes, setMinutes] = useState(120);
-  const [busy, setBusy] = useState(false);
-
-  const load = useCallback(() => {
-    jsonFetch("/api/authority")
-      .then((d) => setGrants(d.grants ?? []))
-      .catch(() => setGrants([]));
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  async function grant() {
-    setBusy(true);
-    try {
-      await jsonFetch("/api/authority", {
-        method: "POST",
-        body: JSON.stringify({ category, minutes }),
-      });
-      toast("success", "temporary authority granted — visible here until it expires.");
-      setGranting(false);
-      load();
-    } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't grant that.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function revoke(id: string) {
-    setBusy(true);
-    try {
-      await jsonFetch(`/api/authority?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-      toast("success", "revoked — the previous permission level applies again.");
-      load();
-    } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't revoke that.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const labelOf = (c: string) => GRANTABLE.find((g) => g.category === c)?.label ?? c;
-
-  return (
-    <section>
-      <div className="flex items-center justify-between">
-        <h2 className={SECTION_TITLE}>Temporary authority</h2>
-        <button
-          onClick={() => setGranting((v) => !v)}
-          className="text-xs font-bold text-ink-soft hover:text-ink"
-        >
-          {granting ? "cancel" : "grant"}
-        </button>
-      </div>
-      <div className={`${CARD} mt-3`}>
-        {grants.length === 0 && !granting && (
-          <p className="text-sm text-ink-soft">
-            None active. Grant cosigno scoped authority that expires on its own — signed and
-            locked actions are never included.
-          </p>
-        )}
-        {grants.map((g) => (
-          <div key={g.id} className="flex items-center gap-3 border-b border-line/50 py-2 first:pt-0 last:border-0 last:pb-0">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-extrabold">{labelOf(g.category)} — automatic</p>
-              <p className="text-xs text-ink-soft">
-                expires {new Date(g.expires_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-              </p>
-            </div>
-            <button
-              onClick={() => revoke(g.id)}
-              disabled={busy}
-              className="shrink-0 rounded-btn px-3 py-1.5 text-xs font-bold lowercase text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink disabled:opacity-50"
-            >
-              revoke
-            </button>
-          </div>
-        ))}
-        {granting && (
-          <div className="mt-3 flex flex-col gap-2 border-t border-line/50 pt-3 first:mt-0 first:border-0 first:pt-0">
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="rounded-btn bg-cream-deep px-3 py-1.5 text-sm font-semibold"
-                aria-label="what to allow"
-              >
-                {GRANTABLE.map((g) => (
-                  <option key={g.category} value={g.category}>
-                    {g.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={minutes}
-                onChange={(e) => setMinutes(Number(e.target.value))}
-                className="rounded-btn bg-cream-deep px-3 py-1.5 text-sm font-semibold"
-                aria-label="for how long"
-              >
-                {DURATIONS.map((d) => (
-                  <option key={d.minutes} value={d.minutes}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <p className="text-[11px] text-ink-soft">
-              Cosigno may run {labelOf(category)} without asking until this expires. Revocable
-              any time; recorded in your audit trail.
-            </p>
-            <button
-              onClick={grant}
-              disabled={busy}
-              className="self-start rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream disabled:opacity-50"
-            >
-              {busy ? "Granting…" : "Grant temporary authority"}
-            </button>
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------ cosigno hold */
-
-/**
- * Cosigno Hold control — the authority brake. Pause external actions (or
- * everything), or resume. It only changes execution: base permissions are
- * untouched, so Resume restores exactly the prior behavior. Broadcasts
- * `cosigno:hold-changed` so the global banner updates instantly.
- */
-function HoldControl() {
-  const toast = useToast();
-  const [scope, setScope] = useState<"none" | "external" | "all">("none");
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    jsonFetch("/api/hold")
-      .then((d) => setScope(d.hold?.scope ?? "none"))
-      .catch(() => setScope("none"));
-  }, []);
-
-  async function set(next: "none" | "external" | "all") {
-    setBusy(true);
-    try {
-      await jsonFetch("/api/hold", { method: "POST", body: JSON.stringify({ scope: next }) });
-      setScope(next);
-      window.dispatchEvent(new CustomEvent("cosigno:hold-changed", { detail: { scope: next } }));
-      toast(
-        "success",
-        next === "none"
-          ? "resumed — cosigno continues from exactly where it stopped."
-          : next === "all"
-            ? "all work paused. nothing executes until you resume."
-            : "external actions paused. cosigno keeps preparing; nothing crosses the boundary."
-      );
-    } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't change that.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const held = scope !== "none";
-  return (
-    <section>
-      <h2 className={SECTION_TITLE}>Cosigno hold</h2>
-      <div className={`${CARD} mt-3`}>
-        {held ? (
-          <>
-            <p className="text-sm font-extrabold">
-              {scope === "all" ? "All work is paused." : "External actions are paused."}
-            </p>
-            <p className="mt-1 text-sm text-ink-soft">
-              Cosigno is holding at the boundary — nothing new executes until you resume. Your
-              permissions are unchanged.
-            </p>
-            <button
-              onClick={() => set("none")}
-              disabled={busy}
-              className="mt-3 rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream disabled:opacity-50"
-            >
-              {busy ? "Resuming…" : "Resume cosigno"}
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-ink-soft">
-              Pause cosigno instantly — an authority brake for when you want everything to wait.
-              Nothing is cancelled; resuming continues from where it stopped.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                onClick={() => set("external")}
-                disabled={busy}
-                className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50"
-              >
-                Hold external actions
-              </button>
-              <button
-                onClick={() => set("all")}
-                disabled={busy}
-                className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink/40 text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink disabled:opacity-50"
-              >
-                Pause everything
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </section>
-  );
-}
-
-/* ---------------------------------------------------------------- objectives */
-
-interface ObjectiveSummary {
-  objective: { id: string; title: string; status: string };
-  progress: { fraction: number; momentum: string; needs_you: number; total: number; complete: number };
-}
-
-/** A compact NOW view of active objectives — the outcomes cosigno is moving toward. */
-function ObjectivesSummary() {
-  const [items, setItems] = useState<ObjectiveSummary[] | null>(null);
-
-  useEffect(() => {
-    jsonFetch("/api/objectives")
-      .then((d) => setItems(d.objectives ?? []))
-      .catch(() => setItems([]));
-  }, []);
-
-  const active = (items ?? []).filter((o) => o.objective.status === "active");
-  if (items === null || active.length === 0) return null;
-
-  return (
-    <section>
-      <div className="flex items-center justify-between">
-        <h2 className={SECTION_TITLE}>Objectives</h2>
-        <Link href="/app/objectives" className="text-xs font-bold text-ink-soft hover:text-ink">
-          see all
-        </Link>
-      </div>
-      <div className={`${CARD} mt-3 flex flex-col gap-3`}>
-        {active.slice(0, 3).map(({ objective, progress }) => (
-          <Link key={objective.id} href={`/app/objectives/${objective.id}`} className="block">
-            <div className="flex items-center justify-between gap-2">
-              <p className="min-w-0 flex-1 truncate text-sm font-extrabold">{objective.title}</p>
-              {progress.needs_you > 0 && (
-                <span className="shrink-0 rounded-pill bg-signal px-2 py-0.5 text-[10px] font-black text-ink">
-                  {progress.needs_you} need you
-                </span>
-              )}
-            </div>
-            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-pill bg-cream-deep">
-              <div
-                className="h-full rounded-pill bg-ink"
-                style={{ width: `${Math.round(progress.fraction * 100)}%` }}
-              />
-            </div>
-            <p className="mt-1 text-[10px] font-bold text-ink-soft">
-              {progress.complete} of {progress.total} complete
-            </p>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* -------------------------------------------------------- earned autonomy */
-
-/**
- * Earned autonomy — cosigno noticed repeated one-click approvals and OFFERS
- * to take the category over. Explicit, scoped, reversible (settings →
- * permissions); declining is remembered and never re-asked for the category.
- */
-function AutonomyOfferCard({ offer, onResolved }: { offer: AutonomyOffer; onResolved(): void }) {
-  const toast = useToast();
-  const [busy, setBusy] = useState(false);
-  const [hidden, setHidden] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem(`cosigno_autonomy_declined_${offer.category}`) === "1";
-  });
-
-  if (hidden) return null;
-
-  async function accept() {
-    setBusy(true);
-    try {
-      const res = await fetch("/api/settings/tiers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category: offer.category, tier: 1 }),
-      });
-      if (!res.ok) throw new Error((await res.json()).message ?? "couldn't expand that.");
-      toast("success", `expanded — cosigno now handles ${offer.label} automatically. reversible in settings.`);
-      setHidden(true);
-      onResolved();
-    } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't expand that.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function decline() {
-    localStorage.setItem(`cosigno_autonomy_declined_${offer.category}`, "1");
-    setHidden(true);
-  }
-
-  return (
-    <div className={CARD}>
-      <p className="text-sm font-extrabold">
-        You&apos;ve approved {offer.label} {offer.count} times.
-      </p>
-      <p className="mt-1 text-sm text-ink-soft">
-        Should cosigno handle these automatically from now on? Signed and locked actions are
-        never included, and you can reverse this any time in settings.
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          onClick={accept}
-          disabled={busy}
-          className="rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream disabled:opacity-50"
-        >
-          {busy ? "Expanding…" : "Yes, expand permission"}
-        </button>
-        <button
-          onClick={decline}
-          disabled={busy}
-          className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
-        >
-          No, keep asking
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 
 const CARD = "rounded-card border border-line/70 bg-surface p-5 shadow-soft";
@@ -590,9 +136,22 @@ export function Dashboard() {
   const [missions, setMissions] = useState<MissionRecord[] | null>(null);
   const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>({});
   const [approvals, setApprovals] = useState<ActionRecord[]>([]);
-  const [automations, setAutomations] = useState<AutomationRecord[]>([]);
+  const [automation, setAutomation] = useState<AutomationRecord | null>(null);
   const [connections, setConnections] = useState<ConnectionView[]>([]);
-  const [state, setState] = useState<CosignoState | null>(null);
+  const [unhealthy, setUnhealthy] = useState<ConnectionView[]>([]);
+  const [pausing, setPausing] = useState<string | null>(null);
+
+  async function pauseMission(id: string) {
+    setPausing(id);
+    try {
+      await jsonFetch(`/api/missions/${id}/control`, { method: "POST", body: JSON.stringify({ op: "pause" }) });
+      await load();
+    } catch {
+      /* the row keeps its live state; the mission page has full controls */
+    } finally {
+      setPausing(null);
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -607,8 +166,10 @@ export function Dashboard() {
       setApprovals((a.actions ?? []).filter((x: ActionRecord) => x.status === "proposed"));
       const enabled: AutomationRecord[] = (au.automations ?? []).filter((x: AutomationRecord) => x.enabled);
       enabled.sort((x, y) => new Date(x.next_run_at).getTime() - new Date(y.next_run_at).getTime());
-      setAutomations(enabled);
-      setConnections((c.connections ?? []).filter((x: ConnectionView) => x.kind === "app" && x.status === "connected"));
+      setAutomation(enabled[0] ?? null);
+      const appConns = (c.connections ?? []).filter((x: ConnectionView) => x.kind === "app");
+      setConnections(appConns.filter((x: ConnectionView) => x.status === "connected"));
+      setUnhealthy(appConns.filter((x: ConnectionView) => x.status !== "connected"));
 
       // Fetch steps for the active missions we'll show (up to 4).
       const active = ms.filter((x) => ACTIVE_STATES.has(x.state)).slice(0, 4);
@@ -627,10 +188,6 @@ export function Dashboard() {
     } catch {
       setMissions([]);
     }
-    // Current State is enrichment — the dashboard renders without it.
-    jsonFetch("/api/state")
-      .then((d) => setState(d.state ?? null))
-      .catch(() => setState(null));
   }, []);
 
   useEffect(() => {
@@ -641,51 +198,43 @@ export function Dashboard() {
   const completed = (missions ?? []).filter((m) => m.state === "completed" || m.state === "partial").slice(0, 3);
 
   return (
-    <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-8">
-      {/* ---------- briefing: what happened while you were away ---------- */}
-      {state && <BriefingCard state={state} />}
-
-      {/* ---------- delegation: the biggest, clearest thing ---------- */}
+    <div className="mx-auto w-full max-w-6xl px-4 py-8">
+      {/* ---------- the command composer: the biggest, clearest thing ---------- */}
       <section className={`${CARD} p-6 sm:p-8`}>
-        <h1 className="font-display text-2xl font-bold sm:text-3xl">What should cosigno handle?</h1>
+        <h1 className="font-display text-2xl font-bold sm:text-3xl">What should Cosigno handle?</h1>
         <p className="mt-1.5 text-sm font-semibold text-ink-soft">
-          Give cosigno responsibility for an outcome — it handles the work between your
-          decisions and returns only when your authority is actually needed.
+          Tell cosigno what you want done. Add a file or link when it helps explain the task.
         </p>
-        <SourceComposer onStarted={load} />
-        {state && (
-          <p className="mt-4 border-t border-line/50 pt-3 text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
-            Current state
-            <span className="ml-3 normal-case tracking-normal">
-              <span className="font-extrabold text-ink">{state.moving} Moving</span>
-              <span className="mx-1.5">·</span>
-              <Link href="/app/focus" className={`font-extrabold ${state.need_you > 0 ? "text-signal" : "text-ink"} hover:underline`}>
-                {state.need_you} Need You
-              </Link>
-              <span className="mx-1.5">·</span>
-              <span className="font-extrabold text-ink">{state.watching} Watching</span>
-              <span className="mx-1.5">·</span>
-              <span className="font-extrabold text-ink">{state.blocked} Blocked</span>
-            </span>
-          </p>
-        )}
+        <SourceComposer
+          onStarted={load}
+          suggestions={
+            connections.some((c) => c.provider_key.startsWith("google"))
+              ? ["prepare tomorrow's meeting", "review my unread emails", "follow up on unanswered threads", "research the best option"]
+              : undefined
+          }
+        />
+        <StarterJobs />
       </section>
+
+      {/* quiet connection-health warning — only when an app needs attention */}
+      {unhealthy.length > 0 && (
+        <p className="mt-4 rounded-btn bg-cream-deep px-3.5 py-2 text-xs font-semibold text-ink-soft">
+          {unhealthy.map((c) => c.display_name).join(", ")}{" "}
+          {unhealthy.length === 1 ? "needs" : "need"} attention —{" "}
+          <Link href="/app/connections" className="font-bold underline underline-offset-2">
+            check connections
+          </Link>
+          .
+        </p>
+      )}
 
       {/* ---------- two columns on desktop, stacked on mobile ---------- */}
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1.4fr_1fr]">
-        {/* LEFT: now (what cosigno is handling) + completed */}
+        {/* LEFT: in progress + recently completed */}
         <div className="flex flex-col gap-8">
           <section>
             <div className="flex items-center justify-between">
-              <h2 className={SECTION_TITLE}>
-                Now
-                {state && state.moving + state.watching > 0 && (
-                  <span className="ml-2 normal-case tracking-normal text-ink-soft">
-                    · cosigno is handling {state.moving + state.watching} thing
-                    {state.moving + state.watching === 1 ? "" : "s"}
-                  </span>
-                )}
-              </h2>
+              <h2 className={SECTION_TITLE}>In progress</h2>
               {active.length > 0 && (
                 <Link href="/app/missions" className="text-xs font-bold text-ink-soft hover:text-ink">
                   see all
@@ -697,8 +246,8 @@ export function Dashboard() {
                 <div className="h-24 animate-pulse rounded-card bg-cream-deep" aria-hidden="true" />
               ) : active.length === 0 ? (
                 <div className={`${CARD} text-center`}>
-                  <p className="text-sm font-extrabold">Nothing is being worked on</p>
-                  <p className="mt-1 text-sm text-ink-soft">Tell cosigno what to handle.</p>
+                  <p className="text-sm font-extrabold">Nothing is in progress</p>
+                  <p className="mt-1 text-sm text-ink-soft">Tell cosigno what you need handled.</p>
                 </div>
               ) : (
                 active.map((m) => {
@@ -718,8 +267,8 @@ export function Dashboard() {
                       {doing && <p className="mt-1.5 text-sm text-ink-soft">{doing}</p>}
                       {ms.length > 0 && (
                         <p className="mt-2 text-sm font-bold text-ink">
-                          Step {Math.min(done + 1, ms.length)} of {ms.length}
-                          {done > 0 && <span className="font-semibold text-ink-soft"> · {done} done</span>}
+                          {done} of {ms.length} steps complete
+                          <span className="font-semibold text-ink-soft"> · running {timeAgo(m.created_at).replace(" ago", "")}</span>
                         </p>
                       )}
                       <div className="mt-3 flex items-center justify-between gap-3">
@@ -728,12 +277,23 @@ export function Dashboard() {
                             <ConnectorLogo key={k} kind="app" providerKey={k} displayName={PROVIDER_NAME[k] ?? k} size={22} />
                           ))}
                         </div>
-                        <Link
-                          href="/app/missions"
-                          className="inline-flex items-center gap-1 rounded-btn px-3.5 py-1.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
-                        >
-                          Open Mission <ChevronRight size={14} />
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          {m.state !== "paused" && !["completed", "partial", "failed", "stopped"].includes(m.state) && (
+                            <button
+                              onClick={() => pauseMission(m.id)}
+                              disabled={pausing === m.id}
+                              className="rounded-btn px-3 py-1.5 text-sm font-bold text-ink-soft ring-1 ring-inset ring-ink/20 hover:bg-cream-deep hover:text-ink disabled:opacity-40"
+                            >
+                              {pausing === m.id ? "Pausing…" : "Pause"}
+                            </button>
+                          )}
+                          <Link
+                            href={`/app/missions/${m.id}`}
+                            className="inline-flex items-center gap-1 rounded-btn px-3.5 py-1.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
+                          >
+                            Open Mission <ChevronRight size={14} />
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   );
@@ -743,7 +303,7 @@ export function Dashboard() {
           </section>
 
           <section>
-            <h2 className={SECTION_TITLE}>Completed</h2>
+            <h2 className={SECTION_TITLE}>Recently completed</h2>
             <div className="mt-3 flex flex-col gap-3">
               {missions !== null && completed.length === 0 ? (
                 <div className={`${CARD} text-center`}>
@@ -785,35 +345,22 @@ export function Dashboard() {
           </section>
         </div>
 
-        {/* RIGHT: objectives + you're needed + watching + hold + stream + apps */}
+        {/* RIGHT: approvals + coming up + connected apps */}
         <div className="flex flex-col gap-8">
-          <ObjectivesSummary />
-
           <section>
-            <h2 className={SECTION_TITLE}>
-              You&apos;re needed
-              {approvals.length > 0 && (
-                <span className="ml-2 normal-case tracking-normal text-ink-soft">
-                  · for {approvals.length} thing{approvals.length === 1 ? "" : "s"}
-                </span>
-              )}
-            </h2>
+            <h2 className={SECTION_TITLE}>Needs your approval</h2>
             <div className="mt-3 flex flex-col gap-3">
-              {state && state.autonomy.length > 0 && (
-                <AutonomyOfferCard offer={state.autonomy[0]} onResolved={load} />
-              )}
               {approvals.length === 0 ? (
                 <div className={CARD}>
-                  <p className="text-sm font-extrabold">Nothing needs you right now</p>
+                  <p className="text-sm font-extrabold">Nothing needs your approval</p>
                   <p className="mt-1 text-sm text-ink-soft">
-                    cosigno will return the moment your authority is required.
+                    cosigno will ask before anything important happens.
                   </p>
                 </div>
               ) : (
                 approvals.slice(0, 4).map((a) => {
                   const to = typeof a.payload?.to === "string" ? a.payload.to : typeof a.payload?.recipient === "string" ? a.payload.recipient : null;
                   const provider = typeof a.payload?.provider === "string" ? a.payload.provider : null;
-                  const sign = signRequired(a.category, a.tier);
                   return (
                     <div key={a.id} className={`${CARD} border-signal/40`}>
                       <div className="flex items-start gap-3">
@@ -826,19 +373,14 @@ export function Dashboard() {
                         )}
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-extrabold leading-snug">{a.summary}</p>
-                          <p className="mt-0.5 text-xs text-ink-soft">
-                            {to ? `Prepared for ${to}.` : "Prepared and ready."}
-                          </p>
+                          {to && <p className="mt-0.5 text-xs text-ink-soft">Prepared for {to}</p>}
                         </div>
                       </div>
                       <Link
-                        href="/app/focus"
-                        className={`mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-btn px-4 py-2 text-sm font-extrabold shadow-soft transition-transform active:scale-95 ${
-                          sign ? "bg-ink text-cream" : "bg-signal text-ink"
-                        }`}
+                        href="/app/approvals"
+                        className="mt-3 inline-flex w-full items-center justify-center rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95"
                       >
-                        {sign && <PenLine size={13} strokeWidth={2.6} aria-hidden="true" />}
-                        {sign ? "Sign →" : "Approve →"}
+                        Review
                       </Link>
                     </div>
                   );
@@ -848,86 +390,27 @@ export function Dashboard() {
           </section>
 
           <section>
-            <div className="flex items-center justify-between">
-              <h2 className={SECTION_TITLE}>Watching</h2>
-              {automations.length > 0 && (
-                <Link href="/app/watch" className="text-xs font-bold text-ink-soft hover:text-ink">
-                  manage
-                </Link>
-              )}
-            </div>
+            <h2 className={SECTION_TITLE}>Coming up</h2>
             <div className={`${CARD} mt-3`}>
-              {automations.length === 0 ? (
-                <div className="flex items-center gap-3 text-ink-soft">
-                  <CalendarClock size={18} className="shrink-0" />
-                  <p className="text-sm">
-                    Nothing being watched yet.{" "}
-                    <Link href="/app/watch" className="font-bold underline underline-offset-2 hover:text-ink">
-                      Set up a watch
-                    </Link>
-                  </p>
+              {automation ? (
+                <div className="flex items-center gap-3">
+                  <Repeat size={18} className="shrink-0 text-ink-soft" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold">{automation.name}</p>
+                    <p className="text-xs text-ink-soft">Runs {timeUntil(automation.next_run_at)}</p>
+                  </div>
+                  <Link href="/app/automations" className="shrink-0 text-xs font-bold text-ink-soft hover:text-ink">
+                    Manage
+                  </Link>
                 </div>
               ) : (
-                <ul className="flex flex-col gap-2.5">
-                  {automations.slice(0, 4).map((a) => (
-                    <li key={a.id} className="flex items-center gap-3">
-                      {a.mode === "monitor" ? (
-                        <Eye size={16} className="shrink-0 text-ink-soft" />
-                      ) : (
-                        <Repeat size={16} className="shrink-0 text-ink-soft" />
-                      )}
-                      <p className="min-w-0 flex-1 truncate text-sm font-bold">{a.name}</p>
-                      <span className="shrink-0 text-xs font-bold text-ink-soft">
-                        {a.mode === "monitor" ? "Active" : `Runs ${timeUntil(a.next_run_at)}`}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="flex items-center gap-3 text-ink-soft">
+                  <CalendarClock size={18} className="shrink-0" />
+                  <p className="text-sm">Nothing scheduled yet.</p>
+                </div>
               )}
             </div>
           </section>
-
-          <HoldControl />
-
-          <TemporaryAuthorityCard />
-
-          {state && state.stream.length > 0 && (
-            <section>
-              <div className="flex items-center justify-between">
-                <h2 className={SECTION_TITLE}>State stream</h2>
-                <Link href="/app/autopilot" className="text-xs font-bold text-ink-soft hover:text-ink">
-                  autopilot brief
-                </Link>
-              </div>
-              <div className={`${CARD} mt-3`}>
-                <ol className="flex flex-col gap-2.5">
-                  {state.stream.slice(0, 5).map((e) => (
-                    <li key={e.key} className="flex items-start gap-2.5">
-                      <span
-                        className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
-                          e.needs_you ? "bg-signal" : e.kind === "working" ? "animate-orb-pulse bg-ink" : "bg-ink/30"
-                        }`}
-                        aria-hidden="true"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold leading-snug">{e.text}</p>
-                        <p className="text-[10px] font-bold text-ink-soft">
-                          {timeAgo(e.at)}
-                          {e.needs_you && (
-                            <Link href="/app/focus" className="ml-2 text-signal hover:underline">
-                              needs you →
-                            </Link>
-                          )}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            </section>
-          )}
-
-          <CapabilitiesCard />
 
           <section>
             <h2 className={SECTION_TITLE}>Connected apps</h2>
@@ -936,11 +419,7 @@ export function Dashboard() {
                 <div className="text-center">
                   <p className="text-sm font-extrabold">Connect your apps</p>
                   <p className="mt-1 text-sm text-ink-soft">
-                    Let cosigno work with your email, calendar, and files — then{" "}
-                    <Link href="/app/skills" className="font-bold underline underline-offset-2 hover:text-ink">
-                      install a skill
-                    </Link>{" "}
-                    to put it to work immediately.
+                    Let cosigno work with your email, calendar, and files.
                   </p>
                   <Link
                     href="/app/connections"

@@ -61,17 +61,49 @@ const TOOL_SUMMARY: Record<string, string> = {
   "laptop.compare": "compare the collected products against the requirements",
   "laptop.recommend": "pick the data-supported option and open its page (never buys)",
   "laptop.report": "save the versioned comparison report",
+  "inbox.scan": "scan the inbox for newsletter clutter and waiting threads (read-only)",
+  "inbox.summarize": "summarize the scan into what actually matters",
+  "inbox.draft_replies": "draft replies for waiting threads (drafts never send)",
+  "inbox.propose_cleanup": "offer the newsletter archive for approval, then verify by read-back",
+  "followup.find": "find threads waiting on a response (read-only)",
+  "followup.draft": "draft follow-ups and propose a conflict-checked send time (drafts never send)",
+  "followup.offer_send": "offer a follow-up email for approval, send it, then verify in Sent Mail",
+  "calendar.propose_reminder": "offer a calendar reminder for approval, then verify by read-back",
+  "brief.calendar": "read the upcoming calendar (read-only)",
+  "brief.signals": "read the overnight inbox signals (read-only)",
+  "deliverable.daily_brief": "write the morning operator brief as a versioned file",
 };
 
 /** Tools whose execution changes the outside world (need an approval gate). */
-const CONSEQUENTIAL_TOOLS = new Set(["approval.offer_send", "browser.prepare_purchase"]);
+const CONSEQUENTIAL_TOOLS = new Set([
+  "approval.offer_send",
+  "browser.prepare_purchase",
+  "inbox.propose_cleanup",
+  "followup.offer_send",
+  "calendar.propose_reminder",
+]);
 /** Tools with a post-execution verification hook. */
-const VERIFIABLE_TOOLS = new Set(["approval.offer_send", "browser.prepare_purchase"]);
+const VERIFIABLE_TOOLS = new Set([
+  "approval.offer_send",
+  "browser.prepare_purchase",
+  "inbox.propose_cleanup",
+  "followup.offer_send",
+  "calendar.propose_reminder",
+]);
 /** Tools that touch a real external provider when its connection is live. */
 const PROVIDER_TOOL: Record<string, string> = {
   "calendar.find_event": "google-calendar",
   "gmail.search_related": "google",
   "drive.search_files": "google-drive",
+  "inbox.scan": "google",
+  "inbox.draft_replies": "google",
+  "inbox.propose_cleanup": "google",
+  "followup.find": "google",
+  "followup.draft": "google",
+  "followup.offer_send": "google",
+  "brief.signals": "google",
+  "brief.calendar": "google-calendar",
+  "calendar.propose_reminder": "google-calendar",
 };
 /** Tools that use the browser service. */
 const BROWSER_TOOLS = new Set([

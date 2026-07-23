@@ -9,10 +9,11 @@ import { PricingLink } from "@/components/landing/Track";
  * auth, no client state; these pages must render for every anonymous visitor.
  */
 
+// "operators" describes internal architecture, not a customer decision — it
+// stays reachable at /operators but is out of the primary navigation.
 const NAV = [
   { href: "/product", label: "product" },
-  { href: "/operators", label: "capabilities" },
-  { href: "/templates", label: "use cases" },
+  { href: "/templates", label: "templates" },
   { href: "/security", label: "security" },
 ] as const;
 
@@ -56,7 +57,7 @@ export function MarketingShell({
             prefetch
             className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-all duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
           >
-            try cosigno
+            start free
           </Link>
         </nav>
       </header>

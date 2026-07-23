@@ -6,6 +6,11 @@ import { getStore } from "@/lib/store";
 import { advanceMission } from "@/lib/missions/engine";
 import { createMeetingPrepMission } from "@/lib/missions/meetingPrep";
 import { createLaptopCompareMission } from "@/lib/missions/laptopCompare";
+import {
+  createDailyBriefMission,
+  createFollowupsMission,
+  createInboxCleanupMission,
+} from "@/lib/missions/dailyJobs";
 import { compileMission, type SourceContext } from "@/lib/missions/compiler";
 import { instantiateCompiledMission } from "@/lib/missions/create";
 import type { MissionSourceRecord } from "@/lib/types";
@@ -62,6 +67,15 @@ export async function POST(req: NextRequest) {
       missionId = mission.id;
     } else if (body.template === "laptop_compare") {
       const { mission } = await createLaptopCompareMission(userId);
+      missionId = mission.id;
+    } else if (body.template === "inbox_cleanup") {
+      const { mission } = await createInboxCleanupMission(userId);
+      missionId = mission.id;
+    } else if (body.template === "followups") {
+      const { mission } = await createFollowupsMission(userId);
+      missionId = mission.id;
+    } else if (body.template === "daily_brief") {
+      const { mission } = await createDailyBriefMission(userId);
       missionId = mission.id;
     } else {
       // Load any staged sources the ask box attached (only the caller's own).
