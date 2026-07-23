@@ -148,4 +148,64 @@ describe("room gate", () => {
       decideRoom("stranger", "stranger@evil.com", room.room.id, "approve")
     ).rejects.toMatchObject({ code: "not_found" });
   });
+
+  it("a co-signer removed from the workspace loses gate authority (re-checked at decision time)", async () => {
+    const ws = await setupWorkspace();
+    const action = await proposeAction(insert());
+    const room = await createRoomForAction("owner", "owner@acme.com", action.id, {
+      approverEmails: ["partner@acme.com"],
+    });
+    // Owner removes the partner from the workspace AFTER the room was opened.
+    const members = await store.listWorkspaceMembers(ws.id);
+    const partner = members.find((m) => m.email === "partner@acme.com")!;
+    await store.removeWorkspaceMember(ws.id, partner.id);
+
+    // The (now ex-)member can no longer decide — membership is re-validated.
+    await expect(
+      decideRoom("partner", "partner@acme.com", room.room.id, "approve")
+    ).rejects.toMatchObject({ code: "forbidden" });
+  });
+
+  it("a plan drift never resurrects a rejected (terminal) room", async () => {
+    await setupWorkspace();
+    const action = await proposeAction(insert());
+    const room = await createRoomForAction("owner", "owner@acme.com", action.id, {
+      approverEmails: ["partner@acme.com"],
+    });
+    // Co-signer rejects → room is terminal (revoked).
+    await decideRoom("partner", "partner@acme.com", room.room.id, "reject");
+    expect((await store.getRoom("owner", room.room.id))!.status).toBe("revoked");
+
+    // Owner edits the plan then tries to approve — the rejected room must NOT
+    // reopen, and the rejecter's decision is not erased.
+    await editAction("owner", action.id, { payload: { amount: "7000", destination: "faro" } });
+    await expect(approveAction("owner", action.id)).rejects.toMatchObject({ code: "room_pending" });
+    expect((await store.getRoom("owner", room.room.id))!.status).toBe("revoked"); // still closed
+    const approvers = await store.listRoomApprovers(room.room.id);
+    expect(approvers[0].decision).toBe("rejected"); // rejection preserved
+  });
+
+  it("a co-signer's revoke in the approve/execute window fails the action closed (TOCTOU)", async () => {
+    await setupWorkspace();
+    const action = await proposeAction(insert());
+    const room = await createRoomForAction("owner", "owner@acme.com", action.id, {
+      approverEmails: ["partner@acme.com"],
+    });
+    await decideRoom("partner", "partner@acme.com", room.room.id, "approve");
+    // Reproduce the race: approveAction's gate (enforceRoomGate → getRoomByAction)
+    // still sees the satisfied room, but the co-signer revokes before dispatch.
+    // runExecution's re-check (getRoom) is the ONLY getRoom call, so patching it
+    // to report the room unsatisfied simulates exactly that TOCTOU window.
+    const realGetRoom = store.getRoom.bind(store);
+    (store as unknown as { getRoom: typeof store.getRoom }).getRoom = async (u, id) => {
+      const r = await realGetRoom(u, id);
+      return r ? { ...r, status: "open" } : r; // as if a revoke just landed
+    };
+    const result = await approveAction("owner", action.id);
+    (store as unknown as { getRoom: typeof store.getRoom }).getRoom = realGetRoom;
+    expect(result.status).toBe("failed"); // refused, nothing executed
+    // An immutable rejected receipt records the refusal.
+    const receipts = await store.listReceipts("owner");
+    expect(receipts.some((r) => r.status === "rejected")).toBe(true);
+  });
 });

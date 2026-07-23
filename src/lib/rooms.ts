@@ -177,8 +177,16 @@ function assertNotExpired(room: CosignRoomRecord): void {
   }
 }
 
-/** Resolve a room the ACTOR may act in (as an approver), across owners. */
+/**
+ * Resolve a room the ACTOR may act in (as an approver), across owners — and
+ * re-validate the trust boundary AT DECISION TIME. Membership is checked at
+ * room creation, but a co-signer can be removed from the workspace while a
+ * room is open; without this re-check they'd retain gate authority. The actor
+ * must be the room owner (co-signing their own action) or still an ACTIVE
+ * member of the owner's workspace.
+ */
 async function roomForApprover(
+  actorUserId: string,
   actorEmail: string,
   roomId: string
 ): Promise<{ room: CosignRoomRecord; me: RoomApproverRecord; approvers: RoomApproverRecord[] }> {
@@ -189,6 +197,22 @@ async function roomForApprover(
   const approvers = await store.listRoomApprovers(room.id);
   const me = approvers.find((a) => a.approver_email === actorEmail.toLowerCase());
   if (!me) throw new EngineError("forbidden", "you're not a co-signer in this room.");
+
+  // Re-check active membership unless the actor IS the owner acting on their
+  // own room (owners can always co-sign their own action).
+  if (actorUserId !== room.user_id) {
+    const ws = await store.getWorkspaceForUser(room.user_id);
+    const members = ws ? await store.listWorkspaceMembers(ws.id) : [];
+    const active = new Set(
+      members.filter((m) => m.status === "active").map((m) => m.email.toLowerCase())
+    );
+    if (!active.has(actorEmail.toLowerCase())) {
+      throw new EngineError(
+        "forbidden",
+        "you're no longer an active member of this workspace, so you can't co-sign here."
+      );
+    }
+  }
   return { room, me, approvers };
 }
 
@@ -202,7 +226,7 @@ export async function decideRoom(
   comment?: string
 ): Promise<RoomView> {
   const store = getStore();
-  const { room, me, approvers } = await roomForApprover(actorEmail, roomId);
+  const { room, me, approvers } = await roomForApprover(actorUserId, actorEmail, roomId);
 
   if (room.status !== "open") {
     throw new EngineError(
@@ -291,7 +315,7 @@ export async function revokeRoomApproval(
   roomId: string
 ): Promise<RoomView> {
   const store = getStore();
-  const { room, me } = await roomForApprover(actorEmail, roomId);
+  const { room, me } = await roomForApprover(actorUserId, actorEmail, roomId);
   if (!["open", "satisfied", "changes_requested"].includes(room.status)) {
     throw new EngineError("invalid_state", `this room is ${room.status} — nothing to revoke.`);
   }
@@ -331,8 +355,12 @@ export async function cancelRoom(
   const store = getStore();
   const room = await store.getRoom(ownerId, roomId);
   if (!room) throw new EngineError("not_found", "we couldn't find that room.");
-  if (!["open", "satisfied", "changes_requested"].includes(room.status)) {
-    throw new EngineError("invalid_state", `this room is already ${room.status}.`);
+  // The owner may close any non-cancelled room — including one a co-signer
+  // rejected or one that expired — so they aren't locked out of their own
+  // card. The rejection stays in the append-only event history; cancelling
+  // just lets the owner start over (a fresh room, or plain solo approval).
+  if (room.status === "cancelled") {
+    throw new EngineError("invalid_state", "this room is already cancelled.");
   }
   await store.updateRoom(ownerId, room.id, { status: "cancelled" });
   await store.logRoomEvent(room.id, ownerId, ownerEmail, "cancelled", {});

@@ -191,6 +191,15 @@ async function enforceRoomGate(
 
   const currentHash = planHash(effectivePayload);
   if (room.plan_hash !== currentHash) {
+    // Only re-bind rooms that are still live. A terminal room (a co-signer
+    // rejected it) must NOT be resurrected by a plan tweak — that would erase
+    // an audited rejection. Same guard invalidateRoomOnEdit already applies.
+    if (!["open", "satisfied", "changes_requested"].includes(room.status)) {
+      throw new EngineError(
+        "room_pending",
+        "this approval room is closed (a co-signer rejected it). cancel it and open a new room to proceed with a changed plan."
+      );
+    }
     await voidRoomApprovals(userId, room, currentHash, "owner-edit");
     throw new EngineError(
       "room_pending",
@@ -435,6 +444,7 @@ export async function approveAction(
     approvedHash,
     approvedBy: opts.delegate ? opts.delegate.actorId : userId,
     method: room ? `${method}:room` : method,
+    roomId: room?.id ?? null,
   });
 }
 
@@ -487,6 +497,8 @@ interface ExecutionAuth {
   approvedHash: string;
   approvedBy: string;
   method: string;
+  /** CoSign Room gating this action, if any — re-checked at dispatch time. */
+  roomId?: string | null;
 }
 
 async function runExecution(
@@ -499,6 +511,44 @@ async function runExecution(
   await store.logEvent(userId, actionId, "executing", "system", {
     correlation_id: auth.correlationId,
   });
+
+  // TOCTOU close-out: the room gate ran earlier in approveAction, but a
+  // co-signer could revoke (or the plan could drift) in the window before the
+  // approved→executing transition above. Re-assert room satisfaction against
+  // the exact sealed plan hash HERE, after the atomic transition — anything
+  // else fails closed through the same rejected+receipt path as a hash
+  // mismatch (executing→failed keeps the state machine valid; nothing ran).
+  if (auth.roomId) {
+    const room = await store.getRoom(userId, auth.roomId);
+    if (!room || room.status !== "satisfied" || room.plan_hash !== auth.approvedHash) {
+      logSecurity("rejected_status_write", {
+        detail: "room_not_satisfied_at_dispatch",
+        actionId,
+        correlationId: auth.correlationId,
+      });
+      await recordSecurityEvent(userId, "execution_rejected", {
+        correlationId: auth.correlationId,
+        detail: { action_id: actionId, reason: "room_not_satisfied_at_dispatch" },
+      });
+      const failed = await store.transitionAction(userId, actionId, "failed", {
+        result: { error: "a co-signer withdrew before this executed — refused." },
+      });
+      await store.logEvent(userId, actionId, "failed", "system", {
+        error: "room_not_satisfied_at_dispatch",
+        correlation_id: auth.correlationId,
+      });
+      await recordActionReceipt(failed, {
+        correlationId: auth.correlationId,
+        planHash: auth.approvedHash,
+        approvedBy: auth.approvedBy,
+        authorizationMethod: auth.method,
+      }, {
+        status: "rejected",
+        failureReason: "CoSign Room was not satisfied at dispatch time (a co-signer withdrew).",
+      });
+      return failed;
+    }
+  }
 
   // THE BINDING CHECK: the payload about to execute must hash to exactly
   // what was approved. Any drift (a race, a bug, a tampered row) refuses
