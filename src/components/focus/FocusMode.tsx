@@ -8,7 +8,13 @@ import type { CosignoState } from "@/lib/state";
 import { effectLine } from "@/lib/actionPresentation";
 import { afterApprovalLine, beforeApprovalLine, whyMe } from "@/lib/clarity";
 import { signRequired } from "@/lib/sign";
-import { SignDialog } from "@/components/sign/SignDialog";
+import dynamic from "next/dynamic";
+
+// The sign dialog (and its signature-pad canvas) loads when the user actually
+// signs — it's not part of the focus route's initial chunk.
+const SignDialog = dynamic(() =>
+  import("@/components/sign/SignDialog").then((m) => m.SignDialog)
+);
 import { CosignoMark } from "@/components/brand/Logo";
 import { useToast } from "@/components/Toast";
 import { useDisplayName } from "@/lib/theme";

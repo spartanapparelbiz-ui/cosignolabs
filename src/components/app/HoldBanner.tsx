@@ -45,9 +45,18 @@ export function HoldBanner() {
       else refresh();
     };
     window.addEventListener("cosigno:hold-changed", onChanged);
-    const t = setInterval(refresh, 30_000);
+    // Slow safety poll — skipped while the tab is hidden, refreshed on return.
+    const tick = () => {
+      if (document.visibilityState !== "hidden") refresh();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    const t = setInterval(tick, 30_000);
     return () => {
       window.removeEventListener("cosigno:hold-changed", onChanged);
+      document.removeEventListener("visibilitychange", onVisible);
       clearInterval(t);
     };
   }, [refresh]);

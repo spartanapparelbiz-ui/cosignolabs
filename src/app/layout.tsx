@@ -28,10 +28,12 @@ const fraunces = Fraunces({
 
 // Wordmark face — a geometric sans (perfect-circle bowls, single-story g) that
 // matches the cosigno logo identity. Used ONLY by the wordmark, not body text.
+// The wordmark renders exclusively at font-bold, so 700 is the only weight
+// shipped — every page used to download two extra unused font files.
 const poppins = Poppins({
   subsets: ["latin"],
   variable: "--font-wordmark",
-  weight: ["700", "800", "900"],
+  weight: ["700"],
   display: "swap",
   fallback: ["system-ui", "sans-serif"],
   adjustFontFallback: true,

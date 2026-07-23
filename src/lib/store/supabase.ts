@@ -39,7 +39,10 @@ import {
   ObjectiveRecord,
 } from "../types";
 import type {
+  ActionCountFilter,
+  ActionHead,
   ActionInsert,
+  ActionStatusRow,
   ActivityFilter,
   ConnectionInsert,
   ConnectionPatch,
@@ -175,6 +178,60 @@ export class SupabaseStore implements Store {
     return data ?? [];
   }
 
+  async listActionHeads(userId: string, limit: number): Promise<ActionHead[]> {
+    // Projection only — payload/result JSON never leaves the database.
+    const { data, error } = await this.client
+      .from("actions")
+      .select("id, session_id, status, category, tier, summary, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as ActionHead[];
+  }
+
+  async listActionStatusesForSessions(
+    userId: string,
+    sessionIds: string[]
+  ): Promise<ActionStatusRow[]> {
+    if (sessionIds.length === 0) return [];
+    const out: ActionStatusRow[] = [];
+    // Chunk the .in() list so the PostgREST URL stays comfortably bounded.
+    for (let i = 0; i < sessionIds.length; i += 100) {
+      const { data, error } = await this.client
+        .from("actions")
+        .select("id, session_id, status")
+        .eq("user_id", userId)
+        .in("session_id", sessionIds.slice(i, i + 100));
+      if (error) throw new Error(error.message);
+      out.push(...((data ?? []) as ActionStatusRow[]));
+    }
+    return out;
+  }
+
+  async countActions(userId: string, filter: ActionCountFilter = {}): Promise<number> {
+    let query = this.client
+      .from("actions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
+    if (filter.status) query = query.eq("status", filter.status);
+    if (filter.injection_flag !== undefined)
+      query = query.eq("injection_flag", filter.injection_flag);
+    if (filter.since) query = query.gte("created_at", filter.since);
+    const { count, error } = await query;
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  }
+
+  async countSessions(userId: string): Promise<number> {
+    const { count, error } = await this.client
+      .from("sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  }
+
   async transitionAction(
     userId: string,
     id: string,
@@ -242,16 +299,42 @@ export class SupabaseStore implements Store {
     );
   }
 
-  async listEvents(userId: string, actionId?: string): Promise<ActionEventRecord[]> {
-    let query = this.client
-      .from("action_events")
-      .select()
-      .eq("user_id", userId)
-      .order("created_at", { ascending: true });
+  async listEvents(
+    userId: string,
+    actionId?: string,
+    limit?: number
+  ): Promise<ActionEventRecord[]> {
+    let query = this.client.from("action_events").select().eq("user_id", userId);
     if (actionId) query = query.eq("action_id", actionId);
-    const { data, error } = await query;
+    if (limit) {
+      // Newest N, bounded in the query — then restored to ascending order.
+      const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (error) throw new Error(error.message);
+      return (data ?? []).reverse();
+    }
+    const { data, error } = await query.order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
     return data ?? [];
+  }
+
+  async listEventsForActions(
+    userId: string,
+    actionIds: string[]
+  ): Promise<ActionEventRecord[]> {
+    if (actionIds.length === 0) return [];
+    const out: ActionEventRecord[] = [];
+    for (let i = 0; i < actionIds.length; i += 100) {
+      const { data, error } = await this.client
+        .from("action_events")
+        .select()
+        .eq("user_id", userId)
+        .in("action_id", actionIds.slice(i, i + 100));
+      if (error) throw new Error(error.message);
+      out.push(...(data ?? []));
+    }
+    return out.sort((a, b) => a.created_at.localeCompare(b.created_at));
   }
 
   async getTierSettings(userId: string): Promise<TierSettingRecord[]> {
@@ -296,11 +379,13 @@ export class SupabaseStore implements Store {
     return fresh;
   }
 
-  async incrementUsage(userId: string): Promise<UsageRecord> {
-    const usage = await this.getUsage(userId);
+  async incrementUsage(userId: string, cycleStart?: string): Promise<UsageRecord> {
+    // A caller that already resolved usage this request passes cycle_start so
+    // we don't re-fetch (getUsage also guarantees the row exists first).
+    const start = cycleStart ?? (await this.getUsage(userId)).cycle_start;
     const { data, error } = await this.client.rpc("increment_usage", {
       p_user_id: userId,
-      p_cycle_start: usage.cycle_start,
+      p_cycle_start: start,
     });
     if (error) throw new Error(error.message);
     return data as UsageRecord;

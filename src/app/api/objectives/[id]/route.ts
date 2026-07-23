@@ -3,8 +3,7 @@ import { ApiError, errorResponse, requireUser } from "@/lib/api";
 import { enforceLimit } from "@/lib/ratelimit";
 import { idParamSchema, objectivePatchSchema, parseStrict, readJsonBody } from "@/lib/schemas";
 import { delegationMomentum, objectiveProgress } from "@/lib/objectives";
-import { getStore } from "@/lib/store";
-import type { ActionRecord } from "@/lib/types";
+import { getStore, type ActionStatusRow } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,13 +19,17 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const objective = await store.getObjective(userId, id);
     if (!objective) throw new ApiError(404, "not_found", "we couldn't find that objective.");
 
-    const [sessions, actions, links] = await Promise.all([
+    const [sessions, links] = await Promise.all([
       store.listSessions(userId),
-      store.listActions(userId, { limit: 2000 }),
       store.listObjectiveLinks(userId, id),
     ]);
+    // Statuses for the linked sessions only — never a whole-account scan.
+    const actions = await store.listActionStatusesForSessions(
+      userId,
+      [...new Set(links.map((l) => l.session_id))]
+    );
     const sessionById = new Map(sessions.map((s) => [s.id, s]));
-    const actionsBySession = new Map<string, ActionRecord[]>();
+    const actionsBySession = new Map<string, ActionStatusRow[]>();
     for (const a of actions) {
       const list = actionsBySession.get(a.session_id) ?? [];
       list.push(a);

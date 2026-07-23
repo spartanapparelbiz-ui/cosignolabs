@@ -58,6 +58,12 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: {
+    // Rewrite barrel imports to direct ones at build time (lucide-react is
+    // already in Next's default list; Clerk is added on top). Shrinks the
+    // module graph on every route that touches these packages.
+    optimizePackageImports: ["@clerk/nextjs"],
+  },
   // instrumentation.ts imports scripts/env-services.mjs, which lives OUTSIDE
   // the app source tree. Explicitly include it in the serverless function
   // bundle so the boot diagnostic can load it on Netlify (belt-and-suspenders

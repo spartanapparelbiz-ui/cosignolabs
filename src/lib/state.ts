@@ -11,6 +11,16 @@ import type {
 import { CATEGORIES } from "./types";
 
 /**
+ * The slice of an action the state/stream assembly actually reads. Full
+ * ActionRecords satisfy it, but so does the store's projected ActionHead —
+ * so polled endpoints never have to transfer payload/result JSON.
+ */
+export type StateAction = Pick<
+  ActionRecord,
+  "id" | "status" | "summary" | "category" | "tier"
+>;
+
+/**
  * Cosigno State — the live understanding of delegated work. Not a business
  * score, not analytics: the actual operational condition of everything the
  * user has handed to cosigno. Pure assembly over stored records so it is
@@ -67,7 +77,7 @@ export interface StreamEvent {
   needs_you: boolean;
 }
 
-function eventText(e: ActionEventRecord, action: ActionRecord | undefined): StreamEvent | null {
+function eventText(e: ActionEventRecord, action: StateAction | undefined): StreamEvent | null {
   const summary = action?.summary ?? "an action";
   switch (e.type) {
     case "proposed":
@@ -110,7 +120,7 @@ function eventText(e: ActionEventRecord, action: ActionRecord | undefined): Stre
 
 export function assembleStream(
   events: ActionEventRecord[],
-  actions: ActionRecord[],
+  actions: StateAction[],
   missions: MissionRecord[],
   limit = 12
 ): StreamEvent[] {
@@ -172,7 +182,7 @@ export interface ReplayLine {
 
 export function replayOf(
   events: ActionEventRecord[],
-  actions: ActionRecord[],
+  actions: StateAction[],
   delegatedAt?: string,
   goal?: string
 ): ReplayLine[] {
@@ -216,7 +226,7 @@ export interface CosignoState {
 export interface StateInputs {
   missions: MissionRecord[];
   /** All actions (any status) — proposals and event context both come from here. */
-  actions: ActionRecord[];
+  actions: StateAction[];
   automations: AutomationRecord[];
   events: ActionEventRecord[];
   /** Current effective tier per category (from the user's tier settings). */
@@ -279,7 +289,7 @@ const AUTONOMY_THRESHOLD = 5;
  */
 export function autonomyOffers(
   events: ActionEventRecord[],
-  actions: ActionRecord[],
+  actions: StateAction[],
   tiers?: Partial<Record<ActionCategory, Tier>>
 ): AutonomyOffer[] {
   const byId = new Map(actions.map((a) => [a.id, a]));
@@ -324,7 +334,7 @@ const CATEGORY_PHRASE: Record<string, string> = {
  * actually did, stated plainly. No hidden reasoning, no inference beyond
  * counting. Shown during handoffs so decisions come with real context.
  */
-export function operationalNotes(events: ActionEventRecord[], actions: ActionRecord[]): string[] {
+export function operationalNotes(events: ActionEventRecord[], actions: StateAction[]): string[] {
   const byId = new Map(actions.map((a) => [a.id, a]));
   const signed = new Map<string, number>();
   const approved = new Map<string, number>();

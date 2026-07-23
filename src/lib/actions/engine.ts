@@ -69,15 +69,19 @@ export async function autoExecute(
   // Injection-flagged content never auto-executes, regardless of tier.
   if (action.injection_flag) return action;
   const store = getStore();
+  // The three gate reads are independent — fetch together, check in order.
+  const [hold, usage, limit] = await Promise.all([
+    store.getHold(userId),
+    store.getUsage(userId),
+    effectiveActionLimit(userId),
+  ]);
   // Cosigno Hold: while an "all" hold is active, even tier-1 auto work waits.
   // The card stays proposed and the pause is recorded once, so it's traceable.
-  const hold = await store.getHold(userId);
   if (holdBlocks(hold.scope, action)) {
     await store.logEvent(userId, action.id, "blocked", "system", { reason: "on_hold", scope: hold.scope });
     return action;
   }
-  const usage = await store.getUsage(userId);
-  if (usage.actions_executed >= (await effectiveActionLimit(userId))) return action;
+  if (usage.actions_executed >= limit) return action;
 
   const authorizedAt = new Date().toISOString();
   await store.transitionAction(userId, action.id, "approved");
@@ -130,7 +134,12 @@ export async function approveAction(
   opts: ApproveOptions = {}
 ): Promise<ActionRecord> {
   const store = getStore();
-  const action = await store.getAction(userId, actionId);
+  // Fetch the action and the hold state together; the checks below still run
+  // in their original order (not-found → state → injection → hold).
+  const [action, hold] = await Promise.all([
+    store.getAction(userId, actionId),
+    store.getHold(userId),
+  ]);
   if (!action) throw new EngineError("not_found", "we couldn't find that action.");
   if (action.status !== "proposed") {
     throw new EngineError(
@@ -156,7 +165,6 @@ export async function approveAction(
   // Cosigno Hold: while active for this action's scope, nothing new crosses
   // the boundary. The card stays proposed; resuming lets it through
   // unchanged. This is the authority brake — the user keeps final control.
-  const hold = await store.getHold(userId);
   if (holdBlocks(hold.scope, action)) {
     await store.logEvent(userId, actionId, "blocked", "system", { reason: "on_hold", scope: hold.scope });
     throw new EngineError("on_hold", holdMessage(hold.scope));
@@ -192,8 +200,10 @@ export async function approveAction(
     }
   }
 
-  const usage = await store.getUsage(userId);
-  const { planId, plan } = await getUserPlan(userId);
+  const [usage, { planId, plan }] = await Promise.all([
+    store.getUsage(userId),
+    getUserPlan(userId),
+  ]);
   if (usage.actions_executed >= plan.actionLimit) {
     await store.logEvent(userId, actionId, "blocked", "system", {
       reason: "usage_limit",

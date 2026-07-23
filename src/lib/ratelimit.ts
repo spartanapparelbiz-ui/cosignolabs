@@ -128,6 +128,18 @@ async function getLimiter(name: LimitName): Promise<Limiter> {
   return registry.limiters[name]!;
 }
 
+type UpstashRedis = InstanceType<(typeof import("@upstash/redis"))["Redis"]>;
+let budgetRedis: UpstashRedis | null = null;
+
+/** One Redis client for the global-budget counter — not one per command. */
+async function globalBudgetRedis(): Promise<UpstashRedis> {
+  if (!budgetRedis) {
+    const { Redis } = await import("@upstash/redis");
+    budgetRedis = Redis.fromEnv();
+  }
+  return budgetRedis;
+}
+
 export class RateLimitError extends Error {
   constructor(
     public limitName: LimitName | "global_budget",
@@ -164,8 +176,7 @@ export async function enforceGlobalPlanningBudget(): Promise<void> {
 
   let count: number;
   if (upstashConfigured()) {
-    const { Redis } = await import("@upstash/redis");
-    const redis = Redis.fromEnv();
+    const redis = await globalBudgetRedis();
     const key = `cosigno:global:plans:${day}`;
     count = await redis.incr(key);
     if (count === 1) await redis.expire(key, 60 * 60 * 25);

@@ -41,9 +41,12 @@ export async function runCommand(
   const store = getStore();
 
   // Usage gate before the model is invoked — the limit comes from the user's
-  // plan (fail-closed to free). Planning calls count against it.
-  const { plan: userPlan, planId } = await getUserPlan(userId);
-  const usage = await store.getUsage(userId);
+  // plan (fail-closed to free). Planning calls count against it. The two
+  // reads are independent, so they run together.
+  const [{ plan: userPlan, planId }, usage] = await Promise.all([
+    getUserPlan(userId),
+    store.getUsage(userId),
+  ]);
   if (usage.actions_executed >= userPlan.actionLimit) {
     logSecurity("usage_limit_hit", { userId, at: "planning", plan: planId });
     throw new EngineError("usage_limit", usageLimitMessage(planId));
@@ -59,21 +62,24 @@ export async function runCommand(
     );
   }
 
-  const userMessage = await store.addMessage(userId, session.id, "user", command);
+  const sessionId = session.id;
+  const userMessage = await store.addMessage(userId, sessionId, "user", command);
 
   const model = chooseModel(planId, command, userId);
-  const plan = await planCommand(command, opts.externalContent ?? [], userId, model);
-  // The planning call itself is metered — planner invocations count.
-  await store.incrementUsage(userId);
+  // Tier settings and live temporary-authority grants (scoped, expiring —
+  // resolveTier enforces the eligibility rules: never pinned, never SIGN
+  // categories) don't depend on the plan, so their latency hides entirely
+  // behind the multi-second planner call.
+  const [plan, settings, grants] = await Promise.all([
+    planCommand(command, opts.externalContent ?? [], userId, model),
+    store.getTierSettings(userId),
+    store.listTemporaryAuthority(userId),
+  ]);
+  // The planning call itself is metered — planner invocations count. The
+  // cycle resolved above skips a redundant usage re-read.
+  await store.incrementUsage(userId, usage.cycle_start);
 
-  const settings = await store.getTierSettings(userId);
-  // Live temporary-authority grants (scoped, expiring) may lower an eligible
-  // tier-2 category to auto until they lapse — resolveTier enforces the
-  // eligibility rules (never pinned, never SIGN categories).
-  const grants = await store.listTemporaryAuthority(userId);
-
-  const actions: ActionRecord[] = [];
-  for (const proposal of plan.proposals) {
+  const prepared = plan.proposals.map((proposal) => {
     const tier = resolveTier(proposal.category, settings, grants);
     let tierNote: string | null = null;
     if (proposal.requested_tier && proposal.requested_tier !== tier) {
@@ -94,22 +100,30 @@ export async function runCommand(
     if (plan.suspectedSources.length > 0) {
       payload._external_sources = plan.suspectedSources;
     }
+    return { proposal, tier, tierNote, payload };
+  });
 
-    let action = await proposeAction({
-      session_id: session.id,
-      user_id: userId,
-      category: proposal.category,
-      tier,
-      summary: proposal.summary,
-      payload,
-      injection_flag: plan.injectionSuspected,
-      tier_note: tierNote,
-    });
+  // Proposal rows are independent inserts — create them together (order is
+  // preserved by Promise.all). Auto-execution stays sequential below: those
+  // are real actions with usage metering.
+  const proposedActions = await Promise.all(
+    prepared.map(({ proposal, tier, tierNote, payload }) =>
+      proposeAction({
+        session_id: sessionId,
+        user_id: userId,
+        category: proposal.category,
+        tier,
+        summary: proposal.summary,
+        payload,
+        injection_flag: plan.injectionSuspected,
+        tier_note: tierNote,
+      })
+    )
+  );
 
-    if (tier === 1) {
-      action = await autoExecute(userId, action);
-    }
-    actions.push(action);
+  const actions: ActionRecord[] = [];
+  for (const proposed of proposedActions) {
+    actions.push(proposed.tier === 1 ? await autoExecute(userId, proposed) : proposed);
   }
 
   const agentMessage = await store.addMessage(

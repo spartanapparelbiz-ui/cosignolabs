@@ -155,14 +155,17 @@ export function Dashboard() {
 
   const load = useCallback(async () => {
     try {
+      // One wave: the missions call piggybacks active-mission steps
+      // (include=steps), so there's no second round of per-mission fetches.
       const [m, a, au, c] = await Promise.all([
-        jsonFetch("/api/missions").catch(() => ({ missions: [] })),
+        jsonFetch("/api/missions?include=steps").catch(() => ({ missions: [], steps: {} })),
         jsonFetch("/api/actions?status=proposed&limit=20").catch(() => ({ actions: [] })),
         jsonFetch("/api/automations").catch(() => ({ automations: [] })),
         jsonFetch("/api/connections").catch(() => ({ connections: [] })),
       ]);
       const ms: MissionRecord[] = m.missions ?? [];
       setMissions(ms);
+      setSteps((m.steps ?? {}) as Record<string, MissionStepRecord[]>);
       setApprovals((a.actions ?? []).filter((x: ActionRecord) => x.status === "proposed"));
       const enabled: AutomationRecord[] = (au.automations ?? []).filter((x: AutomationRecord) => x.enabled);
       enabled.sort((x, y) => new Date(x.next_run_at).getTime() - new Date(y.next_run_at).getTime());
@@ -170,21 +173,6 @@ export function Dashboard() {
       const appConns = (c.connections ?? []).filter((x: ConnectionView) => x.kind === "app");
       setConnections(appConns.filter((x: ConnectionView) => x.status === "connected"));
       setUnhealthy(appConns.filter((x: ConnectionView) => x.status !== "connected"));
-
-      // Fetch steps for the active missions we'll show (up to 4).
-      const active = ms.filter((x) => ACTIVE_STATES.has(x.state)).slice(0, 4);
-      const stepMap: Record<string, MissionStepRecord[]> = {};
-      await Promise.all(
-        active.map(async (mi) => {
-          try {
-            const d = await jsonFetch(`/api/missions/${mi.id}`);
-            stepMap[mi.id] = d.steps ?? [];
-          } catch {
-            stepMap[mi.id] = [];
-          }
-        })
-      );
-      setSteps(stepMap);
     } catch {
       setMissions([]);
     }

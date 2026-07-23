@@ -6,7 +6,13 @@ import { Search, ShieldAlert } from "lucide-react";
 import type { ActionRecord } from "@/lib/types";
 import { CATEGORY_LIST } from "@/lib/types";
 import { SkeletonRows } from "./Skeleton";
-import { ReceiptModal } from "./sign/ReceiptModal";
+import dynamic from "next/dynamic";
+
+// Open-on-click overlay — loaded the first time a receipt is viewed, not in
+// the activity route's initial chunk.
+const ReceiptModal = dynamic(() =>
+  import("./sign/ReceiptModal").then((m) => m.ReceiptModal)
+);
 import { TierBadge } from "./TierBadge";
 import { operatorOf } from "@/lib/actionPresentation";
 import { EmptyIllustration } from "./EmptyIllustration";

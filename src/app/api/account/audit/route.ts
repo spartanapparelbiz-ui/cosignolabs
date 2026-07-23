@@ -13,11 +13,11 @@ export async function GET() {
   try {
     const userId = await requireUser();
     const store = getStore();
-    const [audit, actions] = await Promise.all([
+    const [audit, injectionFlags] = await Promise.all([
       store.listAudit(userId, 10),
-      store.listActions(userId, { limit: 1000 }),
+      // Count in the database — no need to transfer 1000 full rows for a number.
+      store.countActions(userId, { injection_flag: true }),
     ]);
-    const injectionFlags = actions.filter((a) => a.injection_flag).length;
     return NextResponse.json({ audit, injectionFlags });
   } catch (err) {
     return errorResponse(err);

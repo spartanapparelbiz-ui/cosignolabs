@@ -31,9 +31,18 @@ import {
 } from "@/lib/actionPresentation";
 import { afterApprovalLine, approveLabel, beforeApprovalLine } from "@/lib/clarity";
 import { signRequired } from "@/lib/sign";
-import { SignDialog } from "./sign/SignDialog";
-import { ReceiptModal } from "./sign/ReceiptModal";
+import dynamic from "next/dynamic";
 import { TierBadge } from "./TierBadge";
+
+// Both are open-on-click overlays (the sign dialog drags in the whole
+// signature-pad canvas machinery) — split out of the workspace/approvals
+// route chunks and fetched the first time a user actually opens one.
+const SignDialog = dynamic(() =>
+  import("./sign/SignDialog").then((m) => m.SignDialog)
+);
+const ReceiptModal = dynamic(() =>
+  import("./sign/ReceiptModal").then((m) => m.ReceiptModal)
+);
 
 export interface ApproveOpts {
   confirmation?: string;

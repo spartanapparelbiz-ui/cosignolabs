@@ -16,11 +16,14 @@ export async function GET() {
   try {
     const userId = await requireUser();
     const store = getStore();
+    // This endpoint is polled — both reads are bounded IN THE QUERY and the
+    // actions read is a narrow projection (no payload/result JSON), so cost
+    // stays flat no matter how much history the account accumulates.
     const [missions, actions, automations, events, tierSettings, hold] = await Promise.all([
       store.listMissions(userId, 100),
-      store.listActions(userId, { limit: 1000 }),
+      store.listActionHeads(userId, 1000),
       store.listAutomations(userId),
-      store.listEvents(userId),
+      store.listEvents(userId, undefined, 400),
       store.getTierSettings(userId),
       store.getHold(userId),
     ]);
@@ -29,8 +32,7 @@ export async function GET() {
       missions,
       actions,
       automations,
-      // Only recent events matter for the stream; the lib sorts and caps.
-      events: events.slice(-400),
+      events,
       tiers,
       hold: hold.scope,
     });

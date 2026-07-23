@@ -217,6 +217,26 @@ export interface ActivityFilter {
   limit?: number;
 }
 
+/** Filter for cheap DB-side action counts (no rows transferred). */
+export interface ActionCountFilter {
+  status?: ActionStatus;
+  injection_flag?: boolean;
+  /** Only actions created at/after this ISO timestamp. */
+  since?: string;
+}
+
+/**
+ * The narrow action shape the state/stream assembly needs — fetched with a
+ * column projection so polled endpoints never transfer payload/result JSON.
+ */
+export type ActionHead = Pick<
+  ActionRecord,
+  "id" | "session_id" | "status" | "category" | "tier" | "summary" | "created_at"
+>;
+
+/** Minimal per-session action status, for momentum roll-ups. */
+export type ActionStatusRow = Pick<ActionRecord, "id" | "session_id" | "status">;
+
 /**
  * Storage boundary for everything the product persists. Two backends:
  *  - SupabaseStore: production (Postgres + RLS + realtime).
@@ -241,6 +261,17 @@ export interface Store {
   createAction(input: ActionInsert): Promise<ActionRecord>;
   getAction(userId: string, id: string): Promise<ActionRecord | null>;
   listActions(userId: string, filter?: ActivityFilter): Promise<ActionRecord[]>;
+  /** Narrow projection of the newest actions — no payload/result transfer. */
+  listActionHeads(userId: string, limit: number): Promise<ActionHead[]>;
+  /** Per-session action statuses for the given sessions only. */
+  listActionStatusesForSessions(
+    userId: string,
+    sessionIds: string[]
+  ): Promise<ActionStatusRow[]>;
+  /** DB-side count of matching actions — zero rows transferred. */
+  countActions(userId: string, filter?: ActionCountFilter): Promise<number>;
+  /** DB-side count of the user's sessions. */
+  countSessions(userId: string): Promise<number>;
   /**
    * The ONLY path that mutates action status. Enforces the state machine;
    * throws on an invalid transition.
@@ -266,7 +297,20 @@ export interface Store {
     actor: ActionEventRecord["actor"],
     detail?: Record<string, unknown>
   ): Promise<ActionEventRecord>;
-  listEvents(userId: string, actionId?: string): Promise<ActionEventRecord[]>;
+  /**
+   * Events in ascending time order. When `limit` is set, returns the NEWEST
+   * `limit` events (still ascending) — bounded in the query, not in JS.
+   */
+  listEvents(
+    userId: string,
+    actionId?: string,
+    limit?: number
+  ): Promise<ActionEventRecord[]>;
+  /** Events for exactly these actions, ascending — no full-history scan. */
+  listEventsForActions(
+    userId: string,
+    actionIds: string[]
+  ): Promise<ActionEventRecord[]>;
 
   getTierSettings(userId: string): Promise<TierSettingRecord[]>;
   setTierSetting(
@@ -276,7 +320,11 @@ export interface Store {
   ): Promise<void>;
 
   getUsage(userId: string): Promise<UsageRecord>;
-  incrementUsage(userId: string): Promise<UsageRecord>;
+  /**
+   * `cycleStart` (from a getUsage call earlier in the same request) skips the
+   * internal usage re-fetch — one fewer round trip on the execution path.
+   */
+  incrementUsage(userId: string, cycleStart?: string): Promise<UsageRecord>;
 
   createBetaApplication(app: BetaApplication): Promise<void>;
 

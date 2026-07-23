@@ -23,12 +23,12 @@ export async function GET(req: NextRequest) {
     const store = getStore();
     const session = await store.getSession(userId, sessionId);
     if (!session) throw new ApiError(404, "not_found", "we couldn't find that delegation.");
-    const [actions, allEvents] = await Promise.all([
-      store.listActions(userId, { session_id: sessionId, limit: 200 }),
-      store.listEvents(userId),
-    ]);
-    const ids = new Set(actions.map((a) => a.id));
-    const events = allEvents.filter((e) => ids.has(e.action_id));
+    const actions = await store.listActions(userId, { session_id: sessionId, limit: 200 });
+    // Fetch only this delegation's events — not the account's full history.
+    const events = await store.listEventsForActions(
+      userId,
+      actions.map((a) => a.id)
+    );
     return NextResponse.json({
       goal: session.title,
       lines: replayOf(events, actions, session.created_at, session.title),
