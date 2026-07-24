@@ -1,0 +1,40 @@
+name: Verify live site
+
+# Post-deploy production gate. Netlify deploys the production branch on every
+# push; this workflow then proves the LIVE site is actually serving it —
+# landing up and fast, security headers intact, no vendor leaks in served
+# HTML/JS, health + sandbox functions running, /app never raw-500ing.
+# Runs automatically after production pushes, or on demand from the Actions
+# tab (workflow_dispatch) against any URL.
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Base URL to verify"
+        required: false
+        default: "https://cosignolabs.com"
+  push:
+    branches: [claude/cosigno-master-build-xhwvgf]
+
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Give Netlify time to build + publish the production deploy this push
+      # just triggered before checking the live site. Manual runs skip this.
+      - name: Wait for the production deploy to publish
+        if: github.event_name == 'push'
+        run: sleep 300
+      # verify-deploy.mjs is dependency-free (global fetch) — no npm ci needed.
+      # One retry absorbs a serverless cold start on the first hit.
+      - name: Verify the live site
+        run: |
+          URL="${{ github.event.inputs.url || 'https://cosignolabs.com' }}"
+          if node scripts/verify-deploy.mjs "$URL"; then exit 0; fi
+          echo "first pass failed (possibly a cold start) — retrying once…"
+          sleep 30
+          node scripts/verify-deploy.mjs "$URL"
