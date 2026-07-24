@@ -33,9 +33,15 @@ export async function POST(req: NextRequest) {
 
   const due = await getStore().listDueAutomations(BATCH);
   const results: { id: string; status: string }[] = [];
-  for (const automation of due) {
-    const run = await runAutomation(automation);
-    results.push({ id: automation.id, status: run.status });
+  // Bounded concurrency: runs are per-owner independent (each carries its
+  // owner's own rate/usage gates), and three-at-a-time keeps a full batch of
+  // worst-case planner calls inside the 60s function budget — serially,
+  // three slow runs already blew it and starved the rest of the batch.
+  const CONCURRENCY = 3;
+  for (let i = 0; i < due.length; i += CONCURRENCY) {
+    const chunk = due.slice(i, i + CONCURRENCY);
+    const runs = await Promise.all(chunk.map((a) => runAutomation(a)));
+    chunk.forEach((a, j) => results.push({ id: a.id, status: runs[j].status }));
   }
   logInfo("automation_tick", { due: due.length });
   return NextResponse.json({ ran: results.length, results });
