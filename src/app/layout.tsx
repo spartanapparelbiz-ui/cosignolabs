@@ -69,13 +69,13 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     url: "https://cosignolabs.com",
     siteName: "cosigno",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "cosigno" }],
+    images: [{ url: "/og.png?v=5", width: 1200, height: 630, alt: "cosigno" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "cosigno — the AI operator that asks first",
     description: DESCRIPTION,
-    images: ["/og.png"],
+    images: ["/og.png?v=5"],
   },
 };
 

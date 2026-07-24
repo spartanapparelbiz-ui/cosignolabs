@@ -74,13 +74,41 @@ function maskIconSvg() {
 </svg>`;
 }
 
-/** OG hero: flat mark + wordmark + tagline on the cream field. */
+/** A floating receipt/approval card for the OG hero. */
+function ogCard(x, y, rot, tier, dotColor, title, status, statusColor) {
+  return `<g transform="translate(${x},${y}) rotate(${rot})">
+    <rect width="266" height="84" rx="16" fill="#FFFFFF" filter="url(#ogsh)"/>
+    <circle cx="24" cy="28" r="4" fill="${dotColor}"/>
+    <text x="37" y="32" font-family="DejaVu Sans, sans-serif" font-weight="700" font-size="10.5" letter-spacing="1.4" fill="#a89f95">${tier}</text>
+    <text x="24" y="56" font-family="DejaVu Sans, sans-serif" font-weight="700" font-size="16" fill="#171512">${title}</text>
+    <text x="24" y="74" font-family="DejaVu Sans, sans-serif" font-weight="700" font-size="11.5" fill="${statusColor}">${status}</text>
+  </g>`;
+}
+
+/** OG hero: the traced mark + wordmark + tagline on the cream field, framed by
+ *  four floating approval/receipt cards (the product's actual surface). */
 function ogSvg() {
+  const OGCREAM = "#F8F0E8";
+  const GREEN = "#2f9e5a";
+  const MUTE = "#a89f95";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <rect width="1200" height="630" fill="${CREAM}"/>
-  <g transform="translate(600,232) scale(1.85) translate(-80,-80)">${markPaths(SIGNAL, INK)}</g>
-  ${wordmark(600 - 158, 452, 88, 8, 150, 57, INK)}
-  <text x="600" y="524" text-anchor="middle" font-family="Poppins, DejaVu Sans, sans-serif" font-weight="800" font-size="30" fill="${INK_SOFT}">the AI operator that asks first.</text>
+  <defs>
+    <filter id="ogsh" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="7" stdDeviation="12" flood-color="#171512" flood-opacity="0.10"/>
+    </filter>
+    <radialGradient id="ogbg" cx="50%" cy="40%" r="62%">
+      <stop offset="0%" stop-color="#FCF6EF"/>
+      <stop offset="100%" stop-color="${OGCREAM}"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#ogbg)"/>
+  <g transform="translate(600,116) scale(1.16) translate(-80,-80)">${markPaths(SIGNAL, INK)}</g>
+  ${wordmark(600 - 150, 424, 84, 8, 143, 54, INK)}
+  <text x="600" y="486" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-weight="700" font-size="27" fill="${INK_SOFT}">the AI operator that asks first.</text>
+  ${ogCard(64, 150, -4, "TIER 1 · AUTO", MUTE, "archived 24 newsletters", "executed", GREEN)}
+  ${ogCard(872, 128, 4, "TIER 2 · APPROVE", SIGNAL, "draft replies to 3 leads", "awaiting sign-off", MUTE)}
+  ${ogCard(64, 408, 4, "TIER 3 · LOCKED", INK, "refund $48.00 · order #2231", "locked · typed confirm", MUTE)}
+  ${ogCard(872, 430, -4, "TIER 1 · AUTO", MUTE, "repriced 12 products", "executed", GREEN)}
 </svg>`;
 }
 
