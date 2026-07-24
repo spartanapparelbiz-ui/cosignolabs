@@ -47,7 +47,7 @@ flip to the real product the moment your keys are in.
 
 To finish Option B you need, in Netlify **Site configuration → Environment
 variables**: `PLANNER_API_KEY`, the three `…SUPABASE…` keys, and the two
-`…CLERK…` keys (Stripe + connector OAuth are optional). Then run every SQL file
+keys (Stripe + connector OAuth are optional). Then run every SQL file
 in `supabase/migrations/` (through `0014_mission_sources.sql`) in the Supabase
 SQL editor, and point your scheduler at `/api/missions/tick` and
 `/api/automations/tick`. The per-service table further down explains each one.
@@ -158,12 +158,11 @@ all-or-nothing — each service degrades on its own:
 | --- | --- | --- |
 | **Planner** (the AI) | `PLANNER_API_KEY` (+ `PLANNER_MODEL_DEFAULT`, `PLANNER_MODEL_PREMIUM`) | the app (`/app`) shows "warming up" |
 | **Supabase** (database) | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | the app shows "warming up" |
-| **Clerk** (sign-in) | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | the app shows "warming up" |
 | **Upstash** (rate limits) | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | still works; in-memory limits |
 | **Turnstile** (captcha) | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | beta form works without a captcha |
 | **Stripe** (billing) | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, the four `STRIPE_PRICE_*` | billing off; everyone on free |
 
-**To make the whole app work, you need Planner + Supabase + Clerk.** Stripe is
+**To make the whole app work, you need Planner + Supabase.** Sign-in is part of Supabase — no separate auth service. Stripe is
 only for taking payments. The marketing site needs **nothing**.
 
 Each variable in `.env.example` has a one-line comment saying what breaks
@@ -214,7 +213,7 @@ prints one line per missing service, e.g.
 | **Error on every page** (even the homepage) | Netlify is deploying the wrong/old branch, or the build failed. | Do Checks 1–4 at the top of this file, in order. |
 | **Build failed in the log** | Build tooling wasn't installed — usually a `NODE_ENV=production` variable set in Netlify. | Delete the `NODE_ENV` variable (Check 3), then Clear cache and deploy. |
 | **404 on `/app` routes** but homepage works | Runtime plugin didn't engage, or it published static files. | Clear cache and deploy. Publish dir must be `.next`, not `out` (set by `netlify.toml`). |
-| **`/app` shows "cosigno is warming up"** | Expected with missing keys — **not** an error. | Add Planner + Supabase + Clerk keys and redeploy. |
+| **`/app` shows "cosigno is warming up"** | Expected with missing keys — **not** an error. | Add Planner + Supabase keys and redeploy. |
 | **SSL warning / "not secure"** | Certificate hasn't issued yet. | Domain management → wait for "Netlify certificate"; make sure DNS resolves first. |
 | **Billing button does nothing** | Stripe keys or price IDs missing. | Run `check:env`; add the `STRIPE_*` keys + four price IDs; redeploy. |
 

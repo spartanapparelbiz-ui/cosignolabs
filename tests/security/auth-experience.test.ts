@@ -4,17 +4,17 @@ import { MemoryStore } from "../../src/lib/store/memory";
 import { resetRateLimitsForTests } from "../../src/lib/ratelimit";
 import { safeRedirect, withRedirect } from "@/components/auth/authRedirect";
 import {
-  friendlyClerkError,
-  isIdentifierExists,
-  isSessionExists,
-} from "@/components/auth/clerkErrors";
+  friendlyAuthError,
+  isAlreadyRegistered,
+  signUpHitExistingUser,
+} from "@/components/auth/supabaseErrors";
 
 /**
- * The custom auth surface keeps Clerk as the engine but replaces the look and
- * adds the redirect plumbing. Three things need pinning:
+ * The custom auth surface keeps Supabase Auth as the engine but the look is
+ * ours. Three things need pinning:
  *   1. the post-auth redirect is open-redirect-safe (only same-origin paths);
  *   2. provider errors become calm brand copy and never leak the raw cause;
- *   3. the branded /sign-in, /sign-up, /sso-callback routes stay public.
+ *   3. the branded /sign-in and /sign-up routes stay public.
  */
 
 describe("post-auth redirect is open-redirect-safe", () => {
@@ -49,67 +49,42 @@ describe("post-auth redirect is open-redirect-safe", () => {
   });
 });
 
-describe("clerk errors → calm copy, never the raw cause", () => {
-  const LEAKY = /sk-|clerk|_key|token|http|stack|\.ts:|instance/i;
+describe("auth errors → calm copy, never the raw cause", () => {
+  const LEAKY = /sk-|supabase|_key|token|http|stack|\.ts:|jwt/i;
 
   it("maps known codes to brand-voice sentences", () => {
-    expect(
-      friendlyClerkError({ errors: [{ code: "form_password_incorrect" }] }, "sign-in")
-    ).toMatch(/password/i);
-    expect(
-      friendlyClerkError({ errors: [{ code: "form_identifier_exists" }] }, "sign-up")
-    ).toMatch(/already registered — sign in instead/i);
-    expect(
-      friendlyClerkError({ errors: [{ code: "form_code_incorrect" }] }, "sign-up")
-    ).toMatch(/code/i);
+    expect(friendlyAuthError({ code: "invalid_credentials" }, "sign-in")).toMatch(/password/i);
+    expect(friendlyAuthError({ code: "user_already_exists" }, "sign-up")).toMatch(
+      /already registered — sign in instead/i
+    );
+    expect(friendlyAuthError({ code: "email_not_confirmed" }, "sign-in")).toMatch(/confirm/i);
+    expect(friendlyAuthError({ code: "otp_expired" }, "sign-up")).toMatch(/expired/i);
+    expect(friendlyAuthError({ code: "weak_password" }, "sign-up")).toMatch(/stronger/i);
   });
 
-  it("an active session is never reported as an existing account", () => {
-    // session_exists = the visitor is already signed in. Reporting THAT as
-    // "account already exists" was exactly the misleading failure reported
-    // on signup — the two codes must stay distinguishable.
-    expect(
-      friendlyClerkError({ errors: [{ code: "session_exists" }] }, "sign-up")
-    ).toMatch(/already signed in/i);
-    expect(isSessionExists({ errors: [{ code: "session_exists" }] })).toBe(true);
-    expect(isSessionExists({ errors: [{ code: "form_identifier_exists" }] })).toBe(false);
-    expect(isIdentifierExists({ errors: [{ code: "form_identifier_exists" }] })).toBe(true);
-    expect(isIdentifierExists(null)).toBe(false);
-  });
-
-  it("maps production bot-protection and restriction failures honestly (never a silent shrug)", () => {
-    // The codes a production Clerk instance produces when the sign-up CAPTCHA
-    // can't run or sign-ups are restricted — the failures that previously fell
-    // into the generic bucket and made "sign-up is broken" undiagnosable.
-    expect(
-      friendlyClerkError({ errors: [{ code: "captcha_invalid" }] }, "sign-up")
-    ).toMatch(/robot check/i);
-    expect(
-      friendlyClerkError({ errors: [{ code: "captcha_unavailable" }] }, "sign-up")
-    ).toMatch(/robot check/i);
-    expect(
-      friendlyClerkError({ errors: [{ code: "sign_up_restricted" }] }, "sign-up")
-    ).toMatch(/limited|invitation/i);
+  it("detects the two 'already exists' shapes so signup can recover", () => {
+    // the explicit error code…
+    expect(isAlreadyRegistered({ code: "email_exists" })).toBe(true);
+    expect(isAlreadyRegistered({ code: "invalid_credentials" })).toBe(false);
+    // …and the anti-enumeration fake success (user with zero identities)
+    expect(signUpHitExistingUser({ identities: [] })).toBe(true);
+    expect(signUpHitExistingUser({ identities: [{ id: "x" }] })).toBe(false);
+    expect(signUpHitExistingUser(null)).toBe(false);
   });
 
   it("falls back to a safe generic per mode for unknown/garbage input", () => {
-    expect(friendlyClerkError(null, "sign-in")).toMatch(/sign you in/i);
-    expect(friendlyClerkError({}, "sign-up")).toMatch(/create your account/i);
-    expect(friendlyClerkError("boom", "sign-in")).toMatch(/try again/i);
+    expect(friendlyAuthError(null, "sign-in")).toMatch(/sign you in/i);
+    expect(friendlyAuthError({}, "sign-up")).toMatch(/create your account/i);
+    expect(friendlyAuthError("boom", "sign-in")).toMatch(/try again/i);
   });
 
   it("never echoes the provider's raw message, even when handed one", () => {
     const raw = {
-      errors: [
-        {
-          code: "unknown_x",
-          message:
-            "clerk_instance sk-live-secret at auth.ts:42 token=abc https://api.clerk.dev",
-        },
-      ],
+      code: "unknown_x",
+      message: "supabase sk-live-secret at auth.ts:42 token=abc https://x.supabase.co jwt",
     };
     for (const mode of ["sign-in", "sign-up"] as const) {
-      expect(friendlyClerkError(raw, mode)).not.toMatch(LEAKY);
+      expect(friendlyAuthError(raw, mode)).not.toMatch(LEAKY);
     }
   });
 });
@@ -130,7 +105,7 @@ describe("branded auth routes stay public in middleware", () => {
 
   const event = undefined as never;
 
-  for (const path of ["/sign-in", "/sign-up", "/sso-callback", "/terms", "/privacy"]) {
+  for (const path of ["/sign-in", "/sign-up", "/terms", "/privacy"]) {
     it(`${path} is not gated behind a 503`, async () => {
       const { default: middleware } = await import("../../src/middleware");
       const res = await middleware(

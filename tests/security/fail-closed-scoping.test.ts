@@ -11,7 +11,7 @@ import { resetRateLimitsForTests } from "../../src/lib/ratelimit";
  */
 
 vi.mock("@/lib/auth", () => ({
-  clerkConfigured: () => true,
+  authConfigured: () => true,
   DEMO_USER_ID: "demo-user",
   getUserId: vi.fn(async () => null),
 }));
@@ -33,7 +33,7 @@ function req(path: string, method = "GET"): NextRequest {
 describe("keyless production boot", () => {
   beforeEach(() => {
     vi.stubEnv("NODE_ENV", "production");
-    // No CLERK/SUPABASE/PLANNER keys → unconfigured production.
+    // No SUPABASE/PLANNER keys → unconfigured production.
     vi.resetModules();
   });
 

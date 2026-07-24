@@ -13,7 +13,7 @@ import { resetRateLimitsForTests } from "../../src/lib/ratelimit";
  */
 
 vi.mock("@/lib/auth", () => ({
-  clerkConfigured: () => true, // Clerk "configured" but no session
+  authConfigured: () => true, // live auth "configured" but no session
   DEMO_USER_ID: "demo-user",
   getUserId: vi.fn(async () => null),
 }));

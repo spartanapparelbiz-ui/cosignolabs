@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { clerkConfigured } from "@/lib/auth";
+import { authConfigured } from "@/lib/auth";
 import { isProduction, publicSandboxActive } from "@/lib/env";
 import { AuthScreen } from "@/components/auth/AuthScreen";
 import { safeRedirect } from "@/components/auth/authRedirect";
@@ -25,7 +25,7 @@ export default async function SignUpPage({
   return (
     <AuthScreen
       mode="sign-up"
-      clerkEnabled={clerkConfigured()}
+      authEnabled={authConfigured()}
       googleEnabled={googleEnabled()}
       dest={safeRedirect(redirect_url)}
       demoAllowed={!isProduction() || publicSandboxActive()}

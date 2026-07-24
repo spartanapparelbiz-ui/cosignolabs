@@ -22,15 +22,8 @@ export const SERVICES = [
     name: "SUPABASE",
     vars: ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"],
     gatesApp: true,
-    breaks: "no database — /app gates behind a 503",
+    breaks: "no database or sign-in — /app gates behind a 503",
     where: "Supabase → Project Settings → API",
-  },
-  {
-    name: "CLERK",
-    vars: ["NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "CLERK_SECRET_KEY"],
-    gatesApp: true,
-    breaks: "no sign-in — /app gates behind a 503",
-    where: "Clerk → API Keys",
   },
   {
     name: "UPSTASH",

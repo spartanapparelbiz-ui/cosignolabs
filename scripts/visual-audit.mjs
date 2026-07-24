@@ -82,9 +82,9 @@ await shot(page, "01-marketing", "terms-desktop.png", "Terms");
 
 console.log("== auth ==");
 await goto(page, "/sign-in");
-await shot(page, "02-auth", "sign-in-desktop.png", "Sign in (Clerk unconfigured in demo)");
+await shot(page, "02-auth", "sign-in-desktop.png", "Sign in (live auth unconfigured in demo)");
 await goto(page, "/sign-up");
-await shot(page, "02-auth", "sign-up-desktop.png", "Sign up (Clerk unconfigured in demo)");
+await shot(page, "02-auth", "sign-up-desktop.png", "Sign up (live auth unconfigured in demo)");
 
 console.log("== onboarding ==");
 {

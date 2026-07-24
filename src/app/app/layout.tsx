@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { clerkConfigured, getUserId } from "@/lib/auth";
+import { getUserId } from "@/lib/auth";
 import { isGuestId } from "@/lib/publicMode";
 import { AppRail, AppBottomNav } from "@/components/AppRail";
 import { ToastProvider } from "@/components/Toast";
@@ -79,39 +79,14 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // One cosigno-branded account control everywhere — never Clerk's default
-  // widget. It shows the personalized name + monogram and a menu (settings,
-  // theme, sign out); sign out works with or without Clerk configured.
+  // One cosigno-branded account control everywhere. It shows the
+  // personalized name + monogram and a menu (settings, theme, sign out);
+  // sign out works with or without live auth configured.
   const userSlot = <AccountChip />;
 
   // Public-sandbox guests get an honest banner. Resolved server-side from the
   // guest id the middleware forwards; real signed-in users never see it.
   const guest = isGuestId(await getUserId());
-
-  if (clerkConfigured()) {
-    // Keep Clerk for the session/auth, but only for its headless pieces — the
-    // visible UI is ours. The appearance still themes the sign-in/up routes.
-    const { ClerkProvider } = await import("@clerk/nextjs");
-    const appearance = {
-      variables: {
-        colorPrimary: "#FB4C20",
-        colorText: "#141414",
-        colorBackground: "#F8F0E8",
-        colorInputBackground: "#EFE5D7",
-        borderRadius: "10px",
-        fontFamily: "var(--font-nunito), system-ui, sans-serif",
-      },
-      elements: {
-        card: "shadow-soft",
-        formButtonPrimary: "bg-ink text-cream hover:bg-ink",
-      },
-    };
-    return (
-      <ClerkProvider appearance={appearance} signInUrl="/sign-in" signUpUrl="/sign-up">
-        <Chrome userSlot={userSlot} guest={guest}>{children}</Chrome>
-      </ClerkProvider>
-    );
-  }
 
   return <Chrome userSlot={userSlot} guest={guest}>{children}</Chrome>;
 }

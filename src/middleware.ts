@@ -22,7 +22,6 @@ const PUBLIC_PATHS = new Set([
   "/privacy",
   "/sign-in",
   "/sign-up",
-  "/sso-callback",
   "/api/health",
   "/api/beta",
   "/api/preview",
@@ -79,10 +78,17 @@ const WARMING_HTML = `<!doctype html>
   <a href="/">back to home</a>
 </body></html>`;
 
-function clerkConfigured(): boolean {
+function authConfigured(): boolean {
   return Boolean(
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
+}
+
+/** Cheap edge check: does the request carry a Supabase auth session cookie? */
+function hasAuthCookie(req: NextRequest): boolean {
+  return req.cookies
+    .getAll()
+    .some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
 }
 
 // --- public sandbox (COSIGNO_PUBLIC_MODE=1) guest identity, inlined so the
@@ -128,8 +134,6 @@ function productionReady(): boolean {
   // env.ts → provider (which honors the one-release legacy planner key); this
   // page gate uses the current key name only, kept vendor-free + edge-safe.
   return [
-    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-    "CLERK_SECRET_KEY",
     "NEXT_PUBLIC_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "SUPABASE_SERVICE_ROLE_KEY",
@@ -170,28 +174,64 @@ async function buildMiddleware(): Promise<NextMiddleware> {
     };
   }
 
-  if (!clerkConfigured()) {
+  if (!authConfigured()) {
     // Development demo mode only — production is handled above.
     return () => NextResponse.next();
   }
 
-  const { clerkMiddleware, createRouteMatcher } = await import(
-    "@clerk/nextjs/server"
-  );
-  const isProtected = createRouteMatcher([
-    "/app(.*)",
-    "/checkout(.*)",
-    "/api((?!/health$|/beta$|/preview$|/stripe/webhook$|/track$|/automations/tick$|/missions/tick$).*)",
+  const { createServerClient } = await import("@supabase/ssr");
+  const PUBLIC_API = new Set([
+    "/api/health",
+    "/api/beta",
+    "/api/preview",
+    "/api/stripe/webhook",
+    "/api/track",
+    "/api/automations/tick",
+    "/api/missions/tick",
   ]);
-  return clerkMiddleware(async (auth, req) => {
-    if (!isProtected(req)) return;
-    const { userId } = await auth();
-    if (userId) return; // signed in → let it through
+  const isProtected = (path: string) =>
+    path.startsWith("/app") ||
+    path.startsWith("/checkout") ||
+    (path.startsWith("/api/") && !PUBLIC_API.has(path));
+
+  return async (req: NextRequest) => {
+    const path = req.nextUrl.pathname;
+
+    // Signed-in visitors hitting the homepage go straight to the app — the
+    // dashboard is one click (zero, here) away. Cookie presence only; the
+    // real session check happens on /app itself.
+    if (path === "/") {
+      return hasAuthCookie(req)
+        ? NextResponse.redirect(new URL("/app", req.url))
+        : NextResponse.next();
+    }
+
+    // Verify (and refresh) the Supabase session; refreshed cookies ride on
+    // the response so sessions persist without client round-trips.
+    let res = NextResponse.next({ request: { headers: req.headers } });
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => req.cookies.getAll(),
+          setAll: (toSet) => {
+            res = NextResponse.next({ request: { headers: req.headers } });
+            for (const { name, value, options } of toSet) {
+              res.cookies.set(name, value, options);
+            }
+          },
+        },
+      }
+    );
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user || !isProtected(path)) return res;
 
     // Logged out on a protected surface. APIs get a clean JSON 401; page
-    // navigations go to our branded /sign-in with the destination preserved
-    // (never Clerk's hosted page).
-    const path = req.nextUrl.pathname;
+    // navigations go to our branded /sign-in with the destination preserved.
     if (path.startsWith("/api/")) {
       return NextResponse.json(
         { error: "unauthorized", message: "sign in to continue." },
@@ -201,7 +241,7 @@ async function buildMiddleware(): Promise<NextMiddleware> {
     const signIn = new URL("/sign-in", req.url);
     signIn.searchParams.set("redirect_url", path + req.nextUrl.search);
     return NextResponse.redirect(signIn);
-  }) as unknown as NextMiddleware;
+  };
 }
 
 const middlewarePromise = buildMiddleware();
@@ -218,8 +258,10 @@ export const config = {
   // CRITICAL ACCESS RULE: middleware runs ONLY on protected surfaces. The
   // public marketing site (/, /product, /security, /pricing, /templates,
   // /privacy, /terms, the auth pages, metadata routes, static assets, OG
-  // images) never touches middleware at all — so Clerk can never handshake,
+  // images) never touches middleware at all — so auth can never handshake,
   // redirect, or 503 an anonymous visitor. Protection lives exactly where
   // the product needs it: the app, checkout, and the non-public APIs.
-  matcher: ["/app/:path*", "/checkout/:path*", "/api/:path*"],
+  // "/" is matched ONLY for the signed-in → /app shortcut (cookie check, no
+  // vendor code, no auth handshake); every other marketing path stays outside.
+  matcher: ["/", "/app/:path*", "/checkout/:path*", "/api/:path*"],
 };

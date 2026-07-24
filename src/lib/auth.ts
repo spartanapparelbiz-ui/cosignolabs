@@ -1,9 +1,10 @@
 import { isProduction, publicSandboxActive } from "./env";
 import { GUEST_COOKIE, GUEST_HEADER, isGuestId } from "./publicMode";
 
-export function clerkConfigured(): boolean {
+/** True when live Supabase authentication is configured. */
+export function authConfigured(): boolean {
   return Boolean(
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 }
 
@@ -25,40 +26,37 @@ export async function guestUserId(): Promise<string | null> {
 
 /**
  * Resolve the current user id on the server.
- *  - Clerk configured: the verified Clerk session's user id, or null (→ 401).
- *  - Clerk missing + public sandbox active: a per-visitor guest id (isolated,
+ *  - Auth configured: the verified Supabase session's user id (a UUID), or
+ *    null (→ 401). The id is also the RLS subject: auth_uid() = jwt sub.
+ *  - Auth missing + public sandbox active: a per-visitor guest id (isolated,
  *    in-memory, sandbox-only) so anyone can try cosigno without an account.
- *  - Clerk missing in DEVELOPMENT: a single demo user for the local loop.
- *  - Clerk missing in PRODUCTION without the sandbox: always null (fail closed).
+ *  - Auth missing in DEVELOPMENT: a single demo user for the local loop.
+ *  - Auth missing in PRODUCTION without the sandbox: always null (fail closed).
  */
 export async function getUserId(): Promise<string | null> {
-  if (!clerkConfigured()) {
+  if (!authConfigured()) {
     if (publicSandboxActive()) return guestUserId();
     return isProduction() ? null : DEMO_USER_ID;
   }
-  const { auth } = await import("@clerk/nextjs/server");
-  const { userId } = await auth();
-  return userId ?? null;
+  const { supabaseUser } = await import("./supabaseAuth/server");
+  const user = await supabaseUser();
+  return user?.id ?? null;
 }
 
 /**
  * The signed-in user's verified email (lowercased) — used to match workspace
  * invites. Same fail-closed shape as getUserId: demo email in development
- * only, null in production without Clerk.
+ * only, null in production without auth.
  */
 export async function getUserEmail(): Promise<string | null> {
-  if (!clerkConfigured()) {
+  if (!authConfigured()) {
     if (publicSandboxActive()) {
       const id = await guestUserId();
       return id ? `${id}@guest.cosigno.local` : null;
     }
     return isProduction() ? null : "demo@cosigno.local";
   }
-  const { currentUser } = await import("@clerk/nextjs/server");
-  const user = await currentUser();
-  const email =
-    user?.primaryEmailAddress?.emailAddress ??
-    user?.emailAddresses?.[0]?.emailAddress ??
-    null;
-  return email ? email.toLowerCase() : null;
+  const { supabaseUser } = await import("./supabaseAuth/server");
+  const user = await supabaseUser();
+  return user?.email ? user.email.toLowerCase() : null;
 }

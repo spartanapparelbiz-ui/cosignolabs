@@ -16,18 +16,18 @@ build + bundle secret scan, `npm audit --audit-level=critical`, then
 
 - **Every `/api/*` route** calls `requireUser()` (`src/lib/api.ts`) before
   doing anything — including read-only routes. No session → 401. Middleware
-  (`src/middleware.ts`) enforces the same at the edge with Clerk; routes
+  (`src/middleware.ts`) enforces the same at the edge with the Supabase session; routes
   re-check it, so a middleware bypass still hits the 401.
 - **Public allowlist, nothing else**: `/` (landing), `/pricing`,
   `POST /api/beta` (Turnstile + IP-limited), `GET /api/health`,
   `POST /api/stripe/webhook` (Stripe-signature-verified; unsigned → 400).
 - **Demo mode is unreachable in production.** `servingAllowed()`
-  (`src/lib/env.ts`) requires Clerk + Supabase + planner keys when
+  (`src/lib/env.ts`) requires Supabase + planner keys when
   `NODE_ENV=production`; otherwise middleware and `requireUser` serve 503.
   Three more layers fail closed independently: `getUserId()` never returns
   the demo user in production, `getStore()` throws rather than serving the
   in-memory store, and `planCommand()` refuses to run the offline mock.
-- **Clerk webhooks**: no Clerk webhook route exists in this codebase. If
+- **Auth webhooks**: no auth webhook route exists in this codebase. If
   one is added, it must verify svix signatures (`svix` package) before
   reading the body — the route-enumeration test will force it through the
   401-or-allowlisted decision automatically.
@@ -151,7 +151,7 @@ times in a row and direct store transitions refused; executor denies
   are the two documented exceptions (required by Next.js App Router
   bootstrap scripts and Next/Tailwind style injection). `'unsafe-eval'` is
   added **only when `NODE_ENV !== 'production'`** (the dev server / Fast
-  Refresh needs it) and never ships. Sources are pinned to self, Clerk,
+  Refresh needs it) and never ships. Sources are pinned to self,
   Supabase (REST + websocket), and Cloudflare Turnstile.
   `X-Frame-Options: DENY`, `frame-ancestors 'none'`,
   `X-Content-Type-Options: nosniff`,
@@ -166,7 +166,7 @@ times in a row and direct store transitions refused; executor denies
   that ID (`errorResponse` in `src/lib/api.ts`).
 - **Model text renders escaped**: React default escaping everywhere; a
   test asserts `dangerouslySetInnerHTML` appears nowhere in `src/`.
-- **CSRF**: Clerk session cookies are SameSite; there are no
+- **CSRF**: Supabase session cookies are SameSite; there are no
   state-changing GET routes (asserted by test).
 - **Dependencies**: minimal set, `npm audit --audit-level=critical` gates
   CI, lockfile committed.
@@ -193,7 +193,6 @@ checks, `validation.test.ts` GET-mutation check. *(Spec test 10.)*
 
 | Variable | Purpose | Required in prod |
 |---|---|---|
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | Auth | ✅ (503 without) |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` | Data | ✅ (503 without) |
 | `PLANNER_API_KEY` | Operator planning | ✅ (503 without) |
 | `PLANNER_MODEL_DEFAULT` / `PLANNER_MODEL_PREMIUM` | Planner model ids (config only) | ✅ default; premium for max routing |
@@ -214,6 +213,6 @@ Deploy checklist:
    `supabase-rest.test.ts` suite against the project.
 4. **Upstash**: create the Redis database, wire both env vars.
 5. **Turnstile**: create the site, wire site + secret keys.
-6. **Clerk**: production instance keys; if a Clerk webhook is ever added,
+6. **Supabase Auth**: Site URL set to the production domain; if an auth webhook is ever added,
    verify svix signatures.
 7. CI green on the deploy commit (build + bundle scan + audit + tests).

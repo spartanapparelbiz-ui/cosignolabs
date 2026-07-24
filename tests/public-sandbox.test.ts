@@ -24,8 +24,6 @@ const penv = process.env as Record<string, string | undefined>;
 const ENV_KEYS = [
   "NODE_ENV",
   "COSIGNO_PUBLIC_MODE",
-  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-  "CLERK_SECRET_KEY",
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
@@ -92,8 +90,6 @@ describe("env gating — the sandbox only serves when it should", () => {
     clearAllKeys();
     penv.NODE_ENV = "production";
     process.env.COSIGNO_PUBLIC_MODE = "1";
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk";
-    process.env.CLERK_SECRET_KEY = "sk";
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://x.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "svc";

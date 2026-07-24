@@ -13,16 +13,16 @@ import { resetRateLimitsForTests } from "../../src/lib/ratelimit";
 const currentUser = vi.hoisted(() => ({ id: "user-a" }));
 
 vi.mock("@/lib/auth", () => ({
-  clerkConfigured: () => true,
+  authConfigured: () => true,
   DEMO_USER_ID: "demo-user",
   getUserId: vi.fn(async () => currentUser.id),
 }));
 
-// Account deletion now also deletes the Clerk user (so the email frees up
-// for re-signup) — stub the provider client; its behavior is pinned in
+// Account deletion now also deletes the auth user (so the email frees up
+// for re-signup) — stub the admin helper; its behavior is pinned in
 // account-delete.test.ts.
-vi.mock("@clerk/nextjs/server", () => ({
-  clerkClient: async () => ({ users: { deleteUser: vi.fn(async () => ({})) } }),
+vi.mock("@/lib/supabaseAuth/admin", () => ({
+  deleteAuthUser: vi.fn(async () => undefined),
 }));
 
 let store: MemoryStore;

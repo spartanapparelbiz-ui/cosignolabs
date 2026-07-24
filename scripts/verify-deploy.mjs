@@ -125,7 +125,7 @@ async function main() {
   try {
     const { res } = await timedFetch(BASE + "/app", { redirect: "manual" });
     const s = res.status;
-    const ok = s === 200 || s === 503 || (s >= 300 && s < 400); // 3xx = Clerk sign-in redirect
+    const ok = s === 200 || s === 503 || (s >= 300 && s < 400); // 3xx = sign-in redirect
     record("GET /app → 200, branded 503, or sign-in redirect (never raw 500)",
       ok && s !== 500,
       `status ${s}`,

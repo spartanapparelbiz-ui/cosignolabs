@@ -12,7 +12,7 @@ const UPDATED = "July 9, 2026";
 
 /**
  * Privacy Policy. The practices described here mirror what the app actually
- * does (Clerk auth, Supabase storage, a third-party AI provider for planning,
+ * does (Supabase auth + storage, a third-party AI provider for planning,
  * Stripe billing, Upstash rate limiting, Cloudflare bot protection, Netlify
  * hosting). The AI provider is referred to generically, consistent with the
  * rest of the product. Like the Terms, this is a template pending attorney
@@ -128,8 +128,8 @@ export default function PrivacyPage() {
         <ul className="mt-2">
           <li>
             <strong>Service providers (subprocessors)</strong> who process data
-            on our behalf to run the Service, including: authentication (Clerk),
-            database and storage (Supabase), a third-party AI provider (for
+            on our behalf to run the Service, including: authentication,
+            database, and storage (Supabase), a third-party AI provider (for
             planning), payments (Stripe), hosting (Netlify), rate limiting
             (Upstash), and bot protection (Cloudflare Turnstile). Each processes
             data only as needed to provide its function.

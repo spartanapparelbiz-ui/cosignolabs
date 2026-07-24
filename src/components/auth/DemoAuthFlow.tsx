@@ -6,7 +6,7 @@ import { AuthForm } from "./AuthForm";
 import { isValidEmail } from "./authProgress";
 
 /**
- * The offline demo engine behind the same branded surface. When Clerk isn't
+ * The offline demo engine behind the same branded surface. When live auth isn't
  * configured (local dev / the sandbox) there's no real session to create, so a
  * valid-looking submission just stamps the mark and routes into /app as the
  * demo user — enough to exercise and screenshot the full experience. It is
