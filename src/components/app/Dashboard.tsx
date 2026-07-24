@@ -192,17 +192,12 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
     }
   }, [loadSide]);
 
-  const hasInitial = Boolean(initial);
   useEffect(() => {
-    // Server-prefetched render: missions/steps/approvals arrived with the
-    // HTML, so the mount only needs the side-column data. Without prefetch
-    // (or on any later refresh), load() fetches everything.
-    if (hasInitial) {
-      loadSide().catch(() => {});
-    } else {
-      load();
-    }
-  }, [hasInitial, load, loadSide]);
+    // SWR: when the server prefetched missions/steps/approvals, they're
+    // already on screen — this load() is a background revalidate (also
+    // covers a router-cache restore). Without prefetch it's the first load.
+    load();
+  }, [load]);
 
   const active = (missions ?? []).filter((m) => ACTIVE_STATES.has(m.state)).slice(0, 4);
   const completed = (missions ?? []).filter((m) => m.state === "completed" || m.state === "partial").slice(0, 3);
