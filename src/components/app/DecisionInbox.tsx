@@ -25,8 +25,10 @@ async function jsonFetch(url: string, init?: RequestInit) {
   return body;
 }
 
-export function DecisionInbox() {
-  const [actions, setActions] = useState<ActionRecord[] | null>(null);
+export function DecisionInbox({ initial }: { initial?: ActionRecord[] }) {
+  // When the server prefetched the queue it renders on first paint; the
+  // mount load() below then revalidates in the background (SWR).
+  const [actions, setActions] = useState<ActionRecord[] | null>(initial ?? null);
   const [saved, setSaved] = useState<SignatureRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [displayName] = useDisplayName();

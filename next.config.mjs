@@ -63,6 +63,12 @@ const nextConfig = {
     // already in Next's default list; Clerk is added on top). Shrinks the
     // module graph on every route that touches these packages.
     optimizePackageImports: ["@clerk/nextjs"],
+    // Client router cache: reuse a dynamic page's RSC payload for 30s, so
+    // rail navigation (home ↔ missions ↔ approvals ↔ activity) is instant
+    // on back/forward instead of refetching the shell every time. Freshness
+    // is unaffected where it matters: every app surface revalidates its own
+    // data client-side on mount (the prefetched pages do it SWR-style).
+    staleTimes: { dynamic: 30 },
   },
   // instrumentation.ts imports scripts/env-services.mjs, which lives OUTSIDE
   // the app source tree. Explicitly include it in the serverless function

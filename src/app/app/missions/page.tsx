@@ -1,11 +1,31 @@
 import Link from "next/link";
 import { MissionList } from "@/components/app/MissionList";
 import { MissionRunner } from "@/components/app/MissionRunner";
+import { getUserId } from "@/lib/auth";
+import { servingAllowed } from "@/lib/env";
+import { getStore } from "@/lib/store";
+import type { MissionRecord } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-/** Delegations — every outcome handed to cosigno, active until it's done. */
-export default function MissionsPage() {
+/**
+ * Delegations — every outcome handed to cosigno, active until it's done.
+ * The mission list is loaded server-side so it's on screen at first paint;
+ * MissionRunner then revalidates client-side (prefetch failures fall back
+ * to the client loader unchanged).
+ */
+export default async function MissionsPage() {
+  let initial: MissionRecord[] | undefined;
+  try {
+    if (servingAllowed()) {
+      const userId = await getUserId();
+      if (userId) {
+        initial = await getStore().listMissions(userId, 25);
+      }
+    }
+  } catch {
+    // fall through — MissionRunner fetches client-side exactly as before
+  }
   return (
     <div className="mx-auto flex w-full max-w-none flex-1 flex-col px-6 lg:px-10 py-8">
       <div className="flex flex-wrap items-center gap-3">
@@ -26,7 +46,7 @@ export default function MissionsPage() {
         </Link>
       </div>
       <div className="mt-6">
-        <MissionRunner />
+        <MissionRunner initial={initial} />
       </div>
       <h2 className="mt-8 text-sm font-extrabold lowercase tracking-widest text-ink-soft">
         command threads
