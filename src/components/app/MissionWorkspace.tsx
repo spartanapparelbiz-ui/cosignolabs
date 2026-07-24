@@ -121,6 +121,8 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
   useEffect(() => {
     load();
     pollRef.current = setInterval(async () => {
+      // Hidden tab: skip the tick entirely — the cron keeps the engine moving.
+      if (document.visibilityState === "hidden") return;
       const m = await load();
       if (!m || !MISSION_ACTIVE.has(m.state)) return;
       try {
@@ -129,8 +131,13 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
         /* transient — next tick retries */
       }
     }, 4000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [load, missionId]);
 

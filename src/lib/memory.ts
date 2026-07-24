@@ -11,9 +11,13 @@ const MAX_MEMORIES = 12;
 export async function memorySummary(userId: string): Promise<string> {
   try {
     const store = getStore();
-    const prefs = await store.getPrefs(userId);
+    // Fetched together: prefs decide whether memories apply, and the common
+    // case (memory on) saves a serial round trip before every planner call.
+    const [prefs, memories] = await Promise.all([
+      store.getPrefs(userId),
+      store.listMemories(userId),
+    ]);
     if (!prefs.memory_enabled) return "";
-    const memories = await store.listMemories(userId);
     const active = memories.filter((m) => m.enabled).slice(0, MAX_MEMORIES);
     if (active.length === 0) return "";
     return active.map((m) => `- ${m.content}`).join("\n");

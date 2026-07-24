@@ -173,57 +173,76 @@ async function applyToolResult(
   }
 }
 
-/** Resolve steps blocked on an action card whose card has since settled. */
+/**
+ * Resolve steps blocked on an action card whose card has since settled.
+ * Steps settle independently, so their card reads (and any 15s-bounded
+ * verifications) run concurrently instead of stacking serially. Returns
+ * whether anything actually changed, so the caller can skip a re-read when
+ * nothing did — the common case on a quiet tick.
+ */
 async function settleApprovalSteps(
   userId: string,
   mission: MissionRecord,
   steps: MissionStepRecord[]
-): Promise<void> {
+): Promise<boolean> {
   const store = getStore();
-  for (const step of steps) {
-    if (step.state !== "awaiting_approval" || !step.action_id) continue;
-    const action = await store.getAction(userId, step.action_id);
-    if (!action) continue;
-    if (action.status === "executed") {
-      // Verification: an executed card is not "done" until the outcome is
-      // confirmed (or honestly marked sandbox-verified).
-      let verification: Record<string, unknown> = { ok: true, detail: "executed." };
-      const tool = TOOLS[step.tool];
-      if (tool?.verify) {
-        await store.updateMissionStep(userId, step.id, { state: "verifying" });
-        try {
-          verification = await withTimeout(
-            tool.verify({ userId, mission, steps, step }, action),
-            15_000
-          );
-        } catch {
-          verification = { ok: false, detail: "verification didn't complete — check the provider." };
+  const awaiting = steps.filter(
+    (s) => s.state === "awaiting_approval" && s.action_id
+  );
+  if (awaiting.length === 0) return false;
+
+  const settled = await Promise.all(
+    awaiting.map(async (step) => {
+      const action = await store.getAction(userId, step.action_id!);
+      if (!action) return false;
+      if (action.status === "executed") {
+        // Verification: an executed card is not "done" until the outcome is
+        // confirmed (or honestly marked sandbox-verified).
+        let verification: Record<string, unknown> = { ok: true, detail: "executed." };
+        const tool = TOOLS[step.tool];
+        if (tool?.verify) {
+          await store.updateMissionStep(userId, step.id, { state: "verifying" });
+          try {
+            verification = await withTimeout(
+              tool.verify({ userId, mission, steps, step }, action),
+              15_000
+            );
+          } catch {
+            verification = { ok: false, detail: "verification didn't complete — check the provider." };
+          }
         }
+        await store.updateMissionStep(userId, step.id, {
+          state: "completed",
+          output: {
+            summary:
+              typeof action.result?.summary === "string"
+                ? action.result.summary
+                : "approved and executed.",
+          },
+          verification,
+          completed_at: new Date().toISOString(),
+        });
+        return true;
       }
-      await store.updateMissionStep(userId, step.id, {
-        state: "completed",
-        output: {
-          summary:
-            typeof action.result?.summary === "string"
-              ? action.result.summary
-              : "approved and executed.",
-        },
-        verification,
-        completed_at: new Date().toISOString(),
-      });
-    } else if (action.status === "failed") {
-      await store.updateMissionStep(userId, step.id, {
-        state: "failed",
-        error: "the approved action didn't complete — nothing was left half-done.",
-      });
-    } else if (action.status === "vetoed") {
-      await store.updateMissionStep(userId, step.id, {
-        state: "vetoed",
-        error: null,
-      });
-    }
-    // proposed/approved/executing → still waiting; leave untouched.
-  }
+      if (action.status === "failed") {
+        await store.updateMissionStep(userId, step.id, {
+          state: "failed",
+          error: "the approved action didn't complete — nothing was left half-done.",
+        });
+        return true;
+      }
+      if (action.status === "vetoed") {
+        await store.updateMissionStep(userId, step.id, {
+          state: "vetoed",
+          error: null,
+        });
+        return true;
+      }
+      // proposed/approved/executing → still waiting; leave untouched.
+      return false;
+    })
+  );
+  return settled.some(Boolean);
 }
 
 export interface AdvanceResult {
@@ -252,13 +271,19 @@ export async function advanceMission(
   const attempted = new Set<string>();
 
   for (let run = 0; run <= maxRuns; run++) {
-    mission = (await store.getMission(userId, missionId))!;
-    // A pause/stop that landed mid-pass wins immediately.
-    if (mission.state === "paused" || TERMINAL_MISSION.has(mission.state)) break;
+    if (run > 0) {
+      // Re-read on later passes only — run 0 uses the record fetched above
+      // (nothing has intervened). A pause/stop that landed mid-pass wins
+      // immediately.
+      mission = (await store.getMission(userId, missionId))!;
+      if (mission.state === "paused" || TERMINAL_MISSION.has(mission.state)) break;
+    }
 
     let steps = await store.listMissionSteps(userId, missionId);
-    await settleApprovalSteps(userId, mission, steps);
-    steps = await store.listMissionSteps(userId, missionId);
+    // Only re-read the step list when settlement actually changed something.
+    if (await settleApprovalSteps(userId, mission, steps)) {
+      steps = await store.listMissionSteps(userId, missionId);
+    }
 
     const runnable = runnableSteps(steps, attempted);
     if (runnable.length === 0 || run === maxRuns) {
@@ -340,8 +365,11 @@ export async function advanceMission(
     }
   }
 
-  const finalMission = (await store.getMission(userId, missionId))!;
-  return { mission: finalMission, steps: await store.listMissionSteps(userId, missionId) };
+  const [finalMission, finalSteps] = await Promise.all([
+    store.getMission(userId, missionId),
+    store.listMissionSteps(userId, missionId),
+  ]);
+  return { mission: finalMission!, steps: finalSteps };
 }
 
 /** Answer the mission's pending question — the blocked step becomes ready. */

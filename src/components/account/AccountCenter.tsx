@@ -59,9 +59,22 @@ export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }
     setErr(false);
     fetch("/api/settings/tiers").then((r) => r.json()).then((d) => setCategories(d.categories ?? [])).catch(() => setErr(true));
     fetch("/api/usage").then((r) => r.json()).then((d) => { setUsage(d.usage ?? null); setPlan(d.plan ?? null); }).catch(() => setErr(true));
-    fetch("/api/activity?limit=1000").then((r) => r.json()).then((d) => setActions(d.actions ?? [])).catch(() => setActions([]));
   }
   useEffect(load, []);
+
+  // The action history is heavy and only feeds the usage sparkline + security
+  // stats — fetch it the first time one of those tabs is actually opened.
+  useEffect(() => {
+    if (actions !== null || (tab !== "usage" && tab !== "security")) return;
+    let alive = true;
+    fetch("/api/activity?limit=1000")
+      .then((r) => r.json())
+      .then((d) => alive && setActions(d.actions ?? []))
+      .catch(() => alive && setActions([]));
+    return () => {
+      alive = false;
+    };
+  }, [tab, actions]);
 
   // Deep-link support: ?tab=<id> opens that tab (e.g. the OAuth callback
   // returns to ?tab=integrations after a connect attempt).

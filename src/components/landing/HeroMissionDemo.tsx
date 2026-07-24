@@ -46,8 +46,18 @@ export function HeroMissionDemo() {
       for (const [p, at] of PHASE_AT) timers.current.push(setTimeout(() => setPhase(p), at));
       timers.current.push(setTimeout(run, RESTART_AT));
     };
+    // The loop runs only while the tab is visible — a backgrounded landing
+    // page burns zero timers/renders and resumes cleanly on return.
+    const onVisibility = () => {
+      clear();
+      if (document.visibilityState === "visible") run();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
     run();
-    return clear;
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      clear();
+    };
   }, []);
 
   const working = phase !== "command";

@@ -18,8 +18,13 @@ export async function POST(req: NextRequest) {
 
     // Cost gates run BEFORE anything touches the model:
     // per-user sliding windows, then the global daily circuit breaker.
-    await enforceLimit("commandMinute", userId);
-    await enforceLimit("commandDay", userId);
+    // The two per-user windows are independent Redis round trips — checked
+    // together. (A minute-rejected burst may also consume a day slot, which
+    // only ever errs toward stricter limiting.)
+    await Promise.all([
+      enforceLimit("commandMinute", userId),
+      enforceLimit("commandDay", userId),
+    ]);
 
     const raw = await readJsonBody(req);
 

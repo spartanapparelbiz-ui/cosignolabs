@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import type { ActionRecord, SessionRecord } from "@/lib/types";
+import { useEffect, useState } from "react";
 
 /**
  * The home command center's "today" strip: what cosigno is working on, what
@@ -10,6 +9,9 @@ import type { ActionRecord, SessionRecord } from "@/lib/types";
  * and action states, never invented. Each tile deep-links to its surface.
  * Silent by design: while loading it shows a slim shimmer; if the fetch fails
  * (or demo mode has nothing) it renders nothing rather than breaking home.
+ *
+ * Counts come from one aggregate endpoint (DB-side counts) — the strip never
+ * transfers or filters a thousand action rows for four numbers.
  */
 
 interface Counts {
@@ -20,20 +22,28 @@ interface Counts {
 }
 
 export function TodayStrip() {
-  const [data, setData] = useState<{ sessions: SessionRecord[]; actions: ActionRecord[] } | null>(
-    null
-  );
+  const [counts, setCounts] = useState<Counts | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const [s, a] = await Promise.all([
-          fetch("/api/sessions").then((r) => (r.ok ? r.json() : Promise.reject())),
-          fetch("/api/actions?limit=1000").then((r) => (r.ok ? r.json() : Promise.reject())),
-        ]);
-        if (alive) setData({ sessions: s.sessions ?? [], actions: a.actions ?? [] });
+        // Local midnight → "completed today" keeps the user's timezone.
+        const midnight = new Date();
+        midnight.setHours(0, 0, 0, 0);
+        const res = await fetch(
+          `/api/actions/summary?since=${encodeURIComponent(midnight.toISOString())}`
+        );
+        if (!res.ok) throw new Error();
+        const { summary } = await res.json();
+        if (alive)
+          setCounts({
+            missions: summary?.sessions ?? 0,
+            decisions: summary?.proposed ?? 0,
+            executed: summary?.executed ?? 0,
+            blocked: summary?.failed ?? 0,
+          });
       } catch {
         if (alive) setFailed(true);
       }
@@ -42,22 +52,6 @@ export function TodayStrip() {
       alive = false;
     };
   }, []);
-
-  const counts = useMemo<Counts | null>(() => {
-    if (!data) return null;
-    const proposed = data.actions.filter((a) => a.status === "proposed").length;
-    const failedActions = data.actions.filter((a) => a.status === "failed").length;
-    const today = new Date().toDateString();
-    const executedToday = data.actions.filter(
-      (a) => a.status === "executed" && new Date(a.created_at).toDateString() === today
-    ).length;
-    return {
-      missions: data.sessions.length,
-      decisions: proposed,
-      executed: executedToday,
-      blocked: failedActions,
-    };
-  }, [data]);
 
   // Nothing to show (error) or truly empty account → stay out of the way.
   if (failed) return null;

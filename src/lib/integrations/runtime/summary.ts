@@ -20,9 +20,20 @@ export async function connectedCapabilitiesSummary(userId: string): Promise<stri
   }
   if (connections.length === 0) return "";
 
+  const live = connections.filter((c) => c.status !== "revoked");
+
+  // MCP tool lists are per-connection queries — fetch them all at once
+  // instead of serially inside the loop (this runs before every planner call).
+  const mcpConnections = live.filter((c) => c.kind !== "app" && c.kind !== "custom");
+  const mcpToolLists = await Promise.all(
+    mcpConnections.map((c) => store.listMcpTools(userId, c.id))
+  );
+  const mcpToolsById = new Map(
+    mcpConnections.map((c, i) => [c.id, mcpToolLists[i].filter(isCallable)])
+  );
+
   const lines: string[] = [];
-  for (const c of connections) {
-    if (c.status === "revoked") continue;
+  for (const c of live) {
     if (c.kind === "app") {
       const provider = getProvider(c.provider_key);
       if (!provider) continue;
@@ -36,7 +47,7 @@ export async function connectedCapabilitiesSummary(userId: string): Promise<stri
       const caps = (cfg.actions ?? []).map((a) => `${a.id}(${a.risk})`).join(", ");
       lines.push(`- ${c.display_name} (custom API): ${caps || "no actions"}`);
     } else {
-      const tools = (await store.listMcpTools(userId, c.id)).filter(isCallable);
+      const tools = mcpToolsById.get(c.id) ?? [];
       if (tools.length === 0) {
         lines.push(`- ${c.display_name} (custom MCP): no tools enabled yet`);
         continue;

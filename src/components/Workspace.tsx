@@ -174,6 +174,9 @@ export function Workspace() {
   const refresh = useCallback(async () => {
     const id = sessionRef.current;
     if (!id) return;
+    // Polling fallback only — a hidden tab skips the fetch (realtime pushes
+    // don't fire this path, and the next visible tick catches up).
+    if (document.visibilityState === "hidden") return;
     try {
       const data = await jsonFetch(`/api/sessions/${id}`);
       setMessages(data.messages);

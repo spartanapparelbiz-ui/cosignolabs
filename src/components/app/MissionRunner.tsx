@@ -290,13 +290,18 @@ export function MissionRunner() {
   }, [load]);
 
   // While an ACTIVE mission is open, keep the engine moving (the cron tick
-  // does the same job when nobody is looking).
+  // does the same job when nobody is looking). Keyed on the mission's
+  // ACTIVE-ness, not the missions array identity, so the 4s tick's own
+  // setMissions doesn't tear down and recreate the interval every cycle.
+  // Hidden tabs skip the tick entirely — the cron picks up the slack.
+  const openActive = Boolean(
+    openId && missions?.some((m) => m.id === openId && ACTIVE.has(m.state))
+  );
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current);
-    if (!openId) return;
-    const mission = missions?.find((m) => m.id === openId);
-    if (!mission || !ACTIVE.has(mission.state)) return;
+    if (!openId || !openActive) return;
     pollRef.current = setInterval(async () => {
+      if (document.visibilityState === "hidden") return;
       try {
         const data = await jsonFetch(`/api/missions/${openId}/advance`, { method: "POST" });
         setSteps((s) => ({ ...s, [openId]: data.steps ?? [] }));
@@ -308,7 +313,7 @@ export function MissionRunner() {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [openId, missions]);
+  }, [openId, openActive]);
 
   async function start() {
     setBusy("start");

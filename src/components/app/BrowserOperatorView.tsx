@@ -145,6 +145,8 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
   useEffect(() => {
     load();
     pollRef.current = setInterval(async () => {
+      // Hidden tab: skip the tick entirely — the cron keeps the engine moving.
+      if (document.visibilityState === "hidden") return;
       const d = await load();
       if (!d || !MISSION_ACTIVE.has(d.mission.state)) return;
       try {
@@ -153,8 +155,13 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
         /* rate-limited or transient — next interval retries */
       }
     }, 4000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [load, missionId]);
 

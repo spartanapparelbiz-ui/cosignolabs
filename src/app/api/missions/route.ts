@@ -13,6 +13,7 @@ import {
 } from "@/lib/missions/dailyJobs";
 import { compileMission, type SourceContext } from "@/lib/missions/compiler";
 import { instantiateCompiledMission } from "@/lib/missions/create";
+import { loadMissionOverview } from "@/lib/missions/overview";
 import type { MissionSourceRecord } from "@/lib/types";
 
 /** Load the caller's OWN staged sources by id, in the requested order. */
@@ -42,9 +43,18 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const userId = await requireUser();
+
+    // ?include=steps piggybacks the active missions' steps on this response
+    // (fetched in parallel server-side), so the dashboard renders in one
+    // round trip instead of a second client fetch wave per mission.
+    if (req.nextUrl.searchParams.get("include") === "steps") {
+      const overview = await loadMissionOverview(userId);
+      return NextResponse.json(overview);
+    }
+
     const missions = await getStore().listMissions(userId, 25);
     return NextResponse.json({ missions });
   } catch (err) {
