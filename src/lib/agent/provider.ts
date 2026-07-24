@@ -146,6 +146,45 @@ export interface PlannerResult {
   outputTokens?: number;
 }
 
+type PlannerSdkClient = InstanceType<(typeof import("@anthropic-ai/sdk"))["default"]>;
+
+// One SDK client per key+endpoint for the life of the process — the planner
+// is the hottest external call and re-constructing the client per request is
+// pure allocation waste. Keyed so a rotated key or base-URL change mid-life
+// still picks up a fresh client.
+const plannerClients = new Map<string, PlannerSdkClient>();
+
+async function plannerClient(apiKey: string): Promise<PlannerSdkClient> {
+  const baseURL = process.env.PLANNER_BASE_URL?.trim() || "https://api.anthropic.com";
+  const cacheKey = `${baseURL}|${apiKey}`;
+  const cached = plannerClients.get(cacheKey);
+  if (cached) return cached;
+
+  // Dynamic import keeps the SDK out of any non-planner bundle path.
+  const { default: Provider } = await import("@anthropic-ai/sdk");
+  const client = new Provider({
+    apiKey,
+    // Pin auth + endpoint explicitly so STRAY environment variables can't
+    // hijack the request. The SDK otherwise auto-reads ANTHROPIC_AUTH_TOKEN
+    // (→ a conflicting bearer header) and ANTHROPIC_BASE_URL (→ silently
+    // routes the call to a wrong host, causing a 401/403 even with a valid
+    // key). Only a deliberate PLANNER_BASE_URL override is honored.
+    authToken: null,
+    baseURL,
+    // Bound every planner call so a slow/hung provider can't tie up a
+    // serverless function. The SDK default is a 10-MINUTE timeout with 2
+    // retries — catastrophic under load (functions pile up, then the platform
+    // kills them with a raw 502). We cap the request well under any function
+    // budget and allow a single retry; on timeout the SDK throws, we catch it
+    // in callPlanner, and the user gets calm "busy, try again" copy instead
+    // of a hang.
+    timeout: PLANNER_TIMEOUT_MS,
+    maxRetries: 1,
+  });
+  plannerClients.set(cacheKey, client);
+  return client;
+}
+
 /**
  * Invoke the planner and return a neutral result. All vendor SDK types and
  * response shapes are handled here and never leak out.
@@ -168,26 +207,7 @@ export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
     throw new PlannerError(null, PLANNER_UNAVAILABLE);
   }
 
-  // Dynamic import keeps the SDK out of any non-planner bundle path.
-  const { default: Provider } = await import("@anthropic-ai/sdk");
-  const client = new Provider({
-    apiKey,
-    // Pin auth + endpoint explicitly so STRAY environment variables can't
-    // hijack the request. The SDK otherwise auto-reads ANTHROPIC_AUTH_TOKEN
-    // (→ a conflicting bearer header) and ANTHROPIC_BASE_URL (→ silently
-    // routes the call to a wrong host, causing a 401/403 even with a valid
-    // key). Only a deliberate PLANNER_BASE_URL override is honored.
-    authToken: null,
-    baseURL: process.env.PLANNER_BASE_URL?.trim() || "https://api.anthropic.com",
-    // Bound every planner call so a slow/hung provider can't tie up a
-    // serverless function. The SDK default is a 10-MINUTE timeout with 2
-    // retries — catastrophic under load (functions pile up, then the platform
-    // kills them with a raw 502). We cap the request well under any function
-    // budget and allow a single retry; on timeout the SDK throws, we catch it
-    // below, and the user gets calm "busy, try again" copy instead of a hang.
-    timeout: PLANNER_TIMEOUT_MS,
-    maxRetries: 1,
-  });
+  const client = await plannerClient(apiKey);
 
   let response;
   try {

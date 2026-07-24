@@ -3,8 +3,7 @@ import { errorResponse, requireUser } from "@/lib/api";
 import { enforceLimit } from "@/lib/ratelimit";
 import { objectiveSchema, parseStrict, readJsonBody } from "@/lib/schemas";
 import { delegationMomentum, objectiveProgress } from "@/lib/objectives";
-import { getStore } from "@/lib/store";
-import type { ActionRecord } from "@/lib/types";
+import { getStore, type ActionStatusRow } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,15 +18,19 @@ export async function GET() {
   try {
     const userId = await requireUser();
     const store = getStore();
-    const [objectives, sessions, actions, links] = await Promise.all([
+    const [objectives, sessions, links] = await Promise.all([
       store.listObjectives(userId),
       store.listSessions(userId),
-      store.listActions(userId, { limit: 2000 }),
       store.listObjectiveLinks(userId),
     ]);
 
+    // Momentum only needs action STATUSES, and only for LINKED sessions —
+    // a targeted projection instead of the newest 2000 full action rows.
+    const linkedIds = [...new Set(links.map((l) => l.session_id))];
+    const actions = await store.listActionStatusesForSessions(userId, linkedIds);
+
     const sessionById = new Map(sessions.map((s) => [s.id, s]));
-    const actionsBySession = new Map<string, ActionRecord[]>();
+    const actionsBySession = new Map<string, ActionStatusRow[]>();
     for (const a of actions) {
       const list = actionsBySession.get(a.session_id) ?? [];
       list.push(a);

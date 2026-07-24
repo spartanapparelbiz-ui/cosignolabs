@@ -71,8 +71,10 @@ export async function planCommand(
 
   // Tell the planner what the user has actually connected, so it proposes
   // within reach and suggests connecting a tool instead of inventing an action.
-  const connected = userId ? await connectedCapabilitiesSummary(userId) : "";
-  const memory = userId ? await memorySummary(userId) : "";
+  // Independent reads — gathered together.
+  const [connected, memory] = userId
+    ? await Promise.all([connectedCapabilitiesSummary(userId), memorySummary(userId)])
+    : ["", ""];
 
   const plan = plannerConfigured()
     ? await planWithLLM(command, blocks, connected, memory, userId, model)

@@ -34,6 +34,9 @@ export function Presence() {
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = useCallback(() => {
+    // Hidden tabs don't poll; the visibilitychange listener below refreshes
+    // immediately on return.
+    if (document.visibilityState === "hidden") return;
     fetchState().then((s) => s && setState(s));
   }, []);
 

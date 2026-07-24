@@ -132,10 +132,17 @@ interface ConnectionView {
 const CARD = "rounded-card border border-line/70 bg-surface p-5 shadow-soft";
 const SECTION_TITLE = "text-xs font-extrabold uppercase tracking-widest text-ink-soft";
 
-export function Dashboard() {
-  const [missions, setMissions] = useState<MissionRecord[] | null>(null);
-  const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>({});
-  const [approvals, setApprovals] = useState<ActionRecord[]>([]);
+/** Data the server page prefetches so the first paint already has content. */
+export interface DashboardInitial {
+  missions: MissionRecord[];
+  steps: Record<string, MissionStepRecord[]>;
+  approvals: ActionRecord[];
+}
+
+export function Dashboard({ initial }: { initial?: DashboardInitial }) {
+  const [missions, setMissions] = useState<MissionRecord[] | null>(initial?.missions ?? null);
+  const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>(initial?.steps ?? {});
+  const [approvals, setApprovals] = useState<ActionRecord[]>(initial?.approvals ?? []);
   const [automation, setAutomation] = useState<AutomationRecord | null>(null);
   const [connections, setConnections] = useState<ConnectionView[]>([]);
   const [unhealthy, setUnhealthy] = useState<ConnectionView[]>([]);
@@ -153,46 +160,49 @@ export function Dashboard() {
     }
   }
 
+  const loadSide = useCallback(async () => {
+    // The right-column extras (next automation, connected apps).
+    const [au, c] = await Promise.all([
+      jsonFetch("/api/automations").catch(() => ({ automations: [] })),
+      jsonFetch("/api/connections").catch(() => ({ connections: [] })),
+    ]);
+    const enabled: AutomationRecord[] = (au.automations ?? []).filter((x: AutomationRecord) => x.enabled);
+    enabled.sort((x, y) => new Date(x.next_run_at).getTime() - new Date(y.next_run_at).getTime());
+    setAutomation(enabled[0] ?? null);
+    const appConns = (c.connections ?? []).filter((x: ConnectionView) => x.kind === "app");
+    setConnections(appConns.filter((x: ConnectionView) => x.status === "connected"));
+    setUnhealthy(appConns.filter((x: ConnectionView) => x.status !== "connected"));
+  }, []);
+
   const load = useCallback(async () => {
     try {
-      const [m, a, au, c] = await Promise.all([
-        jsonFetch("/api/missions").catch(() => ({ missions: [] })),
+      // One wave: the missions call piggybacks active-mission steps
+      // (include=steps), so there's no second round of per-mission fetches.
+      const [m, a] = await Promise.all([
+        jsonFetch("/api/missions?include=steps").catch(() => ({ missions: [], steps: {} })),
         jsonFetch("/api/actions?status=proposed&limit=20").catch(() => ({ actions: [] })),
-        jsonFetch("/api/automations").catch(() => ({ automations: [] })),
-        jsonFetch("/api/connections").catch(() => ({ connections: [] })),
+        loadSide(),
       ]);
       const ms: MissionRecord[] = m.missions ?? [];
       setMissions(ms);
+      setSteps((m.steps ?? {}) as Record<string, MissionStepRecord[]>);
       setApprovals((a.actions ?? []).filter((x: ActionRecord) => x.status === "proposed"));
-      const enabled: AutomationRecord[] = (au.automations ?? []).filter((x: AutomationRecord) => x.enabled);
-      enabled.sort((x, y) => new Date(x.next_run_at).getTime() - new Date(y.next_run_at).getTime());
-      setAutomation(enabled[0] ?? null);
-      const appConns = (c.connections ?? []).filter((x: ConnectionView) => x.kind === "app");
-      setConnections(appConns.filter((x: ConnectionView) => x.status === "connected"));
-      setUnhealthy(appConns.filter((x: ConnectionView) => x.status !== "connected"));
-
-      // Fetch steps for the active missions we'll show (up to 4).
-      const active = ms.filter((x) => ACTIVE_STATES.has(x.state)).slice(0, 4);
-      const stepMap: Record<string, MissionStepRecord[]> = {};
-      await Promise.all(
-        active.map(async (mi) => {
-          try {
-            const d = await jsonFetch(`/api/missions/${mi.id}`);
-            stepMap[mi.id] = d.steps ?? [];
-          } catch {
-            stepMap[mi.id] = [];
-          }
-        })
-      );
-      setSteps(stepMap);
     } catch {
       setMissions([]);
     }
-  }, []);
+  }, [loadSide]);
 
+  const hasInitial = Boolean(initial);
   useEffect(() => {
-    load();
-  }, [load]);
+    // Server-prefetched render: missions/steps/approvals arrived with the
+    // HTML, so the mount only needs the side-column data. Without prefetch
+    // (or on any later refresh), load() fetches everything.
+    if (hasInitial) {
+      loadSide().catch(() => {});
+    } else {
+      load();
+    }
+  }, [hasInitial, load, loadSide]);
 
   const active = (missions ?? []).filter((m) => ACTIVE_STATES.has(m.state)).slice(0, 4);
   const completed = (missions ?? []).filter((m) => m.state === "completed" || m.state === "partial").slice(0, 3);

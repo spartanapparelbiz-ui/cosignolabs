@@ -37,28 +37,54 @@ function isActive(pathname: string, href: string): boolean {
   return href === "/app" ? pathname === "/app" : pathname.startsWith(href);
 }
 
-/** Pending-approval count — polled quietly; badge renders only when > 0. */
+/**
+ * Pending-approval count — ONE shared poller for however many nav surfaces
+ * are mounted (the rail and the bottom bar render together, one CSS-hidden),
+ * so the app fires a single request per interval instead of one per surface.
+ * Polling pauses while the tab is hidden and refreshes on return.
+ */
+let pendingCount = 0;
+const pendingSubs = new Set<(n: number) => void>();
+let pendingTimer: ReturnType<typeof setInterval> | null = null;
+
+async function loadPending() {
+  if (document.visibilityState === "hidden") return;
+  try {
+    const res = await fetch("/api/actions?status=proposed&limit=20");
+    if (!res.ok) return;
+    const data = await res.json();
+    pendingCount = (data.actions ?? []).length;
+    pendingSubs.forEach((fn) => fn(pendingCount));
+  } catch {
+    /* quiet — the badge is a hint, not a source of truth */
+  }
+}
+
+function onPendingVisible() {
+  if (document.visibilityState === "visible") loadPending();
+}
+
+function subscribePending(fn: (n: number) => void): () => void {
+  pendingSubs.add(fn);
+  fn(pendingCount);
+  if (pendingSubs.size === 1) {
+    loadPending();
+    pendingTimer = setInterval(loadPending, 30_000);
+    document.addEventListener("visibilitychange", onPendingVisible);
+  }
+  return () => {
+    pendingSubs.delete(fn);
+    if (pendingSubs.size === 0 && pendingTimer) {
+      clearInterval(pendingTimer);
+      pendingTimer = null;
+      document.removeEventListener("visibilitychange", onPendingVisible);
+    }
+  };
+}
+
 function usePendingCount(): number {
   const [count, setCount] = useState(0);
-  useEffect(() => {
-    let alive = true;
-    async function load() {
-      try {
-        const res = await fetch("/api/actions?status=proposed&limit=20");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (alive) setCount((data.actions ?? []).length);
-      } catch {
-        /* quiet — the badge is a hint, not a source of truth */
-      }
-    }
-    load();
-    const t = setInterval(load, 30_000);
-    return () => {
-      alive = false;
-      clearInterval(t);
-    };
-  }, []);
+  useEffect(() => subscribePending(setCount), []);
   return count;
 }
 

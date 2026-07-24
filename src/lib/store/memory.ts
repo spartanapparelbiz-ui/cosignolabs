@@ -39,7 +39,10 @@ import {
   ObjectiveRecord,
 } from "../types";
 import type {
+  ActionCountFilter,
+  ActionHead,
   ActionInsert,
+  ActionStatusRow,
   ActivityFilter,
   ConnectionInsert,
   ConnectionPatch,
@@ -156,6 +159,47 @@ export class MemoryStore implements Store {
     return rows.slice(0, filter.limit ?? 500);
   }
 
+  async listActionHeads(userId: string, limit: number): Promise<ActionHead[]> {
+    return this.actions
+      .filter((a) => a.user_id === userId)
+      .slice(0, limit)
+      .map(({ id, session_id, status, category, tier, summary, created_at }) => ({
+        id,
+        session_id,
+        status,
+        category,
+        tier,
+        summary,
+        created_at,
+      }));
+  }
+
+  async listActionStatusesForSessions(
+    userId: string,
+    sessionIds: string[]
+  ): Promise<ActionStatusRow[]> {
+    if (sessionIds.length === 0) return [];
+    const wanted = new Set(sessionIds);
+    return this.actions
+      .filter((a) => a.user_id === userId && wanted.has(a.session_id))
+      .map(({ id, session_id, status }) => ({ id, session_id, status }));
+  }
+
+  async countActions(userId: string, filter: ActionCountFilter = {}): Promise<number> {
+    return this.actions.filter(
+      (a) =>
+        a.user_id === userId &&
+        (!filter.status || a.status === filter.status) &&
+        (filter.injection_flag === undefined ||
+          a.injection_flag === filter.injection_flag) &&
+        (!filter.since || a.created_at >= filter.since)
+    ).length;
+  }
+
+  async countSessions(userId: string): Promise<number> {
+    return this.sessions.filter((s) => s.user_id === userId).length;
+  }
+
   async transitionAction(
     userId: string,
     id: string,
@@ -218,9 +262,26 @@ export class MemoryStore implements Store {
     return event;
   }
 
-  async listEvents(userId: string, actionId?: string): Promise<ActionEventRecord[]> {
-    return this.events.filter(
+  async listEvents(
+    userId: string,
+    actionId?: string,
+    limit?: number
+  ): Promise<ActionEventRecord[]> {
+    const rows = this.events.filter(
       (e) => e.user_id === userId && (!actionId || e.action_id === actionId)
+    );
+    // this.events is append-only in time order, so the newest N is the tail.
+    return limit ? rows.slice(-limit) : rows;
+  }
+
+  async listEventsForActions(
+    userId: string,
+    actionIds: string[]
+  ): Promise<ActionEventRecord[]> {
+    if (actionIds.length === 0) return [];
+    const wanted = new Set(actionIds);
+    return this.events.filter(
+      (e) => e.user_id === userId && wanted.has(e.action_id)
     );
   }
 
@@ -254,7 +315,7 @@ export class MemoryStore implements Store {
     return fresh;
   }
 
-  async incrementUsage(userId: string): Promise<UsageRecord> {
+  async incrementUsage(userId: string, _cycleStart?: string): Promise<UsageRecord> {
     const usage = await this.getUsage(userId);
     usage.actions_executed += 1;
     return usage;
