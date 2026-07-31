@@ -58,9 +58,13 @@ STRIPE_PRICE_PRO_MONTHLY=price_...   # generate with scripts/stripe-setup.ts
 # Real tool connections (Gmail/Slack/etc.); without it, connectors are sandbox-only
 INTEGRATIONS_ENCRYPTION_KEY=<32-byte base64>
 
-# Distributed rate limits (falls back to per-instance memory without it)
+# Distributed rate limits — see "Rate limiting" below. Set these OR run 1 replica.
 UPSTASH_REDIS_REST_URL=...
 UPSTASH_REDIS_REST_TOKEN=...
+
+# Trusted proxy hops for spoof-resistant client-IP (default 1 = single edge like
+# Railway). Set 2 if you put Cloudflare in front of Railway.
+TRUSTED_PROXY_HOPS=1
 
 # Bot protection on the beta form (still server-validated without it)
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=...
@@ -82,6 +86,26 @@ CRON_SECRET=<random>
 3. Hit `https://<your-domain>/api/health` → expect `{"ok":true}`.
 4. Open `/app` — if it shows "cosigno is warming up", a **required** var above is
    still missing. `check:env` tells you which.
+
+## Rate limiting (can't be bypassed) — read this before scaling
+
+Two rules keep rate limits un-bypassable in production:
+
+1. **Client IP is derived spoof-resistantly.** Limits key off the IP that your
+   trusted edge appended, or Cloudflare's `cf-connecting-ip` — never the
+   client-claimed leftmost `X-Forwarded-For` (which anyone can forge to rotate
+   past IP limits). If you front the app with Cloudflare, set
+   `TRUSTED_PROXY_HOPS=2`. Command/planning limits additionally key off the
+   authenticated user id (unforgeable) and are backed by a global daily planner
+   cap (`DAILY_PLAN_CAP`, default 500) — a hard ceiling even if a per-user limit
+   were bypassed.
+2. **Limits must be shared across instances.** Without Upstash they live in each
+   replica's memory, so **2+ replicas = a client can multiply its limit** by
+   spreading requests. Either:
+   - set `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (recommended), **or**
+   - pin the service to **a single replica** (Railway → Settings → Replicas = 1).
+
+   `npm run check:env` warns when Upstash is absent.
 
 ## 4. Post-launch
 

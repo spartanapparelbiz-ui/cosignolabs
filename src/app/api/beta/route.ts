@@ -3,16 +3,12 @@ import { ApiError, errorResponse } from "@/lib/api";
 import { isProduction } from "@/lib/env";
 import { logSecurity } from "@/lib/log";
 import { enforceLimit } from "@/lib/ratelimit";
+import { clientIp } from "@/lib/clientIp";
 import { betaSchema, parseStrict, readJsonBody } from "@/lib/schemas";
 import { getStore } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function clientIp(req: NextRequest): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  return (fwd ? fwd.split(",")[0] : "").trim() || "unknown";
-}
 
 /**
  * Verify a Cloudflare Turnstile token server-side. Fail-closed in

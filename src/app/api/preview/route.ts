@@ -5,6 +5,7 @@ import { errorResponse } from "@/lib/api";
 import { planWithMock } from "@/lib/agent/mockPlanner";
 import { scanUntrusted } from "@/lib/agent/untrusted";
 import { enforceLimit } from "@/lib/ratelimit";
+import { clientIp } from "@/lib/clientIp";
 import { resolveTier } from "@/lib/tiers";
 import { parseStrict, readJsonBody } from "@/lib/schemas";
 
@@ -39,9 +40,7 @@ const previewSchema = z
 
 export async function POST(req: NextRequest) {
   try {
-    const fwd = req.headers.get("x-forwarded-for");
-    const ip = (fwd ? fwd.split(",")[0] : "").trim() || "unknown";
-    await enforceLimit("previewMinute", ip);
+    await enforceLimit("previewMinute", clientIp(req));
 
     const body = parseStrict(previewSchema, await readJsonBody(req), "preview");
     const command = body.command.trim();

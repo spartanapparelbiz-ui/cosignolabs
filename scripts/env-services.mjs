@@ -36,7 +36,7 @@ export const SERVICES = [
     name: "UPSTASH",
     vars: ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
     gatesApp: false,
-    breaks: "rate limits fall back to in-memory (per-instance) — fine at low traffic",
+    breaks: "rate limits + the global plan budget live in EACH instance's memory — safe on ONE replica, but with 2+ replicas a client hitting different instances multiplies its limit. Set this OR pin to a single replica",
     where: "Upstash → Redis → REST API",
   },
   {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logInfo } from "@/lib/log";
 import { enforceLimit, RateLimitError } from "@/lib/ratelimit";
+import { clientIp } from "@/lib/clientIp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,11 +21,6 @@ export const dynamic = "force-dynamic";
 
 const EVENT_RE = /^[a-z][a-z_]{2,39}$/;
 const SAFE_PROP_KEYS = ["step", "card", "tier", "to", "decision"] as const;
-
-function clientIp(req: NextRequest): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  return (fwd ? fwd.split(",")[0] : "").trim() || "unknown";
-}
 
 export async function POST(req: NextRequest) {
   try {
