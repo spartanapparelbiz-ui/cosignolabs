@@ -1,0 +1,15 @@
+# Railway deployment config for cosigno (Next.js 15).
+# Railway runs THIS app; the external services (Supabase, Clerk, Planner,
+# Stripe) are configured separately via environment variables — see RAILWAY.md.
+[build]
+builder = "NIXPACKS"
+# `npm run build` = next build + the bundle-secret + vendor-name gates.
+buildCommand = "npm run build"
+
+[deploy]
+# Next respects Railway's injected $PORT automatically.
+startCommand = "npm run start"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

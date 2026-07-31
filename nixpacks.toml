@@ -1,0 +1,13 @@
+# Pin the build toolchain for Railway/Nixpacks so builds are reproducible.
+# cosigno requires Node >= 20 (see package.json engines).
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"
