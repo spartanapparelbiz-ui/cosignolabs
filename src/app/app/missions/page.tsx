@@ -8,6 +8,8 @@ import type { MissionRecord } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Missions" };
+
 /**
  * Delegations — every outcome handed to cosigno, active until it's done.
  * The mission list is loaded server-side so it's on screen at first paint;

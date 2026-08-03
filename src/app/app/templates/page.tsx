@@ -2,6 +2,8 @@ import { TemplateGallery } from "@/components/app/TemplateGallery";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Templates" };
+
 /**
  * Templates — installable jobs, not blog cards. Only jobs with a COMPLETE
  * working backend are listed (no dead controls): each shows the outcome, the

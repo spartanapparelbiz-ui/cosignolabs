@@ -2,6 +2,8 @@ import { TeamPanel } from "@/components/app/TeamPanel";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Team" };
+
 /** Team — workspace membership, roles, and delegated tier-2 decisions. */
 export default function TeamPage() {
   return (

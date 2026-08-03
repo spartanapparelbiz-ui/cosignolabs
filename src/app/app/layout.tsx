@@ -4,6 +4,7 @@ import { isGuestId } from "@/lib/publicMode";
 import { AppRail, AppBottomNav } from "@/components/AppRail";
 import { ToastProvider } from "@/components/Toast";
 import { LogoHome } from "@/components/brand/LivingLogo";
+import { EmergencyStop } from "@/components/app/EmergencyStop";
 import { AccountChip } from "@/components/app/AccountChip";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +48,10 @@ function Chrome({
               <div className="lg:hidden">
                 <LogoHome href="/app" label="cosigno workspace" size={26} textClass="text-xl" />
               </div>
-              <div className="ml-auto flex items-center gap-3">{userSlot}</div>
+              <div className="ml-auto flex items-center gap-3">
+                <EmergencyStop />
+                {userSlot}
+              </div>
             </div>
           </header>
           {/* bottom padding keeps content clear of the mobile bottom bar */}

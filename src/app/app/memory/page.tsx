@@ -2,6 +2,8 @@ import { MemoryPanel } from "@/components/app/MemoryPanel";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Memory" };
+
 /**
  * My Rules & Memory — user-controlled operating principles and context the
  * planner reads on every delegation. Never agent-written. Explicit rules

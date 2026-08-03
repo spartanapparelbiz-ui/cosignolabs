@@ -2,6 +2,8 @@ import { FocusMode } from "@/components/focus/FocusMode";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Focus" };
+
 /**
  * Focus — where cosigno hands work to the user. Everything irrelevant is
  * gone; the actual artifact appears with cosigno's recommendation; the user

@@ -3,6 +3,8 @@ import { TodayStrip } from "@/components/app/TodayStrip";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Workspace" };
+
 /**
  * The command workspace — type a command, review the proposed action cards,
  * approve each one. Kept as a focused power-user surface; the home dashboard

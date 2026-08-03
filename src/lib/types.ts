@@ -220,6 +220,8 @@ export type AccountAuditType =
   | "objective_created"
   | "objective_deleted"
   | "hold_changed"
+  | "emergency_stop"
+  | "emergency_stop_lifted"
   | "rule_created"
   | "rule_deleted"
   | "promo";

@@ -2,6 +2,8 @@ import { ObjectivesPanel } from "@/components/app/ObjectivesPanel";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Objectives" };
+
 /**
  * Objectives — the layer above Delegations. Outcomes the user owns over
  * time; cosigno derives progress from the real state of the delegations

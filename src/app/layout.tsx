@@ -44,7 +44,12 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://cosignolabs.com"),
-  title: "cosigno — the AI operator that asks first",
+  // A template, so every page reads "<Page> • cosigno" in the tab without
+  // each route restating the brand. `default` covers routes that set none.
+  title: {
+    default: "cosigno — the AI operator that asks first",
+    template: "%s • cosigno",
+  },
   description: DESCRIPTION,
   applicationName: "cosigno",
   alternates: { canonical: "https://cosignolabs.com" },

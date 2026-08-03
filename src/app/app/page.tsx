@@ -7,6 +7,8 @@ import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Dashboard" };
+
 /**
  * Home — the clean dashboard. Four questions, one calm page: what to ask,
  * what's in progress, what needs approval, what's finished.

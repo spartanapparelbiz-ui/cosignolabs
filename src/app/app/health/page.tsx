@@ -2,6 +2,8 @@ import { MissionHealth } from "@/components/app/MissionHealth";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Health" };
+
 /** Deployment health — is background mission execution actually running? */
 export default function HealthPage() {
   return (

@@ -13,6 +13,8 @@ import { isProduction } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Authorization" };
+
 const AUTHORITY_STYLE: Record<string, string> = {
   auto: "bg-cream-deep text-ink-soft",
   approve: "bg-signal/15 text-ink ring-1 ring-inset ring-signal/40",

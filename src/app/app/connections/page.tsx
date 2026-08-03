@@ -3,6 +3,8 @@ import { PermissionRules } from "@/components/account/PermissionRules";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Connections" };
+
 /** Connections — the apps cosigno can work with, on their own page. */
 export default function ConnectionsPage() {
   return (

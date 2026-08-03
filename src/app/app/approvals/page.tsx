@@ -6,6 +6,8 @@ import type { ActionRecord } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Approvals" };
+
 /**
  * The Approval Inbox — only items that require human judgment. The waiting
  * queue is loaded server-side so the decisions are on screen at first paint;

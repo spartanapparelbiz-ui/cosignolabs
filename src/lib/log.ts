@@ -27,7 +27,9 @@ export type SecurityEvent =
   | "account_deleted"
   | "account_delete_signin_cleanup_failed"
   | "refund_issued"
-  | "refund_failed";
+  | "refund_failed"
+  | "emergency_stop"
+  | "emergency_stop_lifted";
 
 export function newRequestId(): string {
   return randomUUID().slice(0, 18);

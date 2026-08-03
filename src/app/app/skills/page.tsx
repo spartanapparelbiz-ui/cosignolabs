@@ -2,6 +2,8 @@ import { SkillsPanel } from "@/components/app/SkillsPanel";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Skills" };
+
 /**
  * Skills — installable capability packs. Installing one creates a small,
  * named set of watches and preparation rules so cosigno is useful
