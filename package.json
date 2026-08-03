@@ -22,10 +22,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
-    "@clerk/nextjs": "^6.20.0",
     "@netlify/plugin-nextjs": "^5.15.12",
     "@stripe/react-stripe-js": "^6.7.0",
     "@stripe/stripe-js": "^9.9.0",
+    "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.49.0",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",

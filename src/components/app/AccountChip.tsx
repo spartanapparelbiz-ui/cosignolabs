@@ -7,10 +7,10 @@ import { useDisplayName, initialsFor } from "@/lib/theme";
 import { ThemeToggleButton } from "@/components/ThemeToggle";
 
 /**
- * The header account control — fully cosigno-branded (no Clerk default
+ * The header account control — fully cosigno-branded (no provider default
  * widget). Shows the personalized name + monogram avatar and a small menu:
  * account settings, a theme toggle, and sign out. Sign out works whether or
- * not Clerk is configured (falls back to returning home in demo mode).
+ * not live auth is configured (falls back to returning home in demo mode).
  */
 export function AccountChip() {
   const [name] = useDisplayName();
@@ -33,12 +33,10 @@ export function AccountChip() {
   }, [open]);
 
   function signOut() {
-    const w = window as unknown as { Clerk?: { signOut: (o?: { redirectUrl?: string }) => Promise<void> } };
-    if (w.Clerk?.signOut) {
-      w.Clerk.signOut({ redirectUrl: "/" }).catch(() => (window.location.href = "/"));
-    } else {
-      window.location.href = "/";
-    }
+    import("@/lib/supabaseAuth/client").then(
+      ({ signOutEverywhere }) => void signOutEverywhere(),
+      () => (window.location.href = "/")
+    );
   }
 
   return (

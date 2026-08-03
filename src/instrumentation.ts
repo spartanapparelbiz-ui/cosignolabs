@@ -38,12 +38,12 @@ export async function register() {
         console.warn(
           "[cosigno] PUBLIC SANDBOX is ON (COSIGNO_PUBLIC_MODE=1): /app serves a " +
             "per-visitor, in-memory, offline, sandbox-only workspace — no sign-in, no " +
-            "real data or actions. Add PLANNER + SUPABASE + CLERK to switch to the real product."
+            "real data or actions. Add PLANNER + SUPABASE to switch to the real product."
         );
       } else {
         console.warn(
           "[cosigno] /app and real API routes will serve a branded 503 until " +
-            "PLANNER, SUPABASE, and CLERK are all set. Marketing pages stay public. " +
+            "PLANNER and SUPABASE are all set. Marketing pages stay public. " +
             "(Set COSIGNO_PUBLIC_MODE=1 to open a safe public sandbox instead.)"
         );
       }

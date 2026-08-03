@@ -11,7 +11,7 @@ import { resetRateLimitsForTests } from "../../src/lib/ratelimit";
 
 const currentUser = vi.hoisted(() => ({ id: "user-a" }));
 vi.mock("@/lib/auth", () => ({
-  clerkConfigured: () => true,
+  authConfigured: () => true,
   DEMO_USER_ID: "demo-user",
   getUserId: vi.fn(async () => currentUser.id),
 }));

@@ -47,7 +47,7 @@ for (const s of status) {
 if (prod && appGated()) {
   console.log(
     "\n  [cosigno] NOTE: in production /app + real API routes will serve a branded 503\n" +
-      "  until PLANNER, SUPABASE, and CLERK are all set. Marketing pages (/, /pricing,\n" +
+      "  until PLANNER and SUPABASE are all set. Marketing pages (/, /pricing,\n" +
       "  the live preview) work regardless.\n"
   );
 } else if (prod) {

@@ -208,9 +208,10 @@ function ProfilePanel() {
   const display = name.trim() || "operator";
 
   function signOut() {
-    const w = window as unknown as { Clerk?: { signOut: (o?: { redirectUrl?: string }) => Promise<void> } };
-    if (w.Clerk?.signOut) w.Clerk.signOut({ redirectUrl: "/" }).catch(() => (window.location.href = "/"));
-    else window.location.href = "/";
+    import("@/lib/supabaseAuth/client").then(
+      ({ signOutEverywhere }) => void signOutEverywhere(),
+      () => (window.location.href = "/")
+    );
   }
 
   async function del() {

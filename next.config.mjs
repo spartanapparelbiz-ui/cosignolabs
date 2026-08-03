@@ -4,10 +4,10 @@
  * CSP notes:
  *  - no unsafe-eval anywhere.
  *  - script-src 'unsafe-inline' is required by Next.js's bootstrap inline
- *    scripts (App Router) and Clerk's loader; style-src 'unsafe-inline' is
+ *    scripts (App Router); style-src 'unsafe-inline' is
  *    required by Next font/style injection and Tailwind's inlined styles.
  *    Both are documented, deliberate exceptions.
- *  - connect/frame/script sources cover exactly: self, Clerk, Supabase
+ *  - connect/frame/script sources cover exactly: self, Supabase
  *    (REST + realtime websocket), and Cloudflare Turnstile.
  */
 // 'unsafe-eval' is added ONLY in development — Next.js's dev server / Fast
@@ -15,25 +15,20 @@
 // what ships and what the security requirement covers.
 const devEval = process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
 
-// Clerk lives on TWO different hosts depending on the instance:
-//  - development instances: https://<slug>.clerk.accounts.dev
-//  - PRODUCTION instances: a subdomain of OUR domain, https://clerk.cosignolabs.com
 // The CSP must allow both, or production sign-in/up silently never loads
 // (the form sits disabled and the only evidence is a console CSP violation).
-const clerkHosts =
-  "https://*.clerk.accounts.dev https://clerk.cosignolabs.com";
 
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${devEval} ${clerkHosts} https://challenges.cloudflare.com https://js.stripe.com`,
+  `script-src 'self' 'unsafe-inline'${devEval} https://challenges.cloudflare.com https://js.stripe.com`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: https://img.clerk.com",
+  "img-src 'self' data:",
   "font-src 'self' data:",
   // Stripe: js.stripe.com serves Stripe.js; api.stripe.com is the Elements
   // tokenization endpoint; the frames host Elements' card iframes + the 3DS
   // challenge. Card data lives only inside those Stripe-owned frames.
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${clerkHosts} https://clerk-telemetry.com https://challenges.cloudflare.com https://api.stripe.com https://js.stripe.com`,
-  `frame-src https://challenges.cloudflare.com ${clerkHosts} https://js.stripe.com https://hooks.stripe.com`,
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com https://api.stripe.com https://js.stripe.com`,
+  `frame-src https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
@@ -63,6 +58,12 @@ const nextConfig = {
     // already in Next's default list; Clerk is added on top). Shrinks the
     // module graph on every route that touches these packages.
     optimizePackageImports: ["@clerk/nextjs"],
+    // Client router cache: reuse a dynamic page's RSC payload for 30s, so
+    // rail navigation (home ↔ missions ↔ approvals ↔ activity) is instant
+    // on back/forward instead of refetching the shell every time. Freshness
+    // is unaffected where it matters: every app surface revalidates its own
+    // data client-side on mount (the prefetched pages do it SWR-style).
+    staleTimes: { dynamic: 30 },
   },
   // instrumentation.ts imports scripts/env-services.mjs, which lives OUTSIDE
   // the app source tree. Explicitly include it in the serverless function

@@ -16,7 +16,7 @@ import type { SubscriptionRecord } from "../../src/lib/types";
 const currentUser = vi.hoisted(() => ({ id: "biller" }));
 
 vi.mock("@/lib/auth", () => ({
-  clerkConfigured: () => true,
+  authConfigured: () => true,
   DEMO_USER_ID: "demo-user",
   getUserId: vi.fn(async () => currentUser.id),
 }));

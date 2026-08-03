@@ -12,14 +12,14 @@ import {
 } from "./authProgress";
 
 /**
- * The branded auth surface — zero default-Clerk chrome. It owns the field state
+ * The branded auth surface — zero provider chrome. It owns the field state
  * and the fill-as-you-type math, renders the animated Cosigno mark beside the
- * form, and hands submissions back to whatever engine is driving it (real Clerk
+ * form, and hands submissions back to whatever engine is driving it (live auth
  * or the local demo). Two phases: "credentials" (email + password, optional
  * Google) and "verify" (the emailed code, for sign-up).
  *
  * It is purely presentational about auth: it never talks to a provider itself,
- * so the same surface backs both the live Clerk flow and the offline demo.
+ * so the same surface backs both the live auth flow and the offline demo.
  */
 
 export interface AuthFormProps {
@@ -40,6 +40,8 @@ export interface AuthFormProps {
   onGoogle: () => void;
   /** Href to the opposite mode (sign-in ↔ sign-up), redirect preserved. */
   switchHref: string;
+  /** Optional "forgot password?" destination (live auth only). */
+  resetHref?: string;
 }
 
 const COPY = {
@@ -73,6 +75,7 @@ export function AuthForm(props: AuthFormProps) {
     onSubmitCode,
     onGoogle,
     switchHref,
+    resetHref,
   } = props;
 
   const reducedMotion = useReducedMotion();
@@ -230,13 +233,14 @@ export function AuthForm(props: AuthFormProps) {
                 }}
               />
             )}
-
-            {/* Clerk bot-protection mount. PRODUCTION Clerk instances run a
-                smart CAPTCHA on sign-up; a custom (headless) flow MUST render
-                this element or signUp.create() fails for real users. Empty and
-                invisible until Clerk needs to show a challenge. */}
-            {mode === "sign-up" && <div id="clerk-captcha" className="empty:hidden" />}
-
+            {mode === "sign-in" && resetHref && (
+              <Link
+                href={resetHref}
+                className="-mt-1 self-end text-xs font-bold lowercase text-ink-soft underline underline-offset-2 hover:text-ink"
+              >
+                forgot password?
+              </Link>
+            )}
             {error && (
               <ErrorLine>
                 {error}

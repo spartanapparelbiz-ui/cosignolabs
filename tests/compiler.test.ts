@@ -14,7 +14,7 @@ import { validatePlan, type CompiledPlan } from "../src/lib/missions/validate";
  */
 
 vi.mock("@/lib/auth", () => ({
-  clerkConfigured: () => true,
+  authConfigured: () => true,
   DEMO_USER_ID: "demo-user",
   getUserId: vi.fn(async () => "user-a"),
 }));

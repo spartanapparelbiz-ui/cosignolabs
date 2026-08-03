@@ -16,7 +16,7 @@ import { isConsequential, READ_ONLY_KINDS } from "../../src/lib/browser/provider
  */
 
 vi.mock("@/lib/auth", () => ({
-  clerkConfigured: () => true,
+  authConfigured: () => true,
   DEMO_USER_ID: "demo-user",
   getUserId: vi.fn(async () => "user-a"),
 }));

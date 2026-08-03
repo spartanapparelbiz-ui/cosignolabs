@@ -1,26 +1,26 @@
 import Link from "next/link";
-import { ClerkAuthFlow } from "./ClerkAuthFlow";
+import { SupabaseAuthFlow } from "./SupabaseAuthFlow";
 import { DemoAuthFlow } from "./DemoAuthFlow";
 import { withRedirect } from "./authRedirect";
 
 /**
  * The full-screen branded auth shell: cream field, a quiet "back to home"
  * escape hatch, and the mark + form centered in it — continuous with the
- * landing page, with zero default-Clerk chrome. Picks the real Clerk engine
+ * landing page, with zero provider chrome. Picks the live Supabase engine
  * when configured, else the offline demo (dev/sandbox only).
  */
 export function AuthScreen({
   mode,
-  clerkEnabled,
+  authEnabled,
   googleEnabled,
   dest,
   demoAllowed = true,
 }: {
   mode: "sign-in" | "sign-up";
-  clerkEnabled: boolean;
+  authEnabled: boolean;
   googleEnabled: boolean;
   dest: string;
-  /** Dev/sandbox only. In production without Clerk, an honest notice shows instead. */
+  /** Dev/sandbox only. In production without live auth, an honest notice shows instead. */
   demoAllowed?: boolean;
 }) {
   const other = mode === "sign-in" ? "/sign-up" : "/sign-in";
@@ -40,8 +40,8 @@ export function AuthScreen({
         ← back to home
       </Link>
 
-      {clerkEnabled ? (
-        <ClerkAuthFlow
+      {authEnabled ? (
+        <SupabaseAuthFlow
           mode={mode}
           googleEnabled={googleEnabled}
           dest={dest}

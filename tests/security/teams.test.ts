@@ -14,7 +14,7 @@ import { decideDelegated, listDelegatedProposals } from "../../src/lib/workspace
 
 const current = vi.hoisted(() => ({ id: "user-a", email: "a@x.com" }));
 vi.mock("@/lib/auth", () => ({
-  clerkConfigured: () => true,
+  authConfigured: () => true,
   DEMO_USER_ID: "demo-user",
   getUserId: vi.fn(async () => current.id),
   getUserEmail: vi.fn(async () => current.email),

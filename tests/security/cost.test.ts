@@ -12,7 +12,7 @@ import { resetRateLimitsForTests } from "../../src/lib/ratelimit";
 const planSpy = vi.hoisted(() => ({ calls: 0 }));
 
 vi.mock("@/lib/auth", () => ({
-  clerkConfigured: () => true,
+  authConfigured: () => true,
   DEMO_USER_ID: "demo-user",
   getUserId: vi.fn(async () => "cost-user"),
 }));

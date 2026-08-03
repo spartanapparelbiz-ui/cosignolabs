@@ -20,7 +20,7 @@ export class ApiError extends Error {
  * Server-side auth gate used by every protected route (in addition to the
  * middleware — defense in depth). Fail-closed ordering:
  *   1. production without the full key set → 503, demo mode unreachable
- *   2. no verified Clerk session → 401
+ *   2. no verified auth session → 401
  */
 export async function requireUser(): Promise<string> {
   if (!servingAllowed()) {

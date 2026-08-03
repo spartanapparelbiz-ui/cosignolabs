@@ -3,7 +3,7 @@
  * these map raw field values to a 0..1 "presence" that the animated Cosigno
  * mark reads. Kept pure (and total: never throws) so they can run on every
  * keystroke and be unit-tested in isolation. NONE of this is a security
- * boundary — Clerk validates for real on submit. This only drives motion, so
+ * boundary — the auth engine validates for real on submit. This only drives motion, so
  * it must never block typing or surface an error.
  */
 
@@ -38,7 +38,7 @@ export function emailProgress(email: string): number {
 }
 
 /**
- * Password → 0..1 by length toward a comfortable strength. Clerk enforces the
+ * Password → 0..1 by length toward a comfortable strength. The auth engine enforces the
  * real minimum on submit; here 8+ characters reads as "full presence".
  */
 export function passwordProgress(password: string): number {

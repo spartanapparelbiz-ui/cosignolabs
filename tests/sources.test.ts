@@ -19,7 +19,7 @@ import type { SourceContext } from "../src/lib/missions/compiler";
  */
 
 vi.mock("@/lib/auth", () => ({
-  clerkConfigured: () => true,
+  authConfigured: () => true,
   DEMO_USER_ID: "demo-user",
   getUserId: vi.fn(async () => "user-a"),
 }));

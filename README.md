@@ -69,7 +69,7 @@ The operator's system prompt is server-side only and versioned
 
 - **Next.js 15** (App Router, TypeScript) + Tailwind CSS
 - **Supabase** — Postgres with RLS on every table, realtime card updates
-- **Clerk** — auth (single user beta; orgs later)
+- **Supabase Auth** — auth (single user beta; orgs later)
 - **Hosted LLM planner** — the operator agent (server-side only; the model is
   configured via `PLANNER_API_KEY` / `PLANNER_MODEL_*`, never hardcoded)
 - **Stripe** — subscriptions + server-enforced plan limits
@@ -88,7 +88,7 @@ npm run build
 ```
 
 Copy `.env.example` to `.env.local` and fill in keys to go from demo mode to
-production behavior (Clerk auth, Supabase persistence + realtime, the hosted
+production behavior (Supabase auth + persistence + realtime, the hosted
 planner).
 
 ### Supabase setup

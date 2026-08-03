@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
 import { buildOverview } from "@/lib/autopilot/overview";
 import { errorResponse, requireUser } from "@/lib/api";
-import { clerkConfigured } from "@/lib/auth";
+import { authConfigured } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** The signed-in user's first name for the brief greeting — best effort. */
 async function firstName(): Promise<string | null> {
-  if (!clerkConfigured()) return null;
+  if (!authConfigured()) return null;
   try {
-    const { currentUser } = await import("@clerk/nextjs/server");
-    const user = await currentUser();
-    return user?.firstName ?? null;
+    const { supabaseUser } = await import("@/lib/supabaseAuth/server");
+    const user = await supabaseUser();
+    const name = (user?.user_metadata as { name?: string } | undefined)?.name;
+    if (name) return name.split(" ")[0] || null;
+    return user?.email?.split("@")[0] ?? null;
   } catch {
     return null;
   }

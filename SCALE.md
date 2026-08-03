@@ -59,7 +59,7 @@ per-request socket pool).
 
 ## 4. Signup / auth spike — OK
 
-- Auth is Clerk-hosted; sign-in/sign-up burst load is on Clerk, no custom
+- Auth is Supabase-hosted; sign-in/sign-up burst load is on Supabase, no custom
   bottleneck on our side.
 - The only unauthenticated write (founding-beta form) is guarded by
   **Turnstile bot-check (fail-closed in prod) + 3/hour/IP** rate limit, so a

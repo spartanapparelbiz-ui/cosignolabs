@@ -247,8 +247,10 @@ function GoalComposer({ onStarted }: { onStarted: (id: string) => void }) {
   );
 }
 
-export function MissionRunner() {
-  const [missions, setMissions] = useState<MissionRecord[] | null>(null);
+export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
+  // Server-prefetched list paints immediately; the mount load() below is a
+  // background revalidate (SWR). Without prefetch it's the first load.
+  const [missions, setMissions] = useState<MissionRecord[] | null>(initial ?? null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>({});
   const [sources, setSources] = useState<Record<string, MissionSourceRecord[]>>({});
