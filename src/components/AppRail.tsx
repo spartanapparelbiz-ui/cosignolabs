@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import {
   Activity,
   Gauge,
+  Radar,
   Home,
   LayoutTemplate,
   PenLine,
@@ -30,6 +31,7 @@ const ITEMS = [
   { href: "/app/approvals", label: "approvals", icon: PenLine },
   { href: "/app/activity", label: "activity", icon: Activity },
   { href: "/app/monitoring", label: "monitoring", icon: Gauge },
+  { href: "/app/mission-control", label: "control", icon: Radar },
   { href: "/app/connections", label: "connections", icon: Plug },
   { href: "/app/templates", label: "templates", icon: LayoutTemplate },
   { href: "/app/settings", label: "settings", icon: Settings },
