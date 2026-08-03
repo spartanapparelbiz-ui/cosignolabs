@@ -68,7 +68,7 @@ export function CosignoWordmark({ className = "" }: { className?: string }) {
   return (
     <span
       aria-hidden="true"
-      className={`font-bold lowercase ${className}`}
+      className={`whitespace-nowrap font-bold lowercase ${className}`}
       style={{
         color: "var(--logo-wordmark)",
         fontFamily: "var(--font-wordmark), system-ui, sans-serif",

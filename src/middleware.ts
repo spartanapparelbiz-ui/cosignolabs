@@ -181,7 +181,9 @@ async function buildMiddleware(): Promise<NextMiddleware> {
   const isProtected = createRouteMatcher([
     "/app(.*)",
     "/checkout(.*)",
-    "/api((?!/health$|/beta$|/preview$|/stripe/webhook$|/track$|/automations/tick$|/missions/tick$).*)",
+    // /api/v1/* is the public authorization API: it authenticates with an
+    // API key (agents have no browser session), never a Clerk cookie.
+    "/api((?!/health$|/beta$|/preview$|/track$|/v1/|/stripe/webhook$|/automations/tick$|/missions/tick$).*)",
   ]);
   return clerkMiddleware(async (auth, req) => {
     if (!isProtected(req)) return;
