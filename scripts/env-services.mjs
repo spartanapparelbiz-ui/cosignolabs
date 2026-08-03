@@ -26,6 +26,30 @@ export const SERVICES = [
     where: "Supabase → Project Settings → API",
   },
   {
+    name: "SCHEDULER",
+    vars: ["CRON_SECRET"],
+    gatesApp: false,
+    // /app still serves without it, so it isn't app-gating — but calling it
+    // "optional" undersells it to the point of being wrong. The product's
+    // core promise (work continues after you close the tab) needs this.
+    note: "required for background work",
+    breaks:
+      "NOTHING RUNS IN THE BACKGROUND — missions advance only while their owner has the page open, and recurring automations never fire at all. Set any long random string; the deployment's scheduled function reads the same value",
+    where: "invent one — e.g. `openssl rand -hex 32`",
+  },
+  {
+    name: "CONNECTORS",
+    // Not an all-or-nothing service: each pair independently switches one
+    // connector from "coming soon" to connectable. Listed together because a
+    // deployment with none of them has an operator that cannot touch anything.
+    vars: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+    gatesApp: false,
+    note: "required to connect any tool",
+    breaks:
+      "every connector shows “coming soon” and its connect button stays disabled — the operator has no tools to act with. GOOGLE_* covers Gmail + Calendar + Drive; GITHUB_*, SLACK_*, NOTION_*, MICROSOFT_* each add one more",
+    where: "Google Cloud Console → APIs & Services → Credentials → OAuth client",
+  },
+  {
     name: "UPSTASH",
     vars: ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
     gatesApp: false,

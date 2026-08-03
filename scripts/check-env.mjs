@@ -19,7 +19,7 @@ const rows = status.flatMap((s) =>
     service: i === 0 ? s.name : "",
     variable: v,
     present: process.env[v] ? "✓" : s.legacyFilled ? "~legacy" : "—",
-    note: i === 0 ? (s.gatesApp ? "required for /app" : "optional") : "",
+    note: i === 0 ? (s.gatesApp ? "required for /app" : (s.note ?? "optional")) : "",
   }))
 );
 

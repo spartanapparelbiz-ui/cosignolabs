@@ -10,6 +10,10 @@
   command = "npm run check:env && npm run build"
   publish = ".next"
 
+  # Our own scheduled function lives here. The Next runtime plugin generates
+  # its own functions into a separate internal directory, so the two coexist.
+  functions = "netlify/functions"
+
 [build.environment]
   # Pin Node to the same major we build/test against (see .nvmrc + engines).
   NODE_VERSION = "20"
