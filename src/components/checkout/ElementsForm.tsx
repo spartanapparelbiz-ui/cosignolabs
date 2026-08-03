@@ -264,9 +264,9 @@ function InnerForm({
       <button
         onClick={pay}
         disabled={busy || !stripe}
-        className="group relative mt-4 w-full overflow-hidden rounded-btn bg-ink px-5 py-3 text-sm font-extrabold lowercase text-cream transition-transform active:scale-[0.99] disabled:opacity-50"
+        className="group relative mt-4 w-full overflow-hidden rounded-btn bg-ink px-5 py-3 text-sm font-extrabold lowercase text-cream transition-transform active:scale-[0.99] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
       >
-        <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-[320ms] ease-brand-out group-enabled:group-hover:scale-x-100" />
+        <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-entrance ease-brand-out group-enabled:group-hover:scale-x-100" />
         <span className="relative transition-colors group-enabled:group-hover:text-ink">
           {busy ? "processing…" : "pay & cosign"}
         </span>
@@ -314,7 +314,7 @@ function HostedFallback({
       <button
         onClick={go}
         disabled={busy}
-        className="mt-3 w-full rounded-btn bg-ink px-5 py-3 text-sm font-extrabold lowercase text-cream disabled:opacity-50"
+        className="mt-3 w-full rounded-btn bg-ink px-5 py-3 text-sm font-extrabold lowercase text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
       >
         {busy ? "opening…" : "continue to secure checkout"}
       </button>

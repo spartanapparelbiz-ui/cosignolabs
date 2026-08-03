@@ -140,7 +140,7 @@ export function TeamPanel() {
           <button
             onClick={() => call("create", () => jsonFetch("/api/workspace", { method: "POST", body: JSON.stringify({ name: name.trim() }) }), "workspace created.")}
             disabled={busy === "create" || !name.trim()}
-            className="inline-flex shrink-0 items-center gap-1 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:opacity-40"
+            className="inline-flex shrink-0 items-center gap-1 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             <Plus size={13} /> create
           </button>
@@ -231,7 +231,7 @@ export function TeamPanel() {
                 }, "invited — it activates when they sign in with that email.")
               }
               disabled={busy === "invite" || !inviteEmail.includes("@")}
-              className="inline-flex items-center gap-1 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:opacity-40"
+              className="inline-flex items-center gap-1 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             >
               <Plus size={13} /> invite
             </button>
@@ -271,7 +271,7 @@ export function TeamPanel() {
                       }), "approved and executed.")
                   }
                   disabled={busy === d.action.id || d.action.injection_flag}
-                  className="inline-flex items-center gap-1 rounded-btn bg-signal px-3.5 py-1.5 text-xs font-extrabold text-ink disabled:opacity-40"
+                  className="inline-flex items-center gap-1 rounded-btn bg-signal px-3.5 py-1.5 text-xs font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   <Check size={12} /> approve
                 </button>

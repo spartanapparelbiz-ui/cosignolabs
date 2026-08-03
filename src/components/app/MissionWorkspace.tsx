@@ -218,7 +218,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               <button
                 onClick={() => control("resume")}
                 disabled={busy !== null}
-                className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
                 <Play size={12} /> Resume
               </button>
@@ -226,7 +226,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               <button
                 onClick={() => control("pause")}
                 disabled={busy !== null}
-                className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Pause size={12} /> Pause
               </button>
@@ -235,7 +235,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
             <button
               onClick={() => control("stop")}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Square size={12} /> Stop
             </button>
@@ -265,7 +265,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                 key={o}
                 onClick={() => answer(o)}
                 disabled={busy === "answer"}
-                className={`rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:opacity-40 ${
+                className={`rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
                   o === mission.pending_question?.recommended ? "bg-signal text-ink" : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                 }`}
               >

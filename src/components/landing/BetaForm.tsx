@@ -102,7 +102,7 @@ export function BetaForm() {
   if (state === "done") {
     return (
       <div className="rounded-card bg-surface/70 p-6 text-center shadow-soft">
-        <div className="mx-auto flex h-10 w-10 animate-check-pop items-center justify-center rounded-full bg-signal">
+        <div className="mx-auto flex h-10 w-10 animate-check-pop items-center justify-center rounded-pill bg-signal">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
               d="M4.5 12.5 10 18 20 6.5"
@@ -214,16 +214,16 @@ export function BetaForm() {
       <button
         type="submit"
         disabled={state === "busy"}
-        className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-btn bg-ink px-6 py-3.5 text-base font-extrabold text-cream transition-transform duration-fast active:scale-95 disabled:opacity-60"
+        className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-btn bg-ink px-6 py-3.5 text-base font-extrabold text-cream transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
       >
         <span
           aria-hidden="true"
-          className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-[280ms] ease-brand-out group-hover:scale-x-100"
+          className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-base ease-brand-out group-hover:scale-x-100"
         />
-        <span className="relative inline-flex items-center gap-2 transition-colors duration-200 group-hover:text-ink">
+        <span className="relative inline-flex items-center gap-2 transition-colors duration-base group-hover:text-ink">
           {state === "busy" && (
             <span
-              className="h-4 w-4 animate-orb-think rounded-full border-2 border-cream/40 border-t-cream"
+              className="h-4 w-4 animate-orb-think rounded-pill border-2 border-cream/40 border-t-cream"
               aria-hidden="true"
             />
           )}

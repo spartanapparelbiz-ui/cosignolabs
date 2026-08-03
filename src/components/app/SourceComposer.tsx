@@ -543,7 +543,7 @@ export function SourceComposer({
             <button
               onClick={addLink}
               disabled={addingLink || !linkUrl.trim()}
-              className="rounded-btn bg-ink px-4 py-2 text-sm font-bold text-cream disabled:opacity-40"
+              className="rounded-btn bg-ink px-4 py-2 text-sm font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             >
               {addingLink ? "Adding…" : "Add"}
             </button>

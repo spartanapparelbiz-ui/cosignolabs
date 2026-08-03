@@ -282,7 +282,7 @@ export function AutomationsPanel() {
           <button
             onClick={create}
             disabled={busy === "create" || !name.trim() || !command.trim()}
-            className="self-start rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft disabled:opacity-40"
+            className="self-start rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             {busy === "create" ? "creating…" : "create standing order"}
           </button>
@@ -331,7 +331,7 @@ export function AutomationsPanel() {
             <button
               onClick={() => runNow(a)}
               disabled={busy === a.id}
-              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-btn bg-ink px-3.5 py-1.5 text-xs font-bold text-cream disabled:opacity-50"
+              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-btn bg-ink px-3.5 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             >
               <Play size={12} /> {busy === a.id ? "…" : "run now"}
             </button>

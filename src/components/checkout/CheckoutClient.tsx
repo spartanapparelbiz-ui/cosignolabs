@@ -357,9 +357,9 @@ function DemoForm({ name, setCard, onProcessing, onSuccess, onError }: CheckoutD
       <button
         onClick={pay}
         disabled={!canPay}
-        className="group relative mt-4 w-full overflow-hidden rounded-btn bg-ink px-5 py-3 text-sm font-extrabold lowercase text-cream transition-transform active:scale-[0.99] disabled:opacity-50"
+        className="group relative mt-4 w-full overflow-hidden rounded-btn bg-ink px-5 py-3 text-sm font-extrabold lowercase text-cream transition-transform active:scale-[0.99] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
       >
-        <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-[320ms] ease-brand-out group-enabled:group-hover:scale-x-100" />
+        <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-entrance ease-brand-out group-enabled:group-hover:scale-x-100" />
         <span className="relative transition-colors group-enabled:group-hover:text-ink">
           pay & cosign
         </span>

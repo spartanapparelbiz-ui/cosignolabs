@@ -91,7 +91,7 @@ export function Presence() {
             {[0, 1, 2].map((i) => (
               <span
                 key={i}
-                className="h-[3px] w-[3px] animate-orb-pulse rounded-full bg-ink-soft"
+                className="h-[3px] w-[3px] animate-orb-pulse rounded-pill bg-ink-soft"
                 style={{ animationDelay: `${i * 220}ms` }}
               />
             ))}

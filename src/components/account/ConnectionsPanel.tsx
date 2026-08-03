@@ -327,7 +327,7 @@ export function ConnectionsPanel() {
                     <button
                       onClick={() => connect(p.key)}
                       disabled={!p.configured || !data.vaultReady || busy === p.key}
-                      className="rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:opacity-40"
+                      className="rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                     >
                       {busy === p.key ? "…" : "connect"}
                     </button>
@@ -362,7 +362,7 @@ export function ConnectionsPanel() {
                             <button
                               onClick={() => runPreview(conn.id, a.id)}
                               disabled={busy === `preview:${conn.id}:${a.id}`}
-                              className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:opacity-50"
+                              className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                               title="dry-run: see what this would do, without doing it"
                             >
                               {busy === `preview:${conn.id}:${a.id}` ? "…" : "dry run"}
@@ -370,7 +370,7 @@ export function ConnectionsPanel() {
                             <button
                               onClick={() => propose(conn.id, a.id)}
                               disabled={busy === `${conn.id}:${a.id}`}
-                              className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50"
+                              className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                               title="propose this action to your workspace"
                             >
                               {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
@@ -420,7 +420,7 @@ export function ConnectionsPanel() {
           <button
             onClick={() => setAddOpen((v) => !v)}
             disabled={!data?.vaultReady}
-            className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             {addOpen ? <X size={12} /> : <Plus size={12} />}
             {addOpen ? "cancel" : "add server"}
@@ -467,7 +467,7 @@ export function ConnectionsPanel() {
           <button
             onClick={() => setAddApiOpen((v) => !v)}
             disabled={!data?.vaultReady}
-            className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             {addApiOpen ? <X size={12} /> : <Plus size={12} />}
             {addApiOpen ? "cancel" : "add API tool"}
@@ -905,7 +905,7 @@ function AddMcpForm({ onAdded }: { onAdded: () => Promise<void> }) {
         </div>
         {error && <p className="text-xs font-semibold text-signal">{error}</p>}
         {result && <p className="text-xs font-semibold text-ink">{result}</p>}
-        <button onClick={submit} disabled={!ready} className="self-start rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:opacity-40">
+        <button onClick={submit} disabled={!ready} className="self-start rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
           {busy ? "testing connection…" : "test & add"}
         </button>
       </div>
@@ -986,7 +986,7 @@ function CustomApiCard({
                 <button
                   onClick={() => onPreview(a.id)}
                   disabled={busy === `preview:${conn.id}:${a.id}`}
-                  className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:opacity-50"
+                  className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                   title="dry-run: see what this would do, without doing it"
                 >
                   {busy === `preview:${conn.id}:${a.id}` ? "…" : "dry run"}
@@ -994,7 +994,7 @@ function CustomApiCard({
                 <button
                   onClick={() => onPropose(a.id)}
                   disabled={busy === `${conn.id}:${a.id}`}
-                  className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50"
+                  className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
                 </button>
@@ -1113,7 +1113,7 @@ function AddApiToolForm({
               type="button"
               onClick={importSpec}
               disabled={importing || spec.trim().length < 2}
-              className="self-start rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:opacity-40"
+              className="self-start rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             >
               {importing ? "detecting…" : "detect actions"}
             </button>
@@ -1178,7 +1178,7 @@ function AddApiToolForm({
       <button
         onClick={submit}
         disabled={busy || !name.trim() || !baseUrl.trim() || !apiKey.trim()}
-        className="inline-flex items-center justify-center gap-1.5 rounded-btn bg-ink px-4 py-2.5 text-sm font-extrabold text-cream disabled:opacity-40"
+        className="inline-flex items-center justify-center gap-1.5 rounded-btn bg-ink px-4 py-2.5 text-sm font-extrabold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
       >
         {busy ? "adding…" : <><Check size={14} /> add tool</>}
       </button>

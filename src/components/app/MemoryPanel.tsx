@@ -140,12 +140,12 @@ export function MemoryPanel() {
           disabled={busy === "master"}
           role="switch"
           aria-checked={masterOn}
-          className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors duration-base ${
+          className={`inline-flex h-6 w-11 shrink-0 items-center rounded-pill p-0.5 transition-colors duration-base ${
             masterOn ? "bg-signal" : "bg-line"
           }`}
         >
           <span
-            className={`h-5 w-5 rounded-full bg-surface shadow-soft transition-transform duration-base ${
+            className={`h-5 w-5 rounded-pill bg-surface shadow-soft transition-transform duration-base ${
               masterOn ? "translate-x-5" : "translate-x-0"
             }`}
           />
@@ -166,7 +166,7 @@ export function MemoryPanel() {
         <button
           onClick={add}
           disabled={busy === "add" || !draft.trim()}
-          className="inline-flex shrink-0 items-center gap-1 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:opacity-40"
+          className="inline-flex shrink-0 items-center gap-1 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
         >
           <Plus size={13} /> save
         </button>
@@ -198,7 +198,7 @@ export function MemoryPanel() {
                 <button
                   onClick={() => patch(m, { content: editText.trim() })}
                   disabled={!editText.trim() || busy === m.id}
-                  className="rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink disabled:opacity-40"
+                  className="rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   save
                 </button>

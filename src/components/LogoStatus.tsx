@@ -99,7 +99,7 @@ export function LogoStatus({
         {/* soft expanding ring — ONLY while awaiting a signature */}
         {state === "awaiting" && (
           <span
-            className="absolute inset-0 animate-orb-ring rounded-full bg-signal/30"
+            className="absolute inset-0 animate-orb-ring rounded-pill bg-signal/30"
             aria-hidden="true"
           />
         )}

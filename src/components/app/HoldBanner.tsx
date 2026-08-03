@@ -86,7 +86,7 @@ export function HoldBanner() {
         <button
           onClick={resume}
           disabled={busy}
-          className="rounded-pill bg-cream px-3 py-0.5 text-[11px] font-extrabold text-ink transition-transform active:scale-95 disabled:opacity-60"
+          className="rounded-pill bg-cream px-3 py-0.5 text-[11px] font-extrabold text-ink transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {busy ? "Resuming…" : "Resume cosigno"}
         </button>

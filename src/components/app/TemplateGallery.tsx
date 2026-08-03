@@ -142,7 +142,7 @@ export function TemplateGallery() {
               <button
                 onClick={() => use(job)}
                 disabled={busy !== null}
-                className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:opacity-40"
+                className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
                 {busy === job.key ? "starting…" : "use template"}
               </button>

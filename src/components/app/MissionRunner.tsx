@@ -202,7 +202,7 @@ function GoalComposer({ onStarted }: { onStarted: (id: string) => void }) {
             <button
               onClick={start}
               disabled={busy}
-              className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:opacity-40"
+              className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             >
               {busy ? "starting…" : "confirm & start"}
             </button>
@@ -238,7 +238,7 @@ function GoalComposer({ onStarted }: { onStarted: (id: string) => void }) {
         <button
           onClick={compile}
           disabled={busy || !goal.trim()}
-          className="shrink-0 rounded-btn bg-ink px-4 py-2 text-sm font-bold text-cream disabled:opacity-40"
+          className="shrink-0 rounded-btn bg-ink px-4 py-2 text-sm font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
         >
           {busy ? "reading…" : "plan it"}
         </button>
@@ -428,7 +428,7 @@ export function MissionRunner() {
         <button
           onClick={start}
           disabled={busy === "start"}
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:opacity-40"
+          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
         >
           {busy === "start" ? "starting…" : "start mission"}
         </button>
@@ -449,7 +449,7 @@ export function MissionRunner() {
         <button
           onClick={startLaptop}
           disabled={busy === "laptop"}
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:opacity-40"
+          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
         >
           {busy === "laptop" ? "starting…" : "start mission"}
         </button>
@@ -523,7 +523,7 @@ export function MissionRunner() {
                           key={o}
                           onClick={() => answer(m.id, o)}
                           disabled={busy === m.id}
-                          className={`min-h-[32px] rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:opacity-40 ${
+                          className={`min-h-[32px] rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
                             o === m.pending_question?.recommended
                               ? "bg-signal text-ink"
                               : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
@@ -660,7 +660,7 @@ export function MissionRunner() {
                         <button
                           onClick={() => control(m.id, "resume")}
                           disabled={busy === m.id}
-                          className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:opacity-40"
+                          className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                         >
                           <Play size={12} aria-hidden="true" /> resume
                         </button>
@@ -668,7 +668,7 @@ export function MissionRunner() {
                         <button
                           onClick={() => control(m.id, "pause")}
                           disabled={busy === m.id}
-                          className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold lowercase ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-40"
+                          className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold lowercase ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Pause size={12} aria-hidden="true" /> pause
                         </button>
@@ -676,7 +676,7 @@ export function MissionRunner() {
                       <button
                         onClick={() => control(m.id, "stop")}
                         disabled={busy === m.id}
-                        className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-40"
+                        className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Square size={12} aria-hidden="true" /> stop mission
                       </button>

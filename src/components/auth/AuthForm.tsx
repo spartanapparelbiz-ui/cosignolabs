@@ -185,7 +185,7 @@ export function AuthForm(props: AuthFormProps) {
                   type="button"
                   onClick={handleGoogle}
                   disabled={busy}
-                  className="flex items-center justify-center gap-2.5 rounded-btn border-[1.5px] border-ink/85 bg-transparent px-4 py-2.5 text-sm font-bold text-ink transition hover:bg-ink hover:text-cream disabled:opacity-60"
+                  className="flex items-center justify-center gap-2.5 rounded-btn border-[1.5px] border-ink/85 bg-transparent px-4 py-2.5 text-sm font-bold text-ink transition hover:bg-ink hover:text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   <GoogleGlyph />
                   continue with google

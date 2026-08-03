@@ -58,7 +58,7 @@ const CARDS: StoryCard[] = [
 function Stamp() {
   return (
     <span
-      className="inline-flex h-8 w-8 shrink-0 rotate-[-8deg] items-center justify-center rounded-full bg-signal text-cream shadow-soft motion-safe:animate-check-pop"
+      className="inline-flex h-8 w-8 shrink-0 rotate-[-8deg] items-center justify-center rounded-pill bg-signal text-cream shadow-soft motion-safe:animate-check-pop"
       aria-hidden="true"
     >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -212,7 +212,7 @@ export default function ApprovalStory() {
           {CARDS.map((_, i) => (
             <span
               key={i}
-              className={`h-1.5 rounded-full transition-all duration-base ${
+              className={`h-1.5 rounded-pill transition-all duration-base ${
                 i === index ? "w-6 bg-ink" : done[i] ? "w-3 bg-signal" : "w-3 bg-line"
               }`}
             />
@@ -334,7 +334,7 @@ export default function ApprovalStory() {
               <button
                 onClick={() => onConfirmRefund(index)}
                 disabled={confirmText.trim().toLowerCase() !== "confirm"}
-                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold text-cream transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold text-cream transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
                 authorize refund
               </button>

@@ -336,7 +336,7 @@ export function AutopilotView() {
                     <button
                       onClick={() => takeAction(s.action!.command, s.key)}
                       disabled={busyKey === s.key}
-                      className="mt-3 inline-flex items-center gap-1 rounded-btn px-3.5 py-1.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50"
+                      className="mt-3 inline-flex items-center gap-1 rounded-btn px-3.5 py-1.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {s.action.label} <ChevronRight size={14} />
                     </button>
@@ -525,7 +525,7 @@ export function AutopilotView() {
             <button
               type="submit"
               disabled={asking || !question.trim()}
-              className="shrink-0 rounded-btn bg-ink px-4 py-1.5 text-sm font-bold text-cream disabled:opacity-50"
+              className="shrink-0 rounded-btn bg-ink px-4 py-1.5 text-sm font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             >
               {asking ? "Thinking…" : "Ask"}
             </button>
@@ -578,7 +578,7 @@ export function AutopilotView() {
                 <button
                   onClick={() => takeAction(answer.action!.command)}
                   disabled={busyKey === answer.action.command}
-                  className="mt-3 inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:opacity-50"
+                  className="mt-3 inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   {answer.action.label} <ChevronRight size={14} />
                 </button>
@@ -689,7 +689,7 @@ function AttentionCard({
           <button
             onClick={onAct}
             disabled={busy}
-            className="inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             {busy ? "Preparing…" : "Review action"} <ChevronRight size={14} />
           </button>
@@ -697,7 +697,7 @@ function AttentionCard({
         <button
           onClick={onIgnore}
           disabled={busy}
-          className="inline-flex items-center gap-1 rounded-btn px-3.5 py-2 text-sm font-bold text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-btn px-3.5 py-2 text-sm font-bold text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <X size={14} /> Ignore
         </button>
@@ -731,7 +731,7 @@ function RecommendationCard({
         <button
           onClick={onAct}
           disabled={busy}
-          className="inline-flex items-center gap-1 rounded-btn px-3.5 py-1.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-btn px-3.5 py-1.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {busy ? "Preparing…" : "Take action"} <ChevronRight size={14} />
         </button>

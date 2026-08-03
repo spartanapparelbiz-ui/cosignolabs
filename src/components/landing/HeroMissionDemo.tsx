@@ -93,7 +93,7 @@ export function HeroMissionDemo() {
               key={app}
               className="flex items-center gap-1 rounded-pill bg-cream-deep px-2 py-0.5 text-[10px] font-bold lowercase text-ink-soft"
             >
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-signal" aria-hidden="true" />
+              <span className="inline-block h-1.5 w-1.5 rounded-pill bg-signal" aria-hidden="true" />
               {app}
             </span>
           ))}
@@ -161,7 +161,7 @@ export function HeroMissionDemo() {
           }`}
         >
           <span
-            className={`inline-block h-2 w-2 rounded-full transition-colors duration-base ${done ? "bg-signal" : "bg-line"}`}
+            className={`inline-block h-2 w-2 rounded-pill transition-colors duration-base ${done ? "bg-signal" : "bg-line"}`}
             aria-hidden="true"
           />
           <span className="text-[11px] font-bold lowercase tracking-wide text-ink-soft">

@@ -254,7 +254,7 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
                 <button
                   onClick={signDrawn}
                   disabled={!inked || !name.trim()}
-                  className="mt-3 w-full rounded-btn bg-signal px-5 py-3 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.99] disabled:opacity-40"
+                  className="mt-3 w-full rounded-btn bg-signal px-5 py-3 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.99] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   Sign to authorize
                 </button>
@@ -293,7 +293,7 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
               <div className="text-right text-xs font-bold text-ink-soft" aria-live="polite">
                 {phase === "executing" && (
                   <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 animate-orb-pulse rounded-full bg-signal" aria-hidden="true" />
+                    <span className="h-2 w-2 animate-orb-pulse rounded-pill bg-signal" aria-hidden="true" />
                     Executing…
                   </span>
                 )}

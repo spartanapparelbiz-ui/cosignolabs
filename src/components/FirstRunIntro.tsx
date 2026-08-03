@@ -180,7 +180,7 @@ export function FirstRunIntro() {
               <button
                 onClick={() => start(picked)}
                 disabled={busy}
-                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink disabled:opacity-40"
+                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
                 {busy ? "starting…" : "start this job"}
               </button>

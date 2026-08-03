@@ -96,7 +96,7 @@ export function CheckoutCard({ state, scale = 1 }: { state: CardState; scale?: n
       <div className={phase === "idle" ? "motion-safe:animate-card-float" : ""}>
         <div className="[perspective:1400px]">
           <div
-            className={`relative aspect-[1.586/1] w-full [transform-style:preserve-3d] transition-transform duration-[600ms] ease-brand-out ${
+            className={`relative aspect-[1.586/1] w-full [transform-style:preserve-3d] transition-transform duration-slow ease-brand-out ${
               phase === "failure" ? "animate-shake-x" : ""
             }`}
             style={{ transform: inner }}
@@ -141,7 +141,7 @@ export function CheckoutCard({ state, scale = 1 }: { state: CardState; scale?: n
                 {/* top row: wordmark + plan */}
                 <div className="flex items-start justify-between">
                   <span className="text-[15px] font-black lowercase tracking-tight text-cream">
-                    cos<span className="relative">i<span className="absolute -top-[3px] left-[1px] h-[3px] w-[3px] rounded-full bg-signal" /></span>gno
+                    cos<span className="relative">i<span className="absolute -top-[3px] left-[1px] h-[3px] w-[3px] rounded-pill bg-signal" /></span>gno
                   </span>
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-signal">
                     {plan}
@@ -150,7 +150,7 @@ export function CheckoutCard({ state, scale = 1 }: { state: CardState; scale?: n
 
                 {/* brand glyph + chip */}
                 <div className="flex items-center gap-3">
-                  <span className="h-6 w-8 rounded-[4px] bg-gradient-to-br from-[#d8c48a] to-[#a9884a] shadow-inner" />
+                  <span className="h-6 w-8 rounded-[4px] bg-gradient-to-br from-[#d8c48a] to-[#a9884a] shadow-well" />
                   <span className="min-h-[22px]">
                     <BrandGlyph brand={brand} />
                   </span>
@@ -174,7 +174,7 @@ export function CheckoutCard({ state, scale = 1 }: { state: CardState; scale?: n
                           [0, 1, 2, 3].map((d) => (
                             <span
                               key={d}
-                              className={`h-[7px] w-[7px] rounded-full transition-colors duration-fast ${
+                              className={`h-[7px] w-[7px] rounded-pill transition-colors duration-fast ${
                                 filled ? "bg-cream" : "bg-cream/25"
                               }`}
                             />
@@ -225,7 +225,7 @@ export function CheckoutCard({ state, scale = 1 }: { state: CardState; scale?: n
               {/* success stamp */}
               {phase === "success" && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <svg width="88" height="88" viewBox="0 0 24 24" fill="none" className="animate-check-pop drop-shadow-lg">
+                  <svg width="88" height="88" viewBox="0 0 24 24" fill="none" className="animate-check-pop drop-shadow-lift">
                     <circle cx="12" cy="12" r="11" fill={SIGNAL} />
                     <path
                       d="M6.5 12.5 10.5 16.5 17.5 8.5"
@@ -257,7 +257,7 @@ export function CheckoutCard({ state, scale = 1 }: { state: CardState; scale?: n
                     {[0, 1, 2].map((i) => (
                       <span
                         key={i}
-                        className={`h-2.5 w-2.5 rounded-full bg-ink ${
+                        className={`h-2.5 w-2.5 rounded-pill bg-ink ${
                           flipped ? "motion-safe:animate-cvc-dot" : ""
                         }`}
                         style={{ animationDelay: `${i * 140}ms` }}
@@ -275,7 +275,7 @@ export function CheckoutCard({ state, scale = 1 }: { state: CardState; scale?: n
       </div>
 
       {/* ---------- card-reader slot ---------- */}
-      <div className="mx-auto mt-3 h-4 w-[62%] overflow-hidden rounded-full bg-ink/90 shadow-well">
+      <div className="mx-auto mt-3 h-4 w-[62%] overflow-hidden rounded-pill bg-ink/90 shadow-well">
         {phase === "paying" && (
           <span className="block h-full w-1/3 bg-signal motion-safe:animate-reader-scan" />
         )}

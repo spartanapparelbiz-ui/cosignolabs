@@ -218,7 +218,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
                   <button
                     onClick={() => link(s.id)}
                     disabled={busy}
-                    className="flex w-full items-center gap-2 rounded-btn px-3 py-2 text-left text-sm font-semibold hover:bg-cream-deep disabled:opacity-50"
+                    className="flex w-full items-center gap-2 rounded-btn px-3 py-2 text-left text-sm font-semibold hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus size={13} className="shrink-0 text-ink-soft" />
                     <span className="min-w-0 flex-1 truncate">{s.title}</span>
@@ -247,7 +247,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
               <button
                 onClick={() => unlink(d.session.id)}
                 disabled={busy}
-                className="shrink-0 rounded-btn p-1.5 text-ink-soft hover:bg-cream-deep hover:text-ink disabled:opacity-50"
+                className="shrink-0 rounded-btn p-1.5 text-ink-soft hover:bg-cream-deep hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed"
                 title="unlink"
                 aria-label="unlink delegation"
               >
@@ -264,7 +264,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
           <button
             onClick={() => setStatus("achieved")}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             <Check size={14} strokeWidth={3} /> Mark achieved
           </button>
@@ -272,7 +272,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
           <button
             onClick={() => setStatus("active")}
             disabled={busy}
-            className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50"
+            className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Reopen
           </button>
@@ -280,7 +280,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
         <button
           onClick={remove}
           disabled={busy}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-btn px-3 py-2 text-sm font-bold text-ink-soft ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-btn px-3 py-2 text-sm font-bold text-ink-soft ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Trash2 size={13} /> delete
         </button>

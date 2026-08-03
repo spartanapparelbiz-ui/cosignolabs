@@ -45,7 +45,7 @@ export function Reveal({
     <Tag
       // @ts-expect-error ref is valid for the small union of tags used here
       ref={ref}
-      className={`${className} transition-[opacity,transform] duration-[420ms] ease-brand-out ${
+      className={`${className} transition-[opacity,transform] duration-slow ease-brand-out ${
         hidden ? "opacity-0 translate-y-3" : "opacity-100 translate-y-0"
       }`}
       style={{ transitionDelay: hidden ? "0ms" : `${delay}ms` }}

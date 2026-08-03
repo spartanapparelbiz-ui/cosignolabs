@@ -262,7 +262,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
               <ol className="mt-2 flex flex-col gap-2 rounded-btn bg-cream-deep px-3 py-2.5">
                 {traceLines(action, events, auth).map((t, i) => (
                   <li key={i} className="flex gap-2.5">
-                    <span className="mt-1 h-[6px] w-[6px] shrink-0 rounded-full bg-ink/40" aria-hidden="true" />
+                    <span className="mt-1 h-[6px] w-[6px] shrink-0 rounded-pill bg-ink/40" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">{t.time}</p>
                       <p className="text-xs font-semibold leading-snug">{t.text}</p>

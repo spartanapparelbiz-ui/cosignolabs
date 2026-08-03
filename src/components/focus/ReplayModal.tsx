@@ -101,7 +101,7 @@ export function ReplayModal({ sessionId, onClose }: { sessionId: string; onClose
                   <span className="absolute left-[3px] top-3 h-full w-px bg-line" aria-hidden="true" />
                 )}
                 <span
-                  className={`relative mt-1.5 h-[7px] w-[7px] shrink-0 rounded-full ${KIND_DOT[l.kind] ?? "bg-ink/30"}`}
+                  className={`relative mt-1.5 h-[7px] w-[7px] shrink-0 rounded-pill ${KIND_DOT[l.kind] ?? "bg-ink/30"}`}
                   aria-hidden="true"
                 />
                 <div className="min-w-0 flex-1">

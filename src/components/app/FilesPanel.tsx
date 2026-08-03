@@ -181,7 +181,7 @@ export function FilesPanel() {
               <button
                 onClick={create}
                 disabled={busy === "create" || !draftName.trim()}
-                className="rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink disabled:opacity-40"
+                className="rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
                 create
               </button>
@@ -259,7 +259,7 @@ export function FilesPanel() {
                 <button
                   onClick={() => save(f)}
                   disabled={busy === f.id}
-                  className="rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink disabled:opacity-40"
+                  className="rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   save (v{f.version + 1})
                 </button>

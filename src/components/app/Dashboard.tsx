@@ -292,7 +292,7 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
                             <button
                               onClick={() => pauseMission(m.id)}
                               disabled={pausing === m.id}
-                              className="rounded-btn px-3 py-1.5 text-sm font-bold text-ink-soft ring-1 ring-inset ring-ink/20 hover:bg-cream-deep hover:text-ink disabled:opacity-40"
+                              className="rounded-btn px-3 py-1.5 text-sm font-bold text-ink-soft ring-1 ring-inset ring-ink/20 hover:bg-cream-deep hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {pausing === m.id ? "Pausing…" : "Pause"}
                             </button>
@@ -332,7 +332,7 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
                         : "Completed";
                   return (
                     <div key={m.id} className={`${CARD} flex items-center gap-3`}>
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-signal/15">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-signal/15">
                         <Check size={16} className="text-signal" strokeWidth={3} />
                       </span>
                       <div className="min-w-0 flex-1">

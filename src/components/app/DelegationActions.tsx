@@ -109,7 +109,7 @@ export function DelegationActions({
         <button
           onClick={(e) => continueWork("finish", e)}
           disabled={busy !== null}
-          className="inline-flex items-center gap-1 rounded-btn px-3 py-1.5 text-xs font-bold lowercase text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-btn px-3 py-1.5 text-xs font-bold lowercase text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Sparkles size={11} /> {busy === "finish" ? "…" : "finish this"}
         </button>
@@ -118,7 +118,7 @@ export function DelegationActions({
         <button
           onClick={(e) => continueWork("rescue", e)}
           disabled={busy !== null}
-          className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold lowercase text-cream disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold lowercase text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
         >
           <LifeBuoy size={11} /> {busy === "rescue" ? "rescuing…" : "rescue this"}
         </button>

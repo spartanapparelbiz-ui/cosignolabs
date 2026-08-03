@@ -39,7 +39,7 @@ export function MissionStatus({
       className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide ${STATE_STYLE[state.key]}`}
     >
       {(state.key === "planning" || state.key === "executing") && (
-        <span className="h-1.5 w-1.5 animate-orb-pulse rounded-full bg-current" aria-hidden="true" />
+        <span className="h-1.5 w-1.5 animate-orb-pulse rounded-pill bg-current" aria-hidden="true" />
       )}
       {state.label}
     </span>

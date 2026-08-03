@@ -49,7 +49,7 @@ export function AccountChip() {
         aria-expanded={open}
         className="inline-flex items-center gap-2 rounded-pill bg-cream-deep py-1 pl-1 pr-3 transition-all duration-fast ease-brand-out hover:shadow-soft"
       >
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-xs font-extrabold uppercase text-cream">
+        <span className="flex h-7 w-7 items-center justify-center rounded-pill bg-ink text-xs font-extrabold uppercase text-cream">
           {initialsFor(display)}
         </span>
         <span className="max-w-[9rem] truncate text-sm font-bold lowercase text-ink">{display}</span>
@@ -61,7 +61,7 @@ export function AccountChip() {
           className="absolute right-0 z-20 mt-2 w-56 origin-top-right animate-spring-in rounded-card bg-surface p-2 shadow-lift ring-1 ring-inset ring-line/60"
         >
           <div className="flex items-center gap-2 px-2 py-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-sm font-extrabold uppercase text-cream">
+            <span className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink text-sm font-extrabold uppercase text-cream">
               {initialsFor(display)}
             </span>
             <div className="min-w-0">

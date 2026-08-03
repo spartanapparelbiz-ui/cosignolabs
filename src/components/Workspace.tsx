@@ -447,7 +447,7 @@ export function Workspace() {
             <button
               onClick={() => submit(command)}
               disabled={thinking || !command.trim()}
-              className="rounded-btn bg-ink px-5 py-2 text-sm font-extrabold text-cream transition-transform active:scale-95 disabled:opacity-40"
+              className="rounded-btn bg-ink px-5 py-2 text-sm font-extrabold text-cream transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             >
               {thinking ? "planning…" : "send"}
             </button>

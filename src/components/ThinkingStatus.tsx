@@ -88,7 +88,7 @@ export function ThinkingStatus({
     >
       {live ? (
         <span
-          className="h-1.5 w-1.5 shrink-0 animate-orb-pulse rounded-full bg-signal"
+          className="h-1.5 w-1.5 shrink-0 animate-orb-pulse rounded-pill bg-signal"
           aria-hidden="true"
         />
       ) : (

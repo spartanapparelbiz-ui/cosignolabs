@@ -53,7 +53,7 @@ export function UsageRing({
         onBlur={() => setTip(false)}
         onClick={() => setTip((v) => !v)}
         aria-label={tipText}
-        className="relative inline-flex cursor-help rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+        className="relative inline-flex cursor-help rounded-pill focus:outline-none focus-visible:ring-2 focus-visible:ring-signal"
         style={{ width: size, height: size }}
       >
         <svg width={size} height={size} className="-rotate-90" aria-hidden="true">

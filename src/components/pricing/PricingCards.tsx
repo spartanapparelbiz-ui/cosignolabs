@@ -169,12 +169,12 @@ export function PricingCards() {
               <button
                 onClick={() => choose(id)}
                 disabled={isLeaving}
-                className={`group relative mt-6 min-h-[44px] overflow-hidden rounded-btn px-5 py-3 text-sm font-extrabold lowercase transition-transform duration-fast active:scale-95 disabled:opacity-60 ${
+                className={`group relative mt-6 min-h-[44px] overflow-hidden rounded-btn px-5 py-3 text-sm font-extrabold lowercase transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
                   featured || isCovering ? "bg-signal text-ink" : "bg-ink text-cream"
                 }`}
               >
                 {!(featured || isCovering) && (
-                  <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-[280ms] ease-brand-out group-hover:scale-x-100" />
+                  <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-base ease-brand-out group-hover:scale-x-100" />
                 )}
                 <span className={`relative ${!(featured || isCovering) ? "transition-colors group-hover:text-ink" : ""}`}>
                   {isLeaving ? "opening…" : id === "free" ? "start free" : `choose ${plan.name}`}

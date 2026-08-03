@@ -255,9 +255,9 @@ function ActionCardInner({
         {action.status === "executed" ? (
           <SignedCheck label="" />
         ) : action.status === "vetoed" ? (
-          <span className="h-4 w-4 shrink-0 rounded-full ring-1 ring-inset ring-ink/40" aria-hidden="true" />
+          <span className="h-4 w-4 shrink-0 rounded-pill ring-1 ring-inset ring-ink/40" aria-hidden="true" />
         ) : (
-          <span className="h-4 w-4 shrink-0 rounded-full bg-ink" aria-hidden="true" />
+          <span className="h-4 w-4 shrink-0 rounded-pill bg-ink" aria-hidden="true" />
         )}
         <span className="min-w-0 flex-1">
           <span
@@ -441,7 +441,7 @@ function ActionCardInner({
               <button
                 onClick={handleSaveEdit}
                 disabled={busy}
-                className="rounded-btn bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:opacity-50"
+                className="rounded-btn bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
                 save changes
               </button>
@@ -531,7 +531,7 @@ function ActionCardInner({
 
       {inFlight && (
         <p className="mt-3 flex items-center gap-2 text-xs font-bold lowercase text-ink-soft">
-          <span className="h-2 w-2 animate-orb-pulse rounded-full bg-signal" aria-hidden="true" />
+          <span className="h-2 w-2 animate-orb-pulse rounded-pill bg-signal" aria-hidden="true" />
           executing…
         </p>
       )}
@@ -544,12 +544,12 @@ function ActionCardInner({
               disabled={busy || flagged}
               aria-disabled={flagged || undefined}
               title={flagged ? INJECTION_TOOLTIP : undefined}
-              className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             >
               {busy ? (
                 <>
                   <span
-                    className="h-3.5 w-3.5 animate-orb-think rounded-full border-2 border-ink/30 border-t-ink"
+                    className="h-3.5 w-3.5 animate-orb-think rounded-pill border-2 border-ink/30 border-t-ink"
                     aria-hidden="true"
                   />
                   executing…
@@ -578,7 +578,7 @@ function ActionCardInner({
           <button
             onClick={() => setMode("edit")}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-btn px-4 py-2 text-sm font-bold text-ink-soft transition-colors hover:bg-cream-deep disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-btn px-4 py-2 text-sm font-bold text-ink-soft transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Pencil size={13} strokeWidth={2.5} aria-hidden="true" />
             edit
@@ -587,7 +587,7 @@ function ActionCardInner({
             <button
               onClick={() => setMode("veto")}
               disabled={busy}
-              className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50"
+              className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
             >
               veto
             </button>
@@ -607,7 +607,7 @@ function ActionCardInner({
                   )
                 }
                 disabled={busy}
-                className="rounded-btn bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:opacity-50"
+                className="rounded-btn bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
                 confirm veto
               </button>

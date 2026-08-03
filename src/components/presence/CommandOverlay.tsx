@@ -85,7 +85,7 @@ export function CommandOverlay({
           <button
             type="submit"
             disabled={!text.trim()}
-            className="shrink-0 rounded-btn bg-ink p-2 text-cream disabled:opacity-40"
+            className="shrink-0 rounded-btn bg-ink p-2 text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             aria-label="go"
           >
             <ArrowRight size={15} />

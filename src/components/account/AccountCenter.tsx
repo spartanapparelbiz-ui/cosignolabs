@@ -186,7 +186,7 @@ function ConfirmModal({
               onConfirm();
             }}
             disabled={busy}
-            className={`rounded-btn px-4 py-2 text-sm font-extrabold text-cream disabled:opacity-60 ${danger ? "bg-ink" : "bg-signal !text-ink"}`}
+            className={`rounded-btn px-4 py-2 text-sm font-extrabold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${danger ? "bg-ink" : "bg-signal !text-ink"}`}
           >
             {busy ? "working…" : title}
           </button>
@@ -240,7 +240,7 @@ function ProfilePanel() {
 
       {/* Identity card */}
       <div className="flex items-center gap-4 rounded-card bg-surface/60 p-5 shadow-soft">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-xl font-extrabold uppercase text-cream">
+        <div className="flex h-14 w-14 items-center justify-center rounded-pill bg-ink text-xl font-extrabold uppercase text-cream">
           {initialsFor(display)}
         </div>
         <div className="min-w-0">
@@ -306,7 +306,7 @@ function ProfilePanel() {
           {/* Flex + padding keeps the knob inside the track at both ends —
               travel is exactly the free space, so it never overflows. */}
           <span
-            className={`h-5 w-5 rounded-full bg-surface shadow-soft transition-transform duration-fast ease-brand-out ${
+            className={`h-5 w-5 rounded-pill bg-surface shadow-soft transition-transform duration-fast ease-brand-out ${
               keyHints ? "translate-x-5" : "translate-x-0"
             }`}
           />
@@ -629,8 +629,8 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
                       <li key={f}>{f}</li>
                     ))}
                   </ul>
-                  <button onClick={() => go("upgrade")} disabled={busy === "upgrade"} className="group relative mt-3 inline-flex overflow-hidden rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold text-cream disabled:opacity-60">
-                    <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-[280ms] ease-brand-out group-hover:scale-x-100" />
+                  <button onClick={() => go("upgrade")} disabled={busy === "upgrade"} className="group relative mt-3 inline-flex overflow-hidden rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
+                    <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-base ease-brand-out group-hover:scale-x-100" />
                     <span className="relative transition-colors group-hover:text-ink">{busy === "upgrade" ? "starting…" : `upgrade to pro — ${priceLabel(PLANS.pro, "monthly")}`}</span>
                   </button>
                 </div>
@@ -638,11 +638,11 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
                 <>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {plan.upgradeTo && (
-                      <button onClick={() => go("upgrade")} disabled={busy === "upgrade"} className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink transition-transform duration-fast hover:-translate-y-px disabled:opacity-60">
+                      <button onClick={() => go("upgrade")} disabled={busy === "upgrade"} className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink transition-transform duration-fast hover:-translate-y-px disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
                         {busy === "upgrade" ? "starting…" : `upgrade to ${plan.upgradeTo}`}
                       </button>
                     )}
-                    <button onClick={() => go("portal")} disabled={busy === "portal"} className="rounded-btn ring-1 ring-inset ring-ink px-5 py-2.5 text-sm font-bold lowercase transition-all duration-fast hover:-translate-y-px hover:bg-cream-deep disabled:opacity-60">
+                    <button onClick={() => go("portal")} disabled={busy === "portal"} className="rounded-btn ring-1 ring-inset ring-ink px-5 py-2.5 text-sm font-bold lowercase transition-all duration-fast hover:-translate-y-px hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed">
                       {busy === "portal" ? "opening…" : "manage billing"}
                     </button>
                     {retention === "idle" && (
@@ -658,7 +658,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
                       <p className="text-sm font-bold">before you go — keep {plan.name} at half price.</p>
                       <p className="mt-1 text-xs text-ink-soft">50% off your next 2 months. one tap, stays on your card.</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <button onClick={takeRetention} disabled={retentionBusy} className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:opacity-60">
+                        <button onClick={takeRetention} disabled={retentionBusy} className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
                           {retentionBusy ? "applying…" : "keep it — 50% off"}
                         </button>
                         <button onClick={() => go("portal")} disabled={busy === "portal"} className="rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-surface/50">
@@ -688,7 +688,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
                         <div className="animate-fade-through rounded-btn bg-cream-deep p-3">
                           <p className="text-sm font-bold">refund and end {plan.name} now? this can only be used once.</p>
                           <div className="mt-2 flex gap-2">
-                            <button onClick={doRefund} disabled={refunding} className="rounded-btn bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:opacity-60">
+                            <button onClick={doRefund} disabled={refunding} className="rounded-btn bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
                               {refunding ? "processing…" : "yes, refund me"}
                             </button>
                             <button onClick={() => setConfirmRefund(false)} className="rounded-btn px-4 py-1.5 text-xs font-bold lowercase text-ink-soft hover:bg-surface/50">
@@ -777,7 +777,7 @@ function SecurityPanel({ actions }: { actions: ActionRecord[] | null }) {
           <ul className="mt-2 flex flex-col divide-y divide-line/60">
             {audit.slice(0, 5).map((e) => (
               <li key={e.id} className="flex items-center gap-2 py-2 text-xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-signal" aria-hidden="true" />
+                <span className="h-1.5 w-1.5 rounded-pill bg-signal" aria-hidden="true" />
                 <span className="font-semibold">{AUDIT_LABEL[e.type] ?? e.type}</span>
                 {typeof e.detail?.category === "string" && <span className="text-ink-soft">· {e.detail.category}</span>}
                 {typeof e.detail?.key === "string" && <span className="text-ink-soft">· {e.detail.key}</span>}

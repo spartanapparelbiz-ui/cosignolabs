@@ -340,7 +340,7 @@ export function FocusMode() {
             BOUNDARY
           </span>
           <span
-            className={`absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-signal transition-[left] duration-500 ease-brand-out ${
+            className={`absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-pill bg-signal transition-[left] duration-slow ease-brand-out ${
               phase === "returning" ? "left-0" : "left-[calc(100%-6px)]"
             }`}
             aria-hidden="true"
@@ -490,14 +490,14 @@ export function FocusMode() {
               <button
                 onClick={handBack}
                 disabled={busy}
-                className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.98] disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.98] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
                 {busy ? "Handing back…" : "Cosigno, continue"}
               </button>
               <button
                 onClick={finishMyself}
                 disabled={busy}
-                className="rounded-btn px-4 py-2.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50"
+                className="rounded-btn px-4 py-2.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Finish myself
               </button>
@@ -512,7 +512,7 @@ export function FocusMode() {
                   <button
                     onClick={() => setSignOpen(true)}
                     disabled={busy}
-                    className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold text-cream shadow-soft transition-transform active:scale-[0.98] disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold text-cream shadow-soft transition-transform active:scale-[0.98] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                   >
                     <PenLine size={14} strokeWidth={2.6} /> Sign →
                   </button>
@@ -520,7 +520,7 @@ export function FocusMode() {
                   <button
                     onClick={() => approve()}
                     disabled={busy}
-                    className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.98] disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.98] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                   >
                     <Check size={14} strokeWidth={3} /> {busy ? "Executing…" : "Approve"}
                   </button>
@@ -528,7 +528,7 @@ export function FocusMode() {
               <button
                 onClick={takeOver}
                 disabled={busy}
-                className="rounded-btn px-4 py-2.5 text-sm font-bold text-ink-soft transition-colors hover:bg-cream-deep disabled:opacity-50"
+                className="rounded-btn px-4 py-2.5 text-sm font-bold text-ink-soft transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 I&apos;ll take it from here
               </button>
@@ -536,7 +536,7 @@ export function FocusMode() {
                 <button
                   onClick={() => setTelling(true)}
                   disabled={busy}
-                  className="rounded-btn px-4 py-2.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50"
+                  className="rounded-btn px-4 py-2.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Tell cosigno
                 </button>
@@ -552,7 +552,7 @@ export function FocusMode() {
                   <button
                     onClick={tellCosigno}
                     disabled={busy}
-                    className="rounded-btn bg-ink px-4 py-2 text-xs font-bold text-cream disabled:opacity-50"
+                    className="rounded-btn bg-ink px-4 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                   >
                     send
                   </button>

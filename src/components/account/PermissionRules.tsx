@@ -140,7 +140,7 @@ export function PermissionRules() {
         <button
           onClick={add}
           disabled={busy || text.trim().length < 3}
-          className="mt-2 self-start rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream disabled:opacity-40"
+          className="mt-2 self-start rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
         >
           {busy ? "adding…" : "add rule"}
         </button>

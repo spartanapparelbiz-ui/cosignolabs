@@ -223,7 +223,7 @@ export default function LivePreview() {
                 key={s}
                 onClick={() => run(s)}
                 disabled={busy}
-                className="rounded-pill bg-cream-deep px-3.5 py-2 text-xs font-bold lowercase text-ink transition-colors hover:bg-signal/15 disabled:opacity-40"
+                className="rounded-pill bg-cream-deep px-3.5 py-2 text-xs font-bold lowercase text-ink transition-colors hover:bg-signal/15 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
                 {s}
               </button>
@@ -246,7 +246,7 @@ export default function LivePreview() {
             <button
               onClick={() => run(input)}
               disabled={busy || !input.trim()}
-              className="rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream transition-transform active:scale-95 disabled:opacity-40"
+              className="rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             >
               {busy ? "planning…" : "send"}
             </button>
@@ -326,7 +326,7 @@ export default function LivePreview() {
                       key={card.id}
                       className="flex items-center gap-2.5 rounded-card bg-surface/50 px-3.5 py-2 opacity-70 shadow-soft"
                     >
-                      <span className="h-3.5 w-3.5 shrink-0 rounded-full ring-1 ring-inset ring-ink/40" />
+                      <span className="h-3.5 w-3.5 shrink-0 rounded-pill ring-1 ring-inset ring-ink/40" />
                       <span className="truncate text-xs font-semibold text-ink-soft line-through decoration-ink/40">
                         {card.summary}
                       </span>
