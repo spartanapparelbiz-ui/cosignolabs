@@ -75,23 +75,37 @@ export function LogoHome({
   href = "/",
   size = 30,
   label = "Cosigno",
+  variant = "full",
+  textClass,
 }: {
   href?: string;
   size?: number;
-  /** kept for back-compat; ignored (CosignoLogo picks the balanced size) */
+  /**
+   * Legacy escape hatch: callers used `textClass="hidden"` to ask for a
+   * mark-only lockup. That was silently ignored, so narrow containers (the
+   * 76px desktop rail) rendered the full wordmark and clipped it. It now maps
+   * to `variant="mark"`; prefer passing `variant` directly.
+   */
   textClass?: string;
+  /** "mark" renders the icon alone — correct for narrow rails and tight chrome. */
+  variant?: "full" | "mark";
   label?: string;
   prefetch?: boolean;
 }) {
-  // The header brand IS the shared CosignoLogo, as a home link (single
-  // accessible label "Cosigno home"), with a tasteful hover pill.
+  const resolved = textClass === "hidden" ? "mark" : variant;
+  // Mark-only sits in a square target so it optically centers in a fixed-width
+  // rail; the full lockup keeps the horizontal hover pill.
+  const shell =
+    resolved === "mark"
+      ? "group grid h-11 w-11 place-items-center rounded-btn transition duration-fast ease-brand-out hover:bg-cream-deep/60"
+      : "group -mx-2 -my-1 rounded-btn px-2 py-1 transition duration-fast ease-brand-out hover:-translate-y-px hover:bg-cream-deep/60";
   return (
     <CosignoLogo
-      variant="full"
+      variant={resolved}
       href={href}
       size={size}
       label={label}
-      className="group -mx-2 -my-1 rounded-btn px-2 py-1 transition duration-fast ease-brand-out hover:-translate-y-px hover:bg-cream-deep/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
+      className={`${shell} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-cream`}
     />
   );
 }

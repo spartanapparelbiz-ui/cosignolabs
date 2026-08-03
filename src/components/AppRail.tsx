@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Activity,
+  Gauge,
   Home,
   LayoutTemplate,
   PenLine,
@@ -28,6 +29,7 @@ const ITEMS = [
   { href: "/app/missions", label: "missions", icon: Rocket },
   { href: "/app/approvals", label: "approvals", icon: PenLine },
   { href: "/app/activity", label: "activity", icon: Activity },
+  { href: "/app/monitoring", label: "monitoring", icon: Gauge },
   { href: "/app/connections", label: "connections", icon: Plug },
   { href: "/app/templates", label: "templates", icon: LayoutTemplate },
   { href: "/app/settings", label: "settings", icon: Settings },
@@ -107,7 +109,7 @@ export function AppRail() {
       aria-label="app navigation"
     >
       <div className="mb-3">
-        <LogoHome href="/app" label="cosigno home" size={30} textClass="hidden" />
+        <LogoHome href="/app" label="cosigno home" size={28} variant="mark" />
       </div>
       {ITEMS.map(({ href, label, icon: Icon }) => {
         const active = isActive(pathname, href);
