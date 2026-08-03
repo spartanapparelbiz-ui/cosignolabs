@@ -23,8 +23,8 @@ import { LogoHome } from "@/components/brand/LivingLogo";
  * on mobile. The seven everyday destinations — nothing else lives here (no
  * upgrade ads, per the shell rules). The approvals item carries a count badge
  * ONLY when something actually needs a signature. Advanced surfaces (memory,
- * team, health, automations, files) stay reachable from their in-page links
- * and settings.
+ * team, health, automations, files, per-app twins) stay reachable from their
+ * in-page links and settings.
  */
 
 const ITEMS = [
@@ -34,7 +34,7 @@ const ITEMS = [
   { href: "/app/activity", label: "activity", icon: Activity },
   { href: "/app/monitoring", label: "monitoring", icon: Gauge },
   { href: "/app/mission-control", label: "control", icon: Radar },
-  { href: "/app/twins", label: "twins", icon: Boxes },
+  { href: "/app/workspace-model", label: "model", icon: Boxes },
   { href: "/app/simulation", label: "simulate", icon: FlaskConical },
   { href: "/app/connections", label: "connections", icon: Plug },
   { href: "/app/templates", label: "templates", icon: LayoutTemplate },

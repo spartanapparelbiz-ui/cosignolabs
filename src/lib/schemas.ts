@@ -397,6 +397,48 @@ export const delegatedDecisionSchema = z
   })
   .strict();
 
+/* ------------------------------------------------- workspace model */
+
+/** Natural-language query over the Workspace Model (read-only, no execution). */
+export const workspaceQuerySchema = z
+  .object({ query: z.string().trim().min(2).max(300) })
+  .strict();
+
+/**
+ * Ask the planner to build an execution plan against the Workspace Model.
+ * Planning NEVER executes: it produces a plan + changeset for review, so this
+ * body carries only what the model needs to reason, and no authority fields —
+ * the required authority is computed server-side and cannot be suggested by a
+ * client.
+ */
+export const workspacePlanSchema = z
+  .object({
+    goal: z.string().trim().min(3).max(300),
+    connector: z.string().trim().min(1).max(80),
+    operation: z.string().trim().min(1).max(120),
+    before: payloadObject.optional(),
+    after: payloadObject.optional(),
+    records_affected: z.number().int().min(0).max(1_000_000).optional(),
+    external_recipients: z.number().int().min(0).max(1_000_000).optional(),
+    pii: z.boolean().optional(),
+    production: z.boolean().optional(),
+  })
+  .strict();
+
+/**
+ * Preview the rollback of a change. Takes the change as it was planned or
+ * executed; returns how (and whether) it can be undone. Read-only — previewing
+ * a rollback never performs one.
+ */
+export const workspaceRollbackSchema = z
+  .object({
+    connector: z.string().trim().min(1).max(80),
+    operation: z.string().trim().min(1).max(120),
+    before: payloadObject.optional(),
+    after: payloadObject.optional(),
+  })
+  .strict();
+
 export const actionsQuerySchema = z
   .object({
     session: uuid.optional(),
