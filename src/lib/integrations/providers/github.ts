@@ -1,6 +1,8 @@
 import type {
   ActionResult,
   Credentials,
+  DiscoveredFact,
+  DiscoveryResult,
   IntegrationProvider,
   OAuthCredentials,
   ProviderAction,
@@ -46,6 +48,83 @@ function asOAuth(creds: Credentials): OAuthCredentials {
     throw new IntegrationHttpError(401, "missing access token", false);
   }
   return c;
+}
+
+/**
+ * Read-only inventory of the connected GitHub account.
+ *
+ * Every number here is an EXACT total reported by GitHub, never a count of
+ * whatever fitted on one page. `/user` carries real repository totals, and the
+ * search API's `total_count` is authoritative — listing endpoints cap at 100
+ * per page, so counting rows there would publish "100" for an account with
+ * thousands and look entirely credible while being wrong.
+ *
+ * Each label states exactly what was counted. A partial failure degrades to a
+ * named limitation rather than a missing-but-unexplained row: a fact that is
+ * absent for an unstated reason reads as "zero" to most people.
+ */
+async function discoverGithub(creds: Credentials): Promise<DiscoveryResult> {
+  const token = asOAuth(creds).access_token;
+  const headers = ghHeaders(token);
+
+  let login: string;
+  let facts: DiscoveredFact[];
+  const limitations: string[] = [];
+
+  try {
+    const me = await requestJson<{
+      login: string;
+      public_repos?: number;
+      total_private_repos?: number;
+      owned_private_repos?: number;
+    }>(`${API}/user`, { headers });
+    login = me.login;
+    // total_private_repos is only present on some token/plan combinations;
+    // owned_private_repos is the fallback, and neither being present is a
+    // stated limitation rather than a silent zero.
+    const priv = me.total_private_repos ?? me.owned_private_repos;
+    if (priv === undefined) {
+      limitations.push("this token can't see private repositories, so the count covers public ones only.");
+    }
+    facts = [{ label: "repositories you own", value: (me.public_repos ?? 0) + (priv ?? 0) }];
+  } catch (err) {
+    return {
+      ok: false,
+      facts: [],
+      limitations: [],
+      error:
+        err instanceof IntegrationHttpError && err.status === 401
+          ? "GitHub rejected the saved token. reconnect the account."
+          : "couldn't read your GitHub account just now.",
+    };
+  }
+
+  // Search totals are exact. Each is independent: one failing must not blank
+  // the others, and the gap is named.
+  const searches: Array<{ label: string; q: string }> = [
+    { label: "open issues you opened", q: `is:issue is:open author:${login}` },
+    { label: "open pull requests you opened", q: `is:pr is:open author:${login}` },
+    { label: "open issues assigned to you", q: `is:issue is:open assignee:${login}` },
+  ];
+
+  for (const s of searches) {
+    try {
+      const res = await requestJson<{ total_count: number; incomplete_results?: boolean }>(
+        `${API}/search/issues?q=${encodeURIComponent(s.q)}&per_page=1`,
+        { headers }
+      );
+      facts.push({
+        label: s.label,
+        value: res.total_count,
+        // GitHub sets this when the search timed out and the total is a floor.
+        ...(res.incomplete_results ? { atLeast: true } : {}),
+      });
+    } catch {
+      limitations.push(`couldn't count ${s.label} — GitHub's search API didn't answer.`);
+    }
+  }
+
+  return { ok: true, account: login, facts, limitations };
 }
 
 const ACTIONS: ProviderAction[] = [
@@ -161,6 +240,8 @@ export const githubProvider: IntegrationProvider = {
       body: { access_token: creds.access_token },
     }).catch(() => undefined);
   },
+
+  discover: discoverGithub,
 
   async healthCheck(creds) {
     try {

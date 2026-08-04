@@ -64,6 +64,43 @@ export interface ProviderAction {
   risk?: CapabilityRisk;
 }
 
+/**
+ * One measured fact about a connected account.
+ *
+ * `label` must say precisely what was counted. "136 pull requests" invites the
+ * reader to supply their own meaning; "open pull requests you opened" cannot be
+ * misread. A number whose meaning is fuzzy is a soft form of made-up data.
+ */
+export interface DiscoveredFact {
+  label: string;
+  value: number;
+  /**
+   * True when the API capped the result and the real number is at least this.
+   * Rendered as "100+" rather than "100" — reporting a page size as a total is
+   * the easiest way to publish a confidently wrong number.
+   */
+  atLeast?: boolean;
+}
+
+/**
+ * The result of inspecting a live connection. Every field is measured; there
+ * is no path that produces an example value.
+ */
+export interface DiscoveryResult {
+  ok: boolean;
+  /** Account label the facts belong to, e.g. a GitHub login. */
+  account?: string;
+  facts: DiscoveredFact[];
+  /**
+   * What could NOT be determined, in plain language. Stating the gap is
+   * required whenever discovery is partial — the brief's rule is to name the
+   * limitation instead of inventing data to fill it.
+   */
+  limitations: string[];
+  /** Present when discovery failed outright; already human-readable. */
+  error?: string;
+}
+
 export interface ActionResult {
   ok: boolean;
   summary: string;
@@ -130,6 +167,15 @@ export interface IntegrationProvider {
   refresh?(creds: OAuthCredentials): Promise<OAuthCredentials>;
   /** OAuth: best-effort token revocation on disconnect. */
   revoke?(creds: OAuthCredentials): Promise<void>;
+
+  /**
+   * Read-only inventory of what this account actually contains, run right
+   * after connecting. OPTIONAL: a provider that can't discover simply doesn't
+   * implement it, and the UI says discovery isn't available for it. That is
+   * the entire point — a missing implementation must degrade to an honest
+   * blank, never to plausible-looking numbers.
+   */
+  discover?(creds: Credentials): Promise<DiscoveryResult>;
 
   /** Confirm the credentials still work; returns a short account label. */
   healthCheck(creds: Credentials): Promise<{ ok: boolean; label?: string }>;

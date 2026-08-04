@@ -9,6 +9,7 @@ import type {
   ConnectionRecord,
   ConnectionView,
   Credentials,
+  DiscoveryResult,
   McpCredentials,
   OAuthCredentials,
 } from "../types";
@@ -139,6 +140,48 @@ export async function runProviderAction(
     }
     logError(newRequestId(), err, { event: "provider_action_failed", provider: c.provider_key });
     return { ok: false, summary: "the provider call didn't go through." };
+  }
+}
+
+/**
+ * Inspect a live connection and report what the account actually contains.
+ *
+ * Strictly read-only, so it needs no approval — but it still goes through the
+ * same credential path as any provider call, including OAuth refresh, so a
+ * stale token surfaces as "reconnect" rather than an empty inventory that
+ * looks like an empty account.
+ *
+ * A provider without `discover` returns ok:false with a stated reason. There
+ * is deliberately no generic fallback that guesses at contents: for a screen
+ * whose whole job is telling the user what is really there, "we don't know
+ * yet" is the only honest answer when we don't.
+ */
+export async function discoverConnection(
+  userId: string,
+  connectionId: string
+): Promise<DiscoveryResult> {
+  const none = (error: string): DiscoveryResult => ({ ok: false, facts: [], limitations: [], error });
+
+  const store = getStore();
+  const c = await store.getConnection(userId, connectionId);
+  if (!c || c.kind !== "app") return none("connection not found.");
+  if (c.status === "revoked") return none("this connection was disconnected.");
+  const provider = getProvider(c.provider_key);
+  if (!provider) return none("unknown provider.");
+  if (!provider.discover) {
+    return none(`cosigno can't inventory ${provider.name} yet — its actions still work.`);
+  }
+
+  try {
+    let creds = decryptCreds(c);
+    if (c.auth_type === "oauth2") creds = await freshOAuth(userId, c, creds as OAuthCredentials);
+    return await provider.discover(creds);
+  } catch (err) {
+    if (err instanceof Error && err.message === "needs_reauth") {
+      return none(`${provider.name} needs to be reconnected before cosigno can read it.`);
+    }
+    logError(newRequestId(), err, { event: "discovery_failed", provider: c.provider_key });
+    return none(`couldn't read your ${provider.name} account just now.`);
   }
 }
 

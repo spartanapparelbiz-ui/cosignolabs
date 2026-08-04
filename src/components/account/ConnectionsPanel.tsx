@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
+import { ConnectionInsight } from "@/components/account/ConnectionInsight";
 
 /**
  * The Connections screen: available third-party apps, the user's connected
@@ -335,6 +336,12 @@ export function ConnectionsPanel() {
                 </span>
               </div>
               <p className="mt-1.5 text-xs text-ink-soft">{p.detail}</p>
+
+              {/* Once connected, show what's really in the account and exactly
+                  what cosigno may do with it — measured live, never examples. */}
+              {conn && conn.status === "connected" && (
+                <ConnectionInsight connectionId={conn.id} providerName={p.name} />
+              )}
               <p className="mt-0.5 text-[11px] text-ink-soft/80">
                 {conn?.metadata?.account
                   ? `${String(conn.metadata.account)} · `
