@@ -78,6 +78,15 @@ export const OPERATOR_PROFILES: Record<string, OperatorProfile> = {
     maxRetries: 1,
     never: "sends, purchases, publishes, or modifies external data.",
   },
+  code: {
+    key: "code",
+    name: "Code Operator",
+    responsibility: "reads repositories and issues, and prepares (never opens) new issues.",
+    tools: ["github.list_repos", "github.list_issues", "github.propose_issue"],
+    maxRuntimeMs: 25_000,
+    maxRetries: 2,
+    never: "opens issues, comments, or writes code without an approved card.",
+  },
   chief: {
     key: "chief",
     name: "Chief Operator",

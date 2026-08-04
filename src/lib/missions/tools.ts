@@ -742,6 +742,7 @@ const browserPreparePurchase: MissionTool = {
 
 import { LAPTOP_TOOLS } from "./laptopTools";
 import { INBOX_TOOLS } from "./inboxTools";
+import { GITHUB_TOOLS } from "./githubTools";
 
 export const TOOLS: Record<string, MissionTool> = {
   [calendarFindEvent.id]: calendarFindEvent,
@@ -758,4 +759,5 @@ export const TOOLS: Record<string, MissionTool> = {
   [missionReceipt.id]: missionReceipt,
   ...LAPTOP_TOOLS,
   ...INBOX_TOOLS,
+  ...GITHUB_TOOLS,
 };

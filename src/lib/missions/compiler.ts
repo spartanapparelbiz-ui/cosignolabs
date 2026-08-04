@@ -66,7 +66,7 @@ export function sourceIsUsable(s: SourceContext): boolean {
  * manifest, not from free-form model output.
  */
 
-export type GoalShape = "meeting_prep" | "product_compare" | "research" | "unsupported";
+export type GoalShape = "meeting_prep" | "product_compare" | "github" | "research" | "unsupported";
 
 export interface CompileResult {
   understood: {
@@ -85,6 +85,13 @@ export interface CompileResult {
 
 function classify(goal: string): GoalShape {
   const g = goal.toLowerCase();
+  // GitHub is checked FIRST, before the shopping and research keyword sets.
+  // "review the issues in owner/repo" and "find my repositories" both contain
+  // research verbs, and routing them to the browser operator is what made a
+  // request for repositories come back as sandbox storefront listings.
+  if (/\b(github|repo|repos|repositor(y|ies)|issue|issues|pull request|pr)\b/.test(g)) {
+    return "github";
+  }
   if (/\b(meeting|standup|sync|call|1:1|one-on-one)\b/.test(g) && /\b(prepare|prep|brief|ready)\b/.test(g)) {
     return "meeting_prep";
   }
@@ -166,6 +173,62 @@ function productComparePlan(goal: string, manifest: CapabilityManifest): Compile
   };
 }
 
+/**
+ * GitHub work, routed to the real connector instead of the browser operator.
+ *
+ * The step list depends on what the goal actually asks for, because opening an
+ * issue is a write and listing repositories is not — bundling them would put
+ * an approval card in front of a read, teaching operators to click through
+ * approvals without reading them.
+ */
+function githubPlan(goal: string): CompiledPlan {
+  const g = goal.toLowerCase();
+  const wantsIssue = /\b(open|create|file|raise|add|new)\b/.test(g) && /\bissues?\b/.test(g);
+  const wantsIssueList = !wantsIssue && /\bissues?\b/.test(g);
+
+  const steps = wantsIssue
+    ? [
+        { idx: 0, purpose: "Draft the issue and offer it for approval", operator: "code", tool: "github.propose_issue", dependsOn: [] as number[] },
+        { idx: 1, purpose: "Write the mission receipt", operator: "chief", tool: "mission.receipt", dependsOn: [0] },
+      ]
+    : wantsIssueList
+      ? [
+          { idx: 0, purpose: "Read open issues in the repository", operator: "code", tool: "github.list_issues", dependsOn: [] as number[] },
+          { idx: 1, purpose: "Write the mission receipt", operator: "chief", tool: "mission.receipt", dependsOn: [0] },
+        ]
+      : [
+          { idx: 0, purpose: "Read your repositories", operator: "code", tool: "github.list_repos", dependsOn: [] as number[] },
+          { idx: 1, purpose: "Write the mission receipt", operator: "chief", tool: "mission.receipt", dependsOn: [0] },
+        ];
+
+  return {
+    normalizedGoal: goal,
+    successCriteria: wantsIssue
+      ? [
+          "the issue is opened only after you approve the card",
+          "the opened issue is read back from GitHub as evidence",
+        ]
+      : [
+          "the result comes from your live GitHub connection, never an example",
+          "nothing in the repository is changed",
+        ],
+    // There is no GitHub sandbox on purpose: inventing repository or issue
+    // names would be indistinguishable from real output to the reader.
+    assumptions: ["reads your live GitHub connection — GitHub must be connected, or the mission stops and says so"],
+    questions: [],
+    steps,
+    expectedDeliverables: wantsIssue ? ["an opened GitHub issue, with its URL"] : ["what GitHub actually returned"],
+    approvalCheckpoints: wantsIssue ? ["opening the issue requires your approval"] : [],
+    verificationRequirements: wantsIssue
+      ? ["github.propose_issue: confirm the issue exists on GitHub and record its URL"]
+      : [],
+    riskSummary: wantsIssue
+      ? "read-only until you approve; the only write is opening one issue, which happens after approval and is then read back."
+      : "entirely read-only — nothing in any repository is created, changed, or deleted.",
+    unsupported: [],
+  };
+}
+
 function researchPlan(goal: string, manifest: CapabilityManifest): CompiledPlan {
   const browserLive = manifest.browser.live;
   return {
@@ -243,6 +306,8 @@ function buildPlan(shape: GoalShape, goal: string, manifest: CapabilityManifest)
       return meetingPrepPlan(goal);
     case "product_compare":
       return productComparePlan(goal, manifest);
+    case "github":
+      return githubPlan(goal);
     case "research":
       return researchPlan(goal, manifest);
     default:

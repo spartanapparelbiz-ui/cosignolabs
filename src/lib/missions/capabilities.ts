@@ -72,10 +72,14 @@ const TOOL_SUMMARY: Record<string, string> = {
   "brief.calendar": "read the upcoming calendar (read-only)",
   "brief.signals": "read the overnight inbox signals (read-only)",
   "deliverable.daily_brief": "write the morning operator brief as a versioned file",
+  "github.list_repos": "read your most recently pushed repositories (read-only)",
+  "github.list_issues": "read open issues in a repository you name (read-only)",
+  "github.propose_issue": "offer a new issue for approval, open it, then read it back",
 };
 
 /** Tools whose execution changes the outside world (need an approval gate). */
 const CONSEQUENTIAL_TOOLS = new Set([
+  "github.propose_issue",
   "approval.offer_send",
   "browser.prepare_purchase",
   "inbox.propose_cleanup",
@@ -84,6 +88,7 @@ const CONSEQUENTIAL_TOOLS = new Set([
 ]);
 /** Tools with a post-execution verification hook. */
 const VERIFIABLE_TOOLS = new Set([
+  "github.propose_issue",
   "approval.offer_send",
   "browser.prepare_purchase",
   "inbox.propose_cleanup",
@@ -104,6 +109,9 @@ const PROVIDER_TOOL: Record<string, string> = {
   "brief.signals": "google",
   "brief.calendar": "google-calendar",
   "calendar.propose_reminder": "google-calendar",
+  "github.list_repos": "github",
+  "github.list_issues": "github",
+  "github.propose_issue": "github",
 };
 /** Tools that use the browser service. */
 const BROWSER_TOOLS = new Set([
