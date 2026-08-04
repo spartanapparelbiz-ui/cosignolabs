@@ -196,34 +196,61 @@ const proposeIssue: MissionTool = {
       };
     }
 
+    // `connection_call` is the ONE category that performs a real provider call
+    // when the card is approved. The obvious-looking alternative, post_content,
+    // executes as a sandbox simulation — the card would flip to "executed" and
+    // the audit trail would record a publish that never happened, with the real
+    // write smuggled into verify() afterwards. A receipt that precedes the act
+    // is exactly the kind of lie this product exists to prevent.
+    //
+    // connection_call is `plannerSelectable: false`, which holds here: this
+    // payload is built deterministically from the parsed goal and the user's
+    // own connection, never chosen by a model.
     return {
       kind: "propose",
-      // Opening an issue publishes text into a system outside cosigno.
-      category: "post_content",
+      category: "connection_call",
       summary: `open issue “${title}” in ${repo}`,
-      payload: { repo, title, connection_id: conn.id },
+      payload: {
+        kind: "provider",
+        connection_id: conn.id,
+        action: "create_issue",
+        args: { repo, title },
+      },
     };
   },
 
+  /**
+   * The issue already exists by the time this runs — approval performed the
+   * write. This is the read-back: independent confirmation from GitHub that
+   * the issue is really there, rather than trusting the write's own response.
+   */
   async verify(ctx: ToolContext, action: ActionRecord): Promise<Record<string, unknown>> {
-    const payload = (action.payload ?? {}) as { repo?: string; title?: string };
-    const repo = String(payload.repo ?? "");
-    const title = String(payload.title ?? "");
+    const payload = (action.payload ?? {}) as { args?: { repo?: string; title?: string } };
+    const repo = String(payload.args?.repo ?? "");
+    const title = String(payload.args?.title ?? "");
     if (!REPO_RE.test(repo) || !title) {
       return { verified: false, detail: "the approved card was missing a repository or title." };
     }
 
     const conn = await githubConnection(ctx.userId);
-    if (!conn) return { verified: false, detail: "GitHub was disconnected before the issue could be opened." };
+    if (!conn) {
+      return { verified: false, detail: "GitHub was disconnected before the issue could be confirmed." };
+    }
 
-    const res = await runProviderAction(ctx.userId, conn.id, "create_issue", { repo, title });
-    if (!res.ok) return { verified: false, detail: res.summary };
+    const res = await runProviderAction(ctx.userId, conn.id, "list_issues", { repo });
+    if (!res.ok) return { verified: false, detail: `couldn't read ${repo} back: ${res.summary}` };
 
-    return {
-      verified: true,
-      detail: res.summary,
-      url: typeof res.detail?.url === "string" ? res.detail.url : undefined,
-    };
+    const issues = Array.isArray(res.detail?.issues)
+      ? (res.detail.issues as unknown[]).filter((i): i is string => typeof i === "string")
+      : [];
+    const match = issues.find((i) => i.includes(title));
+
+    return match
+      ? { verified: true, detail: `confirmed on GitHub: ${match} in ${repo}.` }
+      : {
+          verified: false,
+          detail: `the card executed, but no open issue titled “${title}” is visible in ${repo}.`,
+        };
   },
 };
 

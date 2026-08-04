@@ -76,10 +76,44 @@ describe("reads stay automatic; the one write is gated", () => {
     expect(r.plan.verificationRequirements.join(" ")).toMatch(/github\.propose_issue/);
   });
 
-  it("the write tool only proposes — it exposes a verify hook for the post-approval call", () => {
+  it("the write tool only proposes — it exposes a verify hook for the post-approval read-back", () => {
     const tool = TOOLS["github.propose_issue"];
     expect(tool).toBeDefined();
     expect(typeof tool.verify).toBe("function");
+  });
+
+  it("proposes a connection_call, so approving it really opens the issue", async () => {
+    const store = new MemoryStore();
+    (globalThis as Record<string, unknown>).__cosignoStore = store;
+    await store.createConnection({
+      user_id: "user-a",
+      kind: "app",
+      provider_key: "github",
+      display_name: "GitHub",
+      status: "connected",
+      auth_type: "oauth2",
+      metadata: { account: "user-a" },
+    } as never);
+
+    const result = await TOOLS["github.propose_issue"].run({
+      userId: "user-a",
+      mission: { goal: 'open an issue in owner/name titled "cosigno test"' },
+      steps: [],
+      step: {},
+    } as never);
+
+    expect(result.kind).toBe("propose");
+    if (result.kind !== "propose") throw new Error("expected a proposal");
+
+    // post_content would execute as a sandbox simulation: the card flips to
+    // "executed" and the audit trail records a publish that never happened.
+    // connection_call is the only category that performs the real call.
+    expect(result.category).toBe("connection_call");
+    expect(result.category).not.toBe("post_content");
+    expect(result.payload).toMatchObject({
+      action: "create_issue",
+      args: { repo: "owner/name", title: "cosigno test" },
+    });
   });
 
   it("read tools have no verify hook, because they change nothing to verify", () => {
