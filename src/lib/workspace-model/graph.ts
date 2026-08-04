@@ -193,7 +193,7 @@ export function buildGraph(twins: DigitalTwin[], now = new Date().toISOString())
         addNode({
           id: opId,
           kind: "operation",
-          label: businessActionName(op.id, canonical, op.mutation),
+          label: businessActionName(op.id),
           connector: twin.connection_key,
           canonical: canonical.type,
           domain: canonical.domain,

@@ -16,6 +16,7 @@
  */
 
 import type { Mutation } from "@/lib/twin/model";
+import { businessAction } from "@/lib/actionLibrary";
 
 export type CanonicalDomain =
   | "finance"
@@ -278,20 +279,11 @@ export function mapExternalPermission(connectorKey: string, external: string): M
  * Turn a raw operation id into a BUSINESS action name. The agent never sees
  * `POST /customers/refund`; it sees "Refund customer", which is the level at
  * which a human can meaningfully approve or refuse.
+ *
+ * The naming itself lives in the Action Library, so an operation is called the
+ * same thing here, on the connections page, and on the approval card. Two
+ * naming schemes for one capability is two products.
  */
-export function businessActionName(operationId: string, canonical: CanonicalType, mutation: Mutation): string {
-  const verb =
-    mutation === "read"
-      ? /list|search/.test(operationId)
-        ? "List"
-        : "Get"
-      : mutation === "create"
-        ? "Create"
-        : mutation === "update"
-          ? "Update"
-          : "Delete";
-  // Money verbs read better in their own language.
-  if (canonical.type === "refund" && mutation !== "read") return "Refund customer";
-  if (canonical.type === "invoice" && mutation === "update") return "Update invoice";
-  return `${verb} ${canonical.label.toLowerCase()}`;
+export function businessActionName(operationId: string): string {
+  return businessAction(operationId).name;
 }

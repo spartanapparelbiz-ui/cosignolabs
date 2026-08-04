@@ -98,6 +98,42 @@ stays possible without competing for the eye.
 "Veto" became **reject** in the interface. The state machine still records
 `vetoed` — the vocabulary changed for the human, not for the ledger.
 
+## The Action Library
+
+Every capability, from every kind of connection, is named by one function
+(`src/lib/actionLibrary.ts`) — so a capability is called the same thing on the
+connections page, the approval card, and inside the model. Two naming schemes
+for one capability is two products.
+
+```
+create_refund       → Refund customer
+merge_pull_request  → Merge pull request
+list_repositories   → View repositories
+POST /v1/widgets    → never shown
+```
+
+Verbs that carry meaning survive — "merge" and "archive" say something "update"
+doesn't — and an object the library doesn't recognize keeps the connector's own
+word rather than being renamed into something it isn't. HTTP methods, paths and
+raw ids are gone from every list a person reads to decide something.
+
+They remain in exactly two places, both of which the user asked for: the dry-run
+modal (opened deliberately, to inspect the request that would be sent) and the
+REST connector authoring form, where you cannot define an endpoint without
+naming it. Authoring a connector is a different job from approving an action.
+
+## The details panel
+
+"View details" opens the seven questions, in the order people ask them: what AI
+wants · what will change · who requested it · affected systems · estimated
+impact · approval history · audit log. Approval history is read from the
+ledger's own events (`GET /api/actions/[id]`), rendered as sentences —
+"you approved it · you · Mar 4, 2:14 PM" — not event enums.
+
+The raw payload is at the bottom of that panel behind one more click, because
+it is the only part of the card written for an engineer, and the panel exists
+so nobody else has to read it.
+
 ## Agents are discovered, never declared
 
 `/app/agents` is built from the append-only decision ledger: an assistant is
@@ -120,7 +156,16 @@ Stated plainly rather than half-shipped:
 - **The Add Connection wizard** (choose type → authenticate → discover actions →
   pick what AI may do → test) is still the existing add flow. Custom REST,
   OpenAPI import and MCP servers all work today; the guided six-step wizard over
-  them does not exist yet.
+  them does not exist yet. Note that of the nine types the brief lists, four
+  (GraphQL, Database, Browser Automation, CLI) have no backend behind them —
+  shipping nine tiles would be nine promises and five lies, so the wizard has to
+  offer what actually connects and say plainly what doesn't.
+- **The connection detail view** (Permissions · Allowed Actions · Recent
+  Activity · Connected AI · Settings) is still the existing per-connection card.
+  "Connected AI" in particular has no honest source yet: in-app actions come
+  from cosigno's own planner, and the decision ledger doesn't record which
+  connection an external agent touched, so the section would be decoration
+  until that link exists.
 - **Per-team approval routing** ("Required approval: Engineering"). Approvals
   route to *you*, and the card says so honestly — inventing a team name the
   system can't enforce would be worse than the plain truth.

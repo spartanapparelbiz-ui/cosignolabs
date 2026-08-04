@@ -118,8 +118,10 @@ describe("canonical mapping", () => {
   });
 
   it("names actions in business language, not API language", () => {
-    expect(businessActionName("create_refund", canonicalize("refund"), "create")).toBe("Refund customer");
-    expect(businessActionName("list_customers", canonicalize("customer"), "read")).toBe("List customer");
+    // Naming is delegated to the Action Library so one capability has exactly
+    // one name across the model, the connections page, and the approval card.
+    expect(businessActionName("create_refund")).toBe("Refund customer");
+    expect(businessActionName("list_customers")).toBe("View customers");
   });
 });
 

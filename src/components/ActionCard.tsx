@@ -24,7 +24,6 @@ import type { ActionCategory, ActionPreview, ActionRecord, SignatureRecord } fro
 import { CREAM } from "@/lib/brand";
 import {
   effectLine,
-  extractDiff,
   impactChips,
   resultPreview,
   reversibilityChip,
@@ -35,6 +34,12 @@ import { actionRisk, requiredApproval, willBullets, type RiskLevel } from "@/lib
 import { signRequired } from "@/lib/sign";
 import dynamic from "next/dynamic";
 import { TierBadge } from "./TierBadge";
+
+// The seven-section details panel is only mounted when a card is expanded, so
+// it stays out of the approvals route's initial chunk.
+const ApprovalDetails = dynamic(() =>
+  import("./app/ApprovalDetails").then((m) => m.ApprovalDetails)
+);
 
 // Both are open-on-click overlays (the sign dialog drags in the whole
 // signature-pad canvas machinery) — split out of the workspace/approvals
@@ -212,7 +217,6 @@ function ActionCardInner({
   const approvalNeeded = requiredApproval(action);
   const bullets = willBullets(action);
   const chips = impactChips(action);
-  const diff = extractDiff(action.payload);
   const result = resultPreview(action.result);
   const risk = reversibilityChip(action.category, action.tier);
 
@@ -482,7 +486,6 @@ function ActionCardInner({
         </p>
       )}
 
-      {/* exact payload / diff — collapsed by default */}
       <div className="mt-2.5">
         <button
           onClick={() => setDetailsOpen((v) => !v)}
@@ -508,31 +511,13 @@ function ActionCardInner({
             edit values
           </button>
         )}
+        {/* Details are the seven questions a person asks before deciding — the
+            raw payload lives at the bottom of that panel, one more click away,
+            because it is the only part written for an engineer. Mounted only
+            when open so the queue doesn't fetch history for every card. */}
         <Collapse open={detailsOpen && mode !== "edit"}>
-          {diff ? (
-            <div className="mt-2 overflow-hidden rounded-btn bg-cream-deep shadow-well">
-              <p className="px-3 pt-2 text-[10px] font-bold lowercase tracking-widest text-ink-soft">
-                before → after
-              </p>
-              <table className="w-full font-mono text-[11px] leading-relaxed">
-                <tbody>
-                  {diff.map((row) => (
-                    <tr key={row.field} className="border-t border-line/50 first:border-0">
-                      <td className="px-3 py-1.5 align-top font-bold text-ink-soft">{row.field}</td>
-                      <td className="px-2 py-1.5 align-top text-ink-soft line-through decoration-ink/40">
-                        {row.before}
-                      </td>
-                      <td className="px-1 py-1.5 align-top text-ink-soft" aria-hidden="true">→</td>
-                      <td className="px-3 py-1.5 align-top font-bold text-ink">{row.after}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <pre className="mt-2 max-h-48 overflow-auto rounded-btn bg-cream-deep px-3 py-2.5 font-mono text-[11px] leading-relaxed text-ink shadow-well">
-              {JSON.stringify(action.payload, null, 2)}
-            </pre>
+          {detailsOpen && mode !== "edit" && (
+            <ApprovalDetails action={action} preview={preview} />
           )}
         </Collapse>
         {mode === "edit" && (
