@@ -5,6 +5,7 @@ import { AppRail, AppBottomNav } from "@/components/AppRail";
 import { ToastProvider } from "@/components/Toast";
 import { LogoHome } from "@/components/brand/LivingLogo";
 import { EmergencyStop } from "@/components/app/EmergencyStop";
+import { HoldBanner } from "@/components/app/HoldBanner";
 import { AccountChip } from "@/components/app/AccountChip";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,11 @@ function Chrome({
         <AppRail />
         <div className="flex min-w-0 flex-1 flex-col">
           {guest && <SandboxBanner />}
+          {/* A hold silently blocks every execution, so the way out of one
+              belongs above the fold on every page — not hidden behind a header
+              control the operator has to go looking for. Renders nothing when
+              there is no hold. */}
+          <HoldBanner />
           <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
             <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
               {/* mobile shows the logo up top; desktop's logo lives in the rail */}
