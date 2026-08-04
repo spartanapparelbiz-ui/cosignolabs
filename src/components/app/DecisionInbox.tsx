@@ -25,7 +25,24 @@ async function jsonFetch(url: string, init?: RequestInit) {
   return body;
 }
 
-export function DecisionInbox({ initial }: { initial?: ActionRecord[] }) {
+export function DecisionInbox({
+  initial,
+  only,
+  compact = false,
+  emptyFallback,
+}: {
+  initial?: ActionRecord[];
+  /**
+   * Restrict the queue to these action ids. Used when the inbox is embedded
+   * beside work it belongs to — a mission shows only ITS decisions, so
+   * approving there can't silently sign off an unrelated card.
+   */
+  only?: string[];
+  /** Drop the standing-queue header when embedded as a section of a page. */
+  compact?: boolean;
+  /** What to render instead of the full-page empty state when embedded. */
+  emptyFallback?: React.ReactNode;
+}) {
   // When the server prefetched the queue it renders on first paint; the
   // mount load() below then revalidates in the background (SWR).
   const [actions, setActions] = useState<ActionRecord[] | null>(initial ?? null);
@@ -139,12 +156,18 @@ export function DecisionInbox({ initial }: { initial?: ActionRecord[] }) {
     return (
       <div className="flex flex-col gap-3" aria-busy="true" aria-label="loading decisions">
         <SkeletonCard />
-        <SkeletonCard />
+        {!compact && <SkeletonCard />}
       </div>
     );
   }
 
-  if (actions.length === 0) {
+  // Scoping happens at RENDER, not in the fetch: the queue is still the one
+  // shared list, so approving from an embedded copy and from the approvals
+  // page cannot drift apart. An embedded inbox simply shows less of it.
+  const visible = only ? actions.filter((a) => only.includes(a.id)) : actions;
+
+  if (visible.length === 0) {
+    if (emptyFallback !== undefined) return <>{emptyFallback}</>;
     return (
       <div className="flex flex-col items-center gap-3 rounded-card bg-surface/40 px-6 py-12 text-center shadow-soft">
         <EmptyIllustration kind="workspace" />
@@ -159,11 +182,13 @@ export function DecisionInbox({ initial }: { initial?: ActionRecord[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs font-bold lowercase tracking-wide text-ink-soft" role="status">
-        {actions.length} decision{actions.length === 1 ? "" : "s"} waiting — nothing
-        has been taken without you.
-      </p>
-      {actions.map((a, i) => (
+      {!compact && (
+        <p className="text-xs font-bold lowercase tracking-wide text-ink-soft" role="status">
+          {visible.length} decision{visible.length === 1 ? "" : "s"} waiting — nothing
+          has been taken without you.
+        </p>
+      )}
+      {visible.map((a, i) => (
         <ActionCard
           key={a.id}
           action={a}

@@ -20,6 +20,7 @@ import {
 import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/lib/types";
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
+import { DecisionInbox } from "@/components/app/DecisionInbox";
 
 /**
  * The isolated mission workspace: header (goal, plain status, created time,
@@ -194,6 +195,10 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
 
   const label = STATE_LABEL[mission.state];
   const usesBrowser = steps.some((s) => s.tool.startsWith("laptop.") || s.tool.startsWith("browser."));
+  // Only the cards this mission is actually parked on.
+  const awaitingActionIds = steps
+    .filter((s) => s.state === "awaiting_approval" && s.action_id)
+    .map((s) => s.action_id as string);
   const done = steps.filter((s) => ["completed", "skipped"].includes(s.state)).length;
   const deliverables = steps.filter((s) => typeof s.output?.file_id === "string");
   const receipt = mission.receipt as Record<string, unknown> | null;
@@ -279,12 +284,16 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
 
       {mission.state === "awaiting_approval" && (
         <p className="rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold">
-          a consequential step is waiting for your signature —{" "}
-          <Link href="/app/approvals" className="underline underline-offset-2">
-            open approvals
-          </Link>
-          . the mission resumes automatically after you decide.
+          a consequential step is waiting for your signature. the mission resumes
+          automatically after you decide.
         </p>
+      )}
+
+      {/* The decision itself, on the mission that raised it. Scoped to THIS
+          mission's cards, so approving here can never sign off something
+          unrelated that happened to be sitting in the shared queue. */}
+      {awaitingActionIds.length > 0 && (
+        <DecisionInbox only={awaitingActionIds} compact emptyFallback={null} />
       )}
 
       {/* ------------------- timeline + right panel ------------------- */}

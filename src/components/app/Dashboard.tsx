@@ -7,6 +7,7 @@ import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord }
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
 import { StarterJobs } from "@/components/app/StarterJobs";
+import { DecisionInbox } from "@/components/app/DecisionInbox";
 
 /**
  * The home dashboard — one calm place that answers four questions:
@@ -354,43 +355,23 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
         <div className="flex flex-col gap-8">
           <section>
             <h2 className={SECTION_TITLE}>Needs your approval</h2>
-            <div className="mt-3 flex flex-col gap-3">
-              {approvals.length === 0 ? (
-                <div className={CARD}>
-                  <p className="text-sm font-extrabold">Nothing needs your approval</p>
-                  <p className="mt-1 text-sm text-ink-soft">
-                    cosigno will ask before anything important happens.
-                  </p>
-                </div>
-              ) : (
-                approvals.slice(0, 4).map((a) => {
-                  const to = typeof a.payload?.to === "string" ? a.payload.to : typeof a.payload?.recipient === "string" ? a.payload.recipient : null;
-                  const provider = typeof a.payload?.provider === "string" ? a.payload.provider : null;
-                  return (
-                    <div key={a.id} className={`${CARD} border-signal/40`}>
-                      <div className="flex items-start gap-3">
-                        {provider ? (
-                          <ConnectorLogo kind="app" providerKey={provider} displayName={PROVIDER_NAME[provider] ?? provider} size={26} />
-                        ) : (
-                          <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-btn bg-signal/15 text-[13px] font-black text-signal">
-                            !
-                          </span>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-extrabold leading-snug">{a.summary}</p>
-                          {to && <p className="mt-0.5 text-xs text-ink-soft">Prepared for {to}</p>}
-                        </div>
-                      </div>
-                      <Link
-                        href="/app/approvals"
-                        className="mt-3 inline-flex w-full items-center justify-center rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95"
-                      >
-                        Review
-                      </Link>
-                    </div>
-                  );
-                })
-              )}
+            {/* The real approval card, inline. Sending people to another page
+                to approve made the decision feel far away from the work that
+                raised it — and the trip was the only thing standing between an
+                operator and the action they had already decided to take. */}
+            <div className="mt-3">
+              <DecisionInbox
+                initial={approvals}
+                compact
+                emptyFallback={
+                  <div className={CARD}>
+                    <p className="text-sm font-extrabold">Nothing needs your approval</p>
+                    <p className="mt-1 text-sm text-ink-soft">
+                      cosigno will ask before anything important happens.
+                    </p>
+                  </div>
+                }
+              />
             </div>
           </section>
 

@@ -39,7 +39,7 @@ async function missionAwaitingAction(opts: {
   /** Age of the action row itself — deliberately independent of the above. */
   createdMinutesAgo?: number;
 }) {
-  const session = await store.createSession({ user_id: USER, title: "t" } as never);
+  const session = await store.createSession(USER, "t");
   const mission = await store.createMission({
     user_id: USER,
     session_id: session.id,
@@ -156,7 +156,7 @@ describe("interrupted executions are recovered, not left to deadlock", () => {
   });
 
   it("a still-proposed card keeps waiting on the operator — it is not stuck", async () => {
-    const session = await store.createSession({ user_id: USER, title: "t" } as never);
+    const session = await store.createSession(USER, "t");
     const mission = await store.createMission({
       user_id: USER,
       session_id: session.id,

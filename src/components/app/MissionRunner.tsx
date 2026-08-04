@@ -22,6 +22,7 @@ import {
 import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/lib/types";
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
+import { DecisionInbox } from "@/components/app/DecisionInbox";
 
 /**
  * Durable missions — work that continues server-side after this tab closes.
@@ -540,13 +541,23 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                 )}
 
                 {m.state === "awaiting_approval" && (
-                  <p className="rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold">
-                    a consequential step is waiting for your signature —{" "}
-                    <Link href="/app/approvals" className="underline underline-offset-2">
-                      open decisions
-                    </Link>
-                    . the mission resumes automatically after you decide.
-                  </p>
+                  <>
+                    <p className="rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold">
+                      a consequential step is waiting for your signature. the mission
+                      resumes automatically after you decide.
+                    </p>
+                    {/* Decide right here, on the mission that raised it. Scoped
+                        to THIS mission's cards so an approval on the list page
+                        can never sign off a neighbouring mission's action. */}
+                    {(() => {
+                      const ids = mySteps
+                        .filter((st) => st.state === "awaiting_approval" && st.action_id)
+                        .map((st) => st.action_id as string);
+                      return ids.length > 0 ? (
+                        <DecisionInbox only={ids} compact emptyFallback={null} />
+                      ) : null;
+                    })()}
+                  </>
                 )}
 
                 {/* sources the user provided (files + links), as real inputs */}
