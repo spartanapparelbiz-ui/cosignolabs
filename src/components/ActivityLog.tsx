@@ -16,6 +16,8 @@ const ReceiptModal = dynamic(() =>
 import { TierBadge } from "./TierBadge";
 import { operatorOf } from "@/lib/actionPresentation";
 import { EmptyIllustration } from "./EmptyIllustration";
+import { ResultCard } from "./app/ResultCard";
+import { describeResult } from "@/lib/results/describe";
 
 const STATUSES = ["proposed", "approved", "executing", "executed", "vetoed", "failed"];
 
@@ -224,14 +226,23 @@ export function ActivityLog() {
                     <span className="text-xs font-bold lowercase text-ink-soft underline underline-offset-2">
                       {expanded === a.id ? "hide" : "view"}
                     </span>
+                    {/* Opening a result used to dump raw JSON — the payload and
+                        the provider response, unformatted. That answers none of
+                        the questions a person actually has, and asks them to
+                        parse a data structure to find out whether their thing
+                        happened. The card answers those questions; the JSON is
+                        still one click away for whoever genuinely wants it. */}
                     {expanded === a.id && (
-                      <pre className="mt-2 max-h-40 overflow-auto rounded-btn bg-cream-deep p-2.5 font-mono text-[10px] leading-relaxed text-ink">
-                        {JSON.stringify(
-                          { payload: a.payload, result: a.result },
-                          null,
-                          2
-                        )}
-                      </pre>
+                      <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                        <ResultCard
+                          result={describeResult(a)}
+                          details={
+                            <pre className="max-h-40 overflow-auto rounded-btn bg-cream-deep p-2.5 font-mono text-[10px] leading-relaxed text-ink">
+                              {JSON.stringify({ payload: a.payload, result: a.result }, null, 2)}
+                            </pre>
+                          }
+                        />
+                      </div>
                     )}
                     {a.status === "executed" && (
                       <button
