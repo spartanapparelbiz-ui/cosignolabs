@@ -78,15 +78,46 @@ function runnableSteps(steps: MissionStepRecord[], attempted: Set<string>): Miss
   });
 }
 
+/**
+ * Did a step's own verification come back negative?
+ *
+ * Only an EXPLICIT negative counts. Most steps have no verify hook at all, and
+ * treating "no evidence gathered" as "evidence of failure" would invent
+ * failures — the mirror of the bug this guards against, and just as dishonest.
+ * Tools report either `{verified}` or `{ok}`, so both are read.
+ */
+function verificationFailed(step: MissionStepRecord): boolean {
+  const v = step.verification;
+  if (!v || typeof v !== "object") return false;
+  const r = v as { verified?: unknown; ok?: unknown };
+  return r.verified === false || r.ok === false;
+}
+
 function aggregateState(steps: MissionStepRecord[]): MissionRunState {
+  if (steps.length === 0) return "queued";
   if (steps.some((s) => s.state === "awaiting_approval")) return "awaiting_approval";
   if (steps.some((s) => s.state === "awaiting_input")) return "awaiting_input";
   if (steps.some((s) => s.state === "retrying")) return "retrying";
   if (!steps.every((s) => TERMINAL_STEP.has(s.state))) return "running";
-  const completed = steps.filter((s) => s.state === "completed" || s.state === "skipped").length;
-  const notRun = steps.length - completed;
-  if (notRun === 0) return "completed";
-  if (completed > 0) return "partial";
+
+  const settled = steps.filter((s) => s.state === "completed" || s.state === "skipped").length;
+  const ran = steps.filter((s) => s.state === "completed").length;
+  const notRun = steps.length - settled;
+
+  // "Completed" is a claim that the work happened AND held up. A step that ran
+  // but whose verification came back negative — the issue that was opened but
+  // isn't visible on the repository — is exactly the case where reporting
+  // success would be reporting it without evidence.
+  const unverified = steps.filter(verificationFailed).length;
+
+  if (notRun === 0) {
+    if (unverified > 0) return "partial";
+    // Every step skipped means nothing was actually done. Counting that as
+    // completed turns "we didn't do this" into "we did this".
+    if (ran === 0) return "partial";
+    return "completed";
+  }
+  if (settled > 0) return "partial";
   return "failed";
 }
 
