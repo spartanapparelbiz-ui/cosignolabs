@@ -23,7 +23,14 @@ export default function ConnectionsPage() {
         <Link href="/app/policies" className="font-bold underline decoration-line underline-offset-2 hover:text-ink">
           policies
         </Link>{" "}
-        allow.
+        allow. See how they fit together on the{" "}
+        <Link
+          href="/app/workspace-map"
+          className="font-bold underline decoration-line underline-offset-2 hover:text-ink"
+        >
+          workspace map
+        </Link>
+        .
       </p>
       <div className="mt-6 flex-1">
         <ConnectionsPanel />

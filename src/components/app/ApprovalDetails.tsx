@@ -9,8 +9,10 @@ import type {
 } from "@/lib/types";
 import { businessAction } from "@/lib/actionLibrary";
 import { actionRisk, requiredApproval, willBullets } from "@/lib/risk";
-import { operatorOf, extractDiff } from "@/lib/actionPresentation";
+import { operatorOf } from "@/lib/actionPresentation";
 import { sourceIdentity } from "@/lib/clarity";
+import { objectsFromAction } from "@/lib/objectView";
+import { ObjectCards } from "./ObjectCards";
 
 /**
  * The details panel — everything behind "view details", in the order a person
@@ -19,9 +21,10 @@ import { sourceIdentity } from "@/lib/clarity";
  *   what AI wants · what will change · who requested it · affected systems ·
  *   estimated impact · approval history · audit log
  *
- * Each section is a plain sentence or a short list. The raw payload is at the
- * very bottom, collapsed, because it is the only part of this panel that is
- * for an engineer — and the panel exists so nobody else has to read it.
+ * Each section is a plain sentence, a short list, or a change card. There is
+ * no payload dump anywhere in here: "what will change" shows the real objects
+ * and their before → after, and a value that can't be said in words is
+ * described rather than serialized.
  *
  * Every line is derived from resolved state (category, tier, the connection,
  * the ledger's own events). Nothing here is model prose, so no section can
@@ -64,7 +67,6 @@ const ACTOR_LABEL: Record<string, string> = {
 export function ApprovalDetails({ action, preview }: Props) {
   const [events, setEvents] = useState<ActionEventRecord[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [rawOpen, setRawOpen] = useState(false);
 
   // The history is the only part that needs a round trip, so it loads when the
   // panel opens rather than for every card in the queue.
@@ -81,7 +83,7 @@ export function ApprovalDetails({ action, preview }: Props) {
 
   const risk = actionRisk(action);
   const bullets = willBullets(action);
-  const diff = extractDiff(action.payload);
+  const objects = objectsFromAction(action);
   const where = sourceIdentity(action);
   const named = preview ? businessAction(preview.operation).name : null;
 
@@ -93,17 +95,8 @@ export function ApprovalDetails({ action, preview }: Props) {
       </Section>
 
       <Section title="what will change">
-        {diff ? (
-          <ul className="flex flex-col gap-1">
-            {diff.map((row) => (
-              <li key={row.field} className="text-xs">
-                <span className="font-bold">{row.field}</span>{" "}
-                <span className="text-ink-soft line-through decoration-ink/40">{row.before}</span>{" "}
-                <span aria-hidden="true">→</span> <span className="font-bold">{row.after}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
+        {/* The real objects, with their before → after. Never the payload. */}
+        {objects.empty ? (
           <ul className="flex flex-col gap-1">
             {bullets.map((b) => (
               <li key={b} className="text-xs">
@@ -111,6 +104,8 @@ export function ApprovalDetails({ action, preview }: Props) {
               </li>
             ))}
           </ul>
+        ) : (
+          <ObjectCards view={objects} />
         )}
       </Section>
 
@@ -168,18 +163,9 @@ export function ApprovalDetails({ action, preview }: Props) {
           This action is permanently recorded, whatever you decide. Nothing on this panel can change
           what the ledger already holds.
         </p>
-        <button
-          onClick={() => setRawOpen((v) => !v)}
-          aria-expanded={rawOpen}
-          className="mt-1.5 text-xs font-bold lowercase text-ink-soft underline underline-offset-2 hover:text-ink"
-        >
-          {rawOpen ? "hide the exact values" : "show the exact values"}
-        </button>
-        {rawOpen && (
-          <pre className="mt-2 max-h-48 overflow-auto rounded-btn bg-cream px-3 py-2.5 font-mono text-[11px] leading-relaxed text-ink shadow-well">
-            {JSON.stringify(action.payload, null, 2)}
-          </pre>
-        )}
+        {/* No payload reveal. Everything this action touches is already above,
+            as objects; a JSON dump would only be here for an engineer, and the
+            "edit values" affordance on the card already covers that need. */}
       </Section>
     </div>
   );

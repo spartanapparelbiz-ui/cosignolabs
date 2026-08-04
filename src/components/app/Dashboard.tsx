@@ -8,6 +8,8 @@ import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
 import { StarterJobs } from "@/components/app/StarterJobs";
 import { actionRisk, requiredApproval, type RiskLevel } from "@/lib/risk";
+import { statusLabel, statusOfMission } from "@/lib/status";
+import { LiveFlow } from "@/components/app/LiveFlow";
 
 /**
  * The dashboard answers ONE question: what needs my attention?
@@ -40,30 +42,17 @@ async function jsonFetch(url: string, init?: RequestInit) {
   return body;
 }
 
-/* --------- plain-language status (never technical words) --------- */
-const STATUS_LABEL: Record<MissionRecord["state"], string> = {
-  queued: "Planning",
-  running: "Working",
-  awaiting_input: "Waiting for you",
-  awaiting_approval: "Waiting for you",
-  retrying: "Working",
-  verifying: "Verifying",
-  paused: "Paused",
-  completed: "Completed",
-  partial: "Needs attention",
-  failed: "Needs attention",
-  stopped: "Paused",
-  blocked: "Needs attention",
-};
-
+/**
+ * Mission state is shown in the SAME five words as everything else — the
+ * mapping lives in lib/status so "working" can't mean one thing here and
+ * something else on a card.
+ */
 const STATUS_TONE: Record<string, string> = {
-  Planning: "bg-cream-deep text-ink-soft",
-  Working: "bg-ink text-cream",
-  "Waiting for you": "bg-signal text-ink",
-  Verifying: "bg-ink text-cream",
-  Paused: "bg-cream-deep text-ink-soft",
-  Completed: "bg-signal/20 text-ink",
-  "Needs attention": "ring-1 ring-inset ring-ink/40 text-ink",
+  working: "bg-ink text-cream",
+  waiting: "bg-cream-deep text-ink-soft",
+  needs_approval: "bg-signal text-ink",
+  failed: "ring-1 ring-inset ring-ink/40 text-ink",
+  finished: "bg-signal/20 text-ink",
 };
 
 const ACTIVE_STATES = new Set([
@@ -102,15 +91,6 @@ const PROVIDER_NAME: Record<string, string> = {
   slack: "Slack",
   notion: "Notion",
 };
-
-/** What cosigno is doing now, from the real step list (no invented progress). */
-function nowDoing(steps: MissionStepRecord[]): string | null {
-  const running = steps.find((s) => s.state === "running" || s.state === "verifying" || s.state === "retrying");
-  if (running) return running.purpose;
-  const waiting = steps.find((s) => s.state === "awaiting_approval" || s.state === "awaiting_input");
-  if (waiting) return waiting.purpose;
-  return null;
-}
 
 function timeAgo(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -324,23 +304,21 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
               ) : (
                 active.map((m) => {
                   const ms = steps[m.id] ?? [];
-                  const done = ms.filter((s) => s.state === "completed" || s.state === "skipped").length;
-                  const doing = nowDoing(ms);
-                  const label = STATUS_LABEL[m.state];
+                  const status = statusOfMission(m.state);
                   const apps = providerKeysFor(ms);
                   return (
                     <div key={m.id} className={CARD}>
                       <div className="flex items-start justify-between gap-3">
                         <p className="min-w-0 text-base font-extrabold">{m.goal}</p>
-                        <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-bold ${STATUS_TONE[label]}`}>
-                          {label}
+                        <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-bold ${STATUS_TONE[status]}`}>
+                          {statusLabel(status)}
                         </span>
                       </div>
-                      {doing && <p className="mt-1.5 text-sm text-ink-soft">{doing}</p>}
+                      {/* Watch it move, rather than read that it moved. */}
+                      <LiveFlow steps={ms} />
                       {ms.length > 0 && (
-                        <p className="mt-2 text-sm font-bold text-ink">
-                          {done} of {ms.length} steps complete
-                          <span className="font-semibold text-ink-soft"> · running {timeAgo(m.created_at).replace(" ago", "")}</span>
+                        <p className="mt-1.5 text-xs text-ink-soft">
+                          running {timeAgo(m.created_at).replace(" ago", "")}
                         </p>
                       )}
                       <div className="mt-3 flex items-center justify-between gap-3">

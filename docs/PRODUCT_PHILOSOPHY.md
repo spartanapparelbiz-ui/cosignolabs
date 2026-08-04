@@ -143,6 +143,65 @@ nobody made is not a connection. Each row shows what it asked for, how much
 cleared automatically, how much waited for a person, how much policy blocked,
 and the riskiest thing it has ever requested — the peak, not the average.
 
+## Visual results, not logs
+
+Cosigno should feel like watching work happen, not like reading about it.
+
+**Real objects, never statistics, never JSON** (`src/lib/objectView.ts`).
+"Updated 14 records" tells nobody anything. The change cards show the thing
+that changed:
+
+```
+Product · Hydro Bottle    2 details updated
+Price     $22.00 → $26.00
+Status    draft  → published
+```
+
+The hard rule, unit-proven in `tests/object-view.test.ts`: nothing emits JSON,
+a brace, or a raw key. Money reads as money, dates as dates, booleans as
+yes/no, a nested object is described in words, and anything matching a secret
+name renders as `hidden` and never reaches the client's DOM at all. Where a
+payload carries nothing describable, the view reports itself EMPTY and the
+caller shows the action's own sentence — there is deliberately no payload
+fallback, because a JSON dump is exactly what this replaces.
+
+The two payload dumps that existed — the activity expansion and the details
+panel — are gone.
+
+**Five statuses, and only five** (`src/lib/status.ts`): working · waiting ·
+needs approval · failed · finished. Mission states like "queued", "verifying"
+and "retrying" are engine states, and the engine is not what a person is
+looking at, so they collapse onto the five. `finished` covers both "it ran" and
+"you rejected it" — that's the lifecycle; the timeline's ✓/✕ carries the
+outcome, and conflating the two is how a product ends up with a sixth status.
+
+**Live Flow** on every in-progress task: done steps filled and checked, the
+current step pulsing, the rest grey, with one sentence underneath saying where
+the work actually is. It replaced "3 of 7 steps complete", which is a number
+about work rather than a picture of it.
+
+## The Workspace Map
+
+The node-graph explorer is deleted — the radial SVG, the zoom, the pan, all of
+it. Drawing a graph as a graph produces a spiderweb: every system tangled to
+every other, and nobody looks at that and knows what their AI works with.
+
+The map is a line, left to right, in the order work flows:
+
+```
+GitHub → Stripe → Salesforce → Slack
+```
+
+Two rules keep it readable (`tests/workspace-map.test.ts`): one box per
+connected SYSTEM, never one per object or operation; and an arrow only where
+two neighbours genuinely share a business object. A system's full set of
+relationships is still available when you open it — it just isn't drawn as
+lines. If a map needs a zoom control, it has stopped being a map.
+
+Clicking a box opens what is inside it: the objects it holds (with "not synced"
+wherever cosigno hasn't observed them), and what AI can do there, grouped into
+reads, changes and deletes.
+
 ## The test
 
 For every feature: can someone understand this in ten seconds? Would a

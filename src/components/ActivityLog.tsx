@@ -14,6 +14,8 @@ const ReceiptModal = dynamic(() =>
   import("./sign/ReceiptModal").then((m) => m.ReceiptModal)
 );
 import { EmptyIllustration } from "./EmptyIllustration";
+import { objectsFromAction } from "@/lib/objectView";
+import { ObjectCards } from "./app/ObjectCards";
 
 /**
  * Activity — "what has AI already done?"
@@ -55,6 +57,12 @@ function outcomeOf(a: ActionRecord): { mark: "done" | "stopped" | "waiting" | "r
     default:
       return { mark: "waiting", line: "waiting for you" };
   }
+}
+
+/** The execution's own sentence, when it left one. */
+function resultSentence(a: ActionRecord): string | null {
+  const summary = a.result?.summary;
+  return typeof summary === "string" && summary.trim() ? summary.trim() : null;
 }
 
 function when(iso: string): string {
@@ -218,9 +226,11 @@ export function ActivityLog() {
 
                   {open && (
                     <div className="pb-3 pl-9">
-                      <pre className="max-h-48 overflow-auto rounded-btn bg-cream-deep p-2.5 font-mono text-[10px] leading-relaxed text-ink">
-                        {JSON.stringify({ payload: a.payload, result: a.result }, null, 2)}
-                      </pre>
+                      {/* The objects this touched — never the payload. */}
+                      <ObjectCards
+                        view={objectsFromAction(a)}
+                        fallback={resultSentence(a) ?? "Nothing was changed by this."}
+                      />
                       {a.status === "executed" && (
                         <button
                           onClick={() => setReceiptFor(a.id)}
