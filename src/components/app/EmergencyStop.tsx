@@ -42,8 +42,23 @@ export function EmergencyStop() {
       const d = (e as CustomEvent<{ scope?: Scope }>).detail;
       if (d?.scope) setScope(d.scope);
     };
+    // A hold set anywhere else — the control page, another tab, a second
+    // device — must reach this button. Mounting once is not enough: a control
+    // that reads "Stop" while everything is frozen tells the operator work is
+    // flowing when it isn't, which is the one lie this button must never tell.
+    // Re-checking on focus/visibility covers every one of those paths without
+    // polling a request every few seconds forever.
+    const recheck = () => {
+      if (document.visibilityState === "visible") load();
+    };
     window.addEventListener("cosigno:hold-changed", onChanged);
-    return () => window.removeEventListener("cosigno:hold-changed", onChanged);
+    window.addEventListener("focus", recheck);
+    document.addEventListener("visibilitychange", recheck);
+    return () => {
+      window.removeEventListener("cosigno:hold-changed", onChanged);
+      window.removeEventListener("focus", recheck);
+      document.removeEventListener("visibilitychange", recheck);
+    };
   }, [load]);
 
   // Auto-disarm: never leave a live stop button armed under the cursor.
