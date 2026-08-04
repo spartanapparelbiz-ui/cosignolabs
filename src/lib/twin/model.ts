@@ -30,6 +30,8 @@ export type Mutation = "read" | "create" | "update" | "delete";
 export interface TwinOperation {
   /** Provider-scoped action id, e.g. "create_issue". */
   id: string;
+  /** Declared parameters, or undefined when the connector declared none. */
+  inputs?: DeclaredInput[];
   /** Derived verb. */
   mutation: Mutation;
   summary: string;
@@ -140,10 +142,24 @@ export function categoryFor(mutation: Mutation, resource: string): ActionCategor
   return "update_record";
 }
 
+/** One parameter an operation declares. */
+export interface DeclaredInput {
+  name: string;
+  required: boolean;
+  type: "text" | "number" | "boolean" | "list" | "object" | "unknown";
+  description?: string;
+}
+
 export interface RawAction {
   id: string;
   summary: string;
   mutates: boolean;
+  /**
+   * Parameters the connector ACTUALLY declares (an MCP input schema, a custom
+   * connector's path placeholders). Absent means the connector never said —
+   * which is different from "takes nothing", and the two must not be confused.
+   */
+  inputs?: DeclaredInput[];
 }
 
 /**
@@ -175,6 +191,7 @@ export function buildTwin(input: {
 
     const op: TwinOperation = {
       id: a.id,
+      inputs: a.inputs,
       mutation,
       summary: a.summary,
       mutates: a.mutates,

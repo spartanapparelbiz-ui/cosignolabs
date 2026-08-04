@@ -1,4 +1,5 @@
 import type { WorkspaceGraph } from "./graph";
+import type { ActionSpec, CoverageReport } from "./actionSpec";
 
 /**
  * The Workspace Map — the graph, laid out as something a person can read.
@@ -36,6 +37,10 @@ export interface MapAction {
 }
 
 export interface MapSystem {
+  /** Every action in the universal shape, so a box opens into real detail. */
+  specs?: ActionSpec[];
+  /** How much of this connection cosigno can verify and undo. */
+  coverage?: CoverageReport;
   /** Connector node id from the graph. */
   id: string;
   connector: string;

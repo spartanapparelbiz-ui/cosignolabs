@@ -1,7 +1,51 @@
 import { getStore } from "@/lib/store";
 import { getProvider, listProviders } from "@/lib/integrations/registry";
 import type { ConnectionRecord, CustomApiConfig } from "@/lib/integrations/types";
-import { buildTwin, type DigitalTwin, type RawAction } from "./model";
+import { buildTwin, type DeclaredInput, type DigitalTwin, type RawAction } from "./model";
+
+/**
+ * Read an MCP tool's declared input schema. Only JSON-Schema shapes the server
+ * actually sent are reported: an absent or unreadable schema yields undefined,
+ * which the action model renders as "this connector didn't declare its
+ * inputs" — never as "takes nothing".
+ */
+function inputsFromSchema(schema: Record<string, unknown> | null | undefined): DeclaredInput[] | undefined {
+  const properties = schema?.properties;
+  if (!properties || typeof properties !== "object" || Array.isArray(properties)) return undefined;
+  const required = new Set(
+    Array.isArray(schema?.required) ? (schema.required as unknown[]).filter((r): r is string => typeof r === "string") : []
+  );
+
+  return Object.entries(properties as Record<string, unknown>).map(([name, raw]) => {
+    const def = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+    const declared = typeof def.type === "string" ? def.type : "";
+    const type: DeclaredInput["type"] =
+      declared === "string"
+        ? "text"
+        : declared === "number" || declared === "integer"
+          ? "number"
+          : declared === "boolean"
+            ? "boolean"
+            : declared === "array"
+              ? "list"
+              : declared === "object"
+                ? "object"
+                : "unknown";
+    return {
+      name,
+      required: required.has(name),
+      type,
+      description: typeof def.description === "string" ? def.description : undefined,
+    };
+  });
+}
+
+/** A custom connector's path placeholders are its declared parameters. */
+function inputsFromPath(path: string): DeclaredInput[] | undefined {
+  const matches = [...path.matchAll(/\{([a-zA-Z0-9_]+)\}/g)].map((m) => m[1]);
+  if (matches.length === 0) return undefined;
+  return matches.map((name) => ({ name, required: true, type: "text" as const }));
+}
 
 /**
  * Collect every digital twin for a user, in one place.
@@ -38,6 +82,7 @@ function customActions(conn: ConnectionRecord): RawAction[] {
     summary: a.summary,
     // A read is the only class that changes nothing; everything else mutates.
     mutates: a.risk !== "read",
+    inputs: inputsFromPath(a.path ?? ""),
   }));
 }
 
@@ -74,6 +119,7 @@ export async function collectTwins(
             summary: t.description || t.name,
             // Unknown side effects are assumed consequential.
             mutates: t.sensitive !== false,
+            inputs: inputsFromSchema(t.input_schema),
           })),
         }),
         connection_id: c.id,

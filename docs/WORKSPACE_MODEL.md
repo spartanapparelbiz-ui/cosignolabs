@@ -203,3 +203,44 @@ What is **not** here, stated plainly rather than stubbed:
 - **Streaming/webhook ingestion.** Sync *modes* are modelled and reported
   honestly; the ingestion plumbing itself is not part of this increment, which
   is why every connector's freshness is shown rather than assumed.
+
+## The Universal Action Model
+
+A user should never have to ask "can cosigno do this?" — only "can the
+connected system do this?". That only holds if every action, from every kind of
+connection, describes itself in the same shape. `actionSpec.ts` produces that
+shape for a first-party provider, an MCP server, and an API somebody imported
+ten minutes ago, identically:
+
+| Field | Where it comes from |
+| --- | --- |
+| Name | the Action Library — one name per capability, everywhere |
+| Description | the connector's own summary |
+| Inputs | an MCP input schema, or a custom connector's path parameters |
+| Expected result | the mutation class |
+| Permissions | the canonical permission model |
+| Risk + why | the four-level risk module |
+| Approval | the tier the server assigned |
+| Validation | required inputs, tier floors, reversibility, standing policy |
+| Success criteria | the mutation class — always about the outcome |
+| **Verification** | the read operation on that resource that would confirm it |
+| Rollback | the rollback engine's real inverse operation |
+
+Two properties carry the weight:
+
+**`inputs_declared` is a field.** "This connector didn't declare its inputs" is
+a real answer, and it is not the same as "this action takes nothing". A model
+that renders the second when it means the first invites someone to approve a
+call with no idea what it will send.
+
+**Verification names the operation.** Completion means the outcome happened,
+not that a request was accepted, so every write carries the read that would
+prove it: *"cosigno runs list_products afterwards and confirms the product
+carries the new values."* Where the connector exposes no way to read the object
+back, `possible: false` — and the spec says cosigno can only report that the
+request was accepted, and will say exactly that. `coverageOf` totals this per
+connection, so a user can see where the guarantees thin out before they rely on
+them rather than after.
+
+That gap is real and worth seeing: a connector with `create_refund` but no way
+to list refunds can issue money movements cosigno cannot confirm landed.

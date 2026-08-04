@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Boxes, Lock } from "lucide-react";
 import type { MapSystem, WorkspaceMap as MapData } from "@/lib/workspace-model/map";
+import type { ActionSpec } from "@/lib/workspace-model/actionSpec";
 
 /**
  * The Workspace Map — what AI works with, read left to right.
@@ -165,9 +166,11 @@ function SystemBox({
 }
 
 function SystemDetail({ system }: { system: MapSystem }) {
+  const [openAction, setOpenAction] = useState<string | null>(null);
   const reads = system.actions.filter((a) => a.risk === "read");
   const writes = system.actions.filter((a) => a.risk === "write");
   const destructive = system.actions.filter((a) => a.risk === "destructive");
+  const specOf = (id: string) => system.specs?.find((s) => s.id === id) ?? null;
 
   return (
     <section className="mt-6 rounded-card border border-line bg-surface p-5 shadow-soft">
@@ -177,6 +180,9 @@ function SystemDetail({ system }: { system: MapSystem }) {
           ? `Shares objects with ${system.shares_with.join(", ")}.`
           : "Doesn't share objects with anything else you've connected."}
       </p>
+      {system.coverage && (
+        <p className="mt-1 text-xs text-ink-soft">{system.coverage.summary}</p>
+      )}
 
       <div className="mt-5 grid gap-6 sm:grid-cols-2">
         <div>
@@ -214,21 +220,27 @@ function SystemDetail({ system }: { system: MapSystem }) {
                 <div key={word as string}>
                   <p className="text-[11px] font-bold text-ink-soft">{RISK_WORD[word as string] ?? word}</p>
                   <ul className="mt-1 flex flex-wrap gap-1.5">
-                    {actions.map((a) => (
-                      <li
-                        key={a.id}
-                        className={`inline-flex items-center gap-1 rounded-pill px-2.5 py-1 text-[11px] font-bold ${
-                          a.risk === "destructive"
-                            ? "bg-ink text-cream"
-                            : a.risk === "write"
-                              ? "bg-signal/20 text-ink"
-                              : "bg-cream-deep text-ink-soft"
-                        }`}
-                      >
-                        {!a.reversible && <Lock size={9} strokeWidth={2.6} aria-hidden="true" />}
-                        {a.label}
-                      </li>
-                    ))}
+                    {actions.map((a) => {
+                      const open = openAction === a.id;
+                      return (
+                        <li key={a.id}>
+                          <button
+                            onClick={() => setOpenAction(open ? null : a.id)}
+                            aria-expanded={open}
+                            className={`inline-flex items-center gap-1 rounded-pill px-2.5 py-1 text-[11px] font-bold transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
+                              a.risk === "destructive"
+                                ? "bg-ink text-cream"
+                                : a.risk === "write"
+                                  ? "bg-signal/20 text-ink"
+                                  : "bg-cream-deep text-ink-soft"
+                            } ${open ? "ring-2 ring-signal" : ""}`}
+                          >
+                            {!a.reversible && <Lock size={9} strokeWidth={2.6} aria-hidden="true" />}
+                            {a.label}
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               );
@@ -239,6 +251,82 @@ function SystemDetail({ system }: { system: MapSystem }) {
           </div>
         </div>
       </div>
+
+      {openAction && <ActionDetail spec={specOf(openAction)} />}
     </section>
+  );
+}
+
+/**
+ * One action, in the universal shape — the same nine answers whichever kind of
+ * system it came from. Every line is derived from what the connector actually
+ * declared, so "not declared" is a real answer rather than a blank.
+ */
+function ActionDetail({ spec }: { spec: ActionSpec | null }) {
+  if (!spec) {
+    return (
+      <p className="mt-5 rounded-btn bg-cream-deep/60 px-4 py-3 text-sm text-ink-soft">
+        cosigno hasn&apos;t modelled this action in detail yet.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-5 rounded-card border border-line bg-cream/40 p-4">
+      <p className="text-base font-bold">{spec.name}</p>
+      <p className="mt-0.5 text-sm text-ink-soft">{spec.description}</p>
+
+      <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Fact label="needs">
+          {spec.inputs_declared ? (
+            spec.inputs.length === 0 ? (
+              <span>nothing</span>
+            ) : (
+              <ul className="flex flex-col gap-0.5">
+                {spec.inputs.map((i) => (
+                  <li key={i.name}>
+                    {i.label}
+                    {i.required ? "" : " (optional)"}
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : (
+            <span className="text-ink-soft">
+              This connector didn&apos;t declare its inputs, so cosigno can&apos;t list them.
+            </span>
+          )}
+        </Fact>
+        <Fact label="produces">{spec.expected_result}</Fact>
+        <Fact label="risk">
+          {spec.risk} — {spec.risk_because}
+        </Fact>
+        <Fact label="approval">{spec.approval}</Fact>
+        <Fact label="permission">{spec.permissions.join(", ")}</Fact>
+        <Fact label="done means">{spec.success_criteria}</Fact>
+        <Fact label="verified by">{spec.verification.how}</Fact>
+        <Fact label="undo">{spec.rollback.how}</Fact>
+      </dl>
+
+      <div className="mt-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-ink-soft">before it runs</p>
+        <ul className="mt-1 flex flex-col gap-0.5">
+          {spec.validation.map((rule) => (
+            <li key={rule} className="text-xs text-ink-soft">
+              {rule}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-[10px] font-black uppercase tracking-[0.18em] text-ink-soft">{label}</dt>
+      <dd className="mt-0.5 text-xs font-semibold">{children}</dd>
+    </div>
   );
 }

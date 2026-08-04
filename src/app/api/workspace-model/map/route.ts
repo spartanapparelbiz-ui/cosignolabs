@@ -3,6 +3,7 @@ import { errorResponse, requireUser } from "@/lib/api";
 import { collectTwins } from "@/lib/twin/collect";
 import { buildGraph } from "@/lib/workspace-model/graph";
 import { buildMap } from "@/lib/workspace-model/map";
+import { coverageOf, describeConnection } from "@/lib/workspace-model/actionSpec";
 
 /**
  * GET /api/workspace-model/map — the Workspace Map.
@@ -22,7 +23,18 @@ export async function GET() {
   try {
     const userId = await requireUser();
     const collected = await collectTwins(userId);
-    const map = buildMap(buildGraph(collected.map((c) => c.twin)));
+    const twins = collected.map((c) => c.twin);
+    const map = buildMap(buildGraph(twins));
+
+    // Each box opens into the universal action model for that system: what
+    // every action needs, what it would produce, and whether cosigno can
+    // verify or undo it.
+    const byKey = new Map(twins.map((t) => [t.connection_key, t]));
+    map.systems = map.systems.map((system) => {
+      const twin = byKey.get(system.connector);
+      if (!twin) return system;
+      return { ...system, specs: describeConnection(twin), coverage: coverageOf(twin) };
+    });
 
     return NextResponse.json(
       {
