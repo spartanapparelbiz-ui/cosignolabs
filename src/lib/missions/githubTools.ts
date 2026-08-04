@@ -118,8 +118,10 @@ const listRepos: MissionTool = {
 
     return {
       kind: "ok",
+      // Name them. "read 5 repositories" answers a question nobody asked —
+      // the goal was to SEE the list, and the names are already in hand.
       summary: repos.length
-        ? `read ${repos.length} of your most recently pushed repositories.`
+        ? `your ${repos.length} most recently pushed repositories: ${repos.join(", ")}.`
         : "your GitHub account has no repositories cosigno can see.",
       output: { repos },
       sources: [
@@ -156,7 +158,9 @@ const listIssues: MissionTool = {
 
     return {
       kind: "ok",
-      summary: `read ${issues.length} open issue${issues.length === 1 ? "" : "s"} in ${repo}.`,
+      summary: issues.length
+        ? `${issues.length} open issue${issues.length === 1 ? "" : "s"} in ${repo}: ${issues.join("; ")}.`
+        : `${repo} has no open issues.`,
       output: { repo, issues, injection_flagged: flagged },
       sources: [{ name: "GitHub", detail: `${repo} · open issues`, simulated: false }],
     };
