@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ActionRecord, SignatureRecord } from "@/lib/types";
+import type { ActionPreview, ActionRecord, SignatureRecord } from "@/lib/types";
 import { ActionCard, type ApproveOpts } from "@/components/ActionCard";
 import { SkeletonCard } from "@/components/Skeleton";
 import { EmptyIllustration } from "@/components/EmptyIllustration";
@@ -25,10 +25,17 @@ async function jsonFetch(url: string, init?: RequestInit) {
   return body;
 }
 
-export function DecisionInbox({ initial }: { initial?: ActionRecord[] }) {
+/**
+ * An action plus what the Workspace Model says about it. The preview is
+ * optional everywhere: it explains, it never gates, so a card renders exactly
+ * as before when the model has nothing to say.
+ */
+export type ActionWithPreview = ActionRecord & { preview?: ActionPreview };
+
+export function DecisionInbox({ initial }: { initial?: ActionWithPreview[] }) {
   // When the server prefetched the queue it renders on first paint; the
   // mount load() below then revalidates in the background (SWR).
-  const [actions, setActions] = useState<ActionRecord[] | null>(initial ?? null);
+  const [actions, setActions] = useState<ActionWithPreview[] | null>(initial ?? null);
   const [saved, setSaved] = useState<SignatureRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [displayName] = useDisplayName();
@@ -167,6 +174,7 @@ export function DecisionInbox({ initial }: { initial?: ActionRecord[] }) {
         <ActionCard
           key={a.id}
           action={a}
+          preview={a.preview}
           index={i}
           savedSignature={saved}
           signerName={displayName.trim() || "Operator"}

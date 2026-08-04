@@ -6,6 +6,7 @@ import {
   Banknote,
   ChevronDown,
   Database,
+  Lock,
   Megaphone,
   Pencil,
   PenLine,
@@ -19,7 +20,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import type { ActionCategory, ActionRecord, SignatureRecord } from "@/lib/types";
+import type { ActionCategory, ActionPreview, ActionRecord, SignatureRecord } from "@/lib/types";
 import { CREAM } from "@/lib/brand";
 import {
   effectLine,
@@ -30,6 +31,7 @@ import {
   operatorOf,
 } from "@/lib/actionPresentation";
 import { afterApprovalLine, approveLabel, beforeApprovalLine } from "@/lib/clarity";
+import { actionRisk, requiredApproval, willBullets, type RiskLevel } from "@/lib/risk";
 import { signRequired } from "@/lib/sign";
 import dynamic from "next/dynamic";
 import { TierBadge } from "./TierBadge";
@@ -52,6 +54,12 @@ export interface ApproveOpts {
 
 interface Props {
   action: ActionRecord;
+  /**
+   * What the Workspace Model says about this action — chiefly whether it can
+   * be undone, and by which real operation. Optional everywhere: it explains,
+   * it never gates, so the card renders exactly as before without it.
+   */
+  preview?: ActionPreview;
   /** Stack position — used to stagger the entrance animation. */
   index?: number;
   /** Show the a/v keyboard-shortcut footer (account preference). */
@@ -75,7 +83,7 @@ const STATUS_LABEL: Record<ActionRecord["status"], string> = {
   executing: "executing…",
   executed: "executed",
   failed: "failed",
-  vetoed: "vetoed",
+  vetoed: "rejected",
 };
 
 /** Category glyphs — every card answers "what kind of thing is this" at a glance. */
@@ -100,6 +108,25 @@ const CHIP_STYLE: Record<string, string> = {
   external: "text-ink ring-1 ring-inset ring-ink/30",
   permanent: "bg-ink text-cream",
 };
+
+/** Four levels, and only four. The reason always travels with the badge. */
+const RISK_STYLE: Record<RiskLevel, string> = {
+  low: "bg-cream-deep text-ink-soft",
+  medium: "bg-ink/5 text-ink ring-1 ring-inset ring-ink/20",
+  high: "bg-signal/20 text-ink ring-1 ring-inset ring-signal/50",
+  critical: "bg-ink text-cream",
+};
+
+function RiskBadge({ level }: { level: RiskLevel }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide ${RISK_STYLE[level]}`}
+    >
+      {level === "critical" && <Lock size={10} strokeWidth={2.5} aria-hidden="true" />}
+      {level} risk
+    </span>
+  );
+}
 
 const INJECTION_TOOLTIP =
   "external content tried to direct this action, so approval is locked. re-issue the command yourself if you want this done.";
@@ -147,6 +174,7 @@ function timeOf(iso: string | null): string {
 
 function ActionCardInner({
   action,
+  preview,
   index = 0,
   showKeyHints = false,
   savedSignature = null,
@@ -178,6 +206,11 @@ function ActionCardInner({
 
   const Glyph = CATEGORY_GLYPH[action.category] ?? PenLine;
   const effect = effectLine(action);
+  // Four words and a reason — the whole risk story a person needs before
+  // clicking. Presentation only; the engine's decision is already made.
+  const riskView = actionRisk(action);
+  const approvalNeeded = requiredApproval(action);
+  const bullets = willBullets(action);
   const chips = impactChips(action);
   const diff = extractDiff(action.payload);
   const result = resultPreview(action.result);
@@ -314,21 +347,26 @@ function ActionCardInner({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <TierBadge tier={action.tier} />
+            {/* A pending card leads with the RISK, in one of four words. The
+                tier badge stays on resolved cards, where the question is what
+                authority was used rather than how dangerous this is. */}
+            {pending ? <RiskBadge level={riskView.level} /> : <TierBadge tier={action.tier} />}
             <span className="rounded-pill bg-ink/5 px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide text-ink-soft ring-1 ring-inset ring-ink/15">
               {operatorOf(action.category)} operator
             </span>
-            <span
-              className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide ${
-                action.status === "executed"
-                  ? "bg-signal text-cream"
-                  : action.status === "vetoed" || action.status === "failed"
-                    ? "ring-1 ring-inset ring-ink/40 text-ink"
-                    : "bg-cream-deep text-ink-soft"
-              }`}
-            >
-              {STATUS_LABEL[action.status]}
-            </span>
+            {!pending && (
+              <span
+                className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide ${
+                  action.status === "executed"
+                    ? "bg-signal text-cream"
+                    : action.status === "vetoed" || action.status === "failed"
+                      ? "ring-1 ring-inset ring-ink/40 text-ink"
+                      : "bg-cream-deep text-ink-soft"
+                }`}
+              >
+                {STATUS_LABEL[action.status]}
+              </span>
+            )}
             <span className="ml-auto text-[11px] text-ink-soft">
               {timeOf(action.resolved_at ?? action.created_at)}
             </span>
@@ -341,18 +379,45 @@ function ActionCardInner({
               </button>
             )}
           </div>
-          <p className="mt-2 text-[15px] font-semibold leading-snug">{action.summary}</p>
-          <p
-            className={`mt-1 text-xs ${
-              risk.grade === "permanent"
-                ? "font-bold text-ink"
-                : "font-semibold text-ink-soft"
-            }`}
-          >
-            {effect}
+
+          {/* "cosigno wants to — <the thing>". The ask comes first, in the
+              largest type on the card, because that is the only sentence a
+              user must read to make the decision. */}
+          {pending && (
+            <p className="mt-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-ink-soft">
+              cosigno wants to
+            </p>
+          )}
+          <p className={`${pending ? "mt-1 text-[17px]" : "mt-2 text-[15px]"} font-semibold leading-snug`}>
+            {action.summary}
           </p>
+          {!pending && (
+            <p
+              className={`mt-1 text-xs ${
+                risk.grade === "permanent" ? "font-bold text-ink" : "font-semibold text-ink-soft"
+              }`}
+            >
+              {effect}
+            </p>
+          )}
         </div>
       </header>
+
+      {/* WILL — the concrete consequences, one per line. Derived from the
+          action's resolved category and payload, never from model prose. */}
+      {pending && (
+        <div className="mt-3 pl-12">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-ink-soft">will</p>
+          <ul className="mt-1.5 flex flex-col gap-1">
+            {bullets.map((b) => (
+              <li key={b} className="flex items-start gap-2 text-sm font-semibold leading-snug">
+                <span className="mt-[7px] h-1 w-1 shrink-0 rounded-pill bg-ink" aria-hidden="true" />
+                {b}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* what it touches */}
       <div className="mt-2.5 flex flex-wrap gap-1.5 pl-12">
@@ -366,12 +431,42 @@ function ActionCardInner({
         ))}
       </div>
 
+      {/* Why this risk, and who has to say yes. Two lines, no scoring. */}
+      {pending && !flagged && (
+        <dl className="mt-3 grid gap-1.5 pl-12 text-sm sm:grid-cols-[88px_1fr]">
+          <dt className="text-[11px] font-black uppercase tracking-wider text-ink-soft sm:pt-0.5">risk</dt>
+          <dd className="font-semibold text-ink-soft">{riskView.because}</dd>
+          <dt className="text-[11px] font-black uppercase tracking-wider text-ink-soft sm:pt-0.5">approval</dt>
+          <dd className="font-semibold text-ink-soft">{approvalNeeded}</dd>
+          {preview && !preview.unknown_operation && (
+            <>
+              <dt className="text-[11px] font-black uppercase tracking-wider text-ink-soft sm:pt-0.5">undo</dt>
+              <dd
+                className={`font-semibold ${preview.undo_support === "none" ? "text-ink" : "text-ink-soft"}`}
+              >
+                {preview.undo}
+              </dd>
+            </>
+          )}
+        </dl>
+      )}
+
       {/* the two truths every approval needs: what has already happened,
           and what will happen the moment it's approved. */}
       {pending && !flagged && (
         <p className="mt-2 pl-12 text-[11px] font-semibold text-ink-soft">
           {beforeApprovalLine(action.category)} {afterApprovalLine(action.category)}
         </p>
+      )}
+
+      {/* The model no longer recognizes what this card proposes — the capability
+          was withdrawn, or the connection is gone. Say so before anyone approves
+          something that cannot run as described. */}
+      {pending && preview?.unknown_operation && (
+        <div className="mt-3 flex items-start gap-1.5 rounded-btn px-2.5 py-2 text-[11px] font-bold leading-snug text-ink ring-1 ring-inset ring-ink/40">
+          <ShieldAlert size={13} strokeWidth={2.5} className="mt-px shrink-0" aria-hidden="true" />
+          {preview.undo}
+        </div>
       )}
 
       {flagged && (
@@ -401,6 +496,18 @@ function ActionCardInner({
           />
           {detailsOpen ? "hide details" : "view details"}
         </button>
+        {/* Editing the exact values is a details-level concern: the footer
+            keeps one primary action and one secondary action, nothing else. */}
+        {pending && mode !== "edit" && (
+          <button
+            onClick={() => setMode("edit")}
+            disabled={busy}
+            className="ml-3 inline-flex items-center gap-1 text-xs font-bold lowercase text-ink-soft underline underline-offset-2 disabled:opacity-50"
+          >
+            <Pencil size={11} strokeWidth={2.5} aria-hidden="true" />
+            edit values
+          </button>
+        )}
         <Collapse open={detailsOpen && mode !== "edit"}>
           {diff ? (
             <div className="mt-2 overflow-hidden rounded-btn bg-cream-deep shadow-well">
@@ -520,7 +627,7 @@ function ActionCardInner({
       )}
 
       {action.status === "vetoed" && action.veto_reason && (
-        <p className="mt-3 text-xs text-ink-soft">veto reason: {action.veto_reason}</p>
+        <p className="mt-3 text-xs text-ink-soft">rejected because: {action.veto_reason}</p>
       )}
 
       {error && (
@@ -575,21 +682,13 @@ function ActionCardInner({
               )}
             </button>
           </span>
-          <button
-            onClick={() => setMode("edit")}
-            disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-btn px-4 py-2 text-sm font-bold text-ink-soft transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Pencil size={13} strokeWidth={2.5} aria-hidden="true" />
-            edit
-          </button>
           {mode !== "veto" ? (
             <button
               onClick={() => setMode("veto")}
               disabled={busy}
               className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              veto
+              reject
             </button>
           ) : (
             <span className="flex w-full items-center gap-2 sm:w-auto">
@@ -598,7 +697,7 @@ function ActionCardInner({
                 onChange={(e) => setVetoReason(e.target.value)}
                 placeholder="why? (logged)"
                 className="w-40 rounded-btn bg-cream-deep px-3 py-1.5 text-xs"
-                aria-label="veto reason"
+                aria-label="reason for rejecting"
               />
               <button
                 onClick={() =>
@@ -609,7 +708,7 @@ function ActionCardInner({
                 disabled={busy}
                 className="rounded-btn bg-ink px-4 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
-                confirm veto
+                confirm rejection
               </button>
             </span>
           )}
@@ -620,7 +719,7 @@ function ActionCardInner({
         <p className="mt-2 text-[10px] font-bold lowercase tracking-wide text-ink-soft/70">
           focus a card, then press{" "}
           <kbd className="rounded bg-cream-deep px-1 font-mono">a</kbd> to approve ·{" "}
-          <kbd className="rounded bg-cream-deep px-1 font-mono">v</kbd> to veto
+          <kbd className="rounded bg-cream-deep px-1 font-mono">v</kbd> to reject
         </p>
       )}
 
@@ -659,6 +758,7 @@ export const ActionCard = memo(
   ActionCardInner,
   (prev, next) =>
     prev.action === next.action &&
+    prev.preview === next.preview &&
     prev.index === next.index &&
     prev.showKeyHints === next.showKeyHints &&
     prev.savedSignature === next.savedSignature &&

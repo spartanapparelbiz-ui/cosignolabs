@@ -163,6 +163,33 @@ export function sourceIdentity(action: Pick<A, "category" | "payload">): SourceI
   }
 }
 
+/* ------------------------------------------------- policy language */
+
+/**
+ * What a category MEANS, phrased as something cosigno can do rather than as a
+ * system noun. A policy page has to read like a sentence an operations manager
+ * would say out loud ("cosigno can send email on your behalf"), not like a
+ * schema enum ("send_email: tier 2").
+ */
+const CAPABILITY: Record<ActionCategory, string> = {
+  search: "look things up in your connected tools",
+  summarize: "read and summarize content",
+  draft: "write drafts and save them",
+  send_email: "send email on your behalf",
+  post_content: "publish or post content",
+  update_record: "change data in a connected tool",
+  spend: "spend money under your cap",
+  webhook: "call an outside system",
+  delete: "delete data",
+  refund: "refund a customer",
+  payment: "move money out of your accounts",
+  connection_call: "run an action in a connected app",
+};
+
+export function capabilitySentence(category: ActionCategory): string {
+  return CAPABILITY[category] ?? "act in a connected tool";
+}
+
 /* ------------------------------------------------- approval language */
 
 /** Action-specific approval labels — never a bare "approve"/"confirm". */

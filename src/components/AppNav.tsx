@@ -4,17 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-// The seven everyday pages. Advanced surfaces (memory, team, health) are
-// reachable from the account/settings menu, not the main nav — the dashboard
-// stays about the four simple questions.
+// The seven destinations, in the same order as the rail — one question each.
+// Anything else is a detail inside one of them, reachable from in-page links,
+// never from the shell.
 const LINKS = [
-  { href: "/app", label: "home" },
-  { href: "/app/missions", label: "missions" },
+  { href: "/app", label: "dashboard" },
   { href: "/app/approvals", label: "approvals" },
-  { href: "/app/automations", label: "automations" },
-  { href: "/app/connections", label: "connections" },
-  { href: "/app/files", label: "files" },
   { href: "/app/activity", label: "activity" },
+  { href: "/app/policies", label: "policies" },
+  { href: "/app/connections", label: "connections" },
+  { href: "/app/agents", label: "agents" },
+  { href: "/app/settings", label: "settings" },
 ];
 
 function activeIndex(pathname: string): number {

@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * with a status flag. Errors never expose provider detail.
  */
 function back(status: string): NextResponse {
-  return NextResponse.redirect(`${appUrl()}/app/account?tab=integrations&status=${status}`);
+  return NextResponse.redirect(`${appUrl()}/app/connections?status=${status}`);
 }
 
 export async function GET(
