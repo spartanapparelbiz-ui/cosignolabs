@@ -15,9 +15,16 @@ import { formatReport, runTicks } from "../../src/lib/cron/dispatch.ts";
  * why this function refuses to run without it rather than falling back to
  * anything weaker.
  *
- * Runs every minute. Both ticks are internally bounded (missions process a
- * fixed batch per pass), so a minute is comfortably longer than a pass takes
- * and overlapping invocations are not a concern.
+ * Runs every 5 minutes, and the interval is a COST decision as much as a
+ * latency one. At one minute this function alone is ~43k invocations/month,
+ * and each pass calls two API routes that are themselves functions — ~130k
+ * total, past Netlify's 125k free-tier allowance. Exhausting that budget
+ * doesn't degrade the scheduler; it takes the whole site down with it, which
+ * is a spectacularly bad trade for four minutes of mission latency.
+ *
+ * Five minutes puts it near 26k/month with room for everything else. Both
+ * ticks are internally bounded (missions process a fixed batch per pass), so
+ * overlapping invocations are not a concern at any of these intervals.
  */
 
 export default async () => {
@@ -38,5 +45,5 @@ export default async () => {
 
 export const config = {
   name: "cosigno-scheduled-tick",
-  schedule: "* * * * *",
+  schedule: "*/5 * * * *",
 };
