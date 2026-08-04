@@ -21,7 +21,8 @@
  */
 
 import type { DigitalTwin, Mutation, TwinOperation } from "@/lib/twin/model";
-import { canonicalize, businessActionName, permissionFor, type CanonicalType } from "./canonical";
+import { canonicalize, permissionFor, type CanonicalType } from "./canonical";
+import { businessAction } from "@/lib/actionLibrary";
 
 export type NodeKind = "workspace" | "connector" | "resource" | "operation" | "permission";
 
@@ -193,7 +194,7 @@ export function buildGraph(twins: DigitalTwin[], now = new Date().toISOString())
         addNode({
           id: opId,
           kind: "operation",
-          label: businessActionName(op.id),
+          label: businessAction(op.id).name,
           connector: twin.connection_key,
           canonical: canonical.type,
           domain: canonical.domain,

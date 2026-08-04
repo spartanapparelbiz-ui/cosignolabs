@@ -165,8 +165,22 @@ payload carries nothing describable, the view reports itself EMPTY and the
 caller shows the action's own sentence — there is deliberately no payload
 fallback, because a JSON dump is exactly what this replaces.
 
-The two payload dumps that existed — the activity expansion and the details
-panel — are gone.
+**Every payload dump is gone, and a test keeps it that way.** They kept coming
+back — the activity expansion, the details panel, a mission step's output, the
+landing page's demo card, and two JSON textareas — so `tests/no-json-in-ui.test.ts`
+now scans every `.tsx` under `src/components` and `src/app` and fails on any
+`JSON.stringify` that isn't building a request body or comparing two values,
+and on any `<pre>` holding a payload.
+
+Editing values is a field editor (`ValueEditor`), not a JSON textarea: each
+scalar becomes a labelled, typed input, and anything that can't be rendered as
+a field is shown read-only in words and passed through untouched — the editor
+changes what it can draw and never silently drops the rest.
+
+Money is only formatted as money when the payload says it is: `amount_cents`,
+or a record carrying its own `currency`. A bare `price: 40` could be dollars,
+cents, euros or credits, and stamping "$40.00" on it invents a currency and a
+scale nobody observed. On a refund card that is not a formatting bug.
 
 **Five statuses, and only five** (`src/lib/status.ts`): working · waiting ·
 needs approval · failed · finished. Mission states like "queued", "verifying"

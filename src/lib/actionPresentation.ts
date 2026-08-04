@@ -1,4 +1,5 @@
 import type { ActionCategory, ActionRecord, Tier } from "./types";
+import { formatValue } from "./objectView";
 
 /**
  * Pure presentation logic for action cards — what an action WILL do, what it
@@ -182,10 +183,15 @@ export interface DiffRow {
   after: string;
 }
 
-function display(v: unknown): string {
+/**
+ * One value, in words. Delegates to the object view so a diff row, a result
+ * item, and a change card all say the same thing about the same value — and so
+ * that NOTHING here can serialize an object into a card. A user reading
+ * `{"id":"cus_1"}` in a result is a user the interface has failed.
+ */
+function display(v: unknown, field = ""): string {
   if (v === null || v === undefined) return "—";
-  if (typeof v === "object") return JSON.stringify(v);
-  return String(v);
+  return formatValue(v, field);
 }
 
 /**
@@ -207,7 +213,7 @@ export function extractDiff(payload: Record<string, unknown>): DiffRow[] | null 
         const from = "from" in o ? o.from : "before" in o ? o.before : undefined;
         const to = "to" in o ? o.to : "after" in o ? o.after : undefined;
         if (from !== undefined || to !== undefined) {
-          rows.push({ field, before: display(from), after: display(to) });
+          rows.push({ field, before: display(from, field), after: display(to, field) });
         }
       }
     }
@@ -226,8 +232,8 @@ export function extractDiff(payload: Record<string, unknown>): DiffRow[] | null 
     const keys = [...new Set([...Object.keys(b), ...Object.keys(a)])];
     const rows = keys.map((field) => ({
       field,
-      before: display(b[field]),
-      after: display(a[field]),
+      before: display(b[field], field),
+      after: display(a[field], field),
     }));
     if (rows.length > 0) return rows;
   }
@@ -259,11 +265,7 @@ export function resultPreview(
   for (const [key, v] of Object.entries(result)) {
     if (key === "summary" || key === "error") continue;
     if (Array.isArray(v) && v.length > 0) {
-      items = v.slice(0, 5).map((item) =>
-        typeof item === "object" && item !== null
-          ? display(item).slice(0, 80)
-          : String(item).slice(0, 80)
-      );
+      items = v.slice(0, 5).map((item) => display(item, key).slice(0, 80));
       return { summary, items, more: Math.max(0, v.length - 5), simulated };
     }
   }

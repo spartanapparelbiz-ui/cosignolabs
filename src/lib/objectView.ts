@@ -53,11 +53,22 @@ export interface ObjectView {
 
 /* ------------------------------------------------------------- values */
 
-const MONEY_FIELDS = /amount|price|total|subtotal|cost|balance|fee|value/i;
 const SECRET_FIELDS = /token|secret|password|api_?key|authorization|credential/i;
 
-function money(cents: number): string {
-  return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
+/**
+ * Money is only rendered as money when the payload actually says so — a field
+ * named `*_cents`, or a record carrying its own currency. A bare `price: 40`
+ * could be dollars, cents, euros or credits, and stamping "$40.00" on it
+ * invents a currency and a scale nobody observed. Getting that wrong on a
+ * refund card is not a formatting bug.
+ */
+function money(cents: number, currency = "USD"): string {
+  try {
+    return (cents / 100).toLocaleString("en-US", { style: "currency", currency });
+  } catch {
+    // An unrecognized currency code is still real information — show it.
+    return `${(cents / 100).toLocaleString()} ${currency}`;
+  }
 }
 
 function isIsoDate(s: string): boolean {
@@ -81,15 +92,18 @@ export function fieldLabel(field: string): string {
  * booleans as yes/no — and a value we can't say in words is described, never
  * serialized.
  */
-export function formatValue(value: unknown, field = ""): string {
+export function formatValue(value: unknown, field = "", currency?: string): string {
   if (value === null || value === undefined || value === "") return "empty";
   if (typeof value === "boolean") return value ? "yes" : "no";
 
   if (SECRET_FIELDS.test(field)) return "hidden";
 
   if (typeof value === "number") {
-    if (/cents/i.test(field)) return money(value);
-    if (MONEY_FIELDS.test(field)) return money(Math.round(value * 100));
+    if (/cents/i.test(field)) return money(value, currency);
+    // A currency the record itself declared — observed, not assumed.
+    if (currency && /amount|price|total|subtotal|cost|balance|fee/i.test(field)) {
+      return money(Math.round(value * 100), currency);
+    }
     return value.toLocaleString();
   }
 
@@ -197,22 +211,33 @@ function summaryFor(changes: FieldChange[], category: ActionRecord["category"]):
   return `${changes.length} details updated`;
 }
 
+/** The currency a record declares about itself, if any. */
+function currencyOf(...records: Record<string, unknown>[]): string | undefined {
+  for (const r of records) {
+    const c = r?.currency ?? r?.currency_code;
+    if (typeof c === "string" && /^[a-z]{3}$/i.test(c.trim())) return c.trim().toUpperCase();
+  }
+  return undefined;
+}
+
 function changesFrom(before: Record<string, unknown>, after: Record<string, unknown>): FieldChange[] {
   const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter((k) => !SKIP_KEYS.has(k));
+  const currency = currencyOf(after, before);
   return keys
     .filter((k) => JSON.stringify(before[k]) !== JSON.stringify(after[k]))
     .map((k) => ({
       label: fieldLabel(k),
-      before: k in before ? formatValue(before[k], k) : null,
-      after: formatValue(after[k], k),
+      before: k in before ? formatValue(before[k], k, currency) : null,
+      after: formatValue(after[k], k, currency),
     }));
 }
 
 /** Scalar-ish fields of one object, as "set to" changes. */
 function fieldsOf(record: Record<string, unknown>): FieldChange[] {
+  const currency = currencyOf(record);
   return Object.entries(record)
     .filter(([k]) => !SKIP_KEYS.has(k) && !NAME_FIELDS.includes(k))
-    .map(([k, v]) => ({ label: fieldLabel(k), before: null, after: formatValue(v, k) }))
+    .map(([k, v]) => ({ label: fieldLabel(k), before: null, after: formatValue(v, k, currency) }))
     .filter((c) => c.after !== "empty")
     .slice(0, 6);
 }

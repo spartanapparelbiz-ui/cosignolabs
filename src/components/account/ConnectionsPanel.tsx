@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { businessAction, sortActions } from "@/lib/actionLibrary";
+import { fieldLabel, formatValue } from "@/lib/objectView";
 
 /**
  * The Connections screen: available third-party apps, the user's connected
@@ -544,20 +545,30 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
           <>
             {req && (
               <div className="mt-3 rounded-btn bg-cream-deep/60 p-3">
-                {req.method && req.url ? (
-                  <p className="break-all font-mono text-xs font-bold">
-                    <span className="text-signal">{req.method}</span> {req.url}
-                  </p>
-                ) : (
-                  <p className="text-sm font-bold">{req.description}</p>
-                )}
-                {req.keyPlacement && (
-                  <p className="mt-1 font-mono text-[10px] text-ink-soft">{req.keyPlacement}</p>
-                )}
+                {/* What it would DO, in words. The endpoint it would call is a
+                    technical detail one more click away — a dry run answers
+                    "what happens", not "what gets POSTed". */}
+                <p className="text-sm font-bold">{req.description}</p>
                 {Object.keys(req.args).length > 0 && (
-                  <pre className="mt-1.5 overflow-x-auto rounded bg-surface/70 p-2 font-mono text-[10px] text-ink-soft">
-                    {JSON.stringify(req.args, null, 2)}
-                  </pre>
+                  <dl className="mt-2 flex flex-col gap-1">
+                    {Object.entries(req.args).slice(0, 8).map(([k, v]) => (
+                      <div key={k} className="flex items-baseline gap-2 text-xs">
+                        <dt className="w-28 shrink-0 truncate text-ink-soft">{fieldLabel(k)}</dt>
+                        <dd className="min-w-0 flex-1 break-words font-semibold">{formatValue(v, k)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+                {req.method && req.url && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-[10px] font-bold lowercase text-ink-soft underline underline-offset-2">
+                      technical detail
+                    </summary>
+                    <p className="mt-1 break-all font-mono text-[10px] text-ink-soft">
+                      {req.method} {req.url}
+                      {req.keyPlacement ? ` · ${req.keyPlacement}` : ""}
+                    </p>
+                  </details>
                 )}
               </div>
             )}

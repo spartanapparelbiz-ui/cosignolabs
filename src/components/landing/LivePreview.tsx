@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { fieldLabel, formatValue } from "@/lib/objectView";
 import Link from "next/link";
 import { Lock, Pencil, ShieldAlert } from "lucide-react";
 import { CREAM } from "@/lib/brand";
@@ -365,9 +366,17 @@ export default function LivePreview() {
                       )}
 
                       <p className="mt-2 text-sm font-semibold leading-snug">{card.summary}</p>
-                      <pre className="mt-2 max-h-24 overflow-auto rounded-btn bg-cream-deep px-2.5 py-2 font-mono text-[10px] leading-relaxed shadow-well">
-                        {JSON.stringify(card.payload, null, 2)}
-                      </pre>
+                      {/* The shop window shows what the product shows: the
+                          objects, in words. A JSON block here would advertise
+                          exactly the thing cosigno exists to remove. */}
+                      <dl className="mt-2 flex flex-col gap-1 rounded-btn bg-cream-deep px-2.5 py-2 shadow-well">
+                        {Object.entries(card.payload).slice(0, 4).map(([k, v]) => (
+                          <div key={k} className="flex items-baseline gap-2 text-[11px]">
+                            <dt className="w-20 shrink-0 truncate text-ink-soft">{fieldLabel(k)}</dt>
+                            <dd className="min-w-0 flex-1 break-words font-semibold">{formatValue(v, k)}</dd>
+                          </div>
+                        ))}
+                      </dl>
 
                       {card.error && (
                         <p className="mt-2 rounded-btn bg-cream-deep px-2.5 py-1.5 text-[11px] font-semibold" role="alert">

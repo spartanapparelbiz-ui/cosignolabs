@@ -18,6 +18,9 @@ import {
   XCircle,
 } from "lucide-react";
 import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/lib/types";
+import { objectsFromResult } from "@/lib/objectView";
+import { statusLabel, statusOfMission } from "@/lib/status";
+import { ObjectCards } from "@/components/app/ObjectCards";
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
 
@@ -30,32 +33,15 @@ import { useToast } from "@/components/Toast";
  * Every value is read from THIS mission's persisted records only.
  */
 
-const STATE_LABEL: Record<MissionRecord["state"], string> = {
-  queued: "Planning",
-  running: "Working",
-  awaiting_input: "Waiting for you",
-  awaiting_approval: "Waiting for you",
-  retrying: "Working",
-  verifying: "Verifying",
-  paused: "Paused",
-  completed: "Completed",
-  partial: "Needs attention",
-  failed: "Failed",
-  stopped: "Stopped",
-  blocked: "Needs attention",
+/** The five words, and their tones. Mapping lives in lib/status. */
+const STATE_TONE: Record<string, string> = {
+  working: "bg-ink text-cream",
+  waiting: "bg-cream-deep text-ink-soft",
+  needs_approval: "bg-signal text-ink",
+  failed: "ring-1 ring-inset ring-ink/40 text-ink",
+  finished: "bg-signal/20 text-ink",
 };
 
-const STATE_TONE: Record<string, string> = {
-  Planning: "bg-cream-deep text-ink-soft",
-  Working: "bg-ink text-cream",
-  "Waiting for you": "bg-signal text-ink",
-  Verifying: "bg-ink text-cream",
-  Paused: "bg-cream-deep text-ink-soft",
-  Completed: "bg-signal/20 text-ink",
-  Failed: "ring-1 ring-inset ring-ink/40 text-ink",
-  Stopped: "bg-cream-deep text-ink-soft",
-  "Needs attention": "ring-1 ring-inset ring-ink/40 text-ink",
-};
 
 const STEP_ICON: Record<MissionStepRecord["state"], typeof Circle> = {
   ready: Circle,
@@ -192,7 +178,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
     return <div className="h-64 animate-pulse rounded-card bg-cream-deep" aria-hidden="true" aria-busy="true" />;
   }
 
-  const label = STATE_LABEL[mission.state];
+  const status = statusOfMission(mission.state);
   const usesBrowser = steps.some((s) => s.tool.startsWith("laptop.") || s.tool.startsWith("browser."));
   const done = steps.filter((s) => ["completed", "skipped"].includes(s.state)).length;
   const deliverables = steps.filter((s) => typeof s.output?.file_id === "string");
@@ -212,7 +198,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span className={`rounded-pill px-3 py-1 text-xs font-bold ${STATE_TONE[label]}`}>{label}</span>
+          <span className={`rounded-pill px-3 py-1 text-xs font-bold ${STATE_TONE[status]}`}>{statusLabel(status)}</span>
           {!TERMINAL.has(mission.state) &&
             (mission.state === "paused" ? (
               <button
@@ -342,12 +328,16 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                             aria-expanded={payloadOpen.has(s.id)}
                             className="ml-0 mt-0.5 block text-[10px] font-bold lowercase text-ink-soft underline underline-offset-2"
                           >
-                            {payloadOpen.has(s.id) ? "hide payload" : "view payload"}
+                            {payloadOpen.has(s.id) ? "hide what changed" : "what changed"}
                           </button>
                           {payloadOpen.has(s.id) && (
-                            <pre className="mt-1 max-h-40 overflow-auto rounded-btn bg-cream-deep px-2 py-1.5 font-mono text-[10px] leading-relaxed">
-                              {JSON.stringify(s.output, null, 2)}
-                            </pre>
+                            <div className="mt-1.5">
+                              {/* The objects this step touched — never its raw output. */}
+                              <ObjectCards
+                                view={objectsFromResult(s.output)}
+                                fallback="This step recorded no object changes."
+                              />
+                            </div>
                           )}
                         </>
                       )}

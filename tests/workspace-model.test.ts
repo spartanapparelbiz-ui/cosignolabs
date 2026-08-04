@@ -6,8 +6,8 @@ import {
   applyMapping,
   permissionFor,
   mapExternalPermission,
-  businessActionName,
 } from "@/lib/workspace-model/canonical";
+import { businessAction } from "@/lib/actionLibrary";
 import {
   buildGraph,
   neighbors,
@@ -120,8 +120,8 @@ describe("canonical mapping", () => {
   it("names actions in business language, not API language", () => {
     // Naming is delegated to the Action Library so one capability has exactly
     // one name across the model, the connections page, and the approval card.
-    expect(businessActionName("create_refund")).toBe("Refund customer");
-    expect(businessActionName("list_customers")).toBe("View customers");
+    expect(businessAction("create_refund").name).toBe("Refund customer");
+    expect(businessAction("list_customers").name).toBe("View customers");
   });
 });
 

@@ -35,6 +35,7 @@ import { signRequired } from "@/lib/sign";
 import { statusLabel, statusOf } from "@/lib/status";
 import dynamic from "next/dynamic";
 import { TierBadge } from "./TierBadge";
+import { ValueEditor } from "./app/ValueEditor";
 
 // The seven-section details panel is only mounted when a card is expanded, so
 // it stays out of the approvals route's initial chunk.
@@ -196,9 +197,9 @@ function ActionCardInner({
 }: Props) {
   const enterDelay = { animationDelay: `${Math.min(index, 6) * 60}ms` };
   const [mode, setMode] = useState<"view" | "edit" | "veto">("view");
-  const [payloadText, setPayloadText] = useState(() =>
-    JSON.stringify(action.payload, null, 2)
-  );
+  // The edited payload, as an object — there is no JSON in this card, not even
+  // on the edit path.
+  const [draft, setDraft] = useState<Record<string, unknown>>(action.payload);
   const [vetoReason, setVetoReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -271,14 +272,7 @@ function ActionCardInner({
   }
 
   async function handleSaveEdit() {
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(payloadText);
-    } catch {
-      setError("the payload needs to be valid JSON.");
-      return;
-    }
-    const err = await run(() => onEdit(action.id, parsed));
+    const err = await run(() => onEdit(action.id, draft));
     if (!err) setMode("view");
   }
 
@@ -526,13 +520,7 @@ function ActionCardInner({
         </Collapse>
         {mode === "edit" && (
           <div className="mt-2">
-            <textarea
-              value={payloadText}
-              onChange={(e) => setPayloadText(e.target.value)}
-              rows={8}
-              className="w-full rounded-btn bg-cream-deep p-2.5 font-mono text-[11px] leading-relaxed"
-              aria-label="edit action payload (JSON)"
-            />
+            <ValueEditor payload={action.payload} onChange={setDraft} />
             <div className="mt-2 flex gap-2">
               <button
                 onClick={handleSaveEdit}
@@ -544,7 +532,7 @@ function ActionCardInner({
               <button
                 onClick={() => {
                   setMode("view");
-                  setPayloadText(JSON.stringify(action.payload, null, 2));
+                  setDraft(action.payload);
                 }}
                 className="rounded-btn px-4 py-1.5 text-xs font-bold text-ink-soft hover:bg-cream-deep"
               >

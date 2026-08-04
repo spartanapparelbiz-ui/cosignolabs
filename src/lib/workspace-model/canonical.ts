@@ -16,7 +16,6 @@
  */
 
 import type { Mutation } from "@/lib/twin/model";
-import { businessAction } from "@/lib/actionLibrary";
 
 export type CanonicalDomain =
   | "finance"
@@ -275,15 +274,3 @@ export function mapExternalPermission(connectorKey: string, external: string): M
 /* action mapping                                                              */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Turn a raw operation id into a BUSINESS action name. The agent never sees
- * `POST /customers/refund`; it sees "Refund customer", which is the level at
- * which a human can meaningfully approve or refuse.
- *
- * The naming itself lives in the Action Library, so an operation is called the
- * same thing here, on the connections page, and on the approval card. Two
- * naming schemes for one capability is two products.
- */
-export function businessActionName(operationId: string): string {
-  return businessAction(operationId).name;
-}

@@ -16,9 +16,16 @@ function action(
  */
 
 describe("values in words", () => {
-  it("says money as money", () => {
+  it("says money as money when the payload actually says it is money", () => {
     expect(formatValue(2200, "amount_cents")).toBe("$22.00");
-    expect(formatValue(22, "price")).toBe("$22.00");
+    expect(formatValue(2200, "amount_cents", "EUR")).toBe("€22.00");
+  });
+
+  it("never invents a currency for a bare number", () => {
+    // `price: 22` could be dollars, cents, euros or credits. Stamping a
+    // currency on it is an assertion nobody observed.
+    expect(formatValue(22, "price")).toBe("22");
+    expect(formatValue(22, "price", "USD")).toBe("$22.00");
   });
 
   it("says booleans and empties as words", () => {

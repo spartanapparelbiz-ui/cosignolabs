@@ -6,8 +6,10 @@ import { Check, PenLine, ShieldAlert, X } from "lucide-react";
 import type { ActionRecord, SignatureRecord } from "@/lib/types";
 import type { CosignoState } from "@/lib/state";
 import { effectLine } from "@/lib/actionPresentation";
+import { fieldLabel, formatValue } from "@/lib/objectView";
 import { afterApprovalLine, beforeApprovalLine, whyMe } from "@/lib/clarity";
 import { signRequired } from "@/lib/sign";
+import { ValueEditor } from "@/components/app/ValueEditor";
 import dynamic from "next/dynamic";
 
 // The sign dialog (and its signature-pad canvas) loads when the user actually
@@ -68,7 +70,8 @@ export function FocusMode() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bundleSignOpen, setBundleSignOpen] = useState(false);
   const [draft, setDraft] = useState<{ to: string; subject: string; body: string } | null>(null);
-  const [jsonDraft, setJsonDraft] = useState("");
+  // The taken-over payload, edited as fields — never as JSON.
+  const [valueDraft, setValueDraft] = useState<Record<string, unknown> | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [doneCount, setDoneCount] = useState(0);
@@ -107,7 +110,7 @@ export function FocusMode() {
     setTellText("");
     setError(null);
     setDraft(email ? { ...email } : null);
-    setJsonDraft(action ? JSON.stringify(action.payload, null, 2) : "");
+    setValueDraft(action ? action.payload : null);
   }, [action?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Bundle selection defaults to every eligible (unflagged) decision.
@@ -133,11 +136,7 @@ export function FocusMode() {
       if (draft.subject) payload.subject = draft.subject;
       if (draft.body) payload.body = draft.body;
     } else if (control === "you") {
-      try {
-        payload = JSON.parse(jsonDraft);
-      } catch {
-        return "the payload needs to be valid JSON.";
-      }
+      payload = valueDraft;
     }
     if (!payload) return null;
     try {
@@ -149,7 +148,7 @@ export function FocusMode() {
     } catch (e) {
       return e instanceof Error ? e.message : "couldn't save the change.";
     }
-  }, [action, control, draft, email, jsonDraft]);
+  }, [action, control, draft, email, valueDraft]);
 
   /* ------------------------- fluid control: takeover + handback ---------- */
 
@@ -437,23 +436,21 @@ export function FocusMode() {
             <h1 className="text-lg font-extrabold leading-snug">{action.summary}</h1>
             {control === "cosigno" ? (
               <dl className="mt-3 flex flex-col gap-1.5 rounded-btn bg-cream px-4 py-3 shadow-well">
+                {/* Field names and values in words — a focus surface is the
+                    last place someone should be decoding a payload. */}
                 {Object.entries(action.payload).slice(0, 8).map(([k, v]) => (
                   <div key={k} className="flex items-baseline gap-3 text-sm">
-                    <dt className="w-28 shrink-0 truncate text-xs font-extrabold text-ink-soft">{k}</dt>
-                    <dd className="min-w-0 flex-1 break-words font-semibold">
-                      {typeof v === "string" ? v : JSON.stringify(v)}
-                    </dd>
+                    <dt className="w-28 shrink-0 truncate text-xs font-extrabold text-ink-soft">
+                      {fieldLabel(k)}
+                    </dt>
+                    <dd className="min-w-0 flex-1 break-words font-semibold">{formatValue(v, k)}</dd>
                   </div>
                 ))}
               </dl>
             ) : (
-              <textarea
-                value={jsonDraft}
-                onChange={(e) => setJsonDraft(e.target.value)}
-                rows={10}
-                className="mt-3 w-full rounded-btn bg-cream p-3 font-mono text-[11px] leading-relaxed shadow-well ring-1 ring-inset ring-signal/40"
-                aria-label="edit the exact payload (JSON)"
-              />
+              <div className="mt-3">
+                <ValueEditor payload={action.payload} onChange={setValueDraft} />
+              </div>
             )}
           </div>
         )}
