@@ -567,6 +567,32 @@ export type MissionRunState =
   | "stopped"
   | "blocked";
 
+/**
+ * Mission states the background scheduler picks up.
+ *
+ * `awaiting_approval` MUST be here, and its absence was a deep bug: a mission
+ * parked on a signature was invisible to every tick, so approving a card did
+ * nothing until its owner happened to have the page open to drive the engine
+ * by hand. The product's central promise — "the mission resumes automatically
+ * after you decide" — was only true with a tab open, which is the one
+ * situation background execution exists to remove.
+ *
+ * Settling an approval-parked mission is cheap (it reads the card's status and
+ * either advances or leaves it alone), so including it costs a row read per
+ * tick and buys the promise actually holding.
+ *
+ * Deliberately excluded: awaiting_input (waiting on a human answer, and no
+ * amount of ticking produces one), paused/stopped (a person said don't), and
+ * every terminal state.
+ */
+export const RUNNABLE_MISSION_STATES = [
+  "queued",
+  "running",
+  "awaiting_approval",
+  "retrying",
+  "verifying",
+] as const satisfies readonly MissionRunState[];
+
 /** A structured question blocking one step — never a dead-end failure. */
 export interface MissionQuestion {
   step_id: string;

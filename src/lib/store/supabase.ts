@@ -37,6 +37,7 @@ import {
   HoldRecord,
   ObjectiveLinkRecord,
   ObjectiveRecord,
+  RUNNABLE_MISSION_STATES,
 } from "../types";
 import type {
   ActionCountFilter,
@@ -1310,7 +1311,7 @@ export class SupabaseStore implements Store {
     const { data, error } = await this.client
       .from("missions")
       .select("*")
-      .in("state", ["queued", "running", "retrying", "verifying"])
+      .in("state", [...RUNNABLE_MISSION_STATES])
       .order("updated_at", { ascending: true })
       .limit(limit);
     if (error) throw new Error(error.message);

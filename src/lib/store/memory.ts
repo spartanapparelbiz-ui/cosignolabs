@@ -37,6 +37,7 @@ import {
   HoldRecord,
   ObjectiveLinkRecord,
   ObjectiveRecord,
+  RUNNABLE_MISSION_STATES,
 } from "../types";
 import type {
   ActionCountFilter,
@@ -1015,9 +1016,8 @@ export class MemoryStore implements Store {
   }
 
   async listRunnableMissions(limit: number): Promise<MissionRecord[]> {
-    const runnable = new Set(["queued", "running", "retrying", "verifying"]);
     return this.missions
-      .filter((m) => runnable.has(m.state))
+      .filter((m) => (RUNNABLE_MISSION_STATES as readonly string[]).includes(m.state))
       .sort((a, b) => a.updated_at.localeCompare(b.updated_at))
       .slice(0, limit)
       .map((m) => ({ ...m }));
