@@ -174,6 +174,37 @@ async function applyToolResult(
 }
 
 /**
+ * How long a non-terminal, non-proposed action may sit before it is treated as
+ * an interrupted run. Real executions finish in seconds — every tool is
+ * timeout-bounded well under this — so the window is generous on purpose:
+ * declaring a live execution dead is far worse than waiting another minute.
+ */
+const STUCK_ACTION_MS = 5 * 60_000;
+
+/**
+ * When the action entered its current status, from the immutable event log —
+ * the only record of when a transition actually happened, since ActionRecord
+ * carries created_at but no updated_at. Returns null when no such event is
+ * found, which is read as "not yet stuck" so a missing event can never cause
+ * a live execution to be reaped.
+ */
+async function transitionStartedAt(
+  userId: string,
+  actionId: string,
+  status: "approved" | "executing"
+): Promise<number | null> {
+  try {
+    const events = await getStore().listEvents(userId, actionId, 50);
+    const match = events.filter((e) => e.type === status).pop();
+    if (!match) return null;
+    const t = Date.parse(match.created_at);
+    return Number.isNaN(t) ? null : t;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Resolve steps blocked on an action card whose card has since settled.
  * Steps settle independently, so their card reads (and any 15s-bounded
  * verifications) run concurrently instead of stacking serially. Returns
@@ -238,7 +269,49 @@ async function settleApprovalSteps(
         });
         return true;
       }
-      // proposed/approved/executing → still waiting; leave untouched.
+      // An action that left `proposed` should reach a terminal state within
+      // seconds. If it hasn't, the execution died between the `executing`
+      // transition and its terminal write — a serverless invocation being
+      // reclaimed mid-call is enough to do it. Nothing reaped those, so the
+      // card vanished from approvals (which lists only `proposed`) while its
+      // mission sat on "waiting for your signature" with nothing to sign:
+      // a deadlock with no visible cause and no way out.
+      if (action.status === "approved" || action.status === "executing") {
+        const startedAt = await transitionStartedAt(userId, action.id, action.status);
+        // Timed from the STATUS CHANGE, never from created_at: a card approved
+        // hours after it was proposed is legitimately mid-flight, and reaping
+        // that would report a real, running execution as failed.
+        if (startedAt === null || Date.now() - startedAt < STUCK_ACTION_MS) return false;
+
+        // The DB state machine allows approved → executing → failed, so walk
+        // it rather than trying to skip a state the trigger would reject.
+        try {
+          if (action.status === "approved") {
+            await store.transitionAction(userId, action.id, "executing");
+          }
+          await store.transitionAction(userId, action.id, "failed", {
+            result: { summary: "execution didn't complete — the run was interrupted." },
+          });
+          await store.logEvent(userId, action.id, "failed", "system", {
+            reason: "stuck_execution",
+            stuck_in: action.status,
+          });
+        } catch {
+          // Another worker settled it first — fine, it will read as terminal
+          // on the next pass.
+          return false;
+        }
+
+        await store.updateMissionStep(userId, step.id, {
+          state: "failed",
+          // Say what is and isn't known. Whether the side effect happened is
+          // genuinely undetermined, and guessing either way would be worse.
+          error:
+            "the approval was recorded but the run was interrupted, so cosigno can't confirm whether it took effect. check the app before retrying.",
+        });
+        return true;
+      }
+      // proposed → still waiting on the operator; leave untouched.
       return false;
     })
   );
