@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, ShieldAlert } from "lucide-react";
+import { Check, ChevronDown, Search, ShieldAlert, X } from "lucide-react";
 import type { ActionRecord } from "@/lib/types";
 import { CATEGORY_LIST } from "@/lib/types";
 import { SkeletonRows } from "./Skeleton";
@@ -13,18 +13,64 @@ import dynamic from "next/dynamic";
 const ReceiptModal = dynamic(() =>
   import("./sign/ReceiptModal").then((m) => m.ReceiptModal)
 );
-import { TierBadge } from "./TierBadge";
-import { operatorOf } from "@/lib/actionPresentation";
 import { EmptyIllustration } from "./EmptyIllustration";
 
-const STATUSES = ["proposed", "approved", "executing", "executed", "vetoed", "failed"];
+/**
+ * Activity — "what has AI already done?"
+ *
+ * A chronological timeline, one line per action: a check when it ran, a cross
+ * when it didn't, the plain sentence of what happened, and the time. Anything
+ * more than that — the payload, the result, the signed receipt — waits behind
+ * a click, because an audit trail nobody can skim is an audit trail nobody
+ * reads.
+ *
+ * The filters stay: "what did we spend money on this week" is the question a
+ * ledger exists to answer. The tier filter is gone — a person auditing their
+ * own workspace thinks in outcomes, not in tiers.
+ */
+
+const STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: "", label: "everything" },
+  { value: "executed", label: "done" },
+  { value: "proposed", label: "waiting for you" },
+  { value: "vetoed", label: "rejected" },
+  { value: "failed", label: "failed" },
+];
+
+/** What happened, in words rather than a status enum. */
+function outcomeOf(a: ActionRecord): { mark: "done" | "stopped" | "waiting" | "running"; line: string } {
+  if (a.injection_flag && a.status === "proposed") {
+    return { mark: "stopped", line: "held — outside content tried to direct it" };
+  }
+  switch (a.status) {
+    case "executed":
+      return { mark: "done", line: "done" };
+    case "vetoed":
+      return { mark: "stopped", line: a.veto_reason ? `you rejected this — ${a.veto_reason}` : "you rejected this — it never ran" };
+    case "failed":
+      return { mark: "stopped", line: "didn't complete — nothing was left half-done" };
+    case "approved":
+    case "executing":
+      return { mark: "running", line: "running now" };
+    default:
+      return { mark: "waiting", line: "waiting for you" };
+  }
+}
+
+function when(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (d.getTime() >= today.getTime()) return time;
+  return `${d.toLocaleDateString([], { month: "short", day: "numeric" })} · ${time}`;
+}
 
 export function ActivityLog() {
   // Adaptive UI entry: "what did you finish today?" arrives as
   // ?status=executed&range=today — the ledger becomes the answer.
   const searchParams = useSearchParams();
   const [status, setStatus] = useState(() => searchParams.get("status") ?? "");
-  const [tier, setTier] = useState("");
   const [category, setCategory] = useState("");
   const [search, setSearch] = useState("");
   const [todayOnly, setTodayOnly] = useState(() => searchParams.get("range") === "today");
@@ -35,10 +81,9 @@ export function ActivityLog() {
   const query = useCallback(() => {
     const params = new URLSearchParams();
     if (status) params.set("status", status);
-    if (tier) params.set("tier", tier);
     if (category) params.set("category", category);
     return params;
-  }, [status, tier, category]);
+  }, [status, category]);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,49 +112,31 @@ export function ActivityLog() {
     });
   }, [actions, search, todayOnly]);
 
-  const selectClass =
-    "rounded-btn bg-cream-deep px-3 py-1.5 text-sm font-semibold lowercase";
-
   return (
     <div className="mt-5">
       <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className={selectClass}
-          aria-label="filter by status"
+        {STATUS_FILTERS.map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setStatus(f.value)}
+            aria-pressed={status === f.value}
+            className={`rounded-pill px-3 py-1.5 text-xs font-bold transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
+              status === f.value ? "bg-ink text-cream" : "bg-cream-deep text-ink-soft hover:text-ink"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+        <button
+          onClick={() => setTodayOnly((v) => !v)}
+          aria-pressed={todayOnly}
+          className={`rounded-pill px-3 py-1.5 text-xs font-bold transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
+            todayOnly ? "bg-ink text-cream" : "bg-cream-deep text-ink-soft hover:text-ink"
+          }`}
         >
-          <option value="">all statuses</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-        <select
-          value={tier}
-          onChange={(e) => setTier(e.target.value)}
-          className={selectClass}
-          aria-label="filter by tier"
-        >
-          <option value="">all levels</option>
-          <option value="1">auto</option>
-          <option value="2">approve</option>
-          <option value="3">sign</option>
-        </select>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className={selectClass}
-          aria-label="filter by category"
-        >
-          <option value="">all categories</option>
-          {CATEGORY_LIST.map((c) => (
-            <option key={c.category} value={c.category}>
-              {c.label.toLowerCase()}
-            </option>
-          ))}
-        </select>
+          today
+        </button>
+
         <label className="flex min-w-[180px] flex-1 items-center gap-1.5 rounded-btn bg-cream-deep px-3 py-1.5 sm:max-w-xs">
           <Search size={13} className="shrink-0 text-ink-soft" aria-hidden="true" />
           <input
@@ -120,18 +147,22 @@ export function ActivityLog() {
             aria-label="search activity"
           />
         </label>
-        <button
-          onClick={() => setTodayOnly((v) => !v)}
-          aria-pressed={todayOnly}
-          className={`rounded-btn px-3 py-1.5 text-sm font-bold lowercase ${
-            todayOnly ? "bg-ink text-cream" : "bg-cream-deep text-ink-soft hover:text-ink"
-          }`}
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="rounded-btn bg-cream-deep px-3 py-1.5 text-sm font-semibold lowercase"
+          aria-label="filter by kind of action"
         >
-          today
-        </button>
+          <option value="">every kind</option>
+          {CATEGORY_LIST.map((c) => (
+            <option key={c.category} value={c.category}>
+              {c.label.toLowerCase()}
+            </option>
+          ))}
+        </select>
         <a
           href={`/api/activity?${query()}&format=csv`}
-          className="ml-auto rounded-btn bg-ink px-4 py-1.5 text-sm font-bold lowercase text-cream transition-transform active:scale-95"
+          className="rounded-btn px-3 py-1.5 text-xs font-bold text-ink-soft underline underline-offset-2 hover:text-ink"
         >
           export csv
         </a>
@@ -139,120 +170,106 @@ export function ActivityLog() {
 
       {/* keyed by the active filter so the list fades through on change */}
       <div key={query().toString()} className="animate-fade-through">
-      {visible === null ? (
-        <div className="mt-6">
-          <SkeletonRows rows={5} />
-        </div>
-      ) : visible.length === 0 ? (
-        <div className="mt-8 flex flex-col items-center rounded-card bg-surface/40 p-8 text-center shadow-soft">
-          <EmptyIllustration kind="activity" className="mb-3" />
-          <p className="max-w-md text-sm font-semibold text-ink-soft">
-            nothing here yet. once the operator starts working, every proposal,
-            approval, veto, and execution lands in this ledger — permanently.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-4 overflow-x-auto rounded-card bg-surface/60 shadow-soft">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="bg-cream-deep text-[11px] lowercase tracking-wide text-ink-soft">
-              <tr>
-                <th className="px-4 py-2.5 font-bold">when</th>
-                <th className="px-4 py-2.5 font-bold">action</th>
-                <th className="px-4 py-2.5 font-bold">tier</th>
-                <th className="px-4 py-2.5 font-bold">status</th>
-                <th className="px-4 py-2.5 font-bold">payload</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((a) => (
-                <tr
-                  key={a.id}
-                  onClick={() => setExpanded(expanded === a.id ? null : a.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setExpanded(expanded === a.id ? null : a.id);
-                    }
-                  }}
-                  tabIndex={0}
-                  aria-expanded={expanded === a.id}
-                  className="cursor-pointer border-b border-line/50 align-top transition-colors last:border-0 hover:bg-cream-deep/40 focus:outline-none focus-visible:bg-cream-deep/60"
-                >
-                  <td className="whitespace-nowrap px-4 py-3 text-xs text-ink-soft">
-                    {new Date(a.created_at).toLocaleString([], {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-semibold">{a.summary}</p>
-                    <p className="mt-0.5 text-[10px] font-bold lowercase tracking-wide text-ink-soft/80">
-                      {operatorOf(a.category)} operator · {a.category}
-                    </p>
-                    {a.injection_flag && (
-                      <p className="mt-1 flex items-center gap-1 text-[11px] font-bold lowercase text-ink-soft">
-                        <ShieldAlert size={11} strokeWidth={2.5} aria-hidden="true" />
-                        external content attempted to direct the agent — held
-                        for your review
-                      </p>
-                    )}
-                    {a.veto_reason && (
-                      <p className="mt-1 text-[11px] text-ink-soft">
-                        veto: {a.veto_reason}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <TierBadge tier={a.tier} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase ${
-                        a.status === "executed"
-                          ? "bg-signal text-cream"
-                          : a.status === "vetoed" || a.status === "failed"
-                            ? "ring-1 ring-inset ring-ink/40"
-                            : "bg-cream-deep text-ink-soft"
-                      }`}
-                    >
-                      {a.status}
-                    </span>
-                  </td>
-                  <td className="max-w-[220px] px-4 py-3">
-                    <span className="text-xs font-bold lowercase text-ink-soft underline underline-offset-2">
-                      {expanded === a.id ? "hide" : "view"}
-                    </span>
-                    {expanded === a.id && (
-                      <pre className="mt-2 max-h-40 overflow-auto rounded-btn bg-cream-deep p-2.5 font-mono text-[10px] leading-relaxed text-ink">
-                        {JSON.stringify(
-                          { payload: a.payload, result: a.result },
-                          null,
-                          2
+        {visible === null ? (
+          <div className="mt-6">
+            <SkeletonRows rows={5} />
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="mt-8 flex flex-col items-center rounded-card bg-surface/40 p-8 text-center shadow-soft">
+            <EmptyIllustration kind="activity" className="mb-3" />
+            <p className="max-w-md text-sm font-semibold text-ink-soft">
+              nothing here yet. once AI starts working, every request, approval, rejection, and
+              execution lands on this timeline — permanently.
+            </p>
+          </div>
+        ) : (
+          <ul className="mt-5 flex flex-col">
+            {visible.map((a) => {
+              const outcome = outcomeOf(a);
+              const open = expanded === a.id;
+              return (
+                <li key={a.id} className="border-b border-line/60 last:border-0">
+                  <button
+                    onClick={() => setExpanded(open ? null : a.id)}
+                    aria-expanded={open}
+                    className="flex w-full items-start gap-3 py-3 text-left transition-colors duration-fast hover:bg-cream-deep/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+                  >
+                    <Mark kind={outcome.mark} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-semibold leading-snug">
+                        {a.summary}
+                      </span>
+                      <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink-soft">
+                        {a.injection_flag && (
+                          <ShieldAlert size={11} strokeWidth={2.5} aria-hidden="true" />
                         )}
+                        {outcome.line}
+                      </span>
+                    </span>
+                    <span className="shrink-0 whitespace-nowrap pt-0.5 text-xs text-ink-soft">
+                      {when(a.created_at)}
+                    </span>
+                    <ChevronDown
+                      size={14}
+                      className={`mt-0.5 shrink-0 text-ink-soft transition-transform duration-fast ${open ? "rotate-180" : ""}`}
+                      aria-hidden="true"
+                    />
+                  </button>
+
+                  {open && (
+                    <div className="pb-3 pl-9">
+                      <pre className="max-h-48 overflow-auto rounded-btn bg-cream-deep p-2.5 font-mono text-[10px] leading-relaxed text-ink">
+                        {JSON.stringify({ payload: a.payload, result: a.result }, null, 2)}
                       </pre>
-                    )}
-                    {a.status === "executed" && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setReceiptFor(a.id);
-                        }}
-                        className="mt-1 block text-xs font-bold lowercase text-ink-soft underline underline-offset-2 hover:text-ink"
-                      >
-                        view receipt
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                      {a.status === "executed" && (
+                        <button
+                          onClick={() => setReceiptFor(a.id)}
+                          className="mt-2 text-xs font-bold lowercase text-ink-soft underline underline-offset-2 hover:text-ink"
+                        >
+                          view receipt
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
       {receiptFor && <ReceiptModal actionId={receiptFor} onClose={() => setReceiptFor(null)} />}
     </div>
+  );
+}
+
+/** ✓ it ran · ✕ it didn't · a hollow dot for anything still open. */
+function Mark({ kind }: { kind: "done" | "stopped" | "waiting" | "running" }) {
+  if (kind === "done") {
+    return (
+      <span
+        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-pill bg-signal text-cream"
+        aria-hidden="true"
+      >
+        <Check size={12} strokeWidth={3} />
+      </span>
+    );
+  }
+  if (kind === "stopped") {
+    return (
+      <span
+        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-pill ring-1 ring-inset ring-ink/40 text-ink"
+        aria-hidden="true"
+      >
+        <X size={12} strokeWidth={3} />
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`mt-0.5 h-5 w-5 shrink-0 rounded-pill ring-1 ring-inset ring-ink/25 ${
+        kind === "running" ? "animate-orb-pulse bg-signal/30" : "bg-cream-deep"
+      }`}
+      aria-hidden="true"
+    />
   );
 }

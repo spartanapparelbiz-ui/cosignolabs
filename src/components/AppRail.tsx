@@ -3,41 +3,41 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  Activity,
-  Gauge,
-  Radar,
-  Boxes,
-  FlaskConical,
-  Home,
-  LayoutTemplate,
-  PenLine,
-  Plug,
-  Rocket,
-  Settings,
-} from "lucide-react";
+import { Activity, Bot, Home, PenLine, Plug, ScrollText, Settings } from "lucide-react";
 import { LogoHome } from "@/components/brand/LivingLogo";
 
 /**
  * The app's navigation chrome: a compact left rail on desktop, a bottom bar
- * on mobile. The seven everyday destinations — nothing else lives here (no
- * upgrade ads, per the shell rules). The approvals item carries a count badge
- * ONLY when something actually needs a signature. Advanced surfaces (memory,
- * team, health, automations, files, per-app twins) stay reachable from their
- * in-page links and settings.
+ * on mobile.
+ *
+ * SEVEN destinations, and each one answers exactly one question:
+ *
+ *   dashboard   → what needs my attention?
+ *   approvals   → what is AI asking to do?
+ *   activity    → what has AI already done?
+ *   policies    → what rules protect my business?
+ *   connections → what tools can AI use?
+ *   agents      → which AI assistants are connected?
+ *   settings    → how is my organization configured?
+ *
+ * Nothing else belongs here. Anything that isn't one of those seven questions
+ * is either a detail INSIDE one of them or it doesn't earn a place in the
+ * shell — the everyday product has to be understandable in thirty seconds, and
+ * a rail with eleven entries is not. Supporting surfaces (missions, the
+ * workspace model, simulation, monitoring, templates, memory, team, files)
+ * remain reachable from in-page links and settings.
+ *
+ * The approvals item carries a count badge ONLY when something actually needs
+ * a signature.
  */
 
 const ITEMS = [
-  { href: "/app", label: "home", icon: Home },
-  { href: "/app/missions", label: "missions", icon: Rocket },
+  { href: "/app", label: "dashboard", icon: Home },
   { href: "/app/approvals", label: "approvals", icon: PenLine },
   { href: "/app/activity", label: "activity", icon: Activity },
-  { href: "/app/monitoring", label: "monitoring", icon: Gauge },
-  { href: "/app/mission-control", label: "control", icon: Radar },
-  { href: "/app/workspace-model", label: "model", icon: Boxes },
-  { href: "/app/simulation", label: "simulate", icon: FlaskConical },
+  { href: "/app/policies", label: "policies", icon: ScrollText },
   { href: "/app/connections", label: "connections", icon: Plug },
-  { href: "/app/templates", label: "templates", icon: LayoutTemplate },
+  { href: "/app/agents", label: "agents", icon: Bot },
   { href: "/app/settings", label: "settings", icon: Settings },
 ] as const;
 

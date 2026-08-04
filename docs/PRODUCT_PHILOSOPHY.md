@@ -1,0 +1,129 @@
+# Product philosophy — the approval layer, and nothing else
+
+Cosigno is not an AI platform, a workflow builder, or a chatbot. It is **the
+approval layer between AI and your business**, and every feature has to earn
+its place against one promise:
+
+> "AI wants to take an action. Cosigno makes sure it's safe."
+
+The lifecycle is the product:
+
+```
+AI requests an action → cosigno intercepts → cosigno explains exactly what will
+happen → policies are checked → a human approves, rejects, or automation
+handles it → the action executes → everything is logged
+```
+
+## Seven screens, seven questions
+
+The shell is exactly seven destinations, and each answers ONE question. If a
+screen can't be described in one question, it's two screens.
+
+| Screen | The question | Where it lives |
+| --- | --- | --- |
+| Dashboard | What needs my attention? | `/app` |
+| Approvals | What is AI asking to do? | `/app/approvals` |
+| Activity | What has AI already done? | `/app/activity` |
+| Policies | What rules protect my business? | `/app/policies` |
+| Connections | What tools can AI use? | `/app/connections` |
+| Agents | Which AI assistants are connected? | `/app/agents` |
+| Settings | How is my organization configured? | `/app/account` |
+
+`AppRail` and `AppNav` carry those seven and no more. Supporting surfaces
+(missions, the workspace model, simulation, monitoring, templates, memory,
+team, files) are still there and still work — they're reachable from in-page
+links, not from the shell, because eleven rail entries is not a product anyone
+understands in thirty seconds.
+
+## One setting, one place
+
+Duplicated editors were removed rather than kept in sync:
+
+- The tier board left Settings; **Policies** is now the only place what-AI-may-do
+  is edited.
+- The rules editor left Connections; it lives on **Policies**, next to the
+  requirements it modifies.
+- The connections panel left Settings; **Connections** owns it, and the OAuth
+  callback now returns to `/app/connections?status=…` instead of a settings tab.
+- Pending approvals appear once on the dashboard, at the top, instead of twice.
+
+## Risk in four words
+
+The engine's risk model is five blast levels across five scored dimensions,
+with category floors and tiers on top. That richness is right for **deciding**
+and wrong for **reading** — nobody approves faster because they saw a 3.4.
+
+`src/lib/risk.ts` is presentation only. It never decides, never lowers a floor,
+and answers the two questions a person actually asks:
+
+```
+low · medium · high · critical      +      one plain sentence saying why
+```
+
+Rules it holds to, unit-proven in `tests/risk.test.ts`:
+
+- **Every level ships with its reason.** A badge without a `because` is
+  decoration, and decoration is what makes people click approve without reading.
+- **Escalation only.** A payload fact can raise a level; nothing can lower a
+  category floor. A one-cent refund is still critical.
+- **Unknown is never safe.** An unrecognized blast level reads as high, and an
+  injection-flagged action is high at minimum.
+
+The same four words are used on the approval card, the dashboard, the activity
+timeline and the agents roster, so "high" means one thing everywhere.
+
+## What an approval looks like
+
+```
+cosigno wants to
+Refund the duplicate charge for order #1841
+
+WILL
+· this returns money to a customer.
+· moves $19.94.
+· cannot be undone once it runs.
+
+RISK      this returns money to a customer.
+APPROVAL  your signature
+
+[ Sign → ]   [ Reject ]        view details · edit values
+```
+
+The ask is the largest type on the card, because it's the only sentence a user
+must read to decide. Everything technical — the exact payload, the before/after
+diff, the raw values — waits behind *view details*. The footer holds one
+primary action and one secondary action; editing moved to the details row so it
+stays possible without competing for the eye.
+
+"Veto" became **reject** in the interface. The state machine still records
+`vetoed` — the vocabulary changed for the human, not for the ledger.
+
+## Agents are discovered, never declared
+
+`/app/agents` is built from the append-only decision ledger: an assistant is
+listed because it actually presented a key and asked cosigno for authority.
+Nothing appears there that has never asked for anything, because a connection
+nobody made is not a connection. Each row shows what it asked for, how much
+cleared automatically, how much waited for a person, how much policy blocked,
+and the riskiest thing it has ever requested — the peak, not the average.
+
+## The test
+
+For every feature: can someone understand this in ten seconds? Would a
+non-technical operations manager understand it? Does it help someone safely
+approve an AI action? If not — simplify it, or take it out of the shell.
+
+## Not done in this pass
+
+Stated plainly rather than half-shipped:
+
+- **The Add Connection wizard** (choose type → authenticate → discover actions →
+  pick what AI may do → test) is still the existing add flow. Custom REST,
+  OpenAPI import and MCP servers all work today; the guided six-step wizard over
+  them does not exist yet.
+- **Per-team approval routing** ("Required approval: Engineering"). Approvals
+  route to *you*, and the card says so honestly — inventing a team name the
+  system can't enforce would be worse than the plain truth.
+- **Deleting the surfaces that left the shell.** They're out of the navigation,
+  not out of the codebase. Removing them is a separate, reversible decision and
+  belongs in its own change.

@@ -7,16 +7,28 @@ import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord }
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
 import { StarterJobs } from "@/components/app/StarterJobs";
+import { actionRisk, requiredApproval, type RiskLevel } from "@/lib/risk";
 
 /**
- * The home dashboard — one calm place that answers four questions:
- *   1. what can I ask cosigno to do?   (the ask box + examples)
- *   2. what is cosigno working on?     (in progress)
- *   3. what needs my approval?         (needs your approval)
- *   4. what has cosigno finished?      (recently completed)
+ * The dashboard answers ONE question: what needs my attention?
+ *
+ * So the page opens with exactly that — the actions waiting on a human, each
+ * with its risk in one word — and everything else (give cosigno a task, what's
+ * in progress, what finished, what's scheduled, which apps are connected) sits
+ * below it as context. Approvals appear once, at the top; the same list twice
+ * on one screen is how a calm page becomes a busy one.
+ *
  * Everything is read from real data (missions, approvals, automations,
  * connections). No charts, no fake progress, no technical words.
  */
+
+/** Risk, in the same four words the approval card and the ledger use. */
+const DASH_RISK_STYLE: Record<RiskLevel, string> = {
+  low: "bg-cream-deep text-ink-soft",
+  medium: "bg-ink/5 text-ink ring-1 ring-inset ring-ink/20",
+  high: "bg-signal/20 text-ink ring-1 ring-inset ring-signal/50",
+  critical: "bg-ink text-cream",
+};
 
 async function jsonFetch(url: string, init?: RequestInit) {
   const res = await fetch(url, {
@@ -204,9 +216,64 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      {/* ---------- the command composer: the biggest, clearest thing ---------- */}
+      {/* ---------- the one question this page answers: what needs me? ------- */}
       <section className={`${CARD} p-6 sm:p-8`}>
-        <h1 className="font-display text-2xl font-bold sm:text-3xl">What should Cosigno handle?</h1>
+        <h1 className="font-display text-2xl font-bold sm:text-3xl">
+          {approvals.length === 0
+            ? "Nothing needs you right now"
+            : approvals.length === 1
+              ? "1 action is waiting for you"
+              : `${approvals.length} actions are waiting for you`}
+        </h1>
+        <p className="mt-1.5 text-sm font-semibold text-ink-soft">
+          {approvals.length === 0
+            ? "cosigno asks before anything consequential happens. everything it has already done is on your activity log."
+            : "AI has asked to do these. nothing runs until you decide."}
+        </p>
+
+        {approvals.length > 0 && (
+          <ul className="mt-4 flex flex-col gap-2">
+            {approvals.slice(0, 4).map((a) => {
+              const level = actionRisk(a).level;
+              return (
+                <li
+                  key={a.id}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-btn border border-line bg-cream/40 px-3.5 py-2.5"
+                >
+                  <span
+                    className={`rounded-pill px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${DASH_RISK_STYLE[level]}`}
+                  >
+                    {level}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{a.summary}</span>
+                  <span className="text-xs text-ink-soft">{requiredApproval(a)}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Link
+            href="/app/approvals"
+            className={`inline-flex items-center justify-center rounded-btn px-5 py-2.5 text-sm font-extrabold transition-transform active:scale-95 ${
+              approvals.length > 0 ? "bg-signal text-ink shadow-soft" : "text-ink-soft ring-1 ring-inset ring-line hover:text-ink"
+            }`}
+          >
+            {approvals.length > 0 ? "Review approvals" : "Open approvals"}
+          </Link>
+          <Link
+            href="/app/activity"
+            className="inline-flex items-center justify-center rounded-btn px-4 py-2.5 text-sm font-bold text-ink-soft transition-colors hover:text-ink"
+          >
+            See what AI has done
+          </Link>
+        </div>
+      </section>
+
+      {/* ---------- give cosigno something to do ---------- */}
+      <section className={`${CARD} mt-6 p-6 sm:p-8`}>
+        <h2 className="font-display text-xl font-bold">What should Cosigno handle?</h2>
         <p className="mt-1.5 text-sm font-semibold text-ink-soft">
           Tell cosigno what you want done. Add a file or link when it helps explain the task.
         </p>
@@ -350,50 +417,10 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           </section>
         </div>
 
-        {/* RIGHT: approvals + coming up + connected apps */}
+        {/* RIGHT: coming up + connected apps. Approvals live at the top of the
+            page, once — the same list in two places is how a dashboard starts
+            feeling busy instead of calm. */}
         <div className="flex flex-col gap-8">
-          <section>
-            <h2 className={SECTION_TITLE}>Needs your approval</h2>
-            <div className="mt-3 flex flex-col gap-3">
-              {approvals.length === 0 ? (
-                <div className={CARD}>
-                  <p className="text-sm font-extrabold">Nothing needs your approval</p>
-                  <p className="mt-1 text-sm text-ink-soft">
-                    cosigno will ask before anything important happens.
-                  </p>
-                </div>
-              ) : (
-                approvals.slice(0, 4).map((a) => {
-                  const to = typeof a.payload?.to === "string" ? a.payload.to : typeof a.payload?.recipient === "string" ? a.payload.recipient : null;
-                  const provider = typeof a.payload?.provider === "string" ? a.payload.provider : null;
-                  return (
-                    <div key={a.id} className={`${CARD} border-signal/40`}>
-                      <div className="flex items-start gap-3">
-                        {provider ? (
-                          <ConnectorLogo kind="app" providerKey={provider} displayName={PROVIDER_NAME[provider] ?? provider} size={26} />
-                        ) : (
-                          <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-btn bg-signal/15 text-[13px] font-black text-signal">
-                            !
-                          </span>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-extrabold leading-snug">{a.summary}</p>
-                          {to && <p className="mt-0.5 text-xs text-ink-soft">Prepared for {to}</p>}
-                        </div>
-                      </div>
-                      <Link
-                        href="/app/approvals"
-                        className="mt-3 inline-flex w-full items-center justify-center rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95"
-                      >
-                        Review
-                      </Link>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
-
           <section>
             <h2 className={SECTION_TITLE}>Coming up</h2>
             <div className={`${CARD} mt-3`}>
