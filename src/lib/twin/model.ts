@@ -54,9 +54,18 @@ export interface TwinResource {
 }
 
 export interface DigitalTwin {
+  /**
+   * Unique identity of the thing being modelled — the CONNECTION id for a
+   * live connection, or the provider key for a provider that is merely
+   * available. It must be unique per connection: every custom MCP server
+   * shares `provider_key: "mcp"`, so keying a twin by provider key silently
+   * merges two different servers into one model.
+   */
   connection_key: string;
+  /** Registry key, or "mcp"/"custom". Used for grouping and logos, not identity. */
+  provider_key: string;
   name: string;
-  kind: "app" | "mcp";
+  kind: "app" | "mcp" | "custom";
   status: string;
   /** Where the model came from — provider registry, MCP schema, or OpenAPI. */
   source: "provider" | "mcp" | "openapi";
@@ -144,8 +153,10 @@ export interface RawAction {
  */
 export function buildTwin(input: {
   connection_key: string;
+  /** Defaults to the connection key — correct for provider-only twins. */
+  provider_key?: string;
   name: string;
-  kind: "app" | "mcp";
+  kind: "app" | "mcp" | "custom";
   status: string;
   source: DigitalTwin["source"];
   actions: RawAction[];
@@ -185,6 +196,7 @@ export function buildTwin(input: {
 
   return {
     connection_key: input.connection_key,
+    provider_key: input.provider_key ?? input.connection_key,
     name: input.name,
     kind: input.kind,
     status: input.status,

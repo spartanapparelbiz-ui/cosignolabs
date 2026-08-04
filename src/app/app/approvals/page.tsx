@@ -2,7 +2,8 @@ import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { getUserId } from "@/lib/auth";
 import { servingAllowed } from "@/lib/env";
 import { getStore } from "@/lib/store";
-import type { ActionRecord } from "@/lib/types";
+import { previewForActions } from "@/lib/workspace-model/approvalPreview";
+import type { ActionWithPreview } from "@/components/app/DecisionInbox";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +16,16 @@ export const metadata = { title: "Approvals" };
  * back to the client loader unchanged).
  */
 export default async function ApprovalsPage() {
-  let initial: ActionRecord[] | undefined;
+  let initial: ActionWithPreview[] | undefined;
   try {
     if (servingAllowed()) {
       const userId = await getUserId();
       if (userId) {
-        initial = await getStore().listActions(userId, { status: "proposed", limit: 200 });
+        const actions = await getStore().listActions(userId, { status: "proposed", limit: 200 });
+        // Same enrichment the API does, so the first paint already answers
+        // "can this be undone?" rather than filling it in a beat later.
+        const previews = await previewForActions(userId, actions);
+        initial = actions.map((a) => (previews[a.id] ? { ...a, preview: previews[a.id] } : a));
       }
     }
   } catch {

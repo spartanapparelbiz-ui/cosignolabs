@@ -163,6 +163,35 @@ export interface ActionRecord {
   resolved_at: string | null;
 }
 
+/**
+ * What the Workspace Model says about a proposed connector action, attached to
+ * the action when it is listed for approval. Client-safe by construction: it
+ * carries only resolved strings and booleans, never a provider, credential, or
+ * anything the browser shouldn't hold.
+ *
+ * `undo` is the load-bearing field. It is derived from operations the
+ * connection ACTUALLY declares, so it either names the real inverse operation
+ * or states plainly that there isn't one.
+ */
+export interface ActionPreview {
+  /** The operation as the connection declares it. */
+  operation: string;
+  /** Resource the operation acts on ("issue", "message"). */
+  resource: string;
+  mutation: "read" | "create" | "update" | "delete";
+  /** Can cosigno undo this, in whole or in part? */
+  undo_support: "full" | "partial" | "none";
+  /** One sentence: how it would be undone, or why it can't be. */
+  undo: string;
+  /**
+   * Set when the connection no longer declares this operation — the card was
+   * proposed against a capability that has since disappeared.
+   */
+  unknown_operation: boolean;
+  /** Set when the connection itself is gone. */
+  unknown_connection: boolean;
+}
+
 export type ActionEventType =
   | "proposed"
   | "approved"

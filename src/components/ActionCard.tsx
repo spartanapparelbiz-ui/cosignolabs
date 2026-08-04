@@ -20,7 +20,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import type { ActionCategory, ActionRecord, SignatureRecord } from "@/lib/types";
+import type { ActionCategory, ActionPreview, ActionRecord, SignatureRecord } from "@/lib/types";
 import { CREAM } from "@/lib/brand";
 import {
   effectLine,
@@ -54,6 +54,12 @@ export interface ApproveOpts {
 
 interface Props {
   action: ActionRecord;
+  /**
+   * What the Workspace Model says about this action — chiefly whether it can
+   * be undone, and by which real operation. Optional everywhere: it explains,
+   * it never gates, so the card renders exactly as before without it.
+   */
+  preview?: ActionPreview;
   /** Stack position — used to stagger the entrance animation. */
   index?: number;
   /** Show the a/v keyboard-shortcut footer (account preference). */
@@ -168,6 +174,7 @@ function timeOf(iso: string | null): string {
 
 function ActionCardInner({
   action,
+  preview,
   index = 0,
   showKeyHints = false,
   savedSignature = null,
@@ -431,6 +438,16 @@ function ActionCardInner({
           <dd className="font-semibold text-ink-soft">{riskView.because}</dd>
           <dt className="text-[11px] font-black uppercase tracking-wider text-ink-soft sm:pt-0.5">approval</dt>
           <dd className="font-semibold text-ink-soft">{approvalNeeded}</dd>
+          {preview && !preview.unknown_operation && (
+            <>
+              <dt className="text-[11px] font-black uppercase tracking-wider text-ink-soft sm:pt-0.5">undo</dt>
+              <dd
+                className={`font-semibold ${preview.undo_support === "none" ? "text-ink" : "text-ink-soft"}`}
+              >
+                {preview.undo}
+              </dd>
+            </>
+          )}
         </dl>
       )}
 
@@ -440,6 +457,16 @@ function ActionCardInner({
         <p className="mt-2 pl-12 text-[11px] font-semibold text-ink-soft">
           {beforeApprovalLine(action.category)} {afterApprovalLine(action.category)}
         </p>
+      )}
+
+      {/* The model no longer recognizes what this card proposes — the capability
+          was withdrawn, or the connection is gone. Say so before anyone approves
+          something that cannot run as described. */}
+      {pending && preview?.unknown_operation && (
+        <div className="mt-3 flex items-start gap-1.5 rounded-btn px-2.5 py-2 text-[11px] font-bold leading-snug text-ink ring-1 ring-inset ring-ink/40">
+          <ShieldAlert size={13} strokeWidth={2.5} className="mt-px shrink-0" aria-hidden="true" />
+          {preview.undo}
+        </div>
       )}
 
       {flagged && (
@@ -731,6 +758,7 @@ export const ActionCard = memo(
   ActionCardInner,
   (prev, next) =>
     prev.action === next.action &&
+    prev.preview === next.preview &&
     prev.index === next.index &&
     prev.showKeyHints === next.showKeyHints &&
     prev.savedSignature === next.savedSignature &&

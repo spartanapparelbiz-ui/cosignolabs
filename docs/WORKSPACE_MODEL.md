@@ -138,10 +138,47 @@ than blanking them.
 no credential; execution stays where it already lives — an approved action on
 the ledger, gated by the existing authority engine.
 
-Twin derivation moved into `src/lib/twin/collect.ts` so `/api/twin` and every
-Workspace Model surface reason about *exactly* the same model. Two callers
-deriving it slightly differently would mean a plan validated against a model the
-explorer never showed.
+## Where the model actually does work
+
+For a while the model was a diagram: it explained things on a page nobody had
+to visit, while the real gate (`runtime/propose.ts`) validated capabilities
+against `provider.listActions()` independently. A model that nothing depends on
+is decoration, so it now carries one load-bearing job.
+
+**Every approval card reads its undo from the model.** Before a person approves
+a connector action, `previewForActions` asks the twin the question the tier
+cannot answer: *if this is wrong, can we take it back?*
+
+- The undo for a create is that connector's **own declared delete** — named on
+  the card (`cosigno can undo this by running delete_widget on Acme`).
+- If the connector declares no inverse, the card says the action is
+  **permanent** rather than implying a rescue that doesn't exist.
+- An **update reports that no before-state was captured**, because a connector
+  call carries the values going in and never the values already there. Offering
+  to "restore" fields it has never seen would be the single most dangerous lie
+  this surface could tell.
+- If the connection no longer declares the operation — a withdrawn MCP tool, a
+  deleted connector — the card says so **before** anyone approves something that
+  can't run as described.
+
+The preview explains; it never gates. Tier, authority, and every existing floor
+are untouched, and a failure to build the model omits the preview rather than
+blocking the queue.
+
+## Identity, and why it is the whole ballgame
+
+A twin is keyed by **connection id**, never by provider key. Every custom MCP
+server is stored with `provider_key: "mcp"` and every generic API connector
+with `"custom"`, so keying by provider merges two unrelated servers into one
+model — and a merged model will happily offer an undo operation that belongs to
+somebody else's server. Custom API connectors are modelled too, from the action
+set the user mapped; they used to be dropped silently.
+
+Derivation lives in `src/lib/twin/collect.ts` and **fails loudly**. If the store
+can't be read it throws instead of returning an empty model, because an empty
+model is not "no connections" — it is "we don't know", and rendering the second
+as the first turns a database blip into a page confidently claiming a workspace
+has no tools, or a live capability into one that looks withdrawn.
 
 ## Honest scope map
 
@@ -159,6 +196,10 @@ What is **not** here, stated plainly rather than stubbed:
 - **One-click rollback execution.** The rollback *plan* is computed, previewed,
   priced and gated; running it is an approved action like any other and is not
   auto-executed from this surface.
+- **A twins browser.** `/app/twins`, its component, and `GET /api/twin` were
+  deleted. A per-app capability catalog is a developer's view; an operations
+  manager approving a refund never needs it, and the model earns its place on
+  the approval card instead. The twin module remains as the substrate.
 - **Streaming/webhook ingestion.** Sync *modes* are modelled and reported
   honestly; the ingestion plumbing itself is not part of this increment, which
   is why every connector's freshness is shown rather than assumed.

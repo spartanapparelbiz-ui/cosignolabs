@@ -72,10 +72,12 @@ export function syncModeFor(twin: DigitalTwin): { mode: SyncMode; reason: string
       reason: "MCP servers advertise tools on request and do not push change events, so the model re-reads the tool list on a schedule.",
     };
   }
-  if (WEBHOOK_CAPABLE.has(twin.connection_key)) {
+  // Matched on the PROVIDER key: a twin is keyed by connection id, and a
+  // connection id tells you nothing about whether that vendor pushes events.
+  if (WEBHOOK_CAPABLE.has(twin.provider_key)) {
     return { mode: "webhook", reason: `${twin.name} pushes change events, so the model updates as they arrive.` };
   }
-  if (STREAM_CAPABLE.has(twin.connection_key)) {
+  if (STREAM_CAPABLE.has(twin.provider_key)) {
     return { mode: "stream", reason: `${twin.name} supports change streams, so the model follows them continuously.` };
   }
   return {

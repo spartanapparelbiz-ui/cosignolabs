@@ -331,11 +331,11 @@ export function WorkspaceModel() {
       <p className="mt-10 text-center text-[11px] leading-relaxed text-ink-soft">
         The Workspace Model is not a copy of your data. It models structure — what exists, what it
         relates to, who may change it, and whether that change can be undone. Record counts appear
-        only where a connector genuinely synced them.{" "}
-        <Link href="/app/twins" className="font-bold underline decoration-line underline-offset-2 hover:text-ink">
-          See each app&apos;s own capability model
-        </Link>
-        .
+        only where a connector genuinely synced them. Every{" "}
+        <Link href="/app/approvals" className="font-bold underline decoration-line underline-offset-2 hover:text-ink">
+          approval
+        </Link>{" "}
+        reads its undo from this model.
       </p>
     </div>
   );
