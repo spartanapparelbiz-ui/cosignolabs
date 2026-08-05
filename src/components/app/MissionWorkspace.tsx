@@ -246,14 +246,14 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
 
         {story.apps.length > 0 && (
           <div className="mt-3">
-            <MissionFlow apps={story.apps} />
+            <MissionFlow apps={story.apps} finished={story.status === "finished"} />
           </div>
         )}
 
         {story.done.length > 0 && (
           <ul className="mt-4 flex flex-col gap-1.5">
             {story.done.map((line) => (
-              <li key={line} className="flex items-start gap-2 text-sm">
+              <li key={line} className="flex animate-card-in items-start gap-2 text-sm">
                 <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
                 <span>{line}</span>
               </li>

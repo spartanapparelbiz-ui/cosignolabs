@@ -1,25 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, Check, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Flag, Play, X } from "lucide-react";
 import type { MissionApp } from "@/lib/missionStory";
 import type { StepMark } from "@/lib/status";
 
 /**
- * The workflow map for one mission: the apps it moves through, left to right,
- * each turning green as its part finishes.
+ * The journey one piece of work takes.
  *
- *     cosigno → Calendar → Email → Files
- *        ✓         ✓         ●       ○
+ *     Goal ──✓── cosigno ──✓── Calendar ──●── Email ──○── Finished
  *
- * Clicking a box says exactly what happened in that app — the steps, and what
- * each one produced. That's the whole interaction: no zoom, no graph, nothing
- * to learn.
+ * Not a diagram of systems: a route, with bookends. Each stop lights up as
+ * work reaches it, the line between two stops FILLS when the earlier one
+ * finishes, and the stop that's happening right now pulses. Replay walks the
+ * route again at reading speed — the order is the recorded one, so it is a
+ * replay rather than an animation invented for effect.
+ *
+ * Clicking a stop says exactly what happened there.
  */
 
-const BOX: Record<StepMark, string> = {
+const STOP: Record<StepMark, string> = {
   done: "border-signal bg-signal/10",
-  current: "border-signal bg-signal/15 animate-orb-pulse",
+  current: "border-signal bg-signal/20 shadow-lift",
   your_turn: "border-ink bg-ink/5",
   stopped: "border-ink/50 bg-cream-deep",
   upcoming: "border-line bg-surface/60",
@@ -33,38 +35,83 @@ const MARK_WORD: Record<StepMark, string> = {
   upcoming: "not started",
 };
 
-export function MissionFlow({ apps }: { apps: MissionApp[] }) {
+export function MissionFlow({ apps, finished }: { apps: MissionApp[]; finished?: boolean }) {
   const [open, setOpen] = useState<string | null>(null);
+  /** During replay, only stops up to this index are shown as reached. */
+  const [replayTo, setReplayTo] = useState<number | null>(null);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => () => {
+    if (timer.current) clearInterval(timer.current);
+  }, []);
+
   if (apps.length === 0) return null;
 
   const active = apps.find((a) => a.key === open) ?? null;
+  const reached = (i: number) => (replayTo === null ? true : i <= replayTo);
+
+  function replay() {
+    if (timer.current) clearInterval(timer.current);
+    setReplayTo(-1);
+    let i = -1;
+    timer.current = setInterval(() => {
+      i += 1;
+      setReplayTo(i);
+      if (i >= apps.length) {
+        if (timer.current) clearInterval(timer.current);
+        // Settle back to live state so the route never lies about "now".
+        setTimeout(() => setReplayTo(null), 700);
+      }
+    }, 520);
+  }
 
   return (
     <div>
-      <div className="overflow-x-auto pb-1">
-        <ol className="flex min-w-min items-center gap-1">
-          {apps.map((app, i) => (
-            <li key={app.key} className="flex items-center gap-1">
-              <button
-                onClick={() => setOpen(open === app.key ? null : app.key)}
-                aria-expanded={open === app.key}
-                className={`flex shrink-0 items-center gap-1.5 rounded-btn border px-3 py-1.5 text-left transition-all duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal ${BOX[app.mark]} ${
-                  open === app.key ? "ring-2 ring-signal" : ""
-                }`}
-              >
-                <Mark mark={app.mark} />
-                <span className="text-xs font-bold">{app.name}</span>
-              </button>
-              {i < apps.length - 1 && (
-                <ArrowRight size={13} className="shrink-0 text-ink-soft" aria-hidden="true" />
-              )}
-            </li>
-          ))}
-        </ol>
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1 overflow-x-auto pb-1">
+          <ol className="flex min-w-min items-center">
+            <Bookend icon={<Flag size={11} strokeWidth={2.8} />} label="Goal" reached />
+            <Line filled={reached(0) && apps[0]?.mark !== "upcoming"} />
+
+            {apps.map((app, i) => {
+              const shown: StepMark = reached(i) ? app.mark : "upcoming";
+              return (
+                <li key={app.key} className="flex items-center">
+                  <button
+                    onClick={() => setOpen(open === app.key ? null : app.key)}
+                    aria-expanded={open === app.key}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-btn border px-3 py-1.5 text-left transition-all duration-base ease-brand-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal ${STOP[shown]} ${
+                      open === app.key ? "ring-2 ring-signal" : ""
+                    } ${shown === "current" ? "animate-pulse-glow" : ""}`}
+                  >
+                    <Mark mark={shown} />
+                    <span className="text-xs font-bold">{app.name}</span>
+                  </button>
+                  <Line filled={reached(i) && app.mark === "done"} />
+                </li>
+              );
+            })}
+
+            <Bookend
+              icon={<Check size={11} strokeWidth={3.2} />}
+              label="Finished"
+              reached={Boolean(finished) && replayTo === null}
+            />
+          </ol>
+        </div>
+
+        <button
+          onClick={replay}
+          className="inline-flex shrink-0 items-center gap-1 rounded-btn px-2 py-1 text-[11px] font-bold text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+          aria-label="replay this journey"
+        >
+          <Play size={10} strokeWidth={3} aria-hidden="true" />
+          replay
+        </button>
       </div>
 
       {active && (
-        <div className="mt-2 rounded-btn border border-line/70 bg-cream/40 px-3 py-2.5">
+        <div className="mt-2 animate-card-in rounded-btn border border-line/70 bg-cream/40 px-3 py-2.5">
           <p className="text-xs font-bold">
             {active.name} · {MARK_WORD[active.mark]}
           </p>
@@ -87,11 +134,38 @@ export function MissionFlow({ apps }: { apps: MissionApp[] }) {
   );
 }
 
+/** The connector between two stops. Fills left-to-right as work passes. */
+function Line({ filled }: { filled: boolean }) {
+  return (
+    <span className="relative mx-1 block h-[2px] w-6 shrink-0 overflow-hidden rounded-pill bg-line" aria-hidden="true">
+      <span
+        className="absolute inset-y-0 left-0 bg-signal transition-[width] duration-base ease-brand-out"
+        style={{ width: filled ? "100%" : "0%" }}
+      />
+    </span>
+  );
+}
+
+function Bookend({ icon, label, reached }: { icon: React.ReactNode; label: string; reached: boolean }) {
+  return (
+    <li
+      className={`flex shrink-0 items-center gap-1.5 rounded-btn border px-2.5 py-1.5 transition-colors duration-base ${
+        reached ? "border-signal bg-signal/10 text-ink" : "border-line bg-surface/60 text-ink-soft"
+      }`}
+    >
+      <span className={reached ? "text-signal" : "text-ink-soft"} aria-hidden="true">
+        {icon}
+      </span>
+      <span className="text-xs font-bold">{label}</span>
+    </li>
+  );
+}
+
 function Mark({ mark }: { mark: StepMark }) {
   if (mark === "done") {
     return (
       <span
-        className="flex h-4 w-4 items-center justify-center rounded-pill bg-signal text-cream"
+        className="flex h-4 w-4 animate-check-pop items-center justify-center rounded-pill bg-signal text-cream"
         aria-hidden="true"
       >
         <Check size={10} strokeWidth={3.4} />
@@ -112,7 +186,7 @@ function Mark({ mark }: { mark: StepMark }) {
     <span
       className={`block h-4 w-4 rounded-pill ${
         mark === "current"
-          ? "bg-signal/60"
+          ? "animate-orb-pulse bg-signal"
           : mark === "your_turn"
             ? "bg-ink"
             : "bg-cream-deep ring-1 ring-inset ring-ink/15"

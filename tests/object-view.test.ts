@@ -125,6 +125,34 @@ describe("objects, not statistics", () => {
     expect(view.cards[0].name).toBe("Person 0");
   });
 
+  it("shows a create as proof: it didn't exist, now it does", () => {
+    const view = objectsFromAction(
+      action("connection_call", {
+        action: "create_pull_request",
+        args: { title: "PR #281", branch: "fix-checkout" },
+      })
+    );
+    // The most checkable statement there is — either it's there or it isn't.
+    expect(view.cards[0].changes[0]).toEqual({
+      label: "Pull request",
+      before: "No pull request",
+      after: "PR #281",
+    });
+    // …and the detail still travels underneath.
+    expect(view.cards[0].changes.some((c) => c.label === "Branch")).toBe(true);
+  });
+
+  it("shows a delete the other way round", () => {
+    const view = objectsFromAction(
+      action("delete", { action: "delete_repository", args: { name: "legacy-api" } })
+    );
+    expect(view.cards[0].changes[0]).toEqual({
+      label: "Repository",
+      before: "legacy-api",
+      after: "no repository",
+    });
+  });
+
   it("falls back to the action's own arguments as one object", () => {
     const view = objectsFromAction(
       action("send_email", { action: "send_message", args: { subject: "Invoice", to: "a@b.com" } })

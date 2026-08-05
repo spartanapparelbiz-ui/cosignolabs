@@ -267,31 +267,47 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
       .catch(() => {});
   }, [load]);
 
-  // While an ACTIVE mission is open, keep the engine moving (the cron tick
-  // does the same job when nobody is looking). Keyed on the mission's
-  // ACTIVE-ness, not the missions array identity, so the 4s tick's own
-  // setMissions doesn't tear down and recreate the interval every cycle.
-  // Hidden tabs skip the tick entirely — the cron picks up the slack.
-  const openActive = Boolean(
-    openId && missions?.some((m) => m.id === openId && ACTIVE.has(m.state))
-  );
+  // The page is LIVE whenever anything is running — not only when a mission
+  // happens to be expanded. Watching work move is the entire point of this
+  // screen, and a screen that only updates the row you clicked is a report.
+  //
+  // Each tick refreshes every mission and its steps (one cheap read), then
+  // advances ONE active mission, rotating through them so several make
+  // progress without stacking requests. Hidden tabs skip the tick entirely —
+  // the cron picks up the slack.
+  const activeIds = (missions ?? []).filter((m) => ACTIVE.has(m.state)).map((m) => m.id);
+  const activeKey = activeIds.join(",");
+  const turn = useRef(0);
+
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current);
-    if (!openId || !openActive) return;
+    if (activeIds.length === 0) return;
+    const ids = activeKey.split(",").filter(Boolean);
+
     pollRef.current = setInterval(async () => {
       if (document.visibilityState === "hidden") return;
       try {
-        const data = await jsonFetch(`/api/missions/${openId}/advance`, { method: "POST" });
-        setSteps((s) => ({ ...s, [openId]: data.steps ?? [] }));
-        setMissions((ms) => (ms ?? []).map((m) => (m.id === openId ? data.mission : m)));
+        const data = await jsonFetch("/api/missions?include=steps");
+        setMissions(data.missions ?? []);
+        if (data.steps) setSteps((prev) => ({ ...prev, ...data.steps }));
+      } catch {
+        // transient — the next tick retries
+      }
+      const next = ids[turn.current % ids.length];
+      turn.current += 1;
+      try {
+        const advanced = await jsonFetch(`/api/missions/${next}/advance`, { method: "POST" });
+        setSteps((s) => ({ ...s, [next]: advanced.steps ?? [] }));
+        setMissions((ms) => (ms ?? []).map((m) => (m.id === next ? advanced.mission : m)));
       } catch {
         // rate-limited or transient — the next interval retries
       }
     }, 4000);
+
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [openId, openActive]);
+  }, [activeKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function start() {
     setBusy("start");
@@ -606,15 +622,17 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                   })}
                 </ol>
 
-                {/* receipt */}
+                {/* The receipt, in words. Plan versions are an engine number:
+                    they tell a person nothing about whether the work is good. */}
                 {m.receipt !== null && (
                   <div className="rounded-btn bg-cream-deep px-3 py-2 text-xs">
-                    <p className="font-extrabold lowercase">mission receipt</p>
+                    <p className="font-extrabold lowercase">receipt</p>
                     <p className="mt-0.5 text-ink-soft">
-                      {(m.receipt.completed_steps as unknown[])?.length ?? 0} steps completed ·{" "}
-                      {(m.receipt.deliverables as unknown[])?.length ?? 0} deliverables ·{" "}
-                      {(m.receipt.verifications as unknown[])?.length ?? 0} verifications · plan v
-                      {String(m.receipt.plan_versions ?? m.plan_version)}
+                      {(m.receipt.deliverables as unknown[])?.length ?? 0} file
+                      {((m.receipt.deliverables as unknown[])?.length ?? 0) === 1 ? "" : "s"} produced ·{" "}
+                      {(m.receipt.verifications as unknown[])?.length ?? 0} result
+                      {((m.receipt.verifications as unknown[])?.length ?? 0) === 1 ? "" : "s"} checked
+                      afterwards
                     </p>
                   </div>
                 )}

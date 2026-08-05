@@ -316,11 +316,16 @@ export function objectsFromAction(
     const fields = fieldsOf(source);
     const name = nameOf(source) ?? "";
     if (fields.length > 0 || name) {
+      const created = action.category !== "update_record" && action.category !== "search";
       return single({
         type,
         name,
         summary: summaryFor(action.category === "update_record" ? fields : [], action.category),
-        changes: fields,
+        // Proof FIRST, detail after. A create genuinely has a before — there
+        // wasn't one — so the card leads with "No invoice → Invoice #281",
+        // which anyone can check at a glance, and still carries the fields
+        // underneath for whoever wants them.
+        changes: created && name ? [existenceChange(type, name, action.category), ...fields] : fields,
       });
     }
 
@@ -330,6 +335,19 @@ export function objectsFromAction(
     // to the action's own sentence.
     return { cards: [], more: 0, empty: true };
   }
+}
+
+/**
+ * The before → after of a thing coming into existence, or leaving it. This is
+ * the most checkable proof there is: either the pull request is there
+ * afterwards or it isn't.
+ */
+function existenceChange(type: string, name: string, category: ActionRecord["category"]): FieldChange {
+  const article = /^[aeiou]/i.test(type) ? "No" : "No";
+  if (category === "delete") {
+    return { label: type, before: name, after: `${article.toLowerCase()} ${type.toLowerCase()}` };
+  }
+  return { label: type, before: `${article} ${type.toLowerCase()}`, after: name };
 }
 
 function single(card: ObjectCard): ObjectView {

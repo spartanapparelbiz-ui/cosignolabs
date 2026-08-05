@@ -51,7 +51,11 @@ export function MissionCard({
   const finishedAt = mission.completed_at ?? mission.updated_at;
 
   return (
-    <article className="rounded-card border border-line bg-surface p-5 shadow-soft transition-shadow duration-fast hover:shadow-lift">
+    <article
+      className={`rounded-card border border-line bg-surface p-5 shadow-soft transition-shadow duration-fast hover:shadow-lift ${
+        story.status === "working" ? "border-signal/40" : ""
+      }`}
+    >
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-base font-bold leading-snug">{story.headline}</h3>
@@ -80,16 +84,19 @@ export function MissionCard({
       {/* the apps it moves through, each turning green as it finishes */}
       {story.apps.length > 0 && (
         <div className="mt-3">
-          <MissionFlow apps={story.apps} />
+          <MissionFlow apps={story.apps} finished={story.status === "finished"} />
         </div>
       )}
 
       {/* ✓ what happened */}
       {story.done.length > 0 && (
         <ul className="mt-3 flex flex-col gap-1">
+          {/* Keyed by the line itself: a result that has just arrived is a
+              NEW node, so it animates in rather than appearing between two
+              renders. Work should look like it is landing. */}
           {story.done.slice(0, 4).map((line) => (
-            <li key={line} className="flex items-start gap-2 text-sm">
-              <Check size={13} strokeWidth={3} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
+            <li key={line} className="flex animate-card-in items-start gap-2 text-sm">
+              <Check size={13} strokeWidth={3} className="mt-0.5 shrink-0 animate-check-pop text-signal" aria-hidden="true" />
               <span>{line}</span>
             </li>
           ))}
