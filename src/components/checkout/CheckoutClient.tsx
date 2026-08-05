@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Lock } from "lucide-react";
-import { getPlan, type Interval, type PlanId } from "@/lib/plans";
+import { getPlan, moneyLabel, type Interval, type PlanId } from "@/lib/plans";
 import { useCountUp } from "@/lib/useCountUp";
 import { embeddedCheckoutEnabled } from "@/lib/stripeClient";
 import { track } from "@/lib/analytics";
@@ -73,7 +73,10 @@ export function CheckoutClient({
   useEffect(() => setCard({ name }), [name, setCard]);
 
   const amount = interval === "annual" ? plan.price.annual : plan.price.monthly;
-  const shownAmount = useCountUp(amount, 420);
+  // The count-up animates the whole-dollar part; cents are appended statically
+  // so "$44.40" never flickers through fractional garbage mid-animation.
+  const shownAmount = useCountUp(Math.floor(amount), 420);
+  const cents = Number.isInteger(amount) ? "" : `.${Math.round((amount % 1) * 100).toString().padStart(2, "0")}`;
 
   const renewalDate = useMemo(() => {
     const d = new Date();
@@ -144,7 +147,7 @@ export function CheckoutClient({
             </div>
             <div className="text-right">
               <p className="text-2xl font-extrabold tabular-nums">
-                ${shownAmount}
+                ${shownAmount}{cents}
                 <span className="text-sm font-bold text-ink-soft">
                   {interval === "annual" ? "/yr" : "/mo"}
                 </span>
@@ -176,6 +179,16 @@ export function CheckoutClient({
               switched to annual — two months on us vs paying monthly.
             </p>
           )}
+
+          {/* what's included — the plan's real feature list, from plans.ts */}
+          <ul className="mt-4 flex flex-col gap-1.5 border-t border-line/60 pt-4">
+            {plan.features.map((f) => (
+              <li key={f} className="flex items-start gap-2 text-sm font-semibold">
+                <span className="mt-px text-signal" aria-hidden="true">✓</span>
+                {f}
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* form or success receipt */}
@@ -184,9 +197,22 @@ export function CheckoutClient({
             <div className="mb-3 flex items-center gap-2.5">
               <LivingMark size={30} />
               <p className="text-lg font-extrabold lowercase">
-                cosigned. welcome to {plan.name}.
+                🎉 welcome to {plan.name}.
               </p>
             </div>
+            <p className="text-sm font-bold lowercase text-ink-soft">cosigno just unlocked:</p>
+            <ul className="mt-1.5 flex flex-col gap-1">
+              {plan.features.map((f, i) => (
+                <li
+                  key={f}
+                  style={{ animationDelay: `${i * 90}ms` }}
+                  className="flex animate-rise-in items-start gap-2 text-sm font-semibold"
+                >
+                  <span className="mt-px text-signal" aria-hidden="true">✓</span>
+                  {f}
+                </li>
+              ))}
+            </ul>
             <dl className="mt-3 flex flex-col gap-1.5 text-sm">
               <div className="flex justify-between">
                 <dt className="text-ink-soft">plan</dt>
@@ -194,7 +220,7 @@ export function CheckoutClient({
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-soft">charged</dt>
-                <dd className="font-bold tabular-nums">${amount}</dd>
+                <dd className="font-bold tabular-nums">${moneyLabel(amount)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-soft">renews</dt>

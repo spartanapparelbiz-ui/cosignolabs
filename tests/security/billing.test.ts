@@ -108,7 +108,7 @@ describe("usage limit is plan-aware (free = 25)", () => {
     expect(res.status).toBe(402);
     const body = await res.json();
     expect(body.message).toMatch(/25 AI operations/i);
-    expect(body.message).toMatch(/\$29/);
+    expect(body.message).toMatch(/\$44\.40/);
   });
 });
 

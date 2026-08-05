@@ -16,6 +16,7 @@ import {
   Rocket,
   Settings,
   ShieldCheck,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { LogoHome } from "@/components/brand/LivingLogo";
@@ -150,6 +151,28 @@ function usePendingCount(): number {
   return count;
 }
 
+/**
+ * Whether this workspace is on the free plan — the ONE condition under which
+ * the rail shows an upgrade destination. Paid users manage their plan from
+ * settings; putting an upgrade ad in front of someone already paying is the
+ * pushiness the shell rules exist to prevent. Until the plan is known, the
+ * item is absent (no flash of an ad that then disappears).
+ */
+function useIsFreePlan(): boolean {
+  const [free, setFree] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/usage")
+      .then((r) => r.json())
+      .then((d) => alive && setFree((d.plan?.id ?? "free") === "free"))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return free;
+}
+
 function Badge({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
@@ -163,6 +186,7 @@ function Badge({ count }: { count: number }) {
 export function AppRail() {
   const pathname = usePathname();
   const pending = usePendingCount();
+  const isFree = useIsFreePlan();
   return (
     <aside
       className="sticky top-0 hidden h-screen w-[76px] shrink-0 flex-col items-center gap-1 border-r border-line/60 bg-cream/80 py-4 lg:flex"
@@ -194,6 +218,16 @@ export function AppRail() {
           badge={0}
         />
       ))}
+
+      {isFree && (
+        <RailLink
+          href="/pricing"
+          label="upgrade"
+          Icon={Sparkles}
+          active={false}
+          badge={0}
+        />
+      )}
     </aside>
   );
 }

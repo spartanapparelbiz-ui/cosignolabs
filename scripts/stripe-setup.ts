@@ -57,8 +57,8 @@ async function main() {
   for (const planId of PAID_PLANS) {
     const plan = PLANS[planId];
     const product = await findOrCreateProduct(planId);
-    const monthly = await findOrCreatePrice(product.id, plan.price.monthly * 100, "month", planId);
-    const annual = await findOrCreatePrice(product.id, plan.price.annual * 100, "year", planId);
+    const monthly = await findOrCreatePrice(product.id, Math.round(plan.price.monthly * 100), "month", planId);
+    const annual = await findOrCreatePrice(product.id, Math.round(plan.price.annual * 100), "year", planId);
     out[plan.price.monthlyEnv!] = monthly.id;
     out[plan.price.annualEnv!] = annual.id;
   }

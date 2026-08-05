@@ -18,10 +18,10 @@ export function usageLimitMessage(planId: string): string {
   const max = PLANS.max.actionLimit.toLocaleString();
   const proPrice = priceLabel(PLANS.pro, "monthly");
   if (planId === "free") {
-    return `you've used your ${free} AI operations this month. pro includes ${pro} for ${proPrice}.`;
+    return `you've used your ${free} AI operations this month. ${PLANS.pro.name} includes ${pro} for ${proPrice}.`;
   }
   if (planId === "pro") {
-    return `you've hit this month's ${pro} AI operations. the next plan raises the ceiling to ${max}.`;
+    return `you've hit this month's ${pro} AI operations. ${PLANS.max.name} raises the ceiling to ${max}.`;
   }
   return `you've hit this month's ${max} AI operations. reach out and we'll raise your ceiling.`;
 }
@@ -44,7 +44,7 @@ export async function assertIntegrationCapacity(
     throw new ApiError(
       402,
       "upgrade_required",
-      "custom integrations are a pro feature. upgrade to connect your own tools."
+      `custom integrations come with ${PLANS.pro.name}. upgrade to connect your own tools.`
     );
   }
   const existing = await getStore().listConnections(userId);
@@ -54,7 +54,7 @@ export async function assertIntegrationCapacity(
       402,
       "upgrade_required",
       planId === "free"
-        ? `free connects one integration. pro is ${priceLabel(PLANS.pro, "monthly")} for unlimited.`
+        ? `free connects one app. ${PLANS.pro.name} is ${priceLabel(PLANS.pro, "monthly")} for unlimited.`
         : "you've reached your plan's connection limit."
     );
   }

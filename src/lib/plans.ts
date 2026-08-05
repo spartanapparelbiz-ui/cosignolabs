@@ -35,6 +35,8 @@ export interface Plan {
   upgradeTo: PlanId | null;
   /** feature bullets rendered on pricing + account (drawn from here only) */
   features: string[];
+  /** "what people use it for" examples on pricing — real capabilities only */
+  examples?: string[];
   /** gets the stronger planning model for complex plans */
   strongerModel: boolean;
   canExportCsv: boolean;
@@ -53,14 +55,17 @@ export const PLANS: Record<PlanId, Plan> = {
     strongerModel: false,
     canExportCsv: false,
     features: ["25 AI operations / month", "1 connected app", "live preview", "activity log"],
+    examples: ["plan a trip", "draft emails", "research products", "organize notes"],
   },
   pro: {
     id: "pro",
-    name: "pro",
-    tagline: "for operators running real workflows.",
+    // Display name only — the id stays "pro" everywhere it's stored (Stripe
+    // metadata, subscription rows), so renaming can't orphan a subscription.
+    name: "operator",
+    tagline: "delegate real work, every day.",
     price: {
-      monthly: 29,
-      annual: 290,
+      monthly: 44.4,
+      annual: 444,
       monthlyEnv: "STRIPE_PRICE_PRO_MONTHLY",
       annualEnv: "STRIPE_PRICE_PRO_ANNUAL",
     },
@@ -72,18 +77,20 @@ export const PLANS: Record<PlanId, Plan> = {
     canExportCsv: true,
     features: [
       "1,000 AI operations / month",
-      "unlimited integrations",
-      "CSV export",
-      "priority planning",
+      "give cosigno your entire workflow — unlimited connected apps",
+      "connect AI to anything — your own APIs and MCP servers",
+      "never lose what AI accomplished — full history export",
     ],
+    examples: ["run your inbox", "research competitors", "automate follow-ups", "connect every app"],
   },
   max: {
     id: "max",
-    name: "max",
-    tagline: "for teams pushing the operator hard.",
+    // Display name only — the id stays "max" in storage (see pro).
+    name: "command",
+    tagline: "for teams running cosigno hard.",
     price: {
-      monthly: 99,
-      annual: 990,
+      monthly: 111,
+      annual: 1110,
       monthlyEnv: "STRIPE_PRICE_MAX_MONTHLY",
       annualEnv: "STRIPE_PRICE_MAX_ANNUAL",
     },
@@ -95,11 +102,12 @@ export const PLANS: Record<PlanId, Plan> = {
     canExportCsv: true,
     features: [
       "10,000 AI operations / month",
-      "unlimited integrations",
-      "stronger-model routing for complex plans",
+      "everything in operator",
+      "premium AI routing — a stronger model when work demands it",
       "webhook / API access",
       "priority support",
     ],
+    examples: ["run heavy volume", "premium AI routing", "webhook & API access", "priority support"],
   },
 };
 
@@ -121,12 +129,13 @@ export function priceIdFor(plan: PlanId, interval: Interval): string | null {
   return process.env[envName] || null;
 }
 
-/** Human price label, e.g. "$29/mo" or "$290/yr". */
+/** Human price label, e.g. "$44.40/mo" or "$444/yr". */
 export function priceLabel(plan: Plan, interval: Interval): string {
   if (plan.price.monthly === 0) return "$0";
-  return interval === "annual"
-    ? `$${plan.price.annual}/yr`
-    : `$${plan.price.monthly}/mo`;
+  const n = interval === "annual" ? plan.price.annual : plan.price.monthly;
+  // Cent prices render as cents ("$44.40"), whole prices stay whole ("$444").
+  const shown = Number.isInteger(n) ? String(n) : n.toFixed(2);
+  return interval === "annual" ? `$${shown}/yr` : `$${shown}/mo`;
 }
 
 /**
@@ -135,6 +144,11 @@ export function priceLabel(plan: Plan, interval: Interval): string {
  * customer, kept here so pricing copy has a single source.
  */
 export const INTRO_FIRST_MONTH_PRICE = 9;
+
+/** Format a dollar amount: cents shown only when they exist ("44.40", "444"). */
+export function moneyLabel(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(2);
+}
 
 /** The quota bullet, derived from actionLimit, e.g. "1,000 AI operations / month". */
 export function actionLimitLabel(plan: Plan): string {

@@ -515,7 +515,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
               )}
               {isFree ? (
                 <div className="mt-4 rounded-btn bg-cream-deep p-4">
-                  <p className="text-sm font-bold lowercase">pro unlocks more room</p>
+                  <p className="text-sm font-bold lowercase">{PLANS.pro.name} unlocks more room</p>
                   <ul className="mt-2 flex flex-col gap-1 text-xs text-ink-soft">
                     {PLANS.pro.features.map((f) => (
                       <li key={f}>{f}</li>
@@ -523,7 +523,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
                   </ul>
                   <button onClick={() => go("upgrade")} disabled={busy === "upgrade"} className="group relative mt-3 inline-flex overflow-hidden rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
                     <span className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-base ease-brand-out group-hover:scale-x-100" />
-                    <span className="relative transition-colors group-hover:text-ink">{busy === "upgrade" ? "starting…" : `upgrade to pro — ${priceLabel(PLANS.pro, "monthly")}`}</span>
+                    <span className="relative transition-colors group-hover:text-ink">{busy === "upgrade" ? "starting…" : `upgrade to ${PLANS.pro.name} — ${priceLabel(PLANS.pro, "monthly")}`}</span>
                   </button>
                 </div>
               ) : (
