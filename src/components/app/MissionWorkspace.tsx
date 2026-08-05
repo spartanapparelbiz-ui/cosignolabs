@@ -11,9 +11,13 @@ import {
   Globe,
   HelpCircle,
   Link2,
+  Loader2,
+  MinusCircle,
   OctagonX,
   Pause,
+  PauseCircle,
   Play,
+  ShieldQuestion,
   Square,
   XCircle,
 } from "lucide-react";
@@ -21,13 +25,18 @@ import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/li
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
+import { narrateMission } from "@/lib/missions/narrate";
 
 /**
- * The isolated mission workspace: header (goal, plain status, created time,
- * pause/stop), the event timeline on the left (completed read-only work
- * collapses to compact rows; anything needing you stays expanded), and the
- * plan checklist + provided sources + results + usage on the right. Raw
- * payloads live behind "view payload" — never in the default reading path.
+ * The mission workspace: the goal, what cosigno has finished, what it is doing
+ * right now, what is left, and — when it has stopped — why, in the words a
+ * person would use.
+ *
+ * The engine's vocabulary stays out of here entirely. Steps, tools, operators,
+ * plan versions, and the approval contract exist to make cosigno trustworthy;
+ * none of them help anyone understand what is happening. narrateMission does
+ * the whole translation, and this component only lays the result out.
+ *
  * Every value is read from THIS mission's persisted records only.
  */
 
@@ -58,20 +67,6 @@ const STATE_TONE: Record<string, string> = {
   "Needs attention": "ring-1 ring-inset ring-ink/40 text-ink",
 };
 
-const STEP_ICON: Record<MissionStepRecord["state"], typeof Circle> = {
-  ready: Circle,
-  running: CircleDot,
-  awaiting_input: HelpCircle,
-  awaiting_approval: Circle,
-  retrying: CircleDot,
-  verifying: CircleDot,
-  completed: CheckCircle2,
-  failed: OctagonX,
-  vetoed: XCircle,
-  skipped: XCircle,
-  canceled: XCircle,
-};
-
 const MISSION_ACTIVE = new Set(["queued", "running", "retrying", "verifying"]);
 const TERMINAL = new Set(["completed", "partial", "failed", "stopped"]);
 
@@ -100,7 +95,6 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
   const [sources, setSources] = useState<MissionSourceRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [payloadOpen, setPayloadOpen] = useState<Set<string>>(new Set());
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -170,15 +164,6 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
     }
   }
 
-  function togglePayload(id: string) {
-    setPayloadOpen((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
   if (error) {
     return (
       <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
@@ -196,6 +181,9 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
   const label = STATE_LABEL[mission.state];
   const usesBrowser = steps.some((s) => s.tool.startsWith("laptop.") || s.tool.startsWith("browser."));
   // Only the cards this mission is actually parked on.
+  // The whole translation from engine state to human language lives in
+  // narrateMission — this component only lays it out.
+  const narration = narrateMission(mission, steps);
   const awaitingActionIds = steps
     .filter((s) => s.state === "awaiting_approval" && s.action_id)
     .map((s) => s.action_id as string);
@@ -213,7 +201,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           </p>
           <h1 className="mt-1 font-display text-xl font-bold sm:text-2xl">{mission.goal}</h1>
           <p className="mt-1 text-xs font-semibold text-ink-soft">
-            started {elapsed(mission.created_at)} ago · plan v{mission.plan_version}
+            started {elapsed(mission.created_at)} ago
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -298,84 +286,93 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
 
       {/* ------------------- timeline + right panel ------------------- */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.5fr_1fr]">
-        {/* timeline */}
+        {/* ---- live execution: what's done, what's happening, what's left ---- */}
         <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
-          <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Timeline</h2>
-          <ol className="mt-3 flex flex-col gap-1.5">
-            {steps.map((s) => {
-              const Icon = STEP_ICON[s.state];
-              const compact = s.state === "completed" || s.state === "skipped";
-              const summary = typeof s.output?.summary === "string" ? s.output.summary : null;
-              const verif = s.verification as { ok?: boolean; detail?: string } | null;
-              const hasPayload = s.output !== null && Object.keys(s.output ?? {}).length > 0;
+          <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
+            What cosigno is doing
+          </h2>
+
+          {/* Why work stopped, in the words a person would use. A status word
+              is not a reason — "needs approval" tells you the state and
+              nothing about the decision being asked of you. */}
+          {narration.pausedBecause && (
+            <p className="mt-2 flex items-start gap-2 rounded-btn bg-signal/10 px-3 py-2 text-xs font-semibold ring-1 ring-inset ring-signal/30">
+              <PauseCircle size={14} className="mt-px shrink-0 text-signal" aria-hidden="true" />
+              <span>{narration.pausedBecause}</span>
+            </p>
+          )}
+
+          <ol className="mt-3 flex flex-col gap-1">
+            {narration.steps.map((n) => {
+              const done = n.phase === "done";
+              const now = n.phase === "current";
+              const needsYou = n.phase === "needs_you";
+              const failed = n.phase === "failed";
+              const skipped = n.phase === "skipped";
               return (
                 <li
-                  key={s.id}
-                  className={`rounded-btn px-2.5 ${compact ? "py-1.5" : "bg-cream/50 py-2.5"}`}
+                  key={n.id}
+                  className={`animate-rise-in rounded-btn px-2.5 py-2 transition-colors ${
+                    now || needsYou ? "bg-cream/60" : ""
+                  }`}
                 >
                   <div className="flex items-start gap-2">
-                    <Icon
-                      size={15}
-                      className={`mt-px shrink-0 ${
-                        s.state === "completed"
-                          ? "text-signal"
-                          : ["running", "retrying", "verifying"].includes(s.state)
-                            ? "animate-orb-pulse text-ink"
-                            : "text-ink-soft"
-                      }`}
-                      aria-hidden="true"
-                    />
+                    <span className="mt-px shrink-0" aria-hidden="true">
+                      {done ? (
+                        <CheckCircle2 size={15} className="text-signal" />
+                      ) : failed ? (
+                        <XCircle size={15} className="text-ink" />
+                      ) : skipped ? (
+                        <MinusCircle size={15} className="text-ink-soft/60" />
+                      ) : needsYou ? (
+                        <ShieldQuestion size={15} className="text-signal" />
+                      ) : now ? (
+                        <Loader2 size={15} className="animate-spin text-ink" />
+                      ) : (
+                        <Circle size={15} className="text-ink-soft/40" />
+                      )}
+                    </span>
                     <div className="min-w-0 flex-1">
-                      <p className={`text-xs font-semibold ${["vetoed", "canceled"].includes(s.state) ? "text-ink-soft line-through" : ""}`}>
-                        {s.idx + 1}. {s.purpose}
+                      <p
+                        className={`text-xs ${
+                          now || needsYou ? "font-extrabold" : done ? "font-semibold" : "font-semibold text-ink-soft"
+                        } ${skipped ? "line-through" : ""}`}
+                      >
+                        {n.headline}
                       </p>
-                      {/* compact rows keep one honest line; active rows show more */}
-                      <p className="text-[11px] text-ink-soft">
-                        {OPERATOR_PROFILES[s.operator]?.name ?? s.operator}
-                        {summary ? ` · ${summary}` : s.error ? ` · ${s.error}` : ""}
-                      </p>
-                      {verif && (
-                        <p className={`text-[11px] font-bold ${verif.ok ? "text-signal" : "text-ink"}`}>
-                          {verif.ok ? "verified" : "verification failed"}: {verif.detail}
-                        </p>
+                      {/* Evidence, as it arrives. A finished step shows what it
+                          actually produced rather than only changing colour. */}
+                      {n.evidence && (
+                        <p className="mt-0.5 text-[11px] text-ink-soft">{n.evidence}</p>
                       )}
-                      {typeof s.output?.file_id === "string" && (
-                        <Link href="/app/files" className="text-[11px] font-bold underline underline-offset-2">
-                          open deliverable in files
-                        </Link>
-                      )}
-                      {hasPayload && (
-                        <>
-                          <button
-                            onClick={() => togglePayload(s.id)}
-                            aria-expanded={payloadOpen.has(s.id)}
-                            className="ml-0 mt-0.5 block text-[10px] font-bold lowercase text-ink-soft underline underline-offset-2"
-                          >
-                            {payloadOpen.has(s.id) ? "hide payload" : "view payload"}
-                          </button>
-                          {payloadOpen.has(s.id) && (
-                            <pre className="mt-1 max-h-40 overflow-auto rounded-btn bg-cream-deep px-2 py-1.5 font-mono text-[10px] leading-relaxed">
-                              {JSON.stringify(s.output, null, 2)}
-                            </pre>
-                          )}
-                        </>
+                      {n.blockedReason && (
+                        <p className="mt-0.5 text-[11px] font-semibold">{n.blockedReason}</p>
                       )}
                     </div>
-                    <ChevronDown size={0} className="hidden" aria-hidden="true" />
+                    {now && (
+                      <span className="shrink-0 rounded-pill bg-ink px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-cream">
+                        now
+                      </span>
+                    )}
                   </div>
                 </li>
               );
             })}
           </ol>
+
+          {/* What happens after this — so nobody has to wonder. */}
+          {!narration.finished && narration.next && (
+            <p className="mt-3 border-t border-line/60 pt-2 text-[11px] text-ink-soft">
+              <span className="font-bold text-ink">Next:</span> {narration.next.headline}
+            </p>
+          )}
         </section>
 
         {/* right panel: plan, sources, results, usage */}
         <div className="flex flex-col gap-4">
           <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
-            <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Plan</h2>
-            <p className="mt-1.5 text-sm font-bold">
-              {done} of {steps.length} steps complete
-            </p>
+            <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Progress</h2>
+            <p className="mt-1.5 text-sm font-bold">{narration.status}</p>
             <div className="mt-2 h-1.5 overflow-hidden rounded-pill bg-cream-deep">
               <div
                 className="h-full rounded-pill bg-signal transition-[width]"
@@ -421,10 +418,15 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           )}
 
           <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
-            <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Usage</h2>
+            <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Effort</h2>
+            {/* Counters the engine keeps for budgeting. Kept because "how much
+                did this cost me" is a real question — but phrased as work done,
+                not as internal call counts. */}
             <p className="mt-1.5 text-xs font-semibold text-ink-soft">
-              {mission.tool_calls} tool call{mission.tool_calls === 1 ? "" : "s"} ·{" "}
-              {mission.browser_actions} browser action{mission.browser_actions === 1 ? "" : "s"}
+              {mission.tool_calls} action{mission.tool_calls === 1 ? "" : "s"} taken
+              {mission.browser_actions > 0
+                ? ` · ${mission.browser_actions} page${mission.browser_actions === 1 ? "" : "s"} read`
+                : ""}
             </p>
             {receipt !== null && (
               <p className="mt-1 text-[11px] text-ink-soft">
