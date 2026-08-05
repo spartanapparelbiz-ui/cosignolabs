@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/Toast";
 import { LogoHome } from "@/components/brand/LivingLogo";
 import { EmergencyStop } from "@/components/app/EmergencyStop";
 import { HoldBanner } from "@/components/app/HoldBanner";
+import { CommandBar } from "@/components/app/CommandBar";
 import { AccountChip } from "@/components/app/AccountChip";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,8 @@ function Chrome({
               control the operator has to go looking for. Renders nothing when
               there is no hold. */}
           <HoldBanner />
+          {/* ⌘K from anywhere in the workspace. Renders nothing until opened. */}
+          <CommandBar />
           <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
             <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
               {/* mobile shows the logo up top; desktop's logo lives in the rail */}

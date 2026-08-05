@@ -26,6 +26,8 @@ interface Panel {
   providerKey: string | null;
   facts: Fact[];
   note: string | null;
+  /** What's happening in this app right now. Absent when nothing is. */
+  activity?: { text: string; href: string };
 }
 interface Invitation {
   providerKey: string;
@@ -115,6 +117,20 @@ export function AdaptiveDashboard() {
                 <p className="mt-2 text-[11px] text-ink-soft">
                   {p.note ?? "cosigno can't read counts from this one yet."}
                 </p>
+              )}
+
+              {/* What's going on in here — the question people actually open
+                  the page with. Links to the work, so the panel isn't a dead
+                  end. Absent when nothing is running: an "idle" label while a
+                  mission quietly waits on a decision is worse than silence. */}
+              {p.activity && (
+                <Link
+                  href={p.activity.href}
+                  className="mt-2 flex items-center gap-1.5 border-t border-line/60 pt-2 text-[11px] font-bold hover:underline underline-offset-2"
+                >
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-pill bg-signal" aria-hidden="true" />
+                  {p.activity.text}
+                </Link>
               )}
             </div>
           ))}

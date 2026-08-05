@@ -3,6 +3,7 @@ import { getProvider, listProviderMeta } from "../integrations/registry";
 import { describeConnection } from "../integrations/engine/describe";
 import type { DiscoveredFact } from "../integrations/types";
 import type { MissionRecord } from "../types";
+import { toProgressive } from "../missions/narrate";
 
 /**
  * A dashboard built from what a company actually connected.
@@ -28,6 +29,16 @@ export interface DashboardPanel {
   facts: DiscoveredFact[];
   /** Why there are no facts, in plain language. Never shown alongside facts. */
   note: string | null;
+  /**
+   * What is happening in this app right now, and where to go look.
+   *
+   * An app panel that only shows counts answers "how much is in here" and
+   * leaves "what is going on in here" — the question someone actually opens
+   * the page with — unanswered. Absent when nothing is running, rather than
+   * filled with "idle": a panel that says idle while a mission is quietly
+   * waiting on a decision is worse than one that says nothing.
+   */
+  activity?: { text: string; href: string };
 }
 
 export interface DashboardInvitation {
@@ -96,6 +107,19 @@ function healthLines(
 }
 
 const WAITING_STATES = new Set(["awaiting_approval", "awaiting_input", "blocked"]);
+const RUNNING_STATES = new Set(["queued", "running", "retrying", "verifying"]);
+
+/** Tool prefix → the connector it runs against, for matching work to a panel. */
+const PROVIDER_FOR_TOOL_PREFIX: Record<string, string> = {
+  github: "github",
+  gmail: "google",
+  inbox: "google",
+  followup: "google",
+  approval: "google",
+  brief: "google",
+  calendar: "google-calendar",
+  drive: "google-drive",
+};
 
 export async function buildAdaptiveDashboard(userId: string): Promise<AdaptiveDashboard> {
   const store = getStore();
@@ -112,6 +136,27 @@ export async function buildAdaptiveDashboard(userId: string): Promise<AdaptiveDa
     live.map((c) => describeConnection(userId, c.id).catch(() => null))
   );
 
+  // What each app is busy with, from live missions. Built once, then matched
+  // to panels by provider key.
+  const activityByProvider = new Map<string, { text: string; href: string }>();
+  const liveMissions = missions.filter(
+    (m) => RUNNING_STATES.has(m.state) || WAITING_STATES.has(m.state)
+  );
+  for (const m of liveMissions.slice(0, 10)) {
+    const steps = await store.listMissionSteps(userId, m.id).catch(() => []);
+    for (const step of steps) {
+      const busy = ["running", "verifying", "retrying"].includes(step.state);
+      const waiting = ["awaiting_approval", "awaiting_input"].includes(step.state);
+      if (!busy && !waiting) continue;
+      const key = PROVIDER_FOR_TOOL_PREFIX[step.tool.split(".")[0]];
+      if (!key || activityByProvider.has(key)) continue;
+      activityByProvider.set(key, {
+        text: waiting ? "waiting on your decision" : toProgressive(step.purpose),
+        href: `/app/missions/${m.id}`,
+      });
+    }
+  }
+
   const panels: DashboardPanel[] = [];
   for (const model of described) {
     if (!model) continue;
@@ -122,6 +167,9 @@ export async function buildAdaptiveDashboard(userId: string): Promise<AdaptiveDa
       facts: model.facts,
       // A panel shows facts OR a reason, never both and never neither.
       note: model.facts.length > 0 ? null : (model.discoveryError ?? model.limitations[0] ?? null),
+      ...(activityByProvider.get(model.source)
+        ? { activity: activityByProvider.get(model.source)! }
+        : {}),
     });
   }
 
