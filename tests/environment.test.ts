@@ -41,6 +41,7 @@ function mission(state: MissionRecord["state"], goal = "Launch summer collection
     tool_calls: 0,
     browser_actions: 0,
     budget_cents: 0,
+    action_budget: null,
     created_at: now,
     updated_at: now,
     completed_at: state === "completed" ? now : null,

@@ -3,6 +3,7 @@ import { runProviderAction } from "../integrations/runtime/connections";
 import { callPlanner, plannerConfigured, plannerModel } from "../agent/provider";
 import { detectInjection } from "../agent/untrusted";
 import { verifyGmailSend } from "./verify";
+import { missionBudget } from "./missionBudget";
 import type {
   ActionCategory,
   ActionRecord,
@@ -371,6 +372,15 @@ function collectSources(ctx: ToolContext): MissionSourceRef[] {
   });
 }
 
+/**
+ * Which of your apps this mission actually touched. Read off the sources the
+ * steps recorded, so it names apps that were genuinely used rather than every
+ * app that happens to be connected.
+ */
+function collectApps(ctx: ToolContext): string[] {
+  return [...new Set(collectSources(ctx).map((s) => s.name))].sort();
+}
+
 function section(title: string, items: string[]): string {
   return `## ${title}\n\n${items.length ? items.map((i) => `- ${i}`).join("\n") : "_none found_"}\n`;
 }
@@ -527,6 +537,11 @@ const missionReceipt: MissionTool = {
     const verified = ctx.steps
       .filter((s) => s.verification)
       .map((s) => ({ step: s.purpose, ...s.verification }));
+    // What it cost you, in the unit the limit was set in: things changed, what
+    // kind, and how many of them you personally signed for. Not cents — the
+    // question a receipt answers is "what did this do", not "what did this
+    // cost us to run".
+    const budget = await missionBudget(ctx.userId, ctx.mission);
     const receipt = {
       goal: ctx.mission.goal,
       completed_steps: done.map((s) => ({ purpose: s.purpose, summary: s.output?.summary ?? null })),
@@ -534,6 +549,9 @@ const missionReceipt: MissionTool = {
       deliverables,
       sources: collectSources(ctx),
       verifications: verified,
+      changes: { made: budget.used, allowed: budget.limit, kinds: budget.kinds },
+      approvals: budget.approvals,
+      apps: collectApps(ctx),
       plan_versions: ctx.mission.plan_version,
       finished_at: new Date().toISOString(),
     };

@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { clampBudget, DEFAULT_ACTION_BUDGET } from "../missions/budget";
 import {
   AccountAuditRecord,
   ActionEventRecord,
@@ -887,11 +888,24 @@ export class MemoryStore implements Store {
   }
 
   async getPrefs(userId: string): Promise<UserPrefs> {
-    return this.prefs.get(userId) ?? { user_id: userId, memory_enabled: true };
+    return (
+      this.prefs.get(userId) ?? {
+        user_id: userId,
+        memory_enabled: true,
+        action_budget: DEFAULT_ACTION_BUDGET,
+      }
+    );
   }
 
   async setMemoryEnabled(userId: string, enabled: boolean): Promise<void> {
-    this.prefs.set(userId, { user_id: userId, memory_enabled: enabled });
+    // Merge — writing one preference must not silently reset the others.
+    const prev = await this.getPrefs(userId);
+    this.prefs.set(userId, { ...prev, memory_enabled: enabled });
+  }
+
+  async setActionBudget(userId: string, budget: number): Promise<void> {
+    const prev = await this.getPrefs(userId);
+    this.prefs.set(userId, { ...prev, action_budget: clampBudget(budget) });
   }
 
 
@@ -961,6 +975,8 @@ export class MemoryStore implements Store {
       tool_calls: 0,
       browser_actions: 0,
       budget_cents: 200,
+      // null = follow the workspace default, resolved at run time.
+      action_budget: null,
       created_at: now,
       updated_at: now,
       completed_at: null,
@@ -1006,7 +1022,7 @@ export class MemoryStore implements Store {
     userId: string,
     id: string,
     patch: Partial<
-      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at" | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents">
+      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at" | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents" | "action_budget">
     >
   ): Promise<MissionRecord | null> {
     const m = this.missions.find((x) => x.id === id && x.user_id === userId);

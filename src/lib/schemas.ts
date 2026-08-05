@@ -118,6 +118,16 @@ export const tierSettingSchema = z
   })
   .strict();
 
+/** The workspace default: how many changes a mission may make before it asks. */
+export const actionBudgetSchema = z
+  .object({ budget: z.number().int().min(1).max(500) })
+  .strict();
+
+/** More room for one mission that ran out. Additive — never a new total. */
+export const budgetIncreaseSchema = z
+  .object({ add: z.number().int().min(1).max(100) })
+  .strict();
+
 /**
  * A Trust Center row. The capability is validated against the registry in the
  * route (an id here would only duplicate that list and drift from it).

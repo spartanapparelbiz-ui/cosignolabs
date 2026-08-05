@@ -132,7 +132,7 @@ describe("the laptop comparison mission (sandbox browser)", () => {
   });
 });
 
-describe("browser session isolation + budget", () => {
+describe("browser session isolation + run ceiling", () => {
   it("another user cannot see or drive the mission's browser session", async () => {
     const { mission } = await startLaptopMission("user-a");
     await advanceMission("user-a", mission.id, 2);
@@ -142,12 +142,16 @@ describe("browser session isolation + budget", () => {
     expect(await store.listBrowserSessions("user-b", mission.id)).toHaveLength(0);
   });
 
-  it("a mission blocks cleanly when it exceeds its operating budget", async () => {
+  // The engine's OWN ceiling on how long one mission may run — distinct from
+  // the action budget the user sets, and worded so the two can't be confused.
+  it("a mission blocks cleanly when it runs longer than one mission may", async () => {
     const { mission } = await startLaptopMission("user-a");
     await store.updateMission("user-a", mission.id, { budget_cents: 10 }); // → 2 tool calls
     const r = await drive("user-a", mission.id);
     expect(r.mission.state).toBe("blocked");
-    expect(r.mission.error).toMatch(/operating budget/i);
+    expect(r.mission.error).toMatch(/as long as a single mission can/i);
+    // Not the action budget — that pauses and offers more room; this doesn't.
+    expect(r.mission.error).not.toMatch(/allowed to change/i);
   });
 });
 

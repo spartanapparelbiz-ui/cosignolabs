@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { clampBudget, DEFAULT_ACTION_BUDGET } from "../missions/budget";
 import {
   ActionEventRecord,
   ActionEventType,
@@ -1180,13 +1181,29 @@ export class SupabaseStore implements Store {
       .eq("user_id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return (data as UserPrefs) ?? { user_id: userId, memory_enabled: true };
+    const row = data as UserPrefs | null;
+    return {
+      user_id: userId,
+      memory_enabled: row?.memory_enabled ?? true,
+      action_budget: row?.action_budget ?? DEFAULT_ACTION_BUDGET,
+    };
   }
 
   async setMemoryEnabled(userId: string, enabled: boolean): Promise<void> {
     const { error } = await this.client
       .from("user_prefs")
       .upsert({ user_id: userId, memory_enabled: enabled, updated_at: new Date().toISOString() });
+    if (error) throw new Error(error.message);
+  }
+
+  async setActionBudget(userId: string, budget: number): Promise<void> {
+    const { error } = await this.client
+      .from("user_prefs")
+      .upsert({
+        user_id: userId,
+        action_budget: clampBudget(budget),
+        updated_at: new Date().toISOString(),
+      });
     if (error) throw new Error(error.message);
   }
 
@@ -1293,7 +1310,7 @@ export class SupabaseStore implements Store {
     userId: string,
     id: string,
     patch: Partial<
-      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at" | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents">
+      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at" | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents" | "action_budget">
     >
   ): Promise<MissionRecord | null> {
     const { data, error } = await this.client

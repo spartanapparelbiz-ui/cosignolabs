@@ -23,7 +23,8 @@ interface Node {
   current_tool: string | null;
   tool_calls: number;
   browser_actions: number;
-  budget_cents: number;
+  changes_made: number;
+  changes_allowed: number | null;
   steps_total: number;
   steps_done: number;
   queue_size: number;
@@ -292,7 +293,14 @@ export function MissionControl() {
               <Field label="retries" value={open.retries} />
               <Field label="tool calls" value={open.tool_calls} />
               <Field label="browser actions" value={open.browser_actions} />
-              <Field label="budget cap" value={`$${(open.budget_cents / 100).toFixed(2)}`} />
+              <Field
+                label="changes made"
+                value={
+                  open.changes_allowed === null
+                    ? open.changes_made
+                    : `${open.changes_made} of ${open.changes_allowed}`
+                }
+              />
               <Field label="risk" value={open.risk ?? <span className="text-ink-soft">no decisions yet</span>} />
               <Field
                 label="last action"

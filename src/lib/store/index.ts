@@ -468,6 +468,8 @@ export interface Store {
   deleteMemory(userId: string, id: string): Promise<void>;
   getPrefs(userId: string): Promise<UserPrefs>;
   setMemoryEnabled(userId: string, enabled: boolean): Promise<void>;
+  /** The workspace default: how many changes a mission may make before it asks. */
+  setActionBudget(userId: string, budget: number): Promise<void>;
 
   /* -- permission rules (structured, tighten-only policy over tools) -- */
   createPermissionRule(userId: string, input: PermissionRuleInsert): Promise<PermissionRuleRecord>;
@@ -502,7 +504,7 @@ export interface Store {
       Pick<
         MissionRecord,
         | "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at"
-        | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents"
+        | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents" | "action_budget"
       >
     >
   ): Promise<MissionRecord | null>;

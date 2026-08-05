@@ -239,6 +239,8 @@ export function TrustCenter() {
         )}
       </section>
 
+      <BudgetDefault />
+
       {/* What holds regardless of anything set above. */}
       <section className="rounded-card bg-surface/60 p-5 shadow-soft">
         <div className="flex items-center gap-2">
@@ -274,6 +276,89 @@ export function TrustCenter() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * How far a mission gets before it checks in — the second half of trust.
+ *
+ * The rows above answer "may cosigno do this at all". This answers "how much
+ * of it, unattended". Both are the user's, and putting them on one page means
+ * the answer to "what can this thing do to my business" is in one place.
+ *
+ * Counted in changes, not dollars. The product used to show a mission's cap as
+ * "$2.00", which is cosigno's hosting cost wearing the label of a decision the
+ * user made. Cost stays internal.
+ */
+function BudgetDefault() {
+  const [budget, setBudget] = useState<number | null>(null);
+  const [choices, setChoices] = useState<number[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/settings/budget")
+      .then((r) => r.json())
+      .then((d) => {
+        setBudget(d.budget ?? null);
+        setChoices(d.choices ?? []);
+      })
+      .catch(() => setError("couldn't load your limit."));
+  }, []);
+
+  async function choose(value: number) {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/settings/budget", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ budget: value }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.message || "that limit didn't save.");
+      setBudget(body.budget);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "that limit didn't save.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-card bg-surface/60 p-5 shadow-soft">
+      <h2 className="text-sm font-extrabold lowercase">how far it gets before checking in</h2>
+      <p className="mt-1 max-w-2xl text-sm text-ink-soft">
+        a mission stops after this many changes and asks whether to keep going. reading,
+        searching and drafting don&apos;t count — only things that change something outside
+        cosigno.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {choices.map((n) => (
+          <button
+            key={n}
+            onClick={() => choose(n)}
+            disabled={busy || budget === null}
+            aria-pressed={budget === n}
+            className={`rounded-pill px-4 py-2 text-sm font-bold transition-all duration-fast disabled:cursor-not-allowed ${
+              budget === n
+                ? "bg-ink text-cream shadow-soft"
+                : "bg-cream-deep text-ink-soft hover:text-ink"
+            }`}
+          >
+            {n} changes
+          </button>
+        ))}
+      </div>
+      {error && (
+        <p className="mt-2 text-xs font-semibold" role="alert">
+          {error}
+        </p>
+      )}
+      <p className="mt-2 text-xs text-ink-soft">
+        any mission you&apos;ve given its own limit keeps it. everything else follows this.
+      </p>
+    </section>
   );
 }
 

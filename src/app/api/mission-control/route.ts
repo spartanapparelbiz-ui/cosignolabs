@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { errorResponse, requireUser } from "@/lib/api";
 import { getStore } from "@/lib/store";
+import { missionBudget } from "@/lib/missions/missionBudget";
 import { listDecisions } from "@/lib/authz/store";
 import type { MissionRecord, MissionStepRecord } from "@/lib/types";
 
@@ -9,7 +10,7 @@ import type { MissionRecord, MissionStepRecord } from "@/lib/types";
  *
  * A "node" is a mission: the durable unit of agent work. Every field below is
  * read from real state — the mission's own counters (tool_calls,
- * browser_actions, budget_cents), its worker lease, and its step rows.
+ * browser_actions, changes made against the mission's limit), its worker lease, and its step rows.
  *
  * Telemetry the runtime does not collect — process CPU, RSS memory, token
  * counts, cost-per-minute, model confidence — is NOT returned. It would have
@@ -65,6 +66,12 @@ export async function GET() {
     const stepLists = await Promise.all(
       shown.map((m) => store.listMissionSteps(userId, m.id).catch(() => [] as MissionStepRecord[]))
     );
+    // The user-facing limit, in changes. `budget_cents` stays where it is and
+    // keeps capping tool calls internally — it just stops being shown as if it
+    // were a number anyone chose.
+    const budgets = await Promise.all(
+      shown.map((m) => missionBudget(userId, m).catch(() => null))
+    );
 
     // Risk per actor comes from the authorization ledger — the same blast
     // radius the engine already computed. Not a new score.
@@ -106,7 +113,8 @@ export async function GET() {
         // real counters
         tool_calls: m.tool_calls,
         browser_actions: m.browser_actions,
-        budget_cents: m.budget_cents,
+        changes_made: budgets[i]?.used ?? 0,
+        changes_allowed: budgets[i]?.limit ?? null,
         // real progress
         steps_total: steps.length,
         steps_done: done.length,
