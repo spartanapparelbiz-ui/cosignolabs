@@ -10,6 +10,8 @@ import { StarterJobs } from "@/components/app/StarterJobs";
 import { actionRisk, requiredApproval, type RiskLevel } from "@/lib/risk";
 import { statusLabel, statusOfMission } from "@/lib/status";
 import { LiveFlow } from "@/components/app/LiveFlow";
+import { WorkspaceDesks } from "@/components/app/WorkspaceDesks";
+import type { Desk } from "@/lib/workspaceDesks";
 
 /**
  * The dashboard answers ONE question: what needs my attention?
@@ -139,6 +141,7 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   const [connections, setConnections] = useState<ConnectionView[]>([]);
   const [unhealthy, setUnhealthy] = useState<ConnectionView[]>([]);
   const [pausing, setPausing] = useState<string | null>(null);
+  const [desks, setDesks] = useState<{ desks: Desk[]; summary: string } | null>(null);
 
   async function pauseMission(id: string) {
     setPausing(id);
@@ -158,6 +161,11 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
       jsonFetch("/api/automations").catch(() => ({ automations: [] })),
       jsonFetch("/api/connections").catch(() => ({ connections: [] })),
     ]);
+    // The glass wall — refreshed on the same beat as everything else.
+    jsonFetch("/api/workspace/desks")
+      .then((d) => setDesks({ desks: d.desks ?? [], summary: d.summary ?? "" }))
+      .catch(() => setDesks(null));
+
     const enabled: AutomationRecord[] = (au.automations ?? []).filter((x: AutomationRecord) => x.enabled);
     enabled.sort((x, y) => new Date(x.next_run_at).getTime() - new Date(y.next_run_at).getTime());
     setAutomation(enabled[0] ?? null);
@@ -250,6 +258,16 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           </Link>
         </div>
       </section>
+
+      {/* ---------- the glass wall: who is working, and where ---------- */}
+      {desks && desks.desks.length > 0 && (
+        <section className="mt-8">
+          <h2 className={SECTION_TITLE}>Your apps right now</h2>
+          <div className="mt-3">
+            <WorkspaceDesks desks={desks.desks} summary={desks.summary} />
+          </div>
+        </section>
+      )}
 
       {/* ---------- give cosigno something to do ---------- */}
       <section className={`${CARD} mt-6 p-6 sm:p-8`}>
