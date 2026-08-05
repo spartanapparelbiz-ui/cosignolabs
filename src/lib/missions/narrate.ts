@@ -22,6 +22,8 @@ export interface WorkApp {
   name: string | null;
   /** Connector key, for the logo. Null when there isn't one. */
   providerKey: string | null;
+  /** "Engineering", "Finance" — how a business names this kind of work. */
+  department: string | null;
 }
 
 /** A link to the real thing that was produced. */
@@ -60,7 +62,7 @@ export interface WorkEntry {
  * because claiming GitHub did cosigno's own bookkeeping would be a small lie
  * that makes the feed unreadable.
  */
-const APP_BY_PREFIX: Record<string, WorkApp> = {
+const APP_BY_PREFIX: Record<string, Omit<WorkApp, "department">> = {
   github: { name: "GitHub", providerKey: "github" },
   gmail: { name: "Gmail", providerKey: "google" },
   inbox: { name: "Gmail", providerKey: "google" },
@@ -73,9 +75,61 @@ const APP_BY_PREFIX: Record<string, WorkApp> = {
   laptop: { name: "the web", providerKey: null },
 };
 
+/**
+ * The kind of work an app is doing, named the way a business names it. GitHub
+ * is where engineering happens; Gmail is where the inbox is.
+ *
+ * The department LEADS and the app name stays visible underneath — never
+ * instead of it. Someone using GitHub for something other than engineering
+ * must still be able to see which app actually did the thing, or a helpful
+ * label becomes a misleading one.
+ */
+const DEPARTMENT_BY_PREFIX: Record<string, string> = {
+  github: "Engineering",
+  gmail: "Inbox",
+  inbox: "Inbox",
+  followup: "Inbox",
+  approval: "Inbox",
+  brief: "Inbox",
+  calendar: "Schedule",
+  drive: "Files",
+  deliverable: "Files",
+  browser: "Research",
+  laptop: "Research",
+  analyze: "Research",
+};
+
 export function appForTool(tool: string): WorkApp {
   const prefix = tool.split(".")[0];
-  return APP_BY_PREFIX[prefix] ?? { name: null, providerKey: null };
+  const base = APP_BY_PREFIX[prefix] ?? { name: null, providerKey: null };
+  return { ...base, department: DEPARTMENT_BY_PREFIX[prefix] ?? null };
+}
+
+/**
+ * Work that exists only because the engine needed it to. A mission receipt is
+ * bookkeeping — it accomplishes nothing a person asked for, and a feed of
+ * accomplishments that includes it is back to being a feed of operations.
+ */
+const BOOKKEEPING_TOOLS = new Set(["mission.receipt"]);
+
+export function isAccomplishment(tool: string): boolean {
+  return !BOOKKEEPING_TOOLS.has(tool);
+}
+
+/**
+ * What a finished piece of work ACCOMPLISHED, rather than what it did.
+ *
+ * The tools already record outcomes — "opened issue #7 in owner/repo", "your 3
+ * most recently pushed repositories: …" — so a completed entry leads with that
+ * and drops the mechanic entirely. Work that hasn't finished has no outcome
+ * yet, so it keeps its purpose: inventing an accomplishment for something
+ * still running would be reporting a result before there is one.
+ */
+export function outcomeSentence(text: string): string {
+  const t = text.trim();
+  if (!t) return t;
+  const capped = t.charAt(0).toUpperCase() + t.slice(1);
+  return /[.!?]$/.test(capped) ? capped : `${capped}.`;
 }
 
 /**
@@ -108,6 +162,39 @@ export interface NarratedStep {
   blockedReason?: string;
 }
 
+/**
+ * Consecutive work in the same app, collapsed into one card.
+ *
+ * Six rows all labelled GitHub is noise the reader has to filter out
+ * themselves; one GitHub card with three accomplishments under it is the same
+ * information and reads at a glance. Only ADJACENT work merges — reordering to
+ * group things that happened apart would misrepresent the sequence.
+ */
+export interface WorkGroup {
+  key: string;
+  app: WorkApp;
+  entries: WorkEntry[];
+}
+
+export function groupFeed(feed: WorkEntry[]): WorkGroup[] {
+  const groups: WorkGroup[] = [];
+  for (const entry of feed) {
+    const last = groups[groups.length - 1];
+    const sameApp =
+      last &&
+      last.app.name === entry.app.name &&
+      last.app.department === entry.app.department &&
+      // Never fold work that has happened together with work that hasn't —
+      // the boundary between done and still-to-come is the thing the reader
+      // is looking for.
+      (last.entries[last.entries.length - 1].phase === "upcoming") ===
+        (entry.phase === "upcoming");
+    if (sameApp) last.entries.push(entry);
+    else groups.push({ key: entry.id, app: entry.app, entries: [entry] });
+  }
+  return groups;
+}
+
 export interface MissionNarration {
   steps: NarratedStep[];
   /**
@@ -115,6 +202,8 @@ export interface MissionNarration {
    * or is still to come, as one continuous story.
    */
   feed: WorkEntry[];
+  /** The feed, with consecutive same-app work merged into one card. */
+  groups: WorkGroup[];
   /** What is happening right now, or what is waiting on a person. */
   nowWorking: WorkEntry | null;
   /**
@@ -294,22 +383,33 @@ export function narrateMission(
     };
   });
 
-  const feed: WorkEntry[] = ordered.map((s, i) => {
-    const app = appForTool(s.tool);
-    const n = narrated[i];
-    return {
-      id: s.id,
-      // Whichever is truest for where this work got to. Upcoming work has no
-      // time, because it hasn't happened.
-      at: s.completed_at ?? s.started_at ?? null,
-      app,
-      phase: n.phase,
-      headline: n.headline,
-      ...(n.evidence ? { detail: n.evidence } : {}),
-      ...(proofFor(s, app) ? { proof: proofFor(s, app)! } : {}),
-      ...(n.blockedReason ? { blockedReason: n.blockedReason } : {}),
-    };
-  });
+  const feed: WorkEntry[] = ordered
+    // A feed of accomplishments has no room for the engine's own bookkeeping.
+    .filter((s) => isAccomplishment(s.tool))
+    .map((s) => {
+      const app = appForTool(s.tool);
+      const n = narrated.find((x) => x.id === s.id)!;
+      // Finished work leads with what it ACCOMPLISHED. The tools already
+      // record that, so the mechanic ("Read your repositories") is dropped
+      // entirely rather than shown above the result. Unfinished work has no
+      // outcome yet and keeps its purpose — inventing one would be reporting
+      // a result before there is one.
+      const headline =
+        n.phase === "done" && n.evidence ? outcomeSentence(n.evidence) : n.headline;
+      return {
+        id: s.id,
+        at: s.completed_at ?? s.started_at ?? null,
+        app,
+        phase: n.phase,
+        headline,
+        // Only kept when it isn't already the headline.
+        ...(n.evidence && headline !== outcomeSentence(n.evidence)
+          ? { detail: n.evidence }
+          : {}),
+        ...(proofFor(s, app) ? { proof: proofFor(s, app)! } : {}),
+        ...(n.blockedReason ? { blockedReason: n.blockedReason } : {}),
+      };
+    });
 
   const current = narrated.find((n) => n.phase === "current") ?? null;
   const blocker = narrated.find((n) => n.phase === "needs_you") ?? null;
@@ -326,6 +426,7 @@ export function narrateMission(
   return {
     steps: narrated,
     feed,
+    groups: groupFeed(feed),
     nowWorking,
     upNext: feed.find((e) => e.phase === "upcoming") ?? null,
     current: current ?? blocker,

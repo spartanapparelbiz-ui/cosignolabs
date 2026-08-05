@@ -243,7 +243,8 @@ describe("the work feed reads as a story, with apps in it", () => {
       purpose: "Draft the issue",
       started_at: new Date().toISOString(),
     }),
-    step({ id: "c", idx: 2, tool: "mission.receipt", state: "ready", purpose: "Wrap up" }),
+    // A non-bookkeeping step with no app of its own — cosigno's own analysis.
+    step({ id: "c", idx: 2, tool: "analyze.extract", state: "ready", purpose: "Work out what matters" }),
   ];
   const n = narrateMission(mission(), steps);
 
@@ -326,5 +327,86 @@ describe("proof links point at something real, or don't exist", () => {
       step({ state: "completed", output: { summary: "wrote it", file_id: "f1" } }),
     ]);
     expect(n.feed[0].proof).toMatchObject({ href: "/app/files", external: false });
+  });
+});
+
+describe("the feed reports accomplishments, not mechanics", () => {
+  it("a finished entry leads with what it achieved, not what it did", () => {
+    const n = narrateMission(mission(), [
+      step({
+        tool: "github.propose_issue",
+        state: "completed",
+        purpose: "Draft the issue and offer it for approval",
+        output: { summary: "opened issue #7 in spartanapparelbiz-ui/cosignolabs" },
+      }),
+    ]);
+    expect(n.feed[0].headline).toBe("Opened issue #7 in spartanapparelbiz-ui/cosignolabs.");
+    // The mechanic is gone entirely, not demoted to a subtitle.
+    expect(n.feed[0].headline).not.toMatch(/draft the issue/i);
+    expect(n.feed[0].detail).toBeUndefined();
+  });
+
+  it("unfinished work keeps its purpose — there is no outcome yet to report", () => {
+    const n = narrateMission(mission(), [
+      step({ state: "running", purpose: "Read your repositories" }),
+    ]);
+    expect(n.feed[0].headline).toBe("Reading your repositories");
+  });
+
+  it("a finished entry with no recorded outcome falls back rather than inventing one", () => {
+    const n = narrateMission(mission(), [
+      step({ state: "completed", purpose: "Read your repositories", output: null }),
+    ]);
+    expect(n.feed[0].headline).toBe("Read your repositories");
+  });
+
+  it("reads as one finished sentence", () => {
+    const n = narrateMission(mission(), [
+      step({ state: "completed", output: { summary: "found 3 repositories" } }),
+    ]);
+    expect(n.feed[0].headline).toBe("Found 3 repositories.");
+  });
+});
+
+describe("nothing exists in the feed just because the engine did it", () => {
+  it("leaves the mission receipt out", () => {
+    const n = narrateMission(mission(), [
+      step({ id: "a", idx: 0, state: "completed", output: { summary: "found 3 repositories" } }),
+      step({ id: "b", idx: 1, tool: "mission.receipt", state: "completed", purpose: "Write the mission receipt" }),
+    ]);
+    expect(n.feed).toHaveLength(1);
+    expect(n.feed.map((e) => e.headline).join(" ")).not.toMatch(/receipt/i);
+  });
+});
+
+describe("work is grouped by who did it", () => {
+  it("merges consecutive work in the same app into one card", () => {
+    const n = narrateMission(mission(), [
+      step({ id: "a", idx: 0, tool: "github.list_repos", state: "completed", output: { summary: "found 3 repositories" } }),
+      step({ id: "b", idx: 1, tool: "github.list_issues", state: "completed", output: { summary: "read 2 open issues" } }),
+      step({ id: "c", idx: 2, tool: "gmail.search_related", state: "completed", output: { summary: "found 4 messages" } }),
+    ]);
+    expect(n.groups).toHaveLength(2);
+    expect(n.groups[0].app.department).toBe("Engineering");
+    expect(n.groups[0].entries).toHaveLength(2);
+    expect(n.groups[1].app.department).toBe("Inbox");
+  });
+
+  it("does not fold finished work together with work that hasn't happened", () => {
+    // The boundary between done and still-to-come is what the reader is
+    // looking for.
+    const n = narrateMission(mission(), [
+      step({ id: "a", idx: 0, tool: "github.list_repos", state: "completed", output: { summary: "found 3" } }),
+      step({ id: "b", idx: 1, tool: "github.propose_issue", state: "ready", purpose: "Open the issue" }),
+    ]);
+    expect(n.groups).toHaveLength(2);
+  });
+
+  it("keeps the app visible under the department, so nothing is hidden", () => {
+    const n = narrateMission(mission(), [
+      step({ tool: "github.list_repos", state: "completed", output: { summary: "found 3" } }),
+    ]);
+    expect(n.groups[0].app.department).toBe("Engineering");
+    expect(n.groups[0].app.name).toBe("GitHub");
   });
 });

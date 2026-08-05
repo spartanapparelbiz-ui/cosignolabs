@@ -303,9 +303,12 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                   <p className="text-sm font-extrabold leading-snug">
                     {narration.nowWorking.headline}
                   </p>
-                  {narration.nowWorking.app.name && (
+                  {(narration.nowWorking.app.department ?? narration.nowWorking.app.name) && (
                     <p className="text-[11px] font-bold text-ink-soft">
-                      in {narration.nowWorking.app.name}
+                      {narration.nowWorking.app.department ?? narration.nowWorking.app.name}
+                      {narration.nowWorking.app.department && narration.nowWorking.app.name
+                        ? ` · ${narration.nowWorking.app.name}`
+                        : ""}
                     </p>
                   )}
                   {narration.nowWorking.at && (
@@ -342,66 +345,79 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
             )}
           </div>
 
-          {/* THE FEED — one continuous story, oldest first. */}
+          {/* THE FEED — accomplishments, oldest first, grouped by who did them. */}
           <div className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
             <ol className="flex flex-col">
-              {narration.feed.map((e, i) => {
-                const last = i === narration.feed.length - 1;
-                const pending = e.phase === "upcoming";
+              {narration.groups.map((g, gi) => {
+                const lastGroup = gi === narration.groups.length - 1;
+                const pending = g.entries[0].phase === "upcoming";
                 return (
-                  <li key={e.id} className="flex gap-3">
-                    {/* the thread running down the feed */}
+                  <li key={g.key} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <WorkAppMark app={e.app} phase={e.phase} small />
-                      {!last && <span className="w-px flex-1 bg-line" aria-hidden="true" />}
+                      <WorkAppMark app={g.app} phase={g.entries[0].phase} small />
+                      {!lastGroup && <span className="w-px flex-1 bg-line" aria-hidden="true" />}
                     </div>
 
-                    <div className={`min-w-0 flex-1 animate-rise-in ${last ? "pb-0" : "pb-4"}`}>
-                      <div className="flex flex-wrap items-baseline gap-x-2">
-                        {e.app.name && (
-                          <span className="text-[11px] font-extrabold">{e.app.name}</span>
+                    <div className={`min-w-0 flex-1 ${lastGroup ? "pb-0" : "pb-4"}`}>
+                      {/* Who did it — the department leads, the app stays
+                          visible so nothing is hidden behind a friendly name. */}
+                      <p className={`text-[11px] font-extrabold ${pending ? "text-ink-soft" : ""}`}>
+                        {g.app.department ?? g.app.name ?? "cosigno"}
+                        {g.app.name && g.app.department && (
+                          <span className="ml-1.5 font-semibold text-ink-soft">· {g.app.name}</span>
                         )}
-                        {e.at && (
-                          <span className="text-[10px] tabular-nums text-ink-soft">
-                            {clockTime(e.at)}
-                          </span>
-                        )}
-                      </div>
-                      <p
-                        className={`text-xs ${
-                          pending
-                            ? "font-semibold text-ink-soft"
-                            : e.phase === "skipped"
-                              ? "font-semibold text-ink-soft line-through"
-                              : "font-bold"
-                        }`}
-                      >
-                        {e.headline}
                       </p>
-                      {e.detail && <p className="mt-0.5 text-[11px] text-ink-soft">{e.detail}</p>}
-                      {e.blockedReason && (
-                        <p className="mt-0.5 text-[11px] font-semibold">{e.blockedReason}</p>
-                      )}
-                      {/* The proof, one click away — only ever a link to
-                          something that really exists. */}
-                      {e.proof &&
-                        (e.proof.external ? (
-                          <a
-                            href={e.proof.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 inline-flex items-center gap-1 rounded-btn bg-cream-deep px-2 py-1 text-[11px] font-bold transition-colors hover:bg-cream-deep/70"
-                          >
-                            {e.proof.label} <ExternalLink size={10} aria-hidden="true" />
-                          </a>
-                        ) : (
-                          <Link
-                            href={e.proof.href}
-                            className="mt-1 inline-flex items-center gap-1 rounded-btn bg-cream-deep px-2 py-1 text-[11px] font-bold transition-colors hover:bg-cream-deep/70"
-                          >
-                            {e.proof.label}
-                          </Link>
+
+                      <ul className="mt-1 flex flex-col gap-2">
+                        {g.entries.map((e) => (
+                          <li key={e.id} className="animate-rise-in">
+                            <div className="flex items-baseline gap-2">
+                              {/* The outcome first. Metadata never precedes
+                                  the result. */}
+                              <p
+                                className={`min-w-0 flex-1 text-xs ${
+                                  e.phase === "upcoming"
+                                    ? "font-semibold text-ink-soft"
+                                    : e.phase === "skipped"
+                                      ? "font-semibold text-ink-soft line-through"
+                                      : "font-bold"
+                                }`}
+                              >
+                                {e.headline}
+                              </p>
+                              {e.at && (
+                                <span className="shrink-0 text-[10px] tabular-nums text-ink-soft">
+                                  {clockTime(e.at)}
+                                </span>
+                              )}
+                            </div>
+                            {e.detail && (
+                              <p className="mt-0.5 text-[11px] text-ink-soft">{e.detail}</p>
+                            )}
+                            {e.blockedReason && (
+                              <p className="mt-0.5 text-[11px] font-semibold">{e.blockedReason}</p>
+                            )}
+                            {e.proof &&
+                              (e.proof.external ? (
+                                <a
+                                  href={e.proof.href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-1 inline-flex items-center gap-1 rounded-btn bg-cream-deep px-2 py-1 text-[11px] font-bold transition-colors hover:bg-cream-deep/70"
+                                >
+                                  {e.proof.label} <ExternalLink size={10} aria-hidden="true" />
+                                </a>
+                              ) : (
+                                <Link
+                                  href={e.proof.href}
+                                  className="mt-1 inline-flex items-center gap-1 rounded-btn bg-cream-deep px-2 py-1 text-[11px] font-bold transition-colors hover:bg-cream-deep/70"
+                                >
+                                  {e.proof.label}
+                                </Link>
+                              ))}
+                          </li>
                         ))}
+                      </ul>
                     </div>
                   </li>
                 );
