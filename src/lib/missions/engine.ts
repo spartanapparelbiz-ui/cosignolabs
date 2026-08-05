@@ -10,6 +10,7 @@ import type {
 } from "../types";
 import { OPERATOR_PROFILES, operatorAllows } from "./operators";
 import { TOOLS, type ToolContext, type ToolResult } from "./tools";
+import { contractCutoff, scopeQuestion, scopeVerdict } from "./contract";
 
 /**
  * The durable mission engine. All state lives in the store; this module only
@@ -389,6 +390,17 @@ export async function advanceMission(
       steps = await store.listMissionSteps(userId, missionId);
     }
 
+    // The approval log this mission's contract is derived from. Re-read each
+    // pass, because a card approved during this very advance moves the
+    // cutoff — and reading it once up front would judge later steps against a
+    // stale idea of what the user had signed.
+    const missionEvents = await store
+      .listEventsForActions(
+        userId,
+        steps.map((s) => s.action_id).filter((id): id is string => Boolean(id))
+      )
+      .catch(() => []);
+
     const runnable = runnableSteps(steps, attempted);
     if (runnable.length === 0 || run === maxRuns) {
       const next = aggregateState(steps);
@@ -416,6 +428,33 @@ export async function advanceMission(
         state: "blocked",
         error: `this mission reached its operating budget (${maxToolCalls} tool calls). start a new mission or raise its budget to continue.`,
       });
+      break;
+    }
+
+    // SCOPE CONTRACT. Approval means "I approve this plan". A consequential
+    // step that appeared AFTER the user signed was never in that plan, so it
+    // gets its own decision rather than riding on the earlier signature.
+    // Checked here — immediately before the tool runs and before any side
+    // effect is possible — rather than at planning time, because the plan can
+    // grow between the two.
+    const verdict = scopeVerdict(step, contractCutoff(missionEvents));
+    if (!verdict.allowed) {
+      if (verdict.reason === "refused") {
+        await store.updateMissionStep(userId, step.id, {
+          state: "skipped",
+          error: "you declined this step — it wasn't part of the approved plan.",
+        });
+        continue;
+      }
+      // Park the mission on an explicit question. It cannot proceed without a
+      // human answer, and the question names the gap instead of reading like
+      // routine progress.
+      await store.updateMissionStep(userId, step.id, { state: "awaiting_input" });
+      await store.updateMission(userId, missionId, {
+        state: "awaiting_input",
+        pending_question: { ...scopeQuestion(step), step_id: step.id },
+      });
+      logInfo("mission_scope_gate", { missionId, tool: step.tool, stepId: step.id });
       break;
     }
 

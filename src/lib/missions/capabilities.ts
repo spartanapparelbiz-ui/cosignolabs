@@ -78,6 +78,12 @@ const TOOL_SUMMARY: Record<string, string> = {
 };
 
 /** Tools whose execution changes the outside world (need an approval gate). */
+/**
+ * Tools whose execution changes the outside world. The single source of truth
+ * for "does this need a human decision" — the approval gate and the scope
+ * contract both read it, so a tool can never be consequential to one and not
+ * the other.
+ */
 const CONSEQUENTIAL_TOOLS = new Set([
   "github.propose_issue",
   "approval.offer_send",
@@ -173,4 +179,9 @@ export async function buildCapabilityManifest(userId: string): Promise<Capabilit
     planner: plannerConfigured(),
     limits: { maxToolCalls: 40, maxBrowserActions: 30, defaultBudgetCents: 200 },
   };
+}
+
+/** Does running this tool change something outside cosigno? */
+export function isConsequentialTool(toolId: string): boolean {
+  return CONSEQUENTIAL_TOOLS.has(toolId);
 }
