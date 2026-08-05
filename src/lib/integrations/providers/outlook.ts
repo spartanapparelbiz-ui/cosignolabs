@@ -111,6 +111,7 @@ export const outlookProvider = makeOAuthProvider({
   name: "Outlook",
   detail: "search, read, draft, and (with your signature) send or trash Microsoft 365 mail.",
   scopeSummary: "mail: read · draft · send",
+  tracks: ["unread mail", "threads waiting on a reply", "drafts"],
   authorizeUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
   tokenUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
   scopes: "offline_access User.Read Mail.ReadWrite Mail.Send",

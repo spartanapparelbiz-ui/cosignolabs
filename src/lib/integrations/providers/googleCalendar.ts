@@ -127,6 +127,7 @@ export const googleCalendarProvider = makeOAuthProvider({
   name: "Google Calendar",
   detail: "list events, find free time, and (with your signature) add or delete events.",
   scopeSummary: "calendar: events only",
+  tracks: ["upcoming events", "free time", "conflicts"],
   authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
   tokenUrl: "https://oauth2.googleapis.com/token",
   scopes:

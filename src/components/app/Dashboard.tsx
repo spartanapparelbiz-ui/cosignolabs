@@ -9,6 +9,7 @@ import { SourceComposer } from "@/components/app/SourceComposer";
 import { StarterJobs } from "@/components/app/StarterJobs";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { todayDigest } from "@/lib/missions/today";
+import { AdaptiveDashboard } from "@/components/app/AdaptiveDashboard";
 
 /**
  * The home dashboard — one calm place that answers four questions:
@@ -247,6 +248,9 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           </ul>
         </section>
       )}
+
+      {/* ---- this company's own dashboard, built from what it connected ---- */}
+      <AdaptiveDashboard />
 
       {/* ---------- the command composer: the biggest, clearest thing ---------- */}
       <section className={`${CARD} p-6 sm:p-8`}>

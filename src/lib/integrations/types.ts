@@ -148,6 +148,16 @@ export interface IntegrationProvider {
   authType: AuthType;
   /** Human-readable scope summary for the card. */
   scopeSummary: string;
+  /**
+   * What this connector would put on the dashboard, in business words —
+   * "revenue", "open issues", "unread mail".
+   *
+   * Used for the INVITATION shown when it isn't connected: "Connect Stripe to
+   * track revenue, refunds and customer payments here." That card must never
+   * be a metric showing zero, because "$0 revenue" reads as a measurement of
+   * an empty business rather than the absence of a connection.
+   */
+  tracks?: string[];
   /** True once its required env (client id/secret, etc.) is present. */
   isConfigured(): boolean;
 
