@@ -23,7 +23,7 @@ import { TrustCenter } from "@/components/trust/TrustCenter";
 
 const TABS = [
   { id: "profile", label: "profile", icon: UserRound },
-  { id: "permissions", label: "permissions", icon: SlidersHorizontal },
+  { id: "permissions", label: "trust center", icon: SlidersHorizontal },
   { id: "usage", label: "plan & usage", icon: Gauge },
   { id: "integrations", label: "connections", icon: Boxes },
   { id: "security", label: "security", icon: ShieldCheck },
@@ -366,8 +366,8 @@ function PermissionsPanel() {
   return (
     <section>
       <PanelHeading
-        title="permissions"
-        sub="what cosigno may do on its own, and what it must ask you about first. every change is logged in security."
+        title="trust center"
+        sub="choose how much you trust cosigno to act on your behalf. every change is logged in security."
       />
       <TrustCenter />
     </section>

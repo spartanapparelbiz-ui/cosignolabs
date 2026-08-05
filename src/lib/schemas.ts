@@ -118,9 +118,12 @@ export const tierSettingSchema = z
   })
   .strict();
 
-/** The workspace default: how many changes a mission may make before it asks. */
+/**
+ * The workspace default: how many actions a mission may take before it asks.
+ * 0 means unlimited (see UNLIMITED in missions/budget.ts).
+ */
 export const actionBudgetSchema = z
-  .object({ budget: z.number().int().min(1).max(500) })
+  .object({ budget: z.number().int().min(0).max(10_000) })
   .strict();
 
 /** More room for one mission that ran out. Additive — never a new total. */

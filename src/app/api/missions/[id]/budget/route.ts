@@ -49,6 +49,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!mission) throw new ApiError(404, "not_found", "we couldn't find that mission.");
 
     const before = await missionBudget(userId, mission);
+    if (before.unlimited) {
+      throw new ApiError(
+        400,
+        "no_limit_to_raise",
+        "this mission has no action limit — there's nothing to increase."
+      );
+    }
     const raised = clampBudget(before.limit + add);
     if (raised === before.limit) {
       throw new ApiError(

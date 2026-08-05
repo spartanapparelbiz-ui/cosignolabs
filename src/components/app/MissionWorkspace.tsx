@@ -141,7 +141,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
         body: JSON.stringify({ add }),
       });
       setBudget(d.budget ?? null);
-      toast("success", `${add} more changes allowed — carrying on.`);
+      toast("success", `${add} more actions approved — carrying on.`);
       await load();
     } catch (e) {
       toast("error", e instanceof Error ? e.message : "that didn't work.");
@@ -264,8 +264,8 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
       {budget?.exhausted && mission.state === "paused" && (
         <div className="rounded-card bg-signal/10 p-4 ring-1 ring-inset ring-signal/30">
           <p className="text-sm font-extrabold">
-            cosigno stopped — it&apos;s changed {budget.used} thing
-            {budget.used === 1 ? "" : "s"}, which is all this mission was allowed to change.
+            this mission reached its execution limit — {budget.used} of {budget.limit} action
+            {budget.limit === 1 ? "" : "s"} used.
           </p>
           <p className="mt-0.5 text-xs text-ink-soft">
             it hasn&apos;t started anything else. how much further should it go?
@@ -282,7 +282,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                     : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                 }`}
               >
-                {n} more changes
+                +{n} actions
               </button>
             ))}
             <button
@@ -559,62 +559,99 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
             </section>
           )}
 
-          {/* What this mission has CHANGED, against what it's allowed to
-              change. Reading and drafting are free and don't appear here — a
+          {/* What this mission has DONE, against what it's allowed to do.
+              Thinking, reading and drafting are free and never appear here — a
               counter that ticked up while cosigno was reading would be
-              measuring effort, and effort isn't the thing anyone is worried
+              measuring effort, and effort isn't the thing anyone worries
               about. */}
           <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
             <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
-              Changes made
+              Execution budget
             </h2>
             {budget === null ? (
               <p className="mt-1.5 text-xs text-ink-soft">counting…</p>
+            ) : budget.unlimited ? (
+              <>
+                <p className="mt-1.5 text-2xl font-extrabold tabular-nums">{budget.used}</p>
+                <p className="mt-0.5 text-xs font-bold text-ink-soft">
+                  action{budget.used === 1 ? "" : "s"} used · unlimited
+                </p>
+                <p className="mt-2 text-[11px] leading-snug text-ink-soft">
+                  no action limit. every action still follows your permissions.
+                </p>
+              </>
             ) : (
               <>
                 <p className="mt-1.5 text-2xl font-extrabold tabular-nums">
                   {budget.used}
-                  <span className="text-base font-bold text-ink-soft"> of {budget.limit}</span>
+                  <span className="text-base font-bold text-ink-soft"> / {budget.limit}</span>
                 </p>
+                <p className="mt-0.5 text-xs font-bold text-ink-soft">actions used</p>
                 <div
                   className="mt-2 h-1.5 overflow-hidden rounded-pill bg-cream-deep"
                   role="progressbar"
                   aria-valuenow={budget.used}
                   aria-valuemin={0}
                   aria-valuemax={budget.limit}
-                  aria-label="changes made against this mission's limit"
+                  aria-label="actions used against this mission's execution budget"
                 >
                   <div
                     className="h-full rounded-pill bg-ink transition-all duration-base ease-brand-out"
                     style={{ width: `${Math.min(100, (budget.used / Math.max(1, budget.limit)) * 100)}%` }}
                   />
                 </div>
-                <p className="mt-2 text-[11px] leading-snug text-ink-soft">
-                  {budget.kinds.length > 0
-                    ? budget.kinds.join(" · ").toLowerCase()
-                    : "reading and drafting don't count toward this."}
-                </p>
                 {budget.committed > budget.used && (
-                  <p className="mt-1 text-[11px] text-ink-soft">
-                    {budget.committed - budget.used} more waiting on you, already counted.
+                  <p className="mt-2 text-[11px] text-ink-soft">
+                    {budget.committed - budget.used} waiting on you, already counted.
                   </p>
                 )}
               </>
             )}
-            {receipt !== null && (
-              <p className="mt-2 border-t border-line/60 pt-2 text-[11px] text-ink-soft">
-                receipt: {(receipt.completed_steps as unknown[])?.length ?? 0} steps ·{" "}
-                {(receipt.deliverables as unknown[])?.length ?? 0} deliverable
-                {((receipt.deliverables as unknown[])?.length ?? 0) === 1 ? "" : "s"}
-                {typeof receipt.approvals === "number" && receipt.approvals > 0
-                  ? ` · ${receipt.approvals} you approved`
-                  : ""}
-                {Array.isArray(receipt.apps) && receipt.apps.length > 0
-                  ? ` · ${(receipt.apps as string[]).join(", ")}`
-                  : ""}
-              </p>
-            )}
+            <p className="mt-2 text-[11px] leading-snug text-ink-soft">
+              {budget && budget.kinds.length > 0
+                ? budget.kinds.join(" · ").toLowerCase()
+                : "reading, searching and drafting don't count."}
+            </p>
           </section>
+
+          {/* THE EXECUTION SUMMARY — what this mission actually did, in the
+              same unit the limit was set in. No money, no token counts, no
+              provider costs: the question a receipt answers is "what did this
+              do", not "what did this cost us to run". */}
+          {receipt !== null && (
+            <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
+              <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
+                Execution summary
+              </h2>
+              <dl className="mt-2.5 flex flex-col gap-1.5">
+                {[
+                  {
+                    k: "actions",
+                    v: `${(receipt.changes as { made?: number } | null)?.made ?? budget?.used ?? 0}`,
+                  },
+                  {
+                    k: "apps",
+                    v: Array.isArray(receipt.apps) ? `${(receipt.apps as string[]).length}` : "0",
+                  },
+                  { k: "approvals", v: `${(receipt.approvals as number) ?? 0}` },
+                  {
+                    k: "deliverables",
+                    v: `${(receipt.deliverables as unknown[])?.length ?? 0}`,
+                  },
+                ].map((r) => (
+                  <div key={r.k} className="flex items-baseline justify-between gap-3">
+                    <dt className="text-xs text-ink-soft">{r.k}</dt>
+                    <dd className="text-sm font-extrabold tabular-nums">{r.v}</dd>
+                  </div>
+                ))}
+              </dl>
+              {Array.isArray(receipt.apps) && (receipt.apps as string[]).length > 0 && (
+                <p className="mt-2 border-t border-line/60 pt-2 text-[11px] text-ink-soft">
+                  {(receipt.apps as string[]).join(" · ")}
+                </p>
+              )}
+            </section>
+          )}
         </div>
       </div>
     </div>

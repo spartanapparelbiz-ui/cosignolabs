@@ -1314,4 +1314,5 @@ create index if not exists actions_injection_flag_idx
 alter table missions add column if not exists action_budget int;
 
 -- The workspace default, applied to any mission that doesn't override it.
-alter table user_prefs add column if not exists action_budget int not null default 20;
+-- 0 = unlimited (see UNLIMITED in src/lib/missions/budget.ts).
+alter table user_prefs add column if not exists action_budget int not null default 25;

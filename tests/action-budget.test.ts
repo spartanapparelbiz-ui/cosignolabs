@@ -4,6 +4,7 @@ import { getStore } from "../src/lib/store";
 import { MemoryStore } from "../src/lib/store/memory";
 import {
   BUDGET_CHOICES,
+  UNLIMITED,
   DEFAULT_ACTION_BUDGET,
   INCREASE_STEPS,
   MAX_ACTION_BUDGET,
@@ -169,11 +170,21 @@ describe("which limit applies", () => {
   });
 
   it("never honors a limit outside what the engine can enforce", () => {
-    expect(clampBudget(0)).toBe(1);
-    expect(clampBudget(-5)).toBe(1);
     expect(clampBudget(1e9)).toBe(MAX_ACTION_BUDGET);
     expect(clampBudget(Number.NaN)).toBe(DEFAULT_ACTION_BUDGET);
     expect(clampBudget(7.9)).toBe(7);
+  });
+
+  it("treats zero (and anything below) as unlimited, and unlimited never exhausts", () => {
+    expect(clampBudget(UNLIMITED)).toBe(UNLIMITED);
+    expect(clampBudget(-5)).toBe(UNLIMITED);
+    expect(limitFor(null, UNLIMITED)).toBe(Infinity);
+    const s = budgetState(Array.from({ length: 500 }, () => action("send_email", "executed")), Infinity);
+    expect(s.unlimited).toBe(true);
+    expect(s.exhausted).toBe(false);
+    expect(s.used).toBe(500);
+    // The counter still counts — unlimited means no gate, not no record.
+    expect(budgetSentence(s)).toMatch(/500 actions used · no limit/);
   });
 
   it("offers only limits it will actually honor", () => {
@@ -249,13 +260,14 @@ describe("how the number is said", () => {
     }
   });
 
-  it("says nothing changed rather than showing a zero", () => {
-    expect(budgetSentence(budgetState([], 10))).toMatch(/nothing changed yet/);
+  it("reads as N of M actions — the sentence the spec asks a stranger to understand", () => {
+    expect(budgetSentence(budgetState([], 10))).toBe("0 of 10 actions used");
+    expect(budgetSentence(budgetState([action("send_email", "executed")], 10))).toBe("1 of 10 actions used");
   });
 
   it("explains a stop as a decision, not a fault", () => {
     const s = budgetState([action("send_email", "executed"), action("delete", "executed", 3)], 2);
-    expect(pausedReason(s)).toMatch(/allowed to change/);
+    expect(pausedReason(s)).toMatch(/reached its execution limit/);
     expect(pausedReason(s)).not.toMatch(/error|fail|problem/i);
   });
 });
@@ -306,7 +318,7 @@ describe("a mission that runs out", () => {
     const id = await missionAt(2, 2);
     const mission = (await advanceMission(USER, id))!.mission;
     expect(mission.state).toBe("paused");
-    expect(mission.error).toMatch(/changed 2 things/);
+    expect(mission.error).toMatch(/execution limit — 2 of 2 actions used/);
     // The step it was about to run never ran.
     const steps = await getStore().listMissionSteps(USER, id);
     expect(steps[0].state).toBe("ready");
@@ -388,7 +400,8 @@ describe("what the surfaces show", () => {
   it("shows changes against a limit, never a dollar figure", () => {
     expect(WORKSPACE).not.toMatch(/budget_cents/);
     expect(CONTROL).not.toMatch(/budget_cents/);
-    expect(CONTROL).toMatch(/changes made/);
+    expect(CONTROL).toMatch(/execution budget/);
+    expect(CONTROL).toMatch(/actions used/);
   });
 
   it("stopped-for-budget offers more room and a way to finish, not a dead end", () => {

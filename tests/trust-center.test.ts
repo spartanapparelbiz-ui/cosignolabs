@@ -9,6 +9,7 @@ import {
   PRESETS,
   activePreset,
   explain,
+  optionsFor,
   settingFor,
   tierForSetting,
   uncoveredCategories,
@@ -65,9 +66,23 @@ describe("every capability someone can be asked about", () => {
 
   it("marks a capability pinned only when the engine really pins it", () => {
     for (const cap of CAPABILITIES) {
+      if (cap.locked) continue; // locked rows aren't a setting at all
       const enginePins = cap.categories.some((c) => CATEGORIES[c].pinned);
       expect(cap.pinned).toBe(enginePins);
     }
+  });
+
+  it("a locked row maps to nothing — a category behind it would make the lock a lie", () => {
+    for (const cap of CAPABILITIES.filter((c) => c.locked)) {
+      expect(cap.categories).toEqual([]);
+      expect(optionsFor(cap)).toEqual([cap.locked]);
+    }
+  });
+
+  it("security is locked to never — cosigno has no way to touch security at all", () => {
+    const security = CAPABILITIES.find((c) => c.id === "security")!;
+    expect(security.locked).toBe("never");
+    expect(settingFor(security, {}, new Set())).toBe("never");
   });
 
   it("says one sentence, in words nobody needs the docs for", () => {
@@ -83,7 +98,7 @@ describe("every capability someone can be asked about", () => {
 
 describe("what a row reports", () => {
   const forbidden = new Set<string>();
-  const cap = CAPABILITIES.find((c) => c.id === "change")!;
+  const cap = CAPABILITIES.find((c) => c.id === "edit")!;
 
   it("reports the STRICTEST of its categories, never the friendliest", () => {
     // "change" spans update_record and connection_call. One still needing
@@ -143,9 +158,16 @@ describe("the three starting points", () => {
     expect(new Set(shapes).size).toBe(PRESETS.length);
   });
 
-  it("cover every capability, so picking one leaves nothing undecided", () => {
+  it("cover every settable capability, so picking one leaves nothing undecided", () => {
     for (const p of PRESETS) {
-      for (const cap of CAPABILITIES) expect(p.settings[cap.id]).toBeDefined();
+      for (const cap of CAPABILITIES) {
+        if (cap.locked) {
+          // A preset must not claim to set what isn't a setting.
+          expect(p.settings[cap.id]).toBeUndefined();
+        } else {
+          expect(p.settings[cap.id]).toBeDefined();
+        }
+      }
     }
   });
 
@@ -322,14 +344,29 @@ describe("the page asks the question in the reader's language", () => {
     expect(PAGE_CODE).not.toMatch(/update_record|connection_call|post_content/);
   });
 
-  it("offers exactly three answers", () => {
-    expect(PAGE).toMatch(/value: "always"/);
-    expect(PAGE).toMatch(/value: "ask"/);
-    expect(PAGE).toMatch(/value: "never"/);
+  it("renders only the answers the server says a row can be set to", () => {
+    // The options come from the API row, so a control the page shows is always
+    // one the server accepts — no greyed-out switches, no snap-backs.
+    expect(PAGE).toMatch(/row\.options\.map/);
+    expect(PAGE).not.toMatch(/const OPTIONS *=/);
   });
 
-  it("omits 'always' on a pinned row rather than showing it greyed out", () => {
-    expect(PAGE).toMatch(/row\.pinned \? OPTIONS\.filter\(\(o\) => o\.value !== "always"\)/);
+  it("labels all three answers in plain words", () => {
+    expect(PAGE).toMatch(/always: "always"/);
+    expect(PAGE).toMatch(/ask: "ask me"/);
+    expect(PAGE).toMatch(/never: "never"/);
+  });
+
+  it("reads the protection level back in three lists, before any control", () => {
+    expect(PAGE).toMatch(/Cosigno does these on its own/);
+    expect(PAGE).toMatch(/Cosigno asks you first/);
+    expect(PAGE).toMatch(/Cosigno will not do these/);
+  });
+
+  it("keeps advanced capabilities reachable, behind a disclosure — never removed", () => {
+    expect(PAGE).toMatch(/Advanced controls/);
+    expect(PAGE).toMatch(/MCP servers and custom APIs/);
+    expect(PAGE).toMatch(/Standing rules/);
   });
 
   it("shows what the server actually saved, never an optimistic guess", () => {

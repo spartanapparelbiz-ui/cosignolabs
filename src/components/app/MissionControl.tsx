@@ -294,11 +294,11 @@ export function MissionControl() {
               <Field label="tool calls" value={open.tool_calls} />
               <Field label="browser actions" value={open.browser_actions} />
               <Field
-                label="changes made"
+                label="execution budget"
                 value={
-                  open.changes_allowed === null
-                    ? open.changes_made
-                    : `${open.changes_made} of ${open.changes_allowed}`
+                  open.changes_allowed === null || !Number.isFinite(open.changes_allowed)
+                    ? `${open.changes_made} used · no limit`
+                    : `${open.changes_made} / ${open.changes_allowed} actions used`
                 }
               />
               <Field label="risk" value={open.risk ?? <span className="text-ink-soft">no decisions yet</span>} />

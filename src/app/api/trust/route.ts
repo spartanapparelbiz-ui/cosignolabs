@@ -6,6 +6,7 @@ import { getStore } from "@/lib/store";
 import { isAllowedTierAssignment, resolveTier } from "@/lib/tiers";
 import {
   CAPABILITIES,
+  optionsFor,
   settingFor,
   tierForSetting,
   type TrustSetting,
@@ -47,6 +48,9 @@ async function currentSettings(userId: string) {
       title: cap.title,
       detail: cap.detail,
       pinned: cap.pinned,
+      // Only the answers this row can actually be set to. The client renders
+      // exactly these, so a control it shows is always one the server accepts.
+      options: optionsFor(cap),
       setting: settingFor(cap, tiers, forbidden),
     })),
   };
@@ -70,6 +74,15 @@ export async function PUT(req: NextRequest) {
     const cap = CAPABILITIES.find((c) => c.id === body.capability);
     if (!cap) throw new ApiError(404, "unknown_capability", "that isn't a capability.");
     const setting = body.setting as TrustSetting;
+
+    // A capability cosigno has no way to perform is not a setting at all.
+    if (cap.locked) {
+      throw new ApiError(
+        403,
+        "not_a_setting",
+        `cosigno has no way to ${cap.title.toLowerCase()} at all. that isn't something you can turn on.`
+      );
+    }
 
     // A pinned capability cannot be made automatic. The UI doesn't offer it;
     // this is the check that holds when something other than the UI asks.

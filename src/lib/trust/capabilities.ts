@@ -31,6 +31,13 @@ export interface Capability {
    * silently snaps back is worse than one that isn't there.
    */
   pinned: boolean;
+  /**
+   * Set when cosigno has no way to do this at all, at any setting. The row
+   * still appears, because "it cannot" is the most reassuring answer on the
+   * page and hiding it would leave the question unanswered — but it reports a
+   * fact rather than offering a switch.
+   */
+  locked?: TrustSetting;
 }
 
 export const CAPABILITIES: Capability[] = [
@@ -38,7 +45,7 @@ export const CAPABILITIES: Capability[] = [
     id: "read",
     icon: "📖",
     title: "Read information",
-    detail: "Search and read your email, files, calendar and connected apps.",
+    detail: "Read your emails, files, calendars, documents and connected apps.",
     categories: ["search"],
     pinned: false,
   },
@@ -46,7 +53,7 @@ export const CAPABILITIES: Capability[] = [
     id: "create",
     icon: "✍️",
     title: "Create content",
-    detail: "Draft emails, documents, reports and summaries. Drafts are never sent.",
+    detail: "Draft emails, documents, reports and notes. Drafts are never sent.",
     categories: ["summarize", "draft"],
     pinned: false,
   },
@@ -54,49 +61,63 @@ export const CAPABILITIES: Capability[] = [
     id: "send",
     icon: "📨",
     title: "Send messages",
-    detail: "Send email and messages from your connected accounts.",
+    detail: "Send emails and messages using your connected accounts.",
     categories: ["send_email"],
+    pinned: false,
+  },
+  {
+    id: "edit",
+    icon: "📝",
+    title: "Edit information",
+    detail: "Update files, calendar events, customer records and databases.",
+    categories: ["update_record", "connection_call"],
     pinned: false,
   },
   {
     id: "publish",
     icon: "🚀",
-    title: "Publish and share",
-    detail: "Post content, open issues and publish work in your connected apps.",
+    title: "Publish & deploy",
+    detail: "Publish content, open and merge pull requests, and deploy sites.",
     categories: ["post_content"],
-    pinned: false,
-  },
-  {
-    id: "change",
-    icon: "📝",
-    title: "Change information",
-    detail: "Update records, files and calendar events inside your connected apps.",
-    categories: ["update_record", "connection_call"],
     pinned: false,
   },
   {
     id: "connect",
     icon: "🔗",
     title: "Send data elsewhere",
-    detail: "Send information to other systems you've set up.",
+    detail: "Send information onward to other systems you've set up.",
     categories: ["webhook"],
     pinned: false,
   },
   {
     id: "money",
     icon: "💳",
-    title: "Money",
-    detail: "Spend, refund and move money.",
+    title: "Payments",
+    detail: "Create invoices, process refunds and move money.",
     categories: ["spend", "refund", "payment"],
     pinned: true,
   },
   {
     id: "delete",
     icon: "🗑",
-    title: "Delete things",
-    detail: "Delete files, records and data.",
+    title: "Delete",
+    detail: "Delete files, records, repositories and other data.",
     categories: ["delete"],
     pinned: true,
+  },
+  {
+    id: "security",
+    icon: "🔒",
+    title: "Security",
+    detail: "Manage your secrets, connected accounts and security settings.",
+    // Nothing maps here, and that is the answer. Cosigno has no way to connect
+    // an account, read a stored credential or change a security setting — the
+    // engine has no category for it and no tool that could reach one. Showing
+    // a switch would invent a risk that doesn't exist and imply the opposite
+    // setting were available.
+    categories: [],
+    pinned: true,
+    locked: "never",
   },
 ];
 
@@ -118,6 +139,7 @@ export function settingFor(
   tiers: Record<string, Tier>,
   forbidden: ReadonlySet<string>
 ): TrustSetting {
+  if (capability.locked) return capability.locked;
   if (capability.categories.some((c) => forbidden.has(c))) return "never";
   const strictest = Math.max(
     ...capability.categories.map((c) => {
@@ -144,15 +166,21 @@ export function tierForSetting(capability: Capability, setting: TrustSetting): T
   return capability.pinned ? 3 : 2;
 }
 
+/** Which answers a row may actually be set to. */
+export function optionsFor(capability: Capability): TrustSetting[] {
+  if (capability.locked) return [capability.locked];
+  return capability.pinned ? ["ask", "never"] : ["always", "ask", "never"];
+}
+
 /** One sentence of feedback, shown the moment a setting changes. */
 export function explain(setting: TrustSetting): string {
   switch (setting) {
     case "always":
-      return "Cosigno does this automatically, without asking.";
+      return "Cosigno may perform this action automatically.";
     case "ask":
-      return "Cosigno pauses and waits for your approval every time.";
+      return "Cosigno will always pause for your approval.";
     case "never":
-      return "Cosigno refuses to do this, even if you ask it to.";
+      return "Cosigno will refuse requests involving this action.";
   }
 }
 
@@ -164,27 +192,42 @@ export interface Preset {
   id: PresetId;
   title: string;
   detail: string;
+  /** The dot beside the name — a level you can read across the room. */
+  dot: string;
   recommended?: boolean;
   /** Capability id → setting. Anything absent is left as the user had it. */
   settings: Record<string, TrustSetting>;
 }
 
 /**
- * Three starting points. None of them can make money or deletion automatic —
- * the engine pins those, so a preset that claimed to would be writing a cheque
- * it cannot cash.
+ * Three starting points, and they are genuinely three.
+ *
+ * The line between them is what "safe work" means. Conservative treats every
+ * change to your apps as something you sign for. Balanced treats a change
+ * INSIDE an app you already connected — a record updated, an event moved — as
+ * safe, and still stops before anything leaves your workspace. Autonomous
+ * stops only where it must.
+ *
+ * Two presets with the same effect under different names would be a lie told
+ * three times on the most important page in the product, so the difference is
+ * real and each sentence describes it.
+ *
+ * None of them can make payments or deletion automatic — the engine pins
+ * those, so a preset that claimed to would be writing a cheque it cannot cash.
  */
 export const PRESETS: Preset[] = [
   {
     id: "conservative",
     title: "Conservative",
-    detail: "Cosigno reads and researches on its own. Everything else — including writing a draft — waits for you.",
+    dot: "🟢",
+    detail:
+      "Cosigno researches and prepares work on its own. Everything that changes your apps waits for your approval.",
     settings: {
       read: "always",
-      create: "ask",
+      create: "always",
+      edit: "ask",
       send: "ask",
       publish: "ask",
-      change: "ask",
       connect: "ask",
       money: "ask",
       delete: "ask",
@@ -193,14 +236,16 @@ export const PRESETS: Preset[] = [
   {
     id: "balanced",
     title: "Balanced",
-    detail: "Cosigno reads, researches and drafts on its own. Anything that leaves your workspace waits for you.",
+    dot: "🟡",
+    detail:
+      "Cosigno handles safe work on its own, including updates inside your apps. It asks before anything leaves your workspace.",
     recommended: true,
     settings: {
       read: "always",
       create: "always",
+      edit: "always",
       send: "ask",
       publish: "ask",
-      change: "ask",
       connect: "ask",
       money: "ask",
       delete: "ask",
@@ -209,13 +254,15 @@ export const PRESETS: Preset[] = [
   {
     id: "autonomous",
     title: "Autonomous",
-    detail: "Cosigno sends, publishes and updates without stopping. Money and deletion still always need you.",
+    dot: "🔵",
+    detail:
+      "Cosigno completes work with minimal interruptions. Payments, deletion and security still always need you.",
     settings: {
       read: "always",
       create: "always",
+      edit: "always",
       send: "always",
       publish: "always",
-      change: "always",
       connect: "always",
       money: "ask",
       delete: "ask",
