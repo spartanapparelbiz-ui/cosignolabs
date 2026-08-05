@@ -66,7 +66,10 @@ describe("a connected panel shows facts or the reason there are none", () => {
   });
 
   it("renders a capped total as a floor, not an exact number", () => {
-    expect(PANEL).toMatch(/f\.atLeast \? "\+" : ""/);
+    // The "+" suffix moved into FactNumber with the count-up; the guarantee
+    // is unchanged — a capped total renders as a floor.
+    expect(PANEL).toMatch(/atLeast \? "\+" : ""/);
+    expect(PANEL).toMatch(/FactNumber value=\{f\.value\} atLeast=\{f\.atLeast\}/);
   });
 });
 

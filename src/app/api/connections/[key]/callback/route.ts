@@ -13,8 +13,11 @@ export const dynamic = "force-dynamic";
  * store the connection (encrypted), and bounce back to the Connections screen
  * with a status flag. Errors never expose provider detail.
  */
-function back(status: string): NextResponse {
-  return NextResponse.redirect(`${appUrl()}/app/account?tab=integrations&status=${status}`);
+function back(status: string, key?: string): NextResponse {
+  // `key` is our own registry key (validated upstream), included so the panel
+  // can celebrate the RIGHT card. Never provider-supplied text.
+  const suffix = key ? `&key=${encodeURIComponent(key)}` : "";
+  return NextResponse.redirect(`${appUrl()}/app/account?tab=integrations&status=${status}${suffix}`);
 }
 
 export async function GET(
@@ -44,7 +47,7 @@ export async function GET(
       logSecurity("invalid_input", { at: "oauth_callback", provider: key, reason: result.reason });
       return back(result.reason === "bad_state" ? "expired" : "failed");
     }
-    return back("connected");
+    return back("connected", key);
   } catch {
     return back("failed");
   }

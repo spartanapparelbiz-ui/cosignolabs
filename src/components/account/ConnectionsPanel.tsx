@@ -133,6 +133,8 @@ export function ConnectionsPanel() {
   const [addOpen, setAddOpen] = useState(false);
   const [addApiOpen, setAddApiOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // Provider key that JUST completed OAuth — its card pulses once on return.
+  const [justConnected, setJustConnected] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
 
   async function load() {
@@ -152,10 +154,17 @@ export function ConnectionsPanel() {
     // Surface the OAuth callback outcome (?status=…) once, then clean the URL.
     const p = new URLSearchParams(window.location.search);
     const s = p.get("status");
+    if (s === "connected") {
+      // The success moment: name the app, celebrate briefly, and pulse its
+      // card (below) so the eye lands on what just became possible.
+      const key = p.get("key");
+      if (key) setJustConnected(key);
+      setTimeout(() => setJustConnected(null), 2600);
+    }
     if (s) {
       setNotice(
         s === "connected"
-          ? "connected."
+          ? "connected — cosigno can work with it now."
           : s === "denied"
             ? "you cancelled that connection."
             : s === "expired"
@@ -163,6 +172,7 @@ export function ConnectionsPanel() {
               : "that connection didn't complete — try again."
       );
       p.delete("status");
+      p.delete("key");
       window.history.replaceState({}, "", `${window.location.pathname}?${p.toString()}`);
     }
   }, []);
@@ -327,7 +337,9 @@ export function ConnectionsPanel() {
             <div
               key={p.key}
               style={{ animationDelay: `${i * 70}ms` }}
-              className="rounded-card bg-surface/60 p-4 shadow-soft transition-all duration-base ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth"
+              className={`rounded-card bg-surface/60 p-4 shadow-soft transition-all duration-base ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth ${
+                justConnected === p.key ? "ring-2 ring-signal animate-pulse-glow" : ""
+              }`}
             >
               <div className="flex flex-wrap items-center gap-2">
                 <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={26} />
