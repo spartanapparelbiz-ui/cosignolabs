@@ -2,8 +2,11 @@
  * Plans — the ONLY place plan data lives. UI, server-side enforcement, and
  * Stripe metadata all read from here so nothing can drift.
  *
- * "Actions" = planning calls + executions combined, counted by the usage
- * meter. Fail closed: an unknown/missing plan is always treated as `free`.
+ * "AI operations" is the usage-meter unit shown to users: every planning
+ * call and every executed action counts as one operation. The name exists
+ * because "actions" hid the planning half — usage moved when nothing visibly
+ * ran, which read as a billing bug. The unit users see must be the unit we
+ * count. Fail closed: an unknown/missing plan is always treated as `free`.
  */
 
 export type PlanId = "free" | "pro" | "max";
@@ -22,7 +25,7 @@ export interface Plan {
   name: string;
   tagline: string;
   price: PlanPrice;
-  /** actions per cycle (planning + executions) */
+  /** AI operations per cycle (planning + executions) */
   actionLimit: number;
   /** max connected integrations; Infinity = unlimited */
   integrationLimit: number;
@@ -49,7 +52,7 @@ export const PLANS: Record<PlanId, Plan> = {
     upgradeTo: "pro",
     strongerModel: false,
     canExportCsv: false,
-    features: ["25 actions / month", "1 integration", "live preview", "activity log"],
+    features: ["25 AI operations / month", "1 connected app", "live preview", "activity log"],
   },
   pro: {
     id: "pro",
@@ -68,7 +71,7 @@ export const PLANS: Record<PlanId, Plan> = {
     strongerModel: false,
     canExportCsv: true,
     features: [
-      "1,000 actions / month",
+      "1,000 AI operations / month",
       "unlimited integrations",
       "CSV export",
       "priority planning",
@@ -91,7 +94,7 @@ export const PLANS: Record<PlanId, Plan> = {
     strongerModel: true,
     canExportCsv: true,
     features: [
-      "10,000 actions / month",
+      "10,000 AI operations / month",
       "unlimited integrations",
       "stronger-model routing for complex plans",
       "webhook / API access",
@@ -133,9 +136,9 @@ export function priceLabel(plan: Plan, interval: Interval): string {
  */
 export const INTRO_FIRST_MONTH_PRICE = 9;
 
-/** The quota bullet, derived from actionLimit, e.g. "1,000 actions / month". */
+/** The quota bullet, derived from actionLimit, e.g. "1,000 AI operations / month". */
 export function actionLimitLabel(plan: Plan): string {
-  return `${plan.actionLimit.toLocaleString()} actions / month`;
+  return `${plan.actionLimit.toLocaleString()} AI operations / month`;
 }
 
 /**

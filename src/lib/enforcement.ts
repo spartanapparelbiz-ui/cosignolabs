@@ -1,5 +1,5 @@
 import { getUserPlan } from "./billing";
-import { plannerModel, type PlannerTier } from "./agent/provider";
+import { modelFor } from "./ai/routing";
 import { PLANS, priceLabel } from "./plans";
 import { logInfo, logSecurity } from "./log";
 import { ApiError } from "./api";
@@ -18,12 +18,12 @@ export function usageLimitMessage(planId: string): string {
   const max = PLANS.max.actionLimit.toLocaleString();
   const proPrice = priceLabel(PLANS.pro, "monthly");
   if (planId === "free") {
-    return `you've used your ${free} actions this month. pro is ${proPrice} for ${pro}.`;
+    return `you've used your ${free} AI operations this month. pro includes ${pro} for ${proPrice}.`;
   }
   if (planId === "pro") {
-    return `you've hit this month's ${pro} actions. max raises the ceiling to ${max}.`;
+    return `you've hit this month's ${pro} AI operations. the next plan raises the ceiling to ${max}.`;
   }
-  return `you've hit this month's ${max} actions. reach out and we'll raise your ceiling.`;
+  return `you've hit this month's ${max} AI operations. reach out and we'll raise your ceiling.`;
 }
 
 /**
@@ -60,19 +60,22 @@ export async function assertIntegrationCapacity(
   }
 }
 
-const TIER3_HINT = /(delete|remove permanently|refund|payment|\bpay\b|wire|transfer)/i;
-
 /**
- * Server-side routing. Only the max plan may reach the premium planner, and
- * only for commands that look complex (tier-3 categories or plausibly
- * multi-step). free/pro always use the default fast planner. Model ids are
- * config (resolved in ./agent/provider); the decision is logged per call by
- * tier label, never the raw model id.
+ * Server-side routing: every command starts on the default model, full stop.
+ *
+ * The old heuristic escalated on words — a tier-3 verb, 240 characters, or
+ * literally "and" bought the premium model for max-plan users. That measured
+ * how someone types, not how hard their problem is: "compare apples and
+ * oranges" paid premium, a genuinely hard task phrased tersely didn't.
+ *
+ * Escalation now happens on evidence instead of prediction: when the default
+ * model actually fails to produce a usable plan, the pipeline retries once via
+ * escalationFor() (see ai/routing.ts), premium only when the plan carries it.
+ * Cheapest model that completes the task, always; stronger model only when
+ * the task demonstrated it needs one.
  */
-export function chooseModel(planId: string, command: string, userId: string): string {
+export function chooseModel(planId: string, _command: string, userId: string): string {
   const plan = PLANS[planId as keyof typeof PLANS] ?? PLANS.free;
-  const complex = TIER3_HINT.test(command) || command.length > 240 || /\band\b/i.test(command);
-  const tier: PlannerTier = plan.strongerModel && complex ? "premium" : "default";
-  logInfo("model_routing", { userId, plan: plan.id, complex, tier });
-  return plannerModel(tier);
+  logInfo("model_routing", { userId, plan: plan.id, tier: "default" });
+  return modelFor("plan");
 }

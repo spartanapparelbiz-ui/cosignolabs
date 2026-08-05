@@ -39,9 +39,9 @@ describe("canonical plan values (plans.ts is the single source)", () => {
 
 describe("derived labels come straight from the plan (no drift)", () => {
   it("actionLimitLabel formats the real actionLimit", () => {
-    expect(actionLimitLabel(PLANS.pro)).toBe("1,000 actions / month");
-    expect(actionLimitLabel(PLANS.max)).toBe("10,000 actions / month");
-    expect(actionLimitLabel(PLANS.free)).toBe("25 actions / month");
+    expect(actionLimitLabel(PLANS.pro)).toBe("1,000 AI operations / month");
+    expect(actionLimitLabel(PLANS.max)).toBe("10,000 AI operations / month");
+    expect(actionLimitLabel(PLANS.free)).toBe("25 AI operations / month");
   });
 
   it("priceLabel matches the plan price", () => {

@@ -107,7 +107,7 @@ describe("usage limit is plan-aware (free = 25)", () => {
     );
     expect(res.status).toBe(402);
     const body = await res.json();
-    expect(body.message).toMatch(/25 actions/i);
+    expect(body.message).toMatch(/25 AI operations/i);
     expect(body.message).toMatch(/\$29/);
   });
 });
@@ -160,14 +160,18 @@ describe("CSV export gated to pro+", () => {
 });
 
 describe("model routing (server-side, config-driven, logged)", () => {
-  it("free/pro always default; max gets premium only for complex commands", () => {
+  it("every command starts on the default model — wording buys nothing", () => {
     // Model ids are config, never hardcoded — stub the env to distinguish tiers.
     vi.stubEnv("PLANNER_MODEL_DEFAULT", "planner-fast");
     vi.stubEnv("PLANNER_MODEL_PREMIUM", "planner-strong");
+    // The old router escalated on words ("and", tier-3 verbs, length). Words
+    // measure how someone types, not how hard their problem is — escalation
+    // now happens only on a demonstrated default-model failure (routing.ts).
     expect(chooseModel("free", "delete everything and pay the invoice", "u")).toBe("planner-fast");
     expect(chooseModel("pro", "delete everything and pay the invoice", "u")).toBe("planner-fast");
     expect(chooseModel("max", "summarize", "u")).toBe("planner-fast");
-    expect(chooseModel("max", "delete these records and refund the order", "u")).toBe("planner-strong");
+    expect(chooseModel("max", "delete these records and refund the order", "u")).toBe("planner-fast");
+    expect(chooseModel("max", "a ".repeat(300), "u")).toBe("planner-fast");
   });
 });
 

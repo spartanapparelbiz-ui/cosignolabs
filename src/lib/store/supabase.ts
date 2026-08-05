@@ -1207,6 +1207,43 @@ export class SupabaseStore implements Store {
     if (error) throw new Error(error.message);
   }
 
+  /* -- internal AI cost ledger (service role only; no client RLS grant) -- */
+  async recordAiUsage(row: import("../ai/costs").AiUsageRow): Promise<void> {
+    const { error } = await this.client.from("ai_usage").insert(row);
+    if (error) throw new Error(error.message);
+  }
+
+  async aiCostForMission(userId: string, missionId: string): Promise<number> {
+    const { data, error } = await this.client
+      .from("ai_usage")
+      .select("est_cost_usd")
+      .eq("user_id", userId)
+      .eq("mission_id", missionId);
+    if (error) throw new Error(error.message);
+    return (data ?? []).reduce((s, r) => s + (Number(r.est_cost_usd) || 0), 0);
+  }
+
+  async aiCostForUserMonth(userId: string): Promise<number> {
+    const { data, error } = await this.client
+      .from("ai_usage")
+      .select("est_cost_usd")
+      .eq("user_id", userId)
+      .gte("created_at", cycleStart());
+    if (error) throw new Error(error.message);
+    return (data ?? []).reduce((s, r) => s + (Number(r.est_cost_usd) || 0), 0);
+  }
+
+  async listAiUsageSince(sinceIso: string): Promise<import("./index").StoredAiUsage[]> {
+    const { data, error } = await this.client
+      .from("ai_usage")
+      .select("*")
+      .gte("created_at", sinceIso)
+      .order("created_at", { ascending: false })
+      .limit(20_000);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as import("./index").StoredAiUsage[];
+  }
+
 
   /* -- files -- */
   async createFile(input: import("./index").FileInsert): Promise<FileRecord> {

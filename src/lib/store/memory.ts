@@ -908,6 +908,30 @@ export class MemoryStore implements Store {
     this.prefs.set(userId, { ...prev, action_budget: clampBudget(budget) });
   }
 
+  /* -- internal AI cost ledger -- */
+  private aiUsage: import("./index").StoredAiUsage[] = [];
+
+  async recordAiUsage(row: import("../ai/costs").AiUsageRow): Promise<void> {
+    this.aiUsage.push({ ...row, created_at: nowIso() });
+  }
+
+  async aiCostForMission(userId: string, missionId: string): Promise<number> {
+    return this.aiUsage
+      .filter((r) => r.user_id === userId && r.mission_id === missionId)
+      .reduce((s, r) => s + (r.est_cost_usd ?? 0), 0);
+  }
+
+  async aiCostForUserMonth(userId: string): Promise<number> {
+    const start = cycleStart();
+    return this.aiUsage
+      .filter((r) => r.user_id === userId && r.created_at >= start)
+      .reduce((s, r) => s + (r.est_cost_usd ?? 0), 0);
+  }
+
+  async listAiUsageSince(sinceIso: string): Promise<import("./index").StoredAiUsage[]> {
+    return this.aiUsage.filter((r) => r.created_at >= sinceIso);
+  }
+
 
   /* -- files -- */
   async createFile(input: import("./index").FileInsert): Promise<FileRecord> {

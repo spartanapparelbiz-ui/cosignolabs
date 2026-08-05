@@ -497,7 +497,10 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
             <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
               <UsageRing used={usage.actions_executed} limit={usage.limit} daysLeft={daysLeft} resetLabel={reset} />
-              <p className="mt-2 text-xs lowercase text-ink-soft">actions used this cycle · hover for detail</p>
+              <p className="mt-2 text-xs lowercase text-ink-soft">AI operations used this cycle · hover for detail</p>
+              <p className="mt-1 text-[11px] text-ink-soft">
+                every planning call and every executed action counts as one operation.
+              </p>
             </div>
             <div className="flex-1 rounded-card bg-surface/60 p-5 shadow-soft">
               <div className="flex items-center justify-between">
@@ -505,7 +508,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
                 <span className="rounded-pill bg-cream-deep px-3 py-1 text-[11px] font-bold lowercase text-ink-soft">current plan</span>
               </div>
               <p className="mt-2 text-sm text-ink-soft">
-                {usage.limit.toLocaleString()} actions / cycle · resets {reset}{plan.interval ? ` · ${plan.interval}` : ""}
+                {usage.limit.toLocaleString()} AI operations / cycle · resets {reset}{plan.interval ? ` · ${plan.interval}` : ""}
               </p>
               {plan.cancelAtPeriodEnd && plan.activeUntil && (
                 <p className="mt-1 text-sm font-semibold">{plan.name} until {fmtDate(plan.activeUntil)}, then free.</p>

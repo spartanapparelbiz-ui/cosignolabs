@@ -1,6 +1,8 @@
 import { logInfo } from "../log";
 import { planWithMock } from "./mockPlanner";
-import { callPlanner, plannerConfigured, plannerModel, PlannerError } from "./provider";
+import { callPlanner, plannerConfigured, PlannerError } from "./provider";
+import { escalationFor, modelFor } from "../ai/routing";
+import { PLANS, type PlanId } from "../plans";
 import { ActionCategory, CATEGORIES, Tier } from "../types";
 import { buildSystemPrompt, SYSTEM_PROMPT_VERSION } from "./systemPrompt";
 import { scanUntrusted, wrapUntrusted, type UntrustedBlock } from "./untrusted";
@@ -43,11 +45,18 @@ const MAX_TOKENS = 1024;
  * without a planner key fails closed (and is already blocked upstream by the
  * production-readiness gate).
  */
+export interface PlanCommandOpts {
+  model?: string;
+  /** Plan id, for evidence-based escalation + the internal cost ledger. */
+  planId?: string;
+  sessionId?: string | null;
+}
+
 export async function planCommand(
   command: string,
   externalContent: ExternalContentInput[] = [],
   userId?: string,
-  model?: string
+  opts: PlanCommandOpts = {}
 ): Promise<PlanResult> {
   const blocks = externalContent.map((c) => scanUntrusted(c.source, c.content));
   const suspectedSources = blocks
@@ -77,7 +86,7 @@ export async function planCommand(
     : ["", ""];
 
   const plan = plannerConfigured()
-    ? await planWithLLM(command, blocks, connected, memory, userId, model)
+    ? await planWithLLM(command, blocks, connected, memory, userId, opts)
     : planWithMock(command, blocks);
 
   return {
@@ -90,69 +99,81 @@ export async function planCommand(
 
 type RawPlan = { reasoning: string; proposals: ProposedAction[] };
 
+const PROPOSE_ACTIONS_TOOL = {
+  name: "propose_actions",
+  description:
+    "Submit the action proposals for this command. Called exactly once.",
+  input_schema: {
+    type: "object",
+    properties: {
+      reasoning: {
+        type: "string",
+        description: "2-3 plain-language sentences on the plan.",
+      },
+      proposals: {
+        type: "array",
+        maxItems: 5,
+        items: {
+          type: "object",
+          properties: {
+            category: {
+              type: "string",
+              // Only planner-selectable categories are advertised — the
+              // integrations (connection_call) category is created by the
+              // runtime, never chosen by the model.
+              enum: Object.values(CATEGORIES)
+                .filter((c) => c.plannerSelectable !== false)
+                .map((c) => c.category),
+            },
+            summary: {
+              type: "string",
+              description:
+                "One plain-English sentence: exactly what this action will do.",
+            },
+            payload: {
+              type: "object",
+              description: "The exact payload that would be executed.",
+            },
+            requested_tier: { type: "integer", enum: [1, 2, 3] },
+          },
+          required: ["category", "summary", "payload"],
+        },
+      },
+    },
+    required: ["reasoning", "proposals"],
+  },
+};
+
 async function planWithLLM(
   command: string,
   blocks: UntrustedBlock[],
   connected: string,
   memory: string,
   userId?: string,
-  model?: string
+  opts: PlanCommandOpts = {}
 ): Promise<RawPlan> {
   const userContent = [
     `User command: ${command}`,
     ...blocks.map((b) => wrapUntrusted(b)),
   ].join("\n\n");
 
+  const meta = userId
+    ? {
+        userId,
+        plan: opts.planId ?? "free",
+        task: "plan",
+        sessionId: opts.sessionId ?? null,
+      }
+    : undefined;
+
   // All provider/vendor specifics live in ./provider — this call is neutral.
-  const result = await callPlanner({
-    model: model || plannerModel("default"),
+  let result = await callPlanner({
+    model: opts.model || modelFor("plan"),
     maxTokens: MAX_TOKENS,
     system: buildSystemPrompt(connected, memory),
     userContent,
-    tool: {
-      name: "propose_actions",
-      description:
-        "Submit the action proposals for this command. Called exactly once.",
-      input_schema: {
-        type: "object",
-        properties: {
-          reasoning: {
-            type: "string",
-            description: "2-3 plain-language sentences on the plan.",
-          },
-          proposals: {
-            type: "array",
-            maxItems: 5,
-            items: {
-              type: "object",
-              properties: {
-                category: {
-                  type: "string",
-                  // Only planner-selectable categories are advertised — the
-                  // integrations (connection_call) category is created by the
-                  // runtime, never chosen by the model.
-                  enum: Object.values(CATEGORIES)
-                    .filter((c) => c.plannerSelectable !== false)
-                    .map((c) => c.category),
-                },
-                summary: {
-                  type: "string",
-                  description:
-                    "One plain-English sentence: exactly what this action will do.",
-                },
-                payload: {
-                  type: "object",
-                  description: "The exact payload that would be executed.",
-                },
-                requested_tier: { type: "integer", enum: [1, 2, 3] },
-              },
-              required: ["category", "summary", "payload"],
-            },
-          },
-        },
-        required: ["reasoning", "proposals"],
-      },
-    },
+    tool: PROPOSE_ACTIONS_TOOL,
+    meta,
   });
 
   // Per-user token accounting: a runaway user is visible same-day.
@@ -163,7 +184,23 @@ async function planWithLLM(
   });
 
   if (!result.toolInput) {
-    return { reasoning: "the operator couldn't produce a plan — try rephrasing.", proposals: [] };
+    // Evidence-based escalation: the default model demonstrably failed to
+    // produce a plan. One retry, on the stronger model only when the user's
+    // plan carries it — this is the ONLY path to the premium model, so cost
+    // follows demonstrated need rather than guessed complexity.
+    const strongerModel = Boolean(PLANS[opts.planId as PlanId]?.strongerModel);
+    const escalation = escalationFor("plan", { strongerModel, userId: userId ?? "unknown" });
+    result = await callPlanner({
+      model: escalation.model,
+      maxTokens: MAX_TOKENS,
+      system: buildSystemPrompt(connected, memory),
+      userContent,
+      tool: PROPOSE_ACTIONS_TOOL,
+      meta,
+    });
+    if (!result.toolInput) {
+      return { reasoning: "the operator couldn't produce a plan — try rephrasing.", proposals: [] };
+    }
   }
   const input = result.toolInput as {
     reasoning?: string;
