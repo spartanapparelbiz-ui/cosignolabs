@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Check, Loader2, RefreshCw, X } from "lucide-react";
+import { AlertTriangle, Check, Loader2, Lock, RefreshCw, X } from "lucide-react";
 
 /**
  * What a connected app actually contains, and what the AI may do with it.
@@ -21,10 +21,17 @@ interface Fact {
 }
 interface Capability {
   id: string;
+  /** Business language — "Create Order", never "POST /v1/orders". */
+  label: string;
   summary: string;
   risk: "read" | "write" | "destructive";
   tier: 1 | 2 | 3;
   requires: string;
+  /** False when the user must still enable or consent to it. */
+  available?: boolean;
+  unavailableReason?: string;
+  /** The underlying call — details only, never the headline. */
+  technical?: string;
 }
 interface Insight {
   ok: boolean;
@@ -151,19 +158,38 @@ export function ConnectionInsight({
           </p>
           <ul className="mt-1.5 flex flex-col gap-1">
             {data.capabilities.map((c) => (
-              <li key={c.id} className="flex items-center gap-2 text-[11px]">
-                {c.risk === "read" ? (
-                  <Check size={12} className="shrink-0 text-signal" aria-hidden="true" />
+              <li key={c.id} className="flex items-start gap-2 text-[11px]">
+                {c.available === false ? (
+                  <Lock size={12} className="mt-0.5 shrink-0 text-ink-soft" aria-hidden="true" />
+                ) : c.risk === "read" ? (
+                  <Check size={12} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
                 ) : c.risk === "destructive" ? (
-                  <X size={12} className="shrink-0 text-ink" aria-hidden="true" />
+                  <X size={12} className="mt-0.5 shrink-0 text-ink" aria-hidden="true" />
                 ) : (
-                  <Check size={12} className="shrink-0 text-ink-soft" aria-hidden="true" />
+                  <Check size={12} className="mt-0.5 shrink-0 text-ink-soft" aria-hidden="true" />
                 )}
-                <span className="min-w-0 flex-1 truncate">{c.summary}</span>
+                <span className="min-w-0 flex-1">
+                  {/* Business language leads. The endpoint is context, not
+                      the thing being read before approving. */}
+                  <span className="font-bold">{c.label ?? c.id}</span>
+                  {c.technical && c.technical !== c.label && (
+                    <span className="ml-1.5 font-mono text-[10px] text-ink-soft/70">
+                      {c.technical}
+                    </span>
+                  )}
+                  <span className="block truncate text-ink-soft">{c.summary}</span>
+                  {/* An off or unconsented tool must never read as ready to
+                      run — calling it would simply be refused. */}
+                  {c.unavailableReason && (
+                    <span className="block text-ink-soft/80">{c.unavailableReason}</span>
+                  )}
+                </span>
                 <span
-                  className={`shrink-0 rounded-pill px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${REQUIRES_TONE[c.tier]}`}
+                  className={`shrink-0 rounded-pill px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                    c.available === false ? "bg-cream-deep text-ink-soft" : REQUIRES_TONE[c.tier]
+                  }`}
                 >
-                  {c.requires}
+                  {c.available === false ? "off" : c.requires}
                 </span>
               </li>
             ))}

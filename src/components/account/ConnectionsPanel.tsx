@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { ConnectionInsight } from "@/components/account/ConnectionInsight";
+import { humanizeActionId, humanizeEndpoint } from "@/lib/integrations/engine/humanize";
 
 /**
  * The Connections screen: available third-party apps, the user's connected
@@ -812,7 +813,11 @@ function ToolRow({
   return (
     <div className="rounded-btn bg-cream-deep/60 px-3 py-2">
       <div className="flex items-center gap-2">
-        <span className="font-mono text-[12px] font-bold">{tool.name}</span>
+        {/* An MCP tool name is a developer identifier from a third-party
+            server. Lead with what it does; keep the raw name for whoever
+            needs to match it against the server's own docs. */}
+        <span className="text-[12px] font-bold">{humanizeActionId(tool.name)}</span>
+        <span className="font-mono text-[10px] text-ink-soft/70">{tool.name}</span>
         {tool.tier && <TierBadge tier={tool.tier} />}
         {tool.sensitive && (
           <span className="inline-flex items-center gap-1 rounded-pill bg-signal/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-signal">
@@ -982,8 +987,13 @@ function CustomApiCard({
       <div className="mt-2 flex flex-col gap-1.5">
         {actions.map((a) => (
           <div key={a.id} className="flex items-center gap-2 rounded-btn bg-cream-deep/60 px-3 py-1.5">
-            <span className="font-mono text-[10px] font-bold uppercase text-ink-soft">{a.method}</span>
-            <span className="font-mono text-[11px] font-bold">{a.id}</span>
+            {/* Business language leads; the endpoint stays as context. The
+                thing read immediately before approving should say what the
+                action DOES, not which verb and path implement it. */}
+            <span className="text-[11px] font-bold">{humanizeEndpoint(a.method, a.path)}</span>
+            <span className="font-mono text-[10px] text-ink-soft/70">
+              {a.method} {a.path}
+            </span>
             <TierBadge tier={RISK_TIER_UI[a.risk] ?? 2} />
             <span className="min-w-0 flex-1 truncate text-[11px] text-ink-soft" title={a.summary}>
               {a.summary}

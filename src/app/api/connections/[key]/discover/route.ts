@@ -1,29 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { errorResponse, requireUser } from "@/lib/api";
 import { enforceLimit } from "@/lib/ratelimit";
-import { getStore } from "@/lib/store";
-import { getProvider } from "@/lib/integrations/registry";
-import { discoverConnection } from "@/lib/integrations/runtime/connections";
-import { capabilityRisk, serverTier } from "@/lib/integrations/tiers";
+import { describeConnection } from "@/lib/integrations/engine/describe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/connections/[key]/discover — what this connected account actually
- * contains, and exactly what the AI may do with it. `key` is the connection id.
+ * POST /api/connections/[key]/discover — the connection, described.
+ * `key` is the connection id.
  *
- * Two halves, both measured:
+ * Every kind goes through the one engine: a built-in provider, a custom HTTP
+ * API, and an MCP server all come back in the same shape, so the interface
+ * that renders them is identical and a connector cosigno has never seen
+ * presents exactly like a first-party one.
  *
- *  · `facts` come from live read-only calls to the provider. A provider that
- *    can't be inventoried returns ok:false with a reason. Nothing is ever
- *    substituted for a number we couldn't obtain.
- *  · `capabilities` are derived from the provider's declared actions and the
- *    SERVER's tier rule — the same rule the approval engine enforces at
- *    execution. It is read from one source, so the checklist cannot drift
- *    from what actually happens when the action runs.
+ * Both halves stay measured. `facts` come from live read-only calls and are
+ * empty (with a stated limitation) for kinds that cannot be inventoried.
+ * `capabilities` are derived from what the connection declares plus the SERVER
+ * tier rule the approval engine enforces at execution — so the checklist can
+ * never advertise a weaker gate than the action actually gets.
  *
- * POST because it makes live upstream calls; rate-limited for the same reason.
+ * POST because built-in discovery makes live upstream calls; rate-limited for
+ * the same reason.
  */
 export async function POST(
   _req: NextRequest,
@@ -36,41 +35,16 @@ export async function POST(
     await enforceLimit("transitionMinute", userId);
     const { key } = await params;
 
-    const connection = await getStore().getConnection(userId, key);
-    if (!connection) {
+    const model = await describeConnection(userId, key);
+    if (!model) {
       return NextResponse.json(
-        { ok: false, facts: [], limitations: [], error: "connection not found." },
+        { ok: false, facts: [], limitations: [], capabilities: [], error: "connection not found." },
         { status: 404 }
       );
     }
 
-    const provider = getProvider(connection.provider_key);
-    const discovery = await discoverConnection(userId, key);
-
-    // What the AI can do, straight from the same declarations and the same
-    // tier rule the engine applies. Tier 1 runs on its own; tier 2 waits for a
-    // signature; tier 3 additionally needs typed confirmation.
-    const capabilities = (provider?.listActions() ?? []).map((a) => {
-      const tier = serverTier(a);
-      return {
-        id: a.id,
-        summary: a.summary,
-        risk: capabilityRisk(a),
-        tier,
-        requires:
-          tier === 1 ? "runs automatically" : tier === 2 ? "your approval" : "typed confirmation",
-      };
-    });
-
     return NextResponse.json(
-      {
-        ...discovery,
-        provider: connection.provider_key,
-        provider_name: provider?.name ?? connection.display_name,
-        status: connection.status,
-        last_health_at: connection.last_health_at,
-        capabilities,
-      },
+      { ok: !model.discoveryError, ...model, error: model.discoveryError },
       { headers: { "cache-control": "no-store" } }
     );
   } catch (err) {
