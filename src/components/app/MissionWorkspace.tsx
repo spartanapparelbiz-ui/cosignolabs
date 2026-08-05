@@ -20,6 +20,8 @@ import {
 import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/lib/types";
 import { objectsFromResult } from "@/lib/objectView";
 import { statusLabel, statusOfMission } from "@/lib/status";
+import { buildMissionStory } from "@/lib/missionStory";
+import { MissionFlow } from "@/components/app/MissionFlow";
 import { ObjectCards } from "@/components/app/ObjectCards";
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
@@ -29,7 +31,8 @@ import { useToast } from "@/components/Toast";
  * pause/stop), the event timeline on the left (completed read-only work
  * collapses to compact rows; anything needing you stays expanded), and the
  * plan checklist + provided sources + results + usage on the right. Raw
- * payloads live behind "view payload" — never in the default reading path.
+ * the objects a step touched live behind "what changed" — never in the
+ * default reading path, and never as raw data.
  * Every value is read from THIS mission's persisted records only.
  */
 
@@ -85,7 +88,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
   const [sources, setSources] = useState<MissionSourceRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [payloadOpen, setPayloadOpen] = useState<Set<string>>(new Set());
+  const [changesOpen, setChangesOpen] = useState<Set<string>>(new Set());
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -155,8 +158,8 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
     }
   }
 
-  function togglePayload(id: string) {
-    setPayloadOpen((prev) => {
+  function toggleChanges(id: string) {
+    setChangesOpen((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -183,6 +186,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
   const done = steps.filter((s) => ["completed", "skipped"].includes(s.state)).length;
   const deliverables = steps.filter((s) => typeof s.output?.file_id === "string");
   const receipt = mission.receipt as Record<string, unknown> | null;
+  const story = buildMissionStory(mission, steps);
 
   return (
     <div className="flex flex-col gap-5">
@@ -194,7 +198,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           </p>
           <h1 className="mt-1 font-display text-xl font-bold sm:text-2xl">{mission.goal}</h1>
           <p className="mt-1 text-xs font-semibold text-ink-soft">
-            started {elapsed(mission.created_at)} ago · plan v{mission.plan_version}
+            started {elapsed(mission.created_at)} ago
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -228,6 +232,52 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           )}
         </div>
       </div>
+
+      {/* THE STORY — what happened, where, and whether it's really done. This
+          is the first thing on the page, because it is the answer; everything
+          below it is supporting detail in one vertical read. */}
+      <section>
+        {story.now && (
+          <p className="flex items-center gap-2 text-base font-semibold">
+            <span className="h-2 w-2 animate-orb-pulse rounded-pill bg-signal" aria-hidden="true" />
+            {story.now}
+          </p>
+        )}
+
+        {story.apps.length > 0 && (
+          <div className="mt-3">
+            <MissionFlow apps={story.apps} />
+          </div>
+        )}
+
+        {story.done.length > 0 && (
+          <ul className="mt-4 flex flex-col gap-1.5">
+            {story.done.map((line) => (
+              <li key={line} className="flex items-start gap-2 text-sm">
+                <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {story.changes.length > 0 && (
+          <div className="mt-4">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.18em] text-ink-soft">what changed</h2>
+            <div className="mt-2">
+              <ObjectCards view={{ cards: story.changes, more: 0, empty: false }} />
+            </div>
+          </div>
+        )}
+
+        <p className="mt-4 text-sm font-semibold text-ink-soft">{story.outcome}</p>
+        <p className="mt-1 text-xs text-ink-soft">
+          {story.apps.length} app{story.apps.length === 1 ? "" : "s"} ·{" "}
+          {story.approvals} approval{story.approvals === 1 ? "" : "s"}
+          {story.files > 0 ? ` · ${story.files} file${story.files === 1 ? "" : "s"}` : ""}
+          {story.took ? ` · took ${story.took}` : ""}
+        </p>
+      </section>
 
       {usesBrowser && (
         <Link
@@ -324,13 +374,13 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                       {hasPayload && (
                         <>
                           <button
-                            onClick={() => togglePayload(s.id)}
-                            aria-expanded={payloadOpen.has(s.id)}
+                            onClick={() => toggleChanges(s.id)}
+                            aria-expanded={changesOpen.has(s.id)}
                             className="ml-0 mt-0.5 block text-[10px] font-bold lowercase text-ink-soft underline underline-offset-2"
                           >
-                            {payloadOpen.has(s.id) ? "hide what changed" : "what changed"}
+                            {changesOpen.has(s.id) ? "hide what changed" : "what changed"}
                           </button>
-                          {payloadOpen.has(s.id) && (
+                          {changesOpen.has(s.id) && (
                             <div className="mt-1.5">
                               {/* The objects this step touched — never its raw output. */}
                               <ObjectCards

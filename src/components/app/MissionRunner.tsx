@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckCircle2,
-  ChevronDown,
   Circle,
   CircleDot,
   FileText,
@@ -20,7 +19,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/lib/types";
-import { statusLabel, statusOfMission } from "@/lib/status";
+import { MissionCard } from "@/components/app/MissionCard";
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
 
@@ -35,13 +34,6 @@ import { useToast } from "@/components/Toast";
  * Mission state, in the five words used everywhere else. The engine's own
  * vocabulary ("queued", "verifying", "retrying") stays in the engine.
  */
-const STATE_STYLE: Record<string, string> = {
-  working: "bg-ink text-cream",
-  waiting: "bg-cream-deep text-ink",
-  needs_approval: "bg-signal text-ink",
-  failed: "ring-1 ring-inset ring-ink/40 text-ink",
-  finished: "bg-signal/20 text-ink",
-};
 
 
 const STEP_ICON: Record<MissionStepRecord["state"], typeof Circle> = {
@@ -452,40 +444,29 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
       {(missions ?? []).map((m) => {
         const open = openId === m.id;
         const mySteps = steps[m.id] ?? [];
-        const done = mySteps.filter((s) => s.state === "completed").length;
         const usesBrowser = mySteps.some((s) => s.tool.startsWith("laptop.") || s.tool.startsWith("browser."));
         return (
-          <div key={m.id} className="rounded-card bg-surface/60 shadow-soft">
+          <div key={m.id} className="flex flex-col gap-0">
+            {/* The card IS the summary: goal, live step, apps, what happened,
+                what changed, approvals, elapsed. Opening it is for the
+                controls and the sources, not for finding out whether it
+                worked. */}
+            <MissionCard mission={m} steps={mySteps} href={`/app/missions/${m.id}`} />
+
             <button
               onClick={async () => {
                 setOpenId(open ? null : m.id);
                 if (!open) await loadSteps(m.id);
               }}
               aria-expanded={open}
-              className="flex w-full items-center gap-2 px-4 py-3 text-left"
+              className="mt-1 self-start rounded-btn px-2 py-1 text-xs font-bold lowercase text-ink-soft underline underline-offset-2 hover:text-ink"
             >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-extrabold">{m.goal}</span>
-                <span className="mt-0.5 block text-[11px] text-ink-soft">
-                  started {new Date(m.created_at).toLocaleString()} · plan v{m.plan_version}
-                  {mySteps.length > 0 && ` · ${done} of ${mySteps.length} steps completed`}
-                </span>
-              </span>
-              <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase ${STATE_STYLE[statusOfMission(m.state)]}`}>
-                {statusLabel(statusOfMission(m.state))}
-              </span>
-              <ChevronDown size={15} className={`shrink-0 text-ink-soft transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+              {open ? "hide controls" : "controls & sources"}
             </button>
 
             {open && (
-              <div className="flex flex-col gap-3 border-t border-line/60 px-4 py-3">
+              <div className="mt-1 flex flex-col gap-3 rounded-card border border-line/70 bg-surface/60 px-4 py-3">
                 <div className="flex flex-wrap gap-2">
-                  <Link
-                    href={`/app/missions/${m.id}`}
-                    className="inline-flex w-fit items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
-                  >
-                    open the mission workspace
-                  </Link>
                   {usesBrowser && (
                     <Link
                       href={`/app/browser/${m.id}`}
