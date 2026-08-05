@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
+import { actionStatus } from "@/lib/status";
 import {
   AlignLeft,
   Banknote,
@@ -68,15 +69,6 @@ interface Props {
   /** Failed cards offer "propose again" — re-issues the action as a command. */
   onRetry?: (action: ActionRecord) => void;
 }
-
-const STATUS_LABEL: Record<ActionRecord["status"], string> = {
-  proposed: "awaiting your sign-off",
-  approved: "approved",
-  executing: "executing…",
-  executed: "executed",
-  failed: "failed",
-  vetoed: "vetoed",
-};
 
 /** Category glyphs — every card answers "what kind of thing is this" at a glance. */
 const CATEGORY_GLYPH: Record<ActionCategory, LucideIcon> = {
@@ -250,7 +242,7 @@ function ActionCardInner({
         className={`group flex w-full items-center gap-3 rounded-card bg-surface/50 px-4 py-2.5 text-left shadow-soft transition-shadow hover:shadow-lift animate-card-in ${
           action.status === "executed" ? "animate-ring-flash" : ""
         }`}
-        aria-label={`${STATUS_LABEL[action.status]}: ${action.summary} — expand details`}
+        aria-label={`${actionStatus(action.status)}: ${action.summary} — expand details`}
       >
         {action.status === "executed" ? (
           <SignedCheck label="" />
@@ -273,8 +265,8 @@ function ActionCardInner({
             </span>
           )}
         </span>
-        <span className="shrink-0 text-right text-[11px] lowercase text-ink-soft">
-          {STATUS_LABEL[action.status]}
+        <span className="shrink-0 text-right text-[11px] text-ink-soft">
+          {actionStatus(action.status)}
           {action.resolved_at && (
             <span className="block">{timeOf(action.resolved_at)}</span>
           )}
@@ -327,7 +319,7 @@ function ActionCardInner({
                     : "bg-cream-deep text-ink-soft"
               }`}
             >
-              {STATUS_LABEL[action.status]}
+              {actionStatus(action.status)}
             </span>
             <span className="ml-auto text-[11px] text-ink-soft">
               {timeOf(action.resolved_at ?? action.created_at)}
@@ -530,9 +522,9 @@ function ActionCardInner({
       )}
 
       {inFlight && (
-        <p className="mt-3 flex items-center gap-2 text-xs font-bold lowercase text-ink-soft">
+        <p className="mt-3 flex items-center gap-2 text-xs font-bold text-ink-soft">
           <span className="h-2 w-2 animate-orb-pulse rounded-pill bg-signal" aria-hidden="true" />
-          executing…
+          Working
         </p>
       )}
 
@@ -552,7 +544,10 @@ function ActionCardInner({
                     className="h-3.5 w-3.5 animate-orb-think rounded-pill border-2 border-ink/30 border-t-ink"
                     aria-hidden="true"
                   />
-                  executing…
+                  {/* The button's own busy state, not a status. It says what
+                      this click is doing, in the same register as the label it
+                      replaced. */}
+                  Approving…
                 </>
               ) : needsSign ? (
                 <>

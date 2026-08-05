@@ -9,6 +9,7 @@ import { SourceComposer } from "@/components/app/SourceComposer";
 import { StarterJobs } from "@/components/app/StarterJobs";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { todayDigest } from "@/lib/missions/today";
+import { missionStatus, STATUS_TONE } from "@/lib/status";
 import { AdaptiveDashboard } from "@/components/app/AdaptiveDashboard";
 
 /**
@@ -32,31 +33,6 @@ async function jsonFetch(url: string, init?: RequestInit) {
 }
 
 /* --------- plain-language status (never technical words) --------- */
-const STATUS_LABEL: Record<MissionRecord["state"], string> = {
-  queued: "Planning",
-  running: "Working",
-  awaiting_input: "Waiting for you",
-  awaiting_approval: "Waiting for you",
-  retrying: "Working",
-  verifying: "Verifying",
-  paused: "Paused",
-  completed: "Completed",
-  partial: "Needs attention",
-  failed: "Needs attention",
-  stopped: "Paused",
-  blocked: "Needs attention",
-};
-
-const STATUS_TONE: Record<string, string> = {
-  Planning: "bg-cream-deep text-ink-soft",
-  Working: "bg-ink text-cream",
-  "Waiting for you": "bg-signal text-ink",
-  Verifying: "bg-ink text-cream",
-  Paused: "bg-cream-deep text-ink-soft",
-  Completed: "bg-signal/20 text-ink",
-  "Needs attention": "ring-1 ring-inset ring-ink/40 text-ink",
-};
-
 const ACTIVE_STATES = new Set([
   "queued",
   "running",
@@ -307,7 +283,7 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
                   const ms = steps[m.id] ?? [];
                   const done = ms.filter((s) => s.state === "completed" || s.state === "skipped").length;
                   const doing = nowDoing(ms);
-                  const label = STATUS_LABEL[m.state];
+                  const label = missionStatus(m.state);
                   const apps = providerKeysFor(ms);
                   return (
                     <div key={m.id} className={CARD}>

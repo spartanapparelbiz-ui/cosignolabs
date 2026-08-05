@@ -23,6 +23,7 @@ import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/li
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
+import { missionStatus, STATUS_TONE } from "@/lib/status";
 
 /**
  * Durable missions — work that continues server-side after this tab closes.
@@ -30,36 +31,6 @@ import { DecisionInbox } from "@/components/app/DecisionInbox";
  * /advance; away from the page, the cron tick does the same job. Everything
  * shown is read straight from the persisted mission + step records.
  */
-
-const STATE_LABEL: Record<MissionRecord["state"], string> = {
-  queued: "queued",
-  running: "working",
-  awaiting_input: "needs one answer",
-  awaiting_approval: "waiting for your approval",
-  retrying: "retrying a step",
-  verifying: "verifying",
-  paused: "paused",
-  completed: "completed",
-  partial: "partially completed",
-  failed: "failed safely",
-  stopped: "stopped",
-  blocked: "blocked",
-};
-
-const STATE_STYLE: Record<MissionRecord["state"], string> = {
-  queued: "bg-cream-deep text-ink",
-  running: "bg-ink text-cream",
-  awaiting_input: "bg-signal text-ink",
-  awaiting_approval: "bg-signal text-ink",
-  retrying: "ring-1 ring-inset ring-ink/40 text-ink",
-  verifying: "bg-ink text-cream",
-  paused: "bg-cream-deep text-ink-soft",
-  completed: "bg-signal/20 text-ink",
-  partial: "ring-1 ring-inset ring-ink/40 text-ink",
-  failed: "ring-1 ring-inset ring-ink/40 text-ink",
-  stopped: "bg-cream-deep text-ink-soft",
-  blocked: "ring-1 ring-inset ring-signal text-signal",
-};
 
 const STEP_ICON: Record<MissionStepRecord["state"], typeof Circle> = {
   ready: Circle,
@@ -488,8 +459,8 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                   {mySteps.length > 0 && ` · ${done} of ${mySteps.length} steps completed`}
                 </span>
               </span>
-              <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase ${STATE_STYLE[m.state]}`}>
-                {STATE_LABEL[m.state]}
+              <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-bold ${STATUS_TONE[missionStatus(m.state)]}`}>
+                {missionStatus(m.state)}
               </span>
               <ChevronDown size={15} className={`shrink-0 text-ink-soft transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
             </button>

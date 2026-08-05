@@ -28,6 +28,7 @@ import { useToast } from "@/components/Toast";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { narrateMission, type StepPhase, type WorkApp } from "@/lib/missions/narrate";
 import { heroResult } from "@/lib/missions/today";
+import { missionStatus, STATUS_TONE } from "@/lib/status";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 
 /**
@@ -42,33 +43,6 @@ import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
  *
  * Every value is read from THIS mission's persisted records only.
  */
-
-const STATE_LABEL: Record<MissionRecord["state"], string> = {
-  queued: "Planning",
-  running: "Working",
-  awaiting_input: "Waiting for you",
-  awaiting_approval: "Waiting for you",
-  retrying: "Working",
-  verifying: "Verifying",
-  paused: "Paused",
-  completed: "Completed",
-  partial: "Needs attention",
-  failed: "Failed",
-  stopped: "Stopped",
-  blocked: "Needs attention",
-};
-
-const STATE_TONE: Record<string, string> = {
-  Planning: "bg-cream-deep text-ink-soft",
-  Working: "bg-ink text-cream",
-  "Waiting for you": "bg-signal text-ink",
-  Verifying: "bg-ink text-cream",
-  Paused: "bg-cream-deep text-ink-soft",
-  Completed: "bg-signal/20 text-ink",
-  Failed: "ring-1 ring-inset ring-ink/40 text-ink",
-  Stopped: "bg-cream-deep text-ink-soft",
-  "Needs attention": "ring-1 ring-inset ring-ink/40 text-ink",
-};
 
 const MISSION_ACTIVE = new Set(["queued", "running", "retrying", "verifying"]);
 const TERMINAL = new Set(["completed", "partial", "failed", "stopped"]);
@@ -181,7 +155,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
     return <div className="h-64 animate-pulse rounded-card bg-cream-deep" aria-hidden="true" aria-busy="true" />;
   }
 
-  const label = STATE_LABEL[mission.state];
+  const label = missionStatus(mission.state);
   const usesBrowser = steps.some((s) => s.tool.startsWith("laptop.") || s.tool.startsWith("browser."));
   // Only the cards this mission is actually parked on.
   // The whole translation from engine state to human language lives in
@@ -218,7 +192,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span className={`rounded-pill px-3 py-1 text-xs font-bold ${STATE_TONE[label]}`}>{label}</span>
+          <span className={`rounded-pill px-3 py-1 text-xs font-bold ${STATUS_TONE[label]}`}>{label}</span>
           {!TERMINAL.has(mission.state) &&
             (mission.state === "paused" ? (
               <button
