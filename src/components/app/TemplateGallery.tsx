@@ -1,106 +1,108 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { CalendarClock, Globe, Inbox, Reply, Sunrise } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import {
+  ALL_TEMPLATES,
+  TEMPLATE_CATEGORIES,
+  recommendedFor,
+  searchTemplates,
+  type Template,
+} from "@/lib/templates/catalog";
 
 /**
- * The installable jobs that ACTUALLY run today — each maps to a real mission
- * template the engine executes end to end. Honesty rules: apps listed are the
- * ones really used (with the labeled sandbox until they're connected), the
- * auto/signature split is the real one the engine enforces, and nothing here
- * is listed unless its complete backend works.
+ * The template gallery: what cosigno can actually do for you, browsable.
+ *
+ * Every card starts something real — an engine template runs turnkey, a goal
+ * template starts a mission that asks for the one fact it's missing, and a
+ * compose template opens the ask box with the goal prefilled so one phrase
+ * finishes it. There is no card here whose backend doesn't exist.
+ *
+ * The featured rows are real signal only: "recently used" is your history on
+ * this device, "recommended" is derived from the apps you actually connected.
+ * No trending, no popularity numbers — we don't collect what they'd need.
  */
 
-interface TemplateJob {
-  key: "meeting_prep" | "laptop_compare" | "inbox_cleanup" | "followups" | "daily_brief";
-  icon: typeof CalendarClock;
-  title: string;
-  outcome: string;
-  apps: string;
-  auto: string;
-  signature: string;
-  usage: string;
-  /** Where to land after the mission is created. */
-  dest: (missionId: string) => string;
+const RECENT_KEY = "cosigno.templates.recent";
+
+function readRecent(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    const arr = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
-const JOBS: TemplateJob[] = [
-  {
-    key: "inbox_cleanup",
-    icon: Inbox,
-    title: "clean up my inbox",
-    outcome: "a summary of what matters, reply drafts for waiting threads, and the clutter archived.",
-    apps: "Gmail — or a clearly-labeled sandbox until it's connected.",
-    auto: "scans, summarizes, and drafts replies (drafts can never send).",
-    signature: "archiving the newsletter clutter — verified by read-back, nothing is deleted.",
-    usage: "≈ 5 actions per run",
-    dest: (id) => `/app/missions/${id}`,
-  },
-  {
-    key: "followups",
-    icon: Reply,
-    title: "prepare my follow-ups",
-    outcome: "context-aware follow-up drafts, a conflict-checked send time, and an optional reminder.",
-    apps: "Gmail and Google Calendar — or the labeled sandbox.",
-    auto: "finds waiting threads, drafts follow-ups, proposes a send time.",
-    signature: "sending the follow-up (verified in Sent Mail) and adding the calendar reminder.",
-    usage: "≈ 5 actions per run",
-    dest: (id) => `/app/missions/${id}`,
-  },
-  {
-    key: "daily_brief",
-    icon: Sunrise,
-    title: "build my morning brief",
-    outcome: "one morning brief from your calendar and overnight inbox, with suggested priorities.",
-    apps: "Google Calendar and Gmail — or the labeled sandbox.",
-    auto: "reads the schedule and inbox signals, writes the brief.",
-    signature: "blocking time for the top item — a separate approval card.",
-    usage: "≈ 5 actions per run",
-    dest: (id) => `/app/missions/${id}`,
-  },
-  {
-    key: "meeting_prep",
-    icon: CalendarClock,
-    title: "build tomorrow's meeting brief",
-    outcome: "a meeting brief, an agenda, and a drafted (never sent) follow-up.",
-    apps: "Google Calendar, Gmail, Drive — or a clearly-labeled sandbox until they're connected.",
-    auto: "finds the event, reviews related mail and files, drafts everything.",
-    signature: "sending the follow-up email.",
-    usage: "≈ 7 actions per run",
-    dest: () => "/app/missions",
-  },
-  {
-    key: "laptop_compare",
-    icon: Globe,
-    title: "compare three laptops under $1,000",
-    outcome: "a comparison report and a data-supported recommendation, stopped at the product page.",
-    apps: "the browser operator on major retailer sites — or the labeled sandbox.",
-    auto: "searches, reads three product pages, compares, recommends, saves the report.",
-    signature: "nothing — this job is entirely read-only and never attempts a purchase.",
-    usage: "≈ 10 actions per run",
-    dest: (id) => `/app/browser/${id}`,
-  },
-];
+function pushRecent(key: string): void {
+  try {
+    const next = [key, ...readRecent().filter((k) => k !== key)].slice(0, 6);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch {
+    /* private mode — recents simply don't persist */
+  }
+}
 
 export function TemplateGallery() {
   const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [recentKeys, setRecentKeys] = useState<string[]>([]);
+  const [connectedKeys, setConnectedKeys] = useState<string[]>([]);
 
-  async function use(job: TemplateJob) {
-    setBusy(job.key);
+  useEffect(() => {
+    setRecentKeys(readRecent());
+    fetch("/api/connections")
+      .then((r) => r.json())
+      .then((d) => {
+        const items = Array.isArray(d.connections) ? d.connections : [];
+        setConnectedKeys(
+          items
+            .filter((c: { status?: string }) => c.status === "connected")
+            .map((c: { provider_key?: string }) => String(c.provider_key ?? ""))
+        );
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const recent = useMemo(
+    () =>
+      recentKeys
+        .map((k) => ALL_TEMPLATES.find((t) => t.key === k))
+        .filter((t): t is Template => Boolean(t)),
+    [recentKeys]
+  );
+  const recommended = useMemo(
+    () => recommendedFor(connectedKeys).filter((t) => !recentKeys.includes(t.key)).slice(0, 4),
+    [connectedKeys, recentKeys]
+  );
+  const matches = useMemo(() => searchTemplates(query), [query]);
+  const searching = query.trim().length > 0;
+
+  async function run(t: Template) {
+    setBusy(t.key);
+    pushRecent(t.key);
     try {
+      if (t.run.kind === "compose") {
+        // The goal needs your subject — land in the ask box mid-thought.
+        router.push(`/app?handle=${encodeURIComponent(t.run.prefill)}`);
+        return;
+      }
+      const body =
+        t.run.kind === "engine" ? { template: t.run.template } : { goal: t.run.goal };
       const res = await fetch("/api/missions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ template: job.key }),
+        body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "couldn't start the mission.");
       toast("success", "mission started.");
-      router.push(job.dest(data.mission.id));
+      router.push(`/app/missions/${data.mission.id}`);
     } catch (e) {
       toast("error", e instanceof Error ? e.message : "couldn't start the mission.");
       setBusy(null);
@@ -108,54 +110,139 @@ export function TemplateGallery() {
   }
 
   return (
-    <div className="grid gap-5 md:grid-cols-2">
-      {JOBS.map((job) => {
-        const Icon = job.icon;
-        return (
-          <article key={job.key} className="flex flex-col rounded-card border border-line/70 bg-surface p-5 shadow-soft">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-btn bg-cream-deep">
-                <Icon size={17} className="text-ink-soft" aria-hidden="true" />
-              </span>
-              <h2 className="text-base font-extrabold lowercase">{job.title}</h2>
-            </div>
-            <dl className="mt-3 flex flex-1 flex-col gap-2 text-xs">
-              <div>
-                <dt className="font-extrabold lowercase text-ink-soft">you get</dt>
-                <dd className="mt-0.5 font-semibold">{job.outcome}</dd>
-              </div>
-              <div>
-                <dt className="font-extrabold lowercase text-ink-soft">uses</dt>
-                <dd className="mt-0.5 font-semibold">{job.apps}</dd>
-              </div>
-              <div>
-                <dt className="font-extrabold lowercase text-ink-soft">runs automatically</dt>
-                <dd className="mt-0.5 font-semibold">{job.auto}</dd>
-              </div>
-              <div>
-                <dt className="font-extrabold lowercase text-ink-soft">needs your signature</dt>
-                <dd className="mt-0.5 font-semibold">{job.signature}</dd>
-              </div>
-            </dl>
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <span className="text-[11px] font-semibold text-ink-soft">{job.usage} (estimate)</span>
-              <button
-                onClick={() => use(job)}
-                disabled={busy !== null}
-                className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-              >
-                {busy === job.key ? "starting…" : "use template"}
-              </button>
-            </div>
-          </article>
-        );
-      })}
-      <p className="text-xs font-semibold text-ink-soft md:col-span-2">
-        anything else? type it in the ask box on{" "}
-        <a href="/app" className="underline underline-offset-2">home</a> — cosigno
-        compiles open-ended goals into plans from its real capabilities and shows
-        you before anything runs.
-      </p>
+    <div className="flex flex-col gap-10">
+      {/* search */}
+      <label className="relative block">
+        <Search
+          size={17}
+          strokeWidth={2.4}
+          aria-hidden="true"
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft"
+        />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="What would you like help with?"
+          aria-label="search templates"
+          className="w-full rounded-card bg-surface/70 py-3.5 pl-11 pr-4 text-base font-semibold shadow-soft outline-none ring-1 ring-inset ring-transparent transition-all duration-fast placeholder:text-ink-soft/60 focus:ring-ink/30"
+        />
+      </label>
+
+      {searching ? (
+        <section>
+          <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
+            {matches.length === 0
+              ? "Nothing matches"
+              : `${matches.length} match${matches.length === 1 ? "" : "es"}`}
+          </h2>
+          {matches.length === 0 ? (
+            <p className="mt-3 max-w-xl text-sm text-ink-soft">
+              no template covers that yet — but the ask box does. describe it in your own
+              words on{" "}
+              <a href="/app" className="font-bold underline underline-offset-2">
+                home
+              </a>{" "}
+              and cosigno compiles a plan and shows it to you before anything runs.
+            </p>
+          ) : (
+            <Grid templates={matches} busy={busy} onRun={run} />
+          )}
+        </section>
+      ) : (
+        <>
+          {/* featured — real signal only */}
+          {recent.length > 0 && (
+            <section>
+              <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
+                Recently used
+              </h2>
+              <Grid templates={recent} busy={busy} onRun={run} />
+            </section>
+          )}
+          {recommended.length > 0 && (
+            <section>
+              <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
+                Recommended — works with your connected apps
+              </h2>
+              <Grid templates={recommended} busy={busy} onRun={run} />
+            </section>
+          )}
+
+          {TEMPLATE_CATEGORIES.map((cat) => (
+            <section key={cat.id}>
+              <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
+                {cat.title}
+              </h2>
+              <Grid templates={cat.templates} busy={busy} onRun={run} />
+            </section>
+          ))}
+
+          <p className="text-sm text-ink-soft">
+            anything else? describe it in your own words on{" "}
+            <a href="/app" className="font-bold underline underline-offset-2">
+              home
+            </a>{" "}
+            — cosigno compiles open-ended goals into a plan and shows it to you before
+            anything runs.
+          </p>
+        </>
+      )}
     </div>
+  );
+}
+
+function Grid({
+  templates,
+  busy,
+  onRun,
+}: {
+  templates: Template[];
+  busy: string | null;
+  onRun: (t: Template) => void;
+}) {
+  return (
+    <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {templates.map((t) => (
+        <Card key={t.key} template={t} busy={busy} onRun={onRun} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The card: icon, title, one sentence, apps, the approval fact, run. No
+ * estimated minutes — a duration we'd be inventing — and no badges. What a
+ * card promises is exactly what pressing run does.
+ */
+function Card({
+  template: t,
+  busy,
+  onRun,
+}: {
+  template: Template;
+  busy: string | null;
+  onRun: (t: Template) => void;
+}) {
+  const needsSubject = t.run.kind === "compose";
+  return (
+    <article className="group flex flex-col rounded-card bg-surface/60 p-5 shadow-soft transition-all duration-base ease-brand-out hover:-translate-y-0.5 hover:shadow-lift">
+      <span
+        className="flex h-12 w-12 items-center justify-center rounded-btn bg-cream-deep text-2xl"
+        aria-hidden="true"
+      >
+        {t.icon}
+      </span>
+      <h3 className="mt-3 text-base font-extrabold leading-snug">{t.title}</h3>
+      <p className="mt-1.5 flex-1 text-sm leading-snug text-ink-soft">{t.outcome}</p>
+      <p className="mt-3 text-xs font-semibold text-ink-soft">{t.apps.join(" · ")}</p>
+      <p className="mt-1 text-xs text-ink-soft">{t.approval}</p>
+      <button
+        onClick={() => onRun(t)}
+        disabled={busy !== null}
+        className="mt-4 w-full rounded-btn bg-ink py-2.5 text-sm font-extrabold lowercase text-cream transition-all duration-fast active:scale-[0.98] group-hover:bg-signal group-hover:text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
+      >
+        {busy === t.key ? "starting…" : needsSubject ? "start — add your subject" : "run"}
+      </button>
+    </article>
   );
 }
