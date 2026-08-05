@@ -174,6 +174,26 @@ export function SourceComposer({
     const handle = searchParams.get("handle");
     if (handle) setGoal(handle.slice(0, 2000));
   }, [searchParams]);
+
+  /**
+   * A suggestion elsewhere on the page fills this box rather than starting a
+   * mission behind the user's back. A prompt card is an idea, not an
+   * instruction — they still get to edit it, or change their mind.
+   */
+  useEffect(() => {
+    const onCompose = (e: Event) => {
+      const text = (e as CustomEvent<{ text?: string }>).detail?.text;
+      if (!text) return;
+      setGoal(text.slice(0, 2000));
+      requestAnimationFrame(() => {
+        const el = document.getElementById("cosigno-ask");
+        el?.focus();
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    };
+    window.addEventListener("cosigno:compose", onCompose);
+    return () => window.removeEventListener("cosigno:compose", onCompose);
+  }, []);
   const [sources, setSources] = useState<MissionSourceRecord[]>([]);
   // Optimistic placeholders keyed by a temp id, shown while a request is in flight.
   const [pending, setPending] = useState<MissionSourceRecord[]>([]);
@@ -495,7 +515,8 @@ export function SourceComposer({
           onChange={(e) => setGoal(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && review()}
           maxLength={500}
-          placeholder="Ask cosigno to handle something… or drop a file, link, or text here"
+          id="cosigno-ask"
+          placeholder="Ask cosigno anything…"
           aria-label="what do you need handled"
           className="w-full rounded-btn border border-line/70 bg-cream/40 px-4 py-3.5 text-base font-semibold shadow-well placeholder:font-medium placeholder:text-ink-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
         />

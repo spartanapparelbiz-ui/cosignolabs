@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { CalendarClock, Check, Loader2, Repeat, ShieldQuestion, X } from "lucide-react";
+import { useDisplayName } from "@/lib/theme";
+import { ArrowRight, Check, Loader2, ShieldQuestion, X } from "lucide-react";
 import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
-import { StarterJobs } from "@/components/app/StarterJobs";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { todayDigest } from "@/lib/missions/today";
-import { AdaptiveDashboard } from "@/components/app/AdaptiveDashboard";
 
 /**
  * The home dashboard — one calm place that answers four questions:
@@ -20,6 +19,30 @@ import { AdaptiveDashboard } from "@/components/app/AdaptiveDashboard";
  * Everything is read from real data (missions, approvals, automations,
  * connections). No charts, no fake progress, no technical words.
  */
+
+
+/**
+ * Time-of-day greeting. Uses the browser's clock, which is the user's own —
+ * a server-side hour would greet someone in Sydney with "good evening" at
+ * breakfast.
+ */
+function greeting(name: string): string {
+  const h = new Date().getHours();
+  const part = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  return name.trim() ? `${part}, ${name.trim()}` : `${part}`;
+}
+
+/**
+ * Starting points, phrased as things a person would actually say. Shown only
+ * when nothing is running — once there is real work on the page, suggestions
+ * are noise competing with it.
+ */
+const PROMPTS = [
+  "Prepare tomorrow's meeting",
+  "Review my unread email",
+  "Research the best option",
+  "Follow up on unanswered threads",
+] as const;
 
 async function jsonFetch(url: string, init?: RequestInit) {
   const res = await fetch(url, {
@@ -69,8 +92,6 @@ interface ConnectionView {
 
 /* ------------------------------------------------------------------ */
 
-const CARD = "rounded-card border border-line/70 bg-surface p-5 shadow-soft";
-const SECTION_TITLE = "text-xs font-extrabold uppercase tracking-widest text-ink-soft";
 
 /** Data the server page prefetches so the first paint already has content. */
 export interface DashboardInitial {
@@ -83,22 +104,10 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   const [missions, setMissions] = useState<MissionRecord[] | null>(initial?.missions ?? null);
   const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>(initial?.steps ?? {});
   const [approvals, setApprovals] = useState<ActionRecord[]>(initial?.approvals ?? []);
+  const [displayName] = useDisplayName();
   const [automation, setAutomation] = useState<AutomationRecord | null>(null);
   const [connections, setConnections] = useState<ConnectionView[]>([]);
-  const [unhealthy, setUnhealthy] = useState<ConnectionView[]>([]);
-  const [pausing, setPausing] = useState<string | null>(null);
 
-  async function pauseMission(id: string) {
-    setPausing(id);
-    try {
-      await jsonFetch(`/api/missions/${id}/control`, { method: "POST", body: JSON.stringify({ op: "pause" }) });
-      await load();
-    } catch {
-      /* the row keeps its live state; the mission page has full controls */
-    } finally {
-      setPausing(null);
-    }
-  }
 
   const loadSide = useCallback(async () => {
     // The right-column extras (next automation, connected apps).
@@ -111,7 +120,6 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
     setAutomation(enabled[0] ?? null);
     const appConns = (c.connections ?? []).filter((x: ConnectionView) => x.kind === "app");
     setConnections(appConns.filter((x: ConnectionView) => x.status === "connected"));
-    setUnhealthy(appConns.filter((x: ConnectionView) => x.status !== "connected"));
   }, []);
 
   const load = useCallback(async () => {
@@ -144,57 +152,28 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
 
   const digest = todayDigest(missions ?? [], steps);
 
+  /** Put a suggestion into the ask box rather than starting it silently. */
+  function askFor(text: string) {
+    window.dispatchEvent(new CustomEvent("cosigno:compose", { detail: { text } }));
+  }
+
+  const working = digest.lines.filter((l) => l.kind === "doing");
+  const waiting = digest.lines.filter((l) => l.kind === "waiting");
+  const finished = digest.lines.filter((l) => l.kind === "done" || l.kind === "failed");
+
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      {/* ---------------------------- today ---------------------------- */}
-      {/* The first thing on the page, and deliberately the shortest: someone
-          coming back after lunch should understand the day before they read
-          anything else. Ordered by what costs them something to miss —
-          decisions first, then work in flight, then what got finished. */}
-      {!digest.empty && (
-        <section className="mb-5">
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">Today</p>
-          <ul className="mt-2 flex flex-col gap-1.5">
-            {digest.lines.map((l) => (
-              <li key={`${l.missionId}-${l.kind}-${l.text}`}>
-                <Link
-                  href={`/app/missions/${l.missionId}`}
-                  className="group flex items-start gap-2.5 rounded-btn px-1 py-0.5 transition-colors hover:bg-cream-deep/50"
-                >
-                  <span className="mt-0.5 shrink-0" aria-hidden="true">
-                    {l.kind === "done" ? (
-                      <Check size={14} className="text-signal" />
-                    ) : l.kind === "doing" ? (
-                      <Loader2 size={14} className="animate-spin text-ink" />
-                    ) : l.kind === "failed" ? (
-                      <X size={14} className="text-ink" />
-                    ) : (
-                      <ShieldQuestion size={14} className="text-signal" />
-                    )}
-                  </span>
-                  <span
-                    className={`text-sm leading-snug ${
-                      l.kind === "waiting" ? "font-extrabold" : "font-semibold"
-                    } group-hover:underline underline-offset-2`}
-                  >
-                    {l.text}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+    <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-10 sm:pt-16">
+      {/* ------------------------------ the ask ------------------------------ */}
+      {/* The page opens on the thing it is for. Everything else is a
+          consequence of what you type here, so it comes after. */}
+      <header className="text-center">
+        <p className="text-sm font-bold text-ink-soft">{greeting(displayName)}</p>
+        <h1 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+          What would you like Cosigno to do?
+        </h1>
+      </header>
 
-      {/* ---- this company's own dashboard, built from what it connected ---- */}
-      <AdaptiveDashboard />
-
-      {/* ---------- the command composer: the biggest, clearest thing ---------- */}
-      <section className={`${CARD} p-6 sm:p-8`}>
-        <h1 className="font-display text-2xl font-bold sm:text-3xl">What should Cosigno handle?</h1>
-        <p className="mt-1.5 text-sm font-semibold text-ink-soft">
-          Tell cosigno what you want done. Add a file or link when it helps explain the task.
-        </p>
+      <div className="mt-6">
         <SourceComposer
           onStarted={load}
           suggestions={
@@ -203,74 +182,146 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
               : undefined
           }
         />
-        <StarterJobs />
-      </section>
+      </div>
 
-      {/* quiet connection-health warning — only when an app needs attention */}
-      {unhealthy.length > 0 && (
-        <p className="mt-4 rounded-btn bg-cream-deep px-3.5 py-2 text-xs font-semibold text-ink-soft">
-          {unhealthy.map((c) => c.display_name).join(", ")}{" "}
-          {unhealthy.length === 1 ? "needs" : "need"} attention —{" "}
-          <Link href="/app/connections" className="font-bold underline underline-offset-2">
-            check connections
-          </Link>
-          .
-        </p>
+      {/* Prompt cards, not chips — something you actually want to click. */}
+      {working.length === 0 && waiting.length === 0 && (
+        <section className="mt-6">
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
+            Try asking
+          </p>
+          <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
+            {PROMPTS.map((p) => (
+              <button
+                key={p}
+                onClick={() => askFor(p)}
+                className="group rounded-card border border-line bg-surface px-4 py-3 text-left text-sm font-semibold shadow-soft transition-all hover:-translate-y-0.5 hover:border-signal hover:shadow-depth"
+              >
+                {p}
+                <ArrowRight
+                  size={13}
+                  className="ml-1.5 inline text-ink-soft transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
+              </button>
+            ))}
+          </div>
+        </section>
       )}
 
-      {/* Everything below is something Today doesn't already say. "In progress"
-          and "Recently completed" repeated it in longer form, and "Connected
-          apps" repeated the panels above — three sections that made the page
-          heavier without making it clearer. */}
-      <div className="mt-8 flex flex-col gap-8">
-        <div className="flex flex-col gap-8">
-          <section>
-            <h2 className={SECTION_TITLE}>Needs your approval</h2>
-            {/* The real approval card, inline. Sending people to another page
-                to approve made the decision feel far away from the work that
-                raised it — and the trip was the only thing standing between an
-                operator and the action they had already decided to take. */}
-            <div className="mt-3">
-              <DecisionInbox
-                initial={approvals}
-                compact
-                emptyFallback={
-                  <div className={CARD}>
-                    <p className="text-sm font-extrabold">Nothing needs your approval</p>
-                    <p className="mt-1 text-sm text-ink-soft">
-                      cosigno will ask before anything important happens.
-                    </p>
-                  </div>
-                }
-              />
-            </div>
-          </section>
+      {/* --------------------------- working now --------------------------- */}
+      {working.length > 0 && (
+        <Section title="Working right now" tone="live">
+          {working.map((l) => (
+            <Row key={l.missionId} href={`/app/missions/${l.missionId}`} icon={<Loader2 size={14} className="animate-spin text-ink" />}>
+              {l.text}
+            </Row>
+          ))}
+        </Section>
+      )}
 
-          <section>
-            <h2 className={SECTION_TITLE}>Coming up</h2>
-            <div className={`${CARD} mt-3`}>
-              {automation ? (
-                <div className="flex items-center gap-3">
-                  <Repeat size={18} className="shrink-0 text-ink-soft" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{automation.name}</p>
-                    <p className="text-xs text-ink-soft">Runs {timeUntil(automation.next_run_at)}</p>
-                  </div>
-                  <Link href="/app/automations" className="shrink-0 text-xs font-bold text-ink-soft hover:text-ink">
-                    Manage
-                  </Link>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 text-ink-soft">
-                  <CalendarClock size={18} className="shrink-0" />
-                  <p className="text-sm">Nothing scheduled yet.</p>
-                </div>
-              )}
-            </div>
-          </section>
+      {/* ------------------------- needs your approval ------------------------- */}
+      {/* Only ever rendered when something is genuinely waiting. An empty
+          "nothing is waiting" panel is a row of furniture that says nothing. */}
+      {approvals.length > 0 && (
+        <Section title="Needs your approval" tone="attention">
+          <DecisionInbox initial={approvals} compact emptyFallback={null} />
+        </Section>
+      )}
+      {approvals.length === 0 && waiting.length > 0 && (
+        <Section title="Needs your approval" tone="attention">
+          {waiting.map((l) => (
+            <Row key={l.missionId} href={`/app/missions/${l.missionId}`} icon={<ShieldQuestion size={14} className="text-signal" />}>
+              {l.text}
+            </Row>
+          ))}
+        </Section>
+      )}
 
-        </div>
-      </div>
+      {/* --------------------------- completed today --------------------------- */}
+      {finished.length > 0 && (
+        <Section title="Completed today">
+          {finished.map((l) => (
+            <Row
+              key={l.missionId}
+              href={`/app/missions/${l.missionId}`}
+              icon={
+                l.kind === "failed" ? (
+                  <X size={14} className="text-ink-soft" />
+                ) : (
+                  <Check size={14} className="text-signal" />
+                )
+              }
+            >
+              {l.text}
+            </Row>
+          ))}
+        </Section>
+      )}
+
+      {/* Nothing running, nothing waiting, nothing finished today. Say what
+          the product is for rather than reporting an absence. */}
+      {working.length === 0 && waiting.length === 0 && finished.length === 0 && missions !== null && (
+        <p className="mt-10 text-center text-sm font-semibold text-ink-soft">
+          Cosigno is ready.
+        </p>
+      )}
     </div>
+  );
+}
+
+/** A titled band of rows. The only section shape on this page. */
+function Section({
+  title,
+  tone,
+  children,
+}: {
+  title: string;
+  tone?: "live" | "attention";
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-8 animate-rise-in border-t border-line/60 pt-5">
+      <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
+        {tone === "live" && (
+          <span className="h-1.5 w-1.5 animate-orb-pulse rounded-pill bg-signal" aria-hidden="true" />
+        )}
+        {tone === "attention" && (
+          <span className="h-1.5 w-1.5 rounded-pill bg-signal" aria-hidden="true" />
+        )}
+        {title}
+      </p>
+      <div className="mt-2.5 flex flex-col gap-1">{children}</div>
+    </section>
+  );
+}
+
+/** One line of work. Compact, clickable, nothing you cannot act on. */
+function Row({
+  href,
+  icon,
+  children,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-start gap-2.5 rounded-btn px-2 py-2 transition-colors hover:bg-cream-deep/50"
+    >
+      <span className="mt-0.5 shrink-0" aria-hidden="true">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 text-sm font-semibold leading-snug group-hover:underline underline-offset-2">
+        {children}
+      </span>
+      <ArrowRight
+        size={13}
+        className="mt-1 shrink-0 text-ink-soft opacity-0 transition-opacity group-hover:opacity-100"
+        aria-hidden="true"
+      />
+    </Link>
   );
 }
