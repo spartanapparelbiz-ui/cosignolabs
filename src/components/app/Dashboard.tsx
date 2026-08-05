@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { CalendarClock, Check, ChevronRight, Repeat } from "lucide-react";
+import { CalendarClock, Check, ChevronRight, Loader2, Repeat, ShieldQuestion, X } from "lucide-react";
 import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
 import { StarterJobs } from "@/components/app/StarterJobs";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
+import { todayDigest } from "@/lib/missions/today";
 
 /**
  * The home dashboard — one calm place that answers four questions:
@@ -203,8 +204,50 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   const active = (missions ?? []).filter((m) => ACTIVE_STATES.has(m.state)).slice(0, 4);
   const completed = (missions ?? []).filter((m) => m.state === "completed" || m.state === "partial").slice(0, 3);
 
+  const digest = todayDigest(missions ?? [], steps);
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
+      {/* ---------------------------- today ---------------------------- */}
+      {/* The first thing on the page, and deliberately the shortest: someone
+          coming back after lunch should understand the day before they read
+          anything else. Ordered by what costs them something to miss —
+          decisions first, then work in flight, then what got finished. */}
+      {!digest.empty && (
+        <section className="mb-5">
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">Today</p>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {digest.lines.map((l) => (
+              <li key={`${l.missionId}-${l.kind}-${l.text}`}>
+                <Link
+                  href={`/app/missions/${l.missionId}`}
+                  className="group flex items-start gap-2.5 rounded-btn px-1 py-0.5 transition-colors hover:bg-cream-deep/50"
+                >
+                  <span className="mt-0.5 shrink-0" aria-hidden="true">
+                    {l.kind === "done" ? (
+                      <Check size={14} className="text-signal" />
+                    ) : l.kind === "doing" ? (
+                      <Loader2 size={14} className="animate-spin text-ink" />
+                    ) : l.kind === "failed" ? (
+                      <X size={14} className="text-ink" />
+                    ) : (
+                      <ShieldQuestion size={14} className="text-signal" />
+                    )}
+                  </span>
+                  <span
+                    className={`text-sm leading-snug ${
+                      l.kind === "waiting" ? "font-extrabold" : "font-semibold"
+                    } group-hover:underline underline-offset-2`}
+                  >
+                    {l.text}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* ---------- the command composer: the biggest, clearest thing ---------- */}
       <section className={`${CARD} p-6 sm:p-8`}>
         <h1 className="font-display text-2xl font-bold sm:text-3xl">What should Cosigno handle?</h1>

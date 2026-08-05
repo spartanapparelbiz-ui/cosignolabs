@@ -27,6 +27,7 @@ import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { narrateMission, type StepPhase, type WorkApp } from "@/lib/missions/narrate";
+import { heroResult } from "@/lib/missions/today";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 
 /**
@@ -186,6 +187,16 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
   // The whole translation from engine state to human language lives in
   // narrateMission — this component only lays it out.
   const narration = narrateMission(mission, steps);
+  // The one sentence this mission is remembered by, and which apps did the
+  // work. Both read from what was actually recorded.
+  const hero = heroResult(mission, steps);
+  const appsUsed = Array.from(
+    new Map(
+      narration.feed
+        .filter((e) => e.phase === "done" && e.app.name)
+        .map((e) => [e.app.name!, e.app])
+    ).values()
+  );
   const awaitingActionIds = steps
     .filter((s) => s.state === "awaiting_approval" && s.action_id)
     .map((s) => s.action_id as string);
@@ -290,6 +301,41 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.5fr_1fr]">
         {/* ------------------------- the work feed ------------------------- */}
         <section className="flex flex-col gap-3">
+          {/* THE RECEIPT — what this actually achieved, once it is over. One
+              card, the hero sentence first, then the evidence that backs it.
+              Only shown when the work has settled: a receipt for something
+              still running would be a claim about an unfinished outcome. */}
+          {narration.finished && (
+            <div className="rounded-card border border-signal/40 bg-surface p-4 shadow-soft">
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
+                {mission.state === "completed" ? "Done" : "Result"}
+              </p>
+              <p className="mt-1 font-display text-lg font-bold leading-snug">
+                {hero ?? narration.status}
+              </p>
+              {hero && (
+                <p className="mt-0.5 text-[11px] font-semibold text-ink-soft">
+                  {narration.status}
+                </p>
+              )}
+              {appsUsed.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  {appsUsed.map((a) => (
+                    <span
+                      key={a.name}
+                      className="inline-flex items-center gap-1.5 rounded-pill bg-cream-deep px-2 py-1 text-[11px] font-bold"
+                    >
+                      {a.providerKey && (
+                        <ConnectorLogo kind="app" providerKey={a.providerKey} displayName={a.name ?? ""} size={14} />
+                      )}
+                      {a.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* NOW WORKING — always pinned, never empty. When nothing is running
               it says so plainly rather than showing a blank panel. */}
           <div className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
