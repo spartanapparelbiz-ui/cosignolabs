@@ -1,18 +1,22 @@
-import { ActivityLog } from "@/components/ActivityLog";
+import { ActivityStream } from "@/components/app/ActivityStream";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Activity" };
 
+/**
+ * One history for the whole workspace: work, decisions, app changes, rule
+ * changes. The filters narrow that one list — there is no second timeline.
+ */
 export default function ActivityPage() {
   return (
-    <div className="mx-auto w-full max-w-none flex-1 px-6 lg:px-10 py-6">
-      <h1 className="text-xl font-extrabold lowercase">activity</h1>
-      <p className="mt-1 text-sm text-ink-soft">
-        every action the operator has ever proposed, and what you did with it.
-        permanent, exportable, yours.
+    <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
+      <h1 className="font-display text-2xl font-bold lowercase">activity</h1>
+      <p className="mt-1 text-sm font-semibold text-ink-soft">
+        everything that has happened in your workspace, newest first. anything
+        still waiting on you stays at the top.
       </p>
-      <ActivityLog />
+      <ActivityStream />
     </div>
   );
 }
