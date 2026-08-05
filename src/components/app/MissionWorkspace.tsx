@@ -10,6 +10,7 @@ import {
   FileText,
   Globe,
   HelpCircle,
+  ExternalLink,
   Link2,
   Loader2,
   MinusCircle,
@@ -25,7 +26,8 @@ import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/li
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
-import { narrateMission } from "@/lib/missions/narrate";
+import { narrateMission, type StepPhase, type WorkApp } from "@/lib/missions/narrate";
+import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 
 /**
  * The mission workspace: the goal, what cosigno has finished, what it is doing
@@ -286,86 +288,126 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
 
       {/* ------------------- timeline + right panel ------------------- */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.5fr_1fr]">
-        {/* ---- live execution: what's done, what's happening, what's left ---- */}
-        <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
-          <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
-            What cosigno is doing
-          </h2>
-
-          {/* Why work stopped, in the words a person would use. A status word
-              is not a reason — "needs approval" tells you the state and
-              nothing about the decision being asked of you. */}
-          {narration.pausedBecause && (
-            <p className="mt-2 flex items-start gap-2 rounded-btn bg-signal/10 px-3 py-2 text-xs font-semibold ring-1 ring-inset ring-signal/30">
-              <PauseCircle size={14} className="mt-px shrink-0 text-signal" aria-hidden="true" />
-              <span>{narration.pausedBecause}</span>
+        {/* ------------------------- the work feed ------------------------- */}
+        <section className="flex flex-col gap-3">
+          {/* NOW WORKING — always pinned, never empty. When nothing is running
+              it says so plainly rather than showing a blank panel. */}
+          <div className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
+              Now working
             </p>
-          )}
+            {narration.nowWorking ? (
+              <div className="mt-2 flex items-start gap-3">
+                <WorkAppMark app={narration.nowWorking.app} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-extrabold leading-snug">
+                    {narration.nowWorking.headline}
+                  </p>
+                  {narration.nowWorking.app.name && (
+                    <p className="text-[11px] font-bold text-ink-soft">
+                      in {narration.nowWorking.app.name}
+                    </p>
+                  )}
+                  {narration.nowWorking.at && (
+                    <p className="mt-0.5 text-[11px] text-ink-soft">
+                      started {elapsed(narration.nowWorking.at)} ago
+                    </p>
+                  )}
+                </div>
+                {narration.nowWorking.phase === "current" && (
+                  <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin text-ink" aria-hidden="true" />
+                )}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm font-bold">
+                {narration.finished ? "Everything finished." : "Nothing running right now."}
+              </p>
+            )}
 
-          <ol className="mt-3 flex flex-col gap-1">
-            {narration.steps.map((n) => {
-              const done = n.phase === "done";
-              const now = n.phase === "current";
-              const needsYou = n.phase === "needs_you";
-              const failed = n.phase === "failed";
-              const skipped = n.phase === "skipped";
-              return (
-                <li
-                  key={n.id}
-                  className={`animate-rise-in rounded-btn px-2.5 py-2 transition-colors ${
-                    now || needsYou ? "bg-cream/60" : ""
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <span className="mt-px shrink-0" aria-hidden="true">
-                      {done ? (
-                        <CheckCircle2 size={15} className="text-signal" />
-                      ) : failed ? (
-                        <XCircle size={15} className="text-ink" />
-                      ) : skipped ? (
-                        <MinusCircle size={15} className="text-ink-soft/60" />
-                      ) : needsYou ? (
-                        <ShieldQuestion size={15} className="text-signal" />
-                      ) : now ? (
-                        <Loader2 size={15} className="animate-spin text-ink" />
-                      ) : (
-                        <Circle size={15} className="text-ink-soft/40" />
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
+            {/* Why it stopped, in the words a person would use. */}
+            {narration.pausedBecause && (
+              <p className="mt-3 flex items-start gap-2 rounded-btn bg-signal/10 px-3 py-2 text-xs font-semibold ring-1 ring-inset ring-signal/30">
+                <PauseCircle size={14} className="mt-px shrink-0 text-signal" aria-hidden="true" />
+                <span>{narration.pausedBecause}</span>
+              </p>
+            )}
+
+            {/* Exactly one next thing. Five future items is a plan, and nobody
+                reads a plan — they want to know what follows this. */}
+            {!narration.finished && narration.upNext && (
+              <p className="mt-3 border-t border-line/60 pt-2 text-[11px] text-ink-soft">
+                <span className="font-bold text-ink">Next:</span> {narration.upNext.headline}
+                {narration.upNext.app.name ? ` in ${narration.upNext.app.name}` : ""}
+              </p>
+            )}
+          </div>
+
+          {/* THE FEED — one continuous story, oldest first. */}
+          <div className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
+            <ol className="flex flex-col">
+              {narration.feed.map((e, i) => {
+                const last = i === narration.feed.length - 1;
+                const pending = e.phase === "upcoming";
+                return (
+                  <li key={e.id} className="flex gap-3">
+                    {/* the thread running down the feed */}
+                    <div className="flex flex-col items-center">
+                      <WorkAppMark app={e.app} phase={e.phase} small />
+                      {!last && <span className="w-px flex-1 bg-line" aria-hidden="true" />}
+                    </div>
+
+                    <div className={`min-w-0 flex-1 animate-rise-in ${last ? "pb-0" : "pb-4"}`}>
+                      <div className="flex flex-wrap items-baseline gap-x-2">
+                        {e.app.name && (
+                          <span className="text-[11px] font-extrabold">{e.app.name}</span>
+                        )}
+                        {e.at && (
+                          <span className="text-[10px] tabular-nums text-ink-soft">
+                            {clockTime(e.at)}
+                          </span>
+                        )}
+                      </div>
                       <p
                         className={`text-xs ${
-                          now || needsYou ? "font-extrabold" : done ? "font-semibold" : "font-semibold text-ink-soft"
-                        } ${skipped ? "line-through" : ""}`}
+                          pending
+                            ? "font-semibold text-ink-soft"
+                            : e.phase === "skipped"
+                              ? "font-semibold text-ink-soft line-through"
+                              : "font-bold"
+                        }`}
                       >
-                        {n.headline}
+                        {e.headline}
                       </p>
-                      {/* Evidence, as it arrives. A finished step shows what it
-                          actually produced rather than only changing colour. */}
-                      {n.evidence && (
-                        <p className="mt-0.5 text-[11px] text-ink-soft">{n.evidence}</p>
+                      {e.detail && <p className="mt-0.5 text-[11px] text-ink-soft">{e.detail}</p>}
+                      {e.blockedReason && (
+                        <p className="mt-0.5 text-[11px] font-semibold">{e.blockedReason}</p>
                       )}
-                      {n.blockedReason && (
-                        <p className="mt-0.5 text-[11px] font-semibold">{n.blockedReason}</p>
-                      )}
+                      {/* The proof, one click away — only ever a link to
+                          something that really exists. */}
+                      {e.proof &&
+                        (e.proof.external ? (
+                          <a
+                            href={e.proof.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-flex items-center gap-1 rounded-btn bg-cream-deep px-2 py-1 text-[11px] font-bold transition-colors hover:bg-cream-deep/70"
+                          >
+                            {e.proof.label} <ExternalLink size={10} aria-hidden="true" />
+                          </a>
+                        ) : (
+                          <Link
+                            href={e.proof.href}
+                            className="mt-1 inline-flex items-center gap-1 rounded-btn bg-cream-deep px-2 py-1 text-[11px] font-bold transition-colors hover:bg-cream-deep/70"
+                          >
+                            {e.proof.label}
+                          </Link>
+                        ))}
                     </div>
-                    {now && (
-                      <span className="shrink-0 rounded-pill bg-ink px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-cream">
-                        now
-                      </span>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-
-          {/* What happens after this — so nobody has to wonder. */}
-          {!narration.finished && narration.next && (
-            <p className="mt-3 border-t border-line/60 pt-2 text-[11px] text-ink-soft">
-              <span className="font-bold text-ink">Next:</span> {narration.next.headline}
-            </p>
-          )}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
         </section>
 
         {/* right panel: plan, sources, results, usage */}
@@ -440,4 +482,52 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
       </div>
     </div>
   );
+}
+
+/**
+ * The app a piece of work happened in, as its logo — so the feed reads as
+ * "GitHub did this, then Gmail did that" at a glance, from across a room.
+ *
+ * Work cosigno did by itself gets a neutral mark rather than a borrowed logo:
+ * attributing cosigno's own bookkeeping to GitHub would be a small lie that
+ * makes the whole feed untrustworthy.
+ */
+function WorkAppMark({
+  app,
+  phase,
+  small = false,
+}: {
+  app: WorkApp;
+  phase?: StepPhase;
+  small?: boolean;
+}) {
+  const size = small ? 22 : 30;
+  const done = phase === "done";
+  const pending = phase === "upcoming";
+
+  if (app.providerKey) {
+    return (
+      <span className={pending ? "opacity-40" : ""}>
+        <ConnectorLogo kind="app" providerKey={app.providerKey} displayName={app.name ?? ""} size={size} />
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-btn ${
+        pending ? "bg-cream-deep/60 text-ink-soft/50" : done ? "bg-signal/15 text-signal" : "bg-cream-deep text-ink-soft"
+      }`}
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      {done ? <CheckCircle2 size={small ? 12 : 15} /> : <Circle size={small ? 12 : 15} />}
+    </span>
+  );
+}
+
+/** Wall-clock time, the way the feed reads it: 10:41. */
+function clockTime(iso: string): string {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return "";
+  return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }

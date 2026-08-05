@@ -16,6 +16,87 @@ import type { MissionRecord, MissionStepRecord } from "../types";
 
 export type StepPhase = "done" | "current" | "upcoming" | "needs_you" | "failed" | "skipped";
 
+/** Where a piece of work is happening — the app, as a person names it. */
+export interface WorkApp {
+  /** "GitHub", "Gmail". Null for cosigno's own work. */
+  name: string | null;
+  /** Connector key, for the logo. Null when there isn't one. */
+  providerKey: string | null;
+}
+
+/** A link to the real thing that was produced. */
+export interface WorkProof {
+  label: string;
+  href: string;
+  /** True when it leaves cosigno. */
+  external: boolean;
+}
+
+/**
+ * One entry in the work feed. Reads like a line in a conversation: when it
+ * happened, which app it happened in, what happened, and how to go look at it.
+ */
+export interface WorkEntry {
+  id: string;
+  /** ISO timestamp, or null when the work hasn't started. */
+  at: string | null;
+  app: WorkApp;
+  phase: StepPhase;
+  /** The sentence a person reads. */
+  headline: string;
+  /** What it produced, when it produced something. */
+  detail?: string;
+  proof?: WorkProof;
+  /** Why work stopped here. */
+  blockedReason?: string;
+}
+
+/**
+ * Which app a piece of work happens in, from the tool that does it.
+ *
+ * Derived from the tool prefix rather than stored, so a new tool lands in the
+ * right place automatically. Anything cosigno does by itself — analysis,
+ * writing a file, closing out — reports no app rather than borrowing one,
+ * because claiming GitHub did cosigno's own bookkeeping would be a small lie
+ * that makes the feed unreadable.
+ */
+const APP_BY_PREFIX: Record<string, WorkApp> = {
+  github: { name: "GitHub", providerKey: "github" },
+  gmail: { name: "Gmail", providerKey: "google" },
+  inbox: { name: "Gmail", providerKey: "google" },
+  followup: { name: "Gmail", providerKey: "google" },
+  approval: { name: "Gmail", providerKey: "google" },
+  calendar: { name: "Google Calendar", providerKey: "google-calendar" },
+  drive: { name: "Google Drive", providerKey: "google-drive" },
+  brief: { name: "Gmail", providerKey: "google" },
+  browser: { name: "the web", providerKey: null },
+  laptop: { name: "the web", providerKey: null },
+};
+
+export function appForTool(tool: string): WorkApp {
+  const prefix = tool.split(".")[0];
+  return APP_BY_PREFIX[prefix] ?? { name: null, providerKey: null };
+}
+
+/**
+ * A link to the thing that was actually made — the proof, one click away.
+ *
+ * Only ever built from a value the step really recorded. A "view it" button
+ * that leads nowhere is worse than no button: it turns evidence into
+ * decoration.
+ */
+export function proofFor(step: MissionStepRecord, app: WorkApp): WorkProof | undefined {
+  const out = step.output ?? {};
+  const url = typeof out.url === "string" ? out.url : undefined;
+  if (url && /^https?:\/\//i.test(url)) {
+    return { label: app.name ? `Open in ${app.name}` : "Open it", href: url, external: true };
+  }
+  if (typeof out.file_id === "string" && out.file_id) {
+    return { label: "Open the file", href: "/app/files", external: false };
+  }
+  return undefined;
+}
+
 export interface NarratedStep {
   id: string;
   phase: StepPhase;
@@ -29,6 +110,18 @@ export interface NarratedStep {
 
 export interface MissionNarration {
   steps: NarratedStep[];
+  /**
+   * The work feed, oldest first — everything that has happened, is happening,
+   * or is still to come, as one continuous story.
+   */
+  feed: WorkEntry[];
+  /** What is happening right now, or what is waiting on a person. */
+  nowWorking: WorkEntry | null;
+  /**
+   * The single next thing. Deliberately one: a list of five future items is a
+   * plan, and nobody reads a plan — they want to know what follows this.
+   */
+  upNext: WorkEntry | null;
   current: NarratedStep | null;
   next: NarratedStep | null;
   doneCount: number;
@@ -201,6 +294,23 @@ export function narrateMission(
     };
   });
 
+  const feed: WorkEntry[] = ordered.map((s, i) => {
+    const app = appForTool(s.tool);
+    const n = narrated[i];
+    return {
+      id: s.id,
+      // Whichever is truest for where this work got to. Upcoming work has no
+      // time, because it hasn't happened.
+      at: s.completed_at ?? s.started_at ?? null,
+      app,
+      phase: n.phase,
+      headline: n.headline,
+      ...(n.evidence ? { detail: n.evidence } : {}),
+      ...(proofFor(s, app) ? { proof: proofFor(s, app)! } : {}),
+      ...(n.blockedReason ? { blockedReason: n.blockedReason } : {}),
+    };
+  });
+
   const current = narrated.find((n) => n.phase === "current") ?? null;
   const blocker = narrated.find((n) => n.phase === "needs_you") ?? null;
   // "Next" is the first thing that hasn't started — what happens after the
@@ -210,8 +320,14 @@ export function narrateMission(
   const doneCount = ordered.filter((s) => s.state === "completed").length;
   const total = ordered.length;
 
+  const nowWorking =
+    feed.find((e) => e.phase === "current") ?? feed.find((e) => e.phase === "needs_you") ?? null;
+
   return {
     steps: narrated,
+    feed,
+    nowWorking,
+    upNext: feed.find((e) => e.phase === "upcoming") ?? null,
     current: current ?? blocker,
     next,
     doneCount,

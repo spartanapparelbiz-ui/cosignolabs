@@ -223,3 +223,108 @@ describe("the workspace no longer leaks engine vocabulary", () => {
     expect(WORKSPACE).not.toMatch(/plan v\{/);
   });
 });
+
+describe("the work feed reads as a story, with apps in it", () => {
+  const steps = [
+    step({
+      id: "a",
+      idx: 0,
+      tool: "github.list_repos",
+      state: "completed",
+      purpose: "Read your repositories",
+      output: { summary: "found 3 repositories" },
+      completed_at: new Date().toISOString(),
+    }),
+    step({
+      id: "b",
+      idx: 1,
+      tool: "github.propose_issue",
+      state: "running",
+      purpose: "Draft the issue",
+      started_at: new Date().toISOString(),
+    }),
+    step({ id: "c", idx: 2, tool: "mission.receipt", state: "ready", purpose: "Wrap up" }),
+  ];
+  const n = narrateMission(mission(), steps);
+
+  it("names the app each piece of work happened in", () => {
+    expect(n.feed[0].app.name).toBe("GitHub");
+    expect(n.feed[0].app.providerKey).toBe("github");
+  });
+
+  it("does not attribute cosigno's own work to somebody else's app", () => {
+    // Claiming GitHub did cosigno's bookkeeping is a small lie that makes the
+    // whole feed untrustworthy.
+    expect(n.feed[2].app.name).toBeNull();
+    expect(n.feed[2].app.providerKey).toBeNull();
+  });
+
+  it("timestamps work that has happened, and leaves future work untimed", () => {
+    expect(n.feed[0].at).toBeTruthy();
+    expect(n.feed[1].at).toBeTruthy();
+    expect(n.feed[2].at).toBeNull();
+  });
+
+  it("pins what is happening now", () => {
+    expect(n.nowWorking?.id).toBe("b");
+    expect(n.nowWorking?.headline).toBe("Drafting the issue");
+  });
+
+  it("shows exactly one next thing", () => {
+    expect(n.upNext?.id).toBe("c");
+  });
+
+  it("pins the thing waiting on a person when nothing is running", () => {
+    const waiting = narrateMission(mission({ state: "awaiting_approval" }), [
+      step({ id: "x", state: "awaiting_approval", purpose: "Send it" }),
+    ]);
+    expect(waiting.nowWorking?.id).toBe("x");
+  });
+
+  it("has nothing pinned once the work is over", () => {
+    const finished = narrateMission(mission({ state: "completed" }), [
+      step({ state: "completed", output: { summary: "done" } }),
+    ]);
+    expect(finished.nowWorking).toBeNull();
+    expect(finished.finished).toBe(true);
+  });
+});
+
+describe("proof links point at something real, or don't exist", () => {
+  it("links to the thing the step actually produced", () => {
+    const n = narrateMission(mission(), [
+      step({
+        tool: "github.propose_issue",
+        state: "completed",
+        output: { summary: "opened issue #7", url: "https://github.com/o/r/issues/7" },
+      }),
+    ]);
+    expect(n.feed[0].proof).toEqual({
+      label: "Open in GitHub",
+      href: "https://github.com/o/r/issues/7",
+      external: true,
+    });
+  });
+
+  it("offers no link when the step recorded no destination", () => {
+    // A button that leads nowhere turns evidence into decoration.
+    const n = narrateMission(mission(), [
+      step({ state: "completed", output: { summary: "did a thing" } }),
+    ]);
+    expect(n.feed[0].proof).toBeUndefined();
+  });
+
+  it("ignores a non-http value rather than building a broken link", () => {
+    const n = narrateMission(mission(), [
+      step({ state: "completed", output: { summary: "x", url: "not-a-url" } }),
+    ]);
+    expect(n.feed[0].proof).toBeUndefined();
+  });
+
+  it("sends a produced file to the files page", () => {
+    const n = narrateMission(mission(), [
+      step({ state: "completed", output: { summary: "wrote it", file_id: "f1" } }),
+    ]);
+    expect(n.feed[0].proof).toMatchObject({ href: "/app/files", external: false });
+  });
+});
