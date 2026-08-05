@@ -13,8 +13,20 @@ import type { ActionRecord, MissionRecord } from "../src/lib/types";
  * whose pitch is that it tells you the truth about what happened.
  */
 
+/** Every surface that could carry a status. None may invent its own words. */
 const FILES = [
   "src/components/app/Dashboard.tsx",
+  "src/components/app/MissionWorkspace.tsx",
+  "src/components/app/MissionRunner.tsx",
+  "src/components/ActionCard.tsx",
+];
+
+/**
+ * The subset that actually RENDERS a status today. A page showing none needs
+ * no import — the rule is that nobody invents their own vocabulary, not that
+ * everybody must display one.
+ */
+const RENDERERS = [
   "src/components/app/MissionWorkspace.tsx",
   "src/components/app/MissionRunner.tsx",
   "src/components/ActionCard.tsx",
@@ -112,7 +124,7 @@ describe("no page keeps its own vocabulary", () => {
     expect(src).not.toMatch(/const (STATUS_LABEL|STATE_LABEL|STATE_STYLE|STATE_TONE)\s*[:=]/);
   });
 
-  it.each(FILES)("%s uses the shared one", (file) => {
+  it.each(RENDERERS)("%s uses the shared one", (file) => {
     const src = readFileSync(file, "utf8");
     expect(src).toMatch(/from "@\/lib\/status"/);
   });

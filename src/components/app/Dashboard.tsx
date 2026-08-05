@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { CalendarClock, Check, ChevronRight, Loader2, Repeat, ShieldQuestion, X } from "lucide-react";
+import { CalendarClock, Check, Loader2, Repeat, ShieldQuestion, X } from "lucide-react";
 import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
 import { StarterJobs } from "@/components/app/StarterJobs";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { todayDigest } from "@/lib/missions/today";
-import { missionStatus, STATUS_TONE } from "@/lib/status";
 import { AdaptiveDashboard } from "@/components/app/AdaptiveDashboard";
 
 /**
@@ -50,44 +49,6 @@ const TOOL_PROVIDER: Record<string, string> = {
   "gmail.search_related": "google",
   "drive.search_files": "google-drive",
 };
-
-function providerKeysFor(steps: MissionStepRecord[]): string[] {
-  const keys = new Set<string>();
-  for (const s of steps) {
-    const p = TOOL_PROVIDER[s.tool];
-    if (p) keys.add(p);
-  }
-  return [...keys];
-}
-
-const PROVIDER_NAME: Record<string, string> = {
-  google: "Gmail",
-  "google-calendar": "Google Calendar",
-  "google-drive": "Google Drive",
-  github: "GitHub",
-  outlook: "Outlook",
-  slack: "Slack",
-  notion: "Notion",
-};
-
-/** What cosigno is doing now, from the real step list (no invented progress). */
-function nowDoing(steps: MissionStepRecord[]): string | null {
-  const running = steps.find((s) => s.state === "running" || s.state === "verifying" || s.state === "retrying");
-  if (running) return running.purpose;
-  const waiting = steps.find((s) => s.state === "awaiting_approval" || s.state === "awaiting_input");
-  if (waiting) return waiting.purpose;
-  return null;
-}
-
-function timeAgo(iso: string): string {
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
-  const days = Math.round(hrs / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
-}
 
 function timeUntil(iso: string): string {
   const mins = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
@@ -257,124 +218,11 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
         </p>
       )}
 
-      {/* ---------- two columns on desktop, stacked on mobile ---------- */}
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1.4fr_1fr]">
-        {/* LEFT: in progress + recently completed */}
-        <div className="flex flex-col gap-8">
-          <section>
-            <div className="flex items-center justify-between">
-              <h2 className={SECTION_TITLE}>In progress</h2>
-              {active.length > 0 && (
-                <Link href="/app/missions" className="text-xs font-bold text-ink-soft hover:text-ink">
-                  see all
-                </Link>
-              )}
-            </div>
-            <div className="mt-3 flex flex-col gap-3">
-              {missions === null ? (
-                <div className="h-24 animate-pulse rounded-card bg-cream-deep" aria-hidden="true" />
-              ) : active.length === 0 ? (
-                <div className={`${CARD} text-center`}>
-                  <p className="text-sm font-extrabold">Nothing is in progress</p>
-                  <p className="mt-1 text-sm text-ink-soft">Tell cosigno what you need handled.</p>
-                </div>
-              ) : (
-                active.map((m) => {
-                  const ms = steps[m.id] ?? [];
-                  const done = ms.filter((s) => s.state === "completed" || s.state === "skipped").length;
-                  const doing = nowDoing(ms);
-                  const label = missionStatus(m.state);
-                  const apps = providerKeysFor(ms);
-                  return (
-                    <div key={m.id} className={CARD}>
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="min-w-0 text-base font-extrabold">{m.goal}</p>
-                        <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-bold ${STATUS_TONE[label]}`}>
-                          {label}
-                        </span>
-                      </div>
-                      {doing && <p className="mt-1.5 text-sm text-ink-soft">{doing}</p>}
-                      {ms.length > 0 && (
-                        <p className="mt-2 text-sm font-bold text-ink">
-                          {done} of {ms.length} steps complete
-                          <span className="font-semibold text-ink-soft"> · running {timeAgo(m.created_at).replace(" ago", "")}</span>
-                        </p>
-                      )}
-                      <div className="mt-3 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-1.5">
-                          {apps.map((k) => (
-                            <ConnectorLogo key={k} kind="app" providerKey={k} displayName={PROVIDER_NAME[k] ?? k} size={22} />
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {m.state !== "paused" && !["completed", "partial", "failed", "stopped"].includes(m.state) && (
-                            <button
-                              onClick={() => pauseMission(m.id)}
-                              disabled={pausing === m.id}
-                              className="rounded-btn px-3 py-1.5 text-sm font-bold text-ink-soft ring-1 ring-inset ring-ink/20 hover:bg-cream-deep hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {pausing === m.id ? "Pausing…" : "Pause"}
-                            </button>
-                          )}
-                          <Link
-                            href={`/app/missions/${m.id}`}
-                            className="inline-flex items-center gap-1 rounded-btn px-3.5 py-1.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
-                          >
-                            Open Mission <ChevronRight size={14} />
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
-
-          <section>
-            <h2 className={SECTION_TITLE}>Recently completed</h2>
-            <div className="mt-3 flex flex-col gap-3">
-              {missions !== null && completed.length === 0 ? (
-                <div className={`${CARD} text-center`}>
-                  <p className="text-sm text-ink-soft">Finished missions will appear here.</p>
-                </div>
-              ) : (
-                completed.map((m) => {
-                  const receipt = m.receipt as Record<string, unknown> | null;
-                  const deliverables = Array.isArray(receipt?.deliverables) ? (receipt!.deliverables as unknown[]).length : 0;
-                  const stepsDone = Array.isArray(receipt?.completed_steps) ? (receipt!.completed_steps as unknown[]).length : 0;
-                  const result =
-                    deliverables > 0
-                      ? `${deliverables} deliverable${deliverables === 1 ? "" : "s"} created${stepsDone ? ` across ${stepsDone} steps` : ""}`
-                      : m.state === "partial"
-                        ? "Finished — some steps didn't run"
-                        : "Completed";
-                  return (
-                    <div key={m.id} className={`${CARD} flex items-center gap-3`}>
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-signal/15">
-                        <Check size={16} className="text-signal" strokeWidth={3} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-extrabold">{m.goal}</p>
-                        <p className="text-xs text-ink-soft">
-                          {result} · {timeAgo(m.completed_at ?? m.updated_at)}
-                        </p>
-                      </div>
-                      <Link
-                        href="/app/files"
-                        className="shrink-0 rounded-btn px-3 py-1.5 text-sm font-bold text-ink-soft hover:bg-cream-deep hover:text-ink"
-                      >
-                        View result
-                      </Link>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
-        </div>
-
-        {/* RIGHT: approvals + coming up + connected apps */}
+      {/* Everything below is something Today doesn't already say. "In progress"
+          and "Recently completed" repeated it in longer form, and "Connected
+          apps" repeated the panels above — three sections that made the page
+          heavier without making it clearer. */}
+      <div className="mt-8 flex flex-col gap-8">
         <div className="flex flex-col gap-8">
           <section>
             <h2 className={SECTION_TITLE}>Needs your approval</h2>
@@ -421,41 +269,6 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
             </div>
           </section>
 
-          <section>
-            <h2 className={SECTION_TITLE}>Connected apps</h2>
-            <div className={`${CARD} mt-3`}>
-              {connections.length === 0 ? (
-                <div className="text-center">
-                  <p className="text-sm font-extrabold">Connect your apps</p>
-                  <p className="mt-1 text-sm text-ink-soft">
-                    Let cosigno work with your email, calendar, and files.
-                  </p>
-                  <Link
-                    href="/app/connections"
-                    className="mt-3 inline-flex rounded-btn bg-ink px-4 py-2 text-sm font-bold text-cream"
-                  >
-                    Connect an app
-                  </Link>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-1.5">
-                    {connections.slice(0, 6).map((c) => (
-                      <ConnectorLogo key={c.provider_key} kind="app" providerKey={c.provider_key} displayName={c.display_name} size={30} />
-                    ))}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold">
-                      {connections.length} app{connections.length === 1 ? "" : "s"} connected
-                    </p>
-                    <Link href="/app/connections" className="text-xs font-bold text-ink-soft hover:text-ink">
-                      Manage
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
         </div>
       </div>
     </div>

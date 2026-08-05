@@ -15,6 +15,7 @@ import {
   Plug,
   Rocket,
   Settings,
+  type LucideIcon,
 } from "lucide-react";
 import { LogoHome } from "@/components/brand/LivingLogo";
 
@@ -27,19 +28,70 @@ import { LogoHome } from "@/components/brand/LivingLogo";
  * and settings.
  */
 
-const ITEMS = [
+/**
+ * The daily loop: ask for work, watch it, decide on it, see what happened,
+ * and manage what cosigno can touch. Five things, in the order a day uses
+ * them.
+ */
+const PRIMARY = [
   { href: "/app", label: "home", icon: Home },
   { href: "/app/missions", label: "missions", icon: Rocket },
   { href: "/app/approvals", label: "approvals", icon: PenLine },
   { href: "/app/activity", label: "activity", icon: Activity },
+  { href: "/app/connections", label: "connections", icon: Plug },
+] as const;
+
+/**
+ * The deeper tools. Every one of them still works and is one click away —
+ * they sit below a divider because none of them is part of a normal day, and
+ * eleven equal-weight destinations made the first screen read as a control
+ * panel rather than a workspace.
+ *
+ * "capabilities" was "twins": a person cannot guess what a twin is, and a
+ * label nobody understands is a door nobody opens.
+ */
+const SECONDARY = [
   { href: "/app/monitoring", label: "monitoring", icon: Gauge },
   { href: "/app/mission-control", label: "control", icon: Radar },
-  { href: "/app/twins", label: "twins", icon: Boxes },
+  { href: "/app/twins", label: "capabilities", icon: Boxes },
   { href: "/app/simulation", label: "simulate", icon: FlaskConical },
-  { href: "/app/connections", label: "connections", icon: Plug },
   { href: "/app/templates", label: "templates", icon: LayoutTemplate },
   { href: "/app/settings", label: "settings", icon: Settings },
 ] as const;
+
+
+
+/** One rail destination. Both groups render through this. */
+function RailLink({
+  href,
+  label,
+  Icon,
+  active,
+  badge,
+}: {
+  href: string;
+  label: string;
+  Icon: LucideIcon;
+  active: boolean;
+  badge: number;
+}) {
+  return (
+    <Link
+      href={href}
+      prefetch
+      aria-current={active ? "page" : undefined}
+      className={`relative flex w-[60px] flex-col items-center gap-0.5 rounded-btn px-1 py-2 text-[10px] font-bold lowercase transition-colors ${
+        active ? "bg-ink text-cream" : "text-ink-soft hover:bg-cream-deep hover:text-ink"
+      }`}
+    >
+      <span className="relative">
+        <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
+        {badge > 0 && <Badge count={badge} />}
+      </span>
+      {label}
+    </Link>
+  );
+}
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/app" ? pathname === "/app" : pathname.startsWith(href);
@@ -117,31 +169,41 @@ export function AppRail() {
       <div className="mb-3">
         <LogoHome href="/app" label="cosigno home" size={28} variant="mark" />
       </div>
-      {ITEMS.map(({ href, label, icon: Icon }) => {
-        const active = isActive(pathname, href);
-        return (
-          <Link
-            key={href}
-            href={href}
-            prefetch
-            aria-current={active ? "page" : undefined}
-            className={`relative flex w-[60px] flex-col items-center gap-0.5 rounded-btn px-1 py-2 text-[10px] font-bold lowercase transition-colors ${
-              active ? "bg-ink text-cream" : "text-ink-soft hover:bg-cream-deep hover:text-ink"
-            }`}
-          >
-            <span className="relative">
-              <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
-              {label === "approvals" && <Badge count={pending} />}
-            </span>
-            {label}
-          </Link>
-        );
-      })}
+      {PRIMARY.map(({ href, label, icon: Icon }) => (
+        <RailLink
+          key={href}
+          href={href}
+          label={label}
+          Icon={Icon}
+          active={isActive(pathname, href)}
+          badge={label === "approvals" ? pending : 0}
+        />
+      ))}
+
+      <span className="my-1 h-px w-7 bg-line" aria-hidden="true" />
+
+      {SECONDARY.map(({ href, label, icon: Icon }) => (
+        <RailLink
+          key={href}
+          href={href}
+          label={label}
+          Icon={Icon}
+          active={isActive(pathname, href)}
+          badge={0}
+        />
+      ))}
     </aside>
   );
 }
 
-/** Mobile: fixed bottom bar, all seven items as compact icon+label targets. */
+/**
+ * Mobile: fixed bottom bar.
+ *
+ * Only the daily five. Eleven targets across a phone width leaves each one
+ * about 32px — below the size a thumb can hit reliably, which turns every tap
+ * into a coin flip. The deeper tools stay reachable from the pages that use
+ * them and from ⌘K.
+ */
 export function AppBottomNav() {
   const pathname = usePathname();
   const pending = usePendingCount();
@@ -150,7 +212,7 @@ export function AppBottomNav() {
       className="fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line/60 bg-cream/95 px-1 pb-[max(4px,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur lg:hidden"
       aria-label="app navigation"
     >
-      {ITEMS.map(({ href, label, icon: Icon }) => {
+      {PRIMARY.map(({ href, label, icon: Icon }) => {
         const active = isActive(pathname, href);
         return (
           <Link

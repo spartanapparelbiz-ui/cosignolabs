@@ -293,9 +293,13 @@ export function ConnectionsPanel() {
                 <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={26} />
                 <span className="text-sm font-extrabold">{p.name}</span>
                 {conn && <StatusPill status={conn.status} />}
+                {/* "coming soon" told people to wait for cosigno to build
+                    something that already exists — the connector works, this
+                    deployment just has no credentials for it. That sends the
+                    one person who could fix it away to wait. */}
                 {!p.configured && !conn && (
                   <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-[10px] font-bold lowercase text-ink-soft">
-                    coming soon
+                    needs setup
                   </span>
                 )}
                 <span className="ml-auto flex gap-2">
@@ -337,6 +341,16 @@ export function ConnectionsPanel() {
                 </span>
               </div>
               <p className="mt-1.5 text-xs text-ink-soft">{p.detail}</p>
+
+              {/* An unavailable thing has to say what would make it available,
+                  or the reader is left to guess whether it's broken, unbuilt,
+                  or waiting on them. */}
+              {!p.configured && !conn && (
+                <p className="mt-1 text-[11px] text-ink-soft/80">
+                  This deployment has no {p.name} credentials yet — add them and
+                  it turns on.
+                </p>
+              )}
 
               {/* Once connected, show what's really in the account and exactly
                   what cosigno may do with it — measured live, never examples. */}
