@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Boxes,
   Gauge,
   Keyboard,
-  Lock,
   ShieldCheck,
   SlidersHorizontal,
   Trash2,
   UserRound,
 } from "lucide-react";
-import type { AccountAuditRecord, ActionRecord, CategoryMeta, Tier, UsageRecord } from "@/lib/types";
+import type { AccountAuditRecord, ActionRecord, UsageRecord } from "@/lib/types";
 import { PLANS, priceLabel } from "@/lib/plans";
 import { SkeletonRows } from "@/components/Skeleton";
 import { useKeyboardHints } from "@/lib/useKeyboardHints";
@@ -20,8 +19,7 @@ import { useDisplayName, initialsFor } from "@/lib/theme";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UsageRing } from "./UsageRing";
 import { ConnectionsPanel } from "./ConnectionsPanel";
-
-type CategoryWithTier = CategoryMeta & { tier: Tier };
+import { TrustCenter } from "@/components/trust/TrustCenter";
 
 const TABS = [
   { id: "profile", label: "profile", icon: UserRound },
@@ -49,18 +47,19 @@ export interface PlanInfo {
 
 export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }) {
   const [tab, setTab] = useState<TabId>(initialTab);
-  const [categories, setCategories] = useState<CategoryWithTier[] | null>(null);
   const [usage, setUsage] = useState<UsageRecord | null>(null);
   const [plan, setPlan] = useState<PlanInfo | null>(null);
   const [actions, setActions] = useState<ActionRecord[] | null>(null);
-  const [err, setErr] = useState(false);
 
-  function load() {
-    setErr(false);
-    fetch("/api/settings/tiers").then((r) => r.json()).then((d) => setCategories(d.categories ?? [])).catch(() => setErr(true));
-    fetch("/api/usage").then((r) => r.json()).then((d) => { setUsage(d.usage ?? null); setPlan(d.plan ?? null); }).catch(() => setErr(true));
-  }
-  useEffect(load, []);
+  useEffect(() => {
+    fetch("/api/usage")
+      .then((r) => r.json())
+      .then((d) => {
+        setUsage(d.usage ?? null);
+        setPlan(d.plan ?? null);
+      })
+      .catch(() => undefined);
+  }, []);
 
   // The action history is heavy and only feeds the usage sparkline + security
   // stats — fetch it the first time one of those tabs is actually opened.
@@ -110,9 +109,7 @@ export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }
 
       <div key={tab} className="flex min-w-0 flex-1 flex-col animate-fade-through">
         {tab === "profile" && <ProfilePanel />}
-        {tab === "permissions" && (
-          <PermissionsPanel categories={categories} setCategories={setCategories} error={err} retry={load} />
-        )}
+        {tab === "permissions" && <PermissionsPanel />}
         {tab === "usage" && <UsagePanel usage={usage} plan={plan} actions={actions} />}
         {tab === "integrations" && <IntegrationsPanel />}
         {tab === "security" && <SecurityPanel actions={actions} />}
@@ -355,133 +352,24 @@ function ProfilePanel() {
   );
 }
 
-const COLUMNS: { tier: Tier; label: string; hint: string }[] = [
-  { tier: 1, label: "auto", hint: "read-only / reversible — runs without asking" },
-  { tier: 2, label: "approve", hint: "waits for your signature" },
-  { tier: 3, label: "locked", hint: "always requires typed confirmation" },
-];
-
-function PermissionsPanel({
-  categories,
-  setCategories,
-  error,
-  retry,
-}: {
-  categories: CategoryWithTier[] | null;
-  setCategories: React.Dispatch<React.SetStateAction<CategoryWithTier[] | null>>;
-  error: boolean;
-  retry: () => void;
-}) {
-  const [msg, setMsg] = useState<string | null>(null);
-  const chipRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const prevRects = useRef<Map<string, DOMRect>>(new Map());
-
-  // FLIP: after a chip moves columns, invert to its old position then animate
-  // to zero so it visibly flies. Transform-only; respects reduced motion.
-  useLayoutEffect(() => {
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    for (const [key, el] of chipRefs.current) {
-      const prev = prevRects.current.get(key);
-      const next = el.getBoundingClientRect();
-      if (prev && !reduce) {
-        const dx = prev.left - next.left;
-        const dy = prev.top - next.top;
-        if (dx || dy) {
-          el.style.transition = "none";
-          el.style.transform = `translate(${dx}px, ${dy}px)`;
-          requestAnimationFrame(() => {
-            el.style.transition = "transform 320ms cubic-bezier(0.34,1.56,0.64,1)";
-            el.style.transform = "";
-          });
-        }
-      }
-      prevRects.current.set(key, next);
-    }
-  }, [categories]);
-
-  async function move(category: string, tier: Tier) {
-    setMsg(null);
-    const before = categories;
-    // optimistic
-    setCategories((cs) => cs?.map((c) => (c.category === category ? { ...c, tier } : c)) ?? null);
-    const res = await fetch("/api/settings/tiers", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ category, tier }),
-    });
-    if (!res.ok) {
-      const b = await res.json().catch(() => ({}));
-      setMsg(b.message ?? "that tier didn't update — reverted.");
-      setCategories(before ?? null); // rollback
-    }
-  }
-
-  if (error && categories === null) {
-    return (
-      <section>
-        <PanelHeading title="permissions" sub="how much rope the operator gets." />
-        <div className="rounded-card bg-surface/60 p-5 text-center shadow-soft">
-          <p className="text-sm font-semibold text-ink-soft">couldn&apos;t load your settings.</p>
-          <button onClick={retry} className="mt-3 rounded-btn bg-ink px-4 py-1.5 text-sm font-bold lowercase text-cream">retry</button>
-        </div>
-      </section>
-    );
-  }
-
+/**
+ * The permissions tab is now the Trust Center itself, not a second, differently
+ * worded copy of it.
+ *
+ * What used to live here was a three-column board of engine categories —
+ * "update_record" in an "approve" column — which asked people to hold a mental
+ * model of the dispatcher in order to answer a question about their own email.
+ * The same settings are still here, still enforced by the same tiers; the
+ * question is just asked in a language someone can answer.
+ */
+function PermissionsPanel() {
   return (
     <section>
-      <PanelHeading title="permissions" sub="how much rope the operator gets. locked stays locked, and every change is logged in security." />
-      {msg && <p className="mb-3 rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold" role="alert">{msg}</p>}
-      <div className="grid gap-3 sm:grid-cols-3">
-        {COLUMNS.map((col) => (
-          <div key={col.tier} className="rounded-card bg-surface/50 p-3 shadow-soft">
-            <div className="flex items-center gap-1.5">
-              {col.tier === 3 && <Lock size={12} strokeWidth={2.5} aria-hidden="true" />}
-              <h3 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">{col.label}</h3>
-              {col.tier === 3 && (
-                <span className="ml-auto cursor-help text-[10px] text-ink-soft underline decoration-dotted" title="locked actions always require typed confirmation.">why?</span>
-              )}
-            </div>
-            <div className="mt-3 flex flex-col gap-2">
-              {categories === null ? (
-                <SkeletonRows rows={2} />
-              ) : (
-                categories.filter((c) => c.tier === col.tier).map((c) => (
-                  <div
-                    key={c.category}
-                    ref={(el) => { if (el) chipRefs.current.set(c.category, el); }}
-                    className="rounded-btn bg-cream-deep px-3 py-2"
-                  >
-                    <p className="text-sm font-bold lowercase">{c.label}</p>
-                    <p className="mt-0.5 text-[11px] leading-snug text-ink-soft">{c.description}</p>
-                    {!c.pinned ? (
-                      <div className="mt-2 flex gap-1.5">
-                        {([1, 2] as Tier[]).filter((t) => t !== col.tier).map((t) => (
-                          <button
-                            key={t}
-                            onClick={() => move(c.category, t)}
-                            className="rounded-pill bg-ink px-2.5 py-0.5 text-[10px] font-bold lowercase text-cream transition-transform duration-fast hover:-translate-y-px"
-                            aria-label={`move ${c.label} to ${t === 1 ? "auto" : "approve"}`}
-                          >
-                            → {t === 1 ? "auto" : "approve"}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold lowercase text-ink-soft">
-                        <Lock size={9} strokeWidth={2.5} aria-hidden="true" /> pinned
-                      </span>
-                    )}
-                  </div>
-                ))
-              )}
-              {categories?.filter((c) => c.tier === col.tier).length === 0 && (
-                <p className="rounded-btn border border-dashed border-line px-3 py-4 text-center text-[11px] text-ink-soft">nothing here</p>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+      <PanelHeading
+        title="permissions"
+        sub="what cosigno may do on its own, and what it must ask you about first. every change is logged in security."
+      />
+      <TrustCenter />
     </section>
   );
 }

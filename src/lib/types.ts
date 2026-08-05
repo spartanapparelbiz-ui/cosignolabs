@@ -224,6 +224,7 @@ export type AccountAuditType =
   | "emergency_stop_lifted"
   | "rule_created"
   | "rule_deleted"
+  | "trust_changed"
   | "promo";
 
 /**

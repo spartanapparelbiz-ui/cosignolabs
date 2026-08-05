@@ -118,6 +118,17 @@ export const tierSettingSchema = z
   })
   .strict();
 
+/**
+ * A Trust Center row. The capability is validated against the registry in the
+ * route (an id here would only duplicate that list and drift from it).
+ */
+export const trustSettingSchema = z
+  .object({
+    capability: z.string().trim().min(1).max(40),
+    setting: z.enum(["always", "ask", "never"]),
+  })
+  .strict();
+
 export const betaSchema = z
   .object({
     // name is no longer collected by the founding-beta form (§8 trims fields

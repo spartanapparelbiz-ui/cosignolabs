@@ -1,5 +1,5 @@
 import { getStore } from "../store";
-import { proposeAction, vetoAction } from "../actions/engine";
+import { EngineError, proposeAction, vetoAction } from "../actions/engine";
 import { logError, logInfo, newRequestId } from "../log";
 import { CATEGORIES } from "../types";
 import type {
@@ -490,6 +490,13 @@ export async function advanceMission(
       await applyToolResult({ userId, mission, steps: freshSteps, step: fresh }, result);
     } catch (err) {
       const message = err instanceof Error ? err.message : "the step didn't complete.";
+      // A forbidden capability is a decision, not a transient failure. Retrying
+      // it would burn attempts to arrive at the same refusal, and would read in
+      // the log as if cosigno kept trying to do the thing you said never.
+      if (err instanceof EngineError && err.code === "forbidden") {
+        await store.updateMissionStep(userId, step.id, { state: "failed", error: message });
+        continue;
+      }
       const retries = step.retry_count + 1;
       if (retries > step.max_retries) {
         await store.updateMissionStep(userId, step.id, {

@@ -4,6 +4,7 @@ import { effectiveActionLimit, usageLimitMessage } from "../enforcement";
 import { holdBlocks, holdMessage } from "../hold";
 import { logSecurity } from "../log";
 import { authorizationHash } from "../signRecord";
+import { forbiddenMessage, forbiddenRuleFor } from "../trust/forbidden";
 import { executeAction } from "./executor";
 import { ActionRecord } from "../types";
 
@@ -38,6 +39,22 @@ export class EngineError extends Error {
 
 export async function proposeAction(input: ActionInsert): Promise<ActionRecord> {
   const store = getStore();
+
+  // "Never" is checked before the row exists. A forbidden capability must not
+  // reach the approvals queue at all — an action card offering to do something
+  // the user has forbidden is the same broken promise whether or not anyone
+  // clicks approve.
+  const rules = await store.listPermissionRules(input.user_id).catch(() => []);
+  const blocking = forbiddenRuleFor(rules, input.category);
+  if (blocking) {
+    logSecurity("capability_forbidden", {
+      userId: input.user_id,
+      category: input.category,
+      rule: blocking.id,
+    });
+    throw new EngineError("forbidden", forbiddenMessage(input.category));
+  }
+
   const action = await store.createAction(input);
   await store.logEvent(input.user_id, action.id, "proposed", "agent", {
     tier: action.tier,

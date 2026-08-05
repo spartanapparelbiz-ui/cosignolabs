@@ -1,4 +1,6 @@
+import { CATEGORIES } from "./types";
 import type {
+  ActionCategory,
   PermissionRuleRecord,
   RuleCondition,
   RuleRequirement,
@@ -17,6 +19,19 @@ import type {
  * strengthen it. Parsing is deterministic (no model): the same sentence always
  * yields the same structured rule, offline.
  */
+
+/**
+ * Rules whose target begins with this prefix are CATEGORY rules: they name an
+ * engine action category outright (`category:delete`) rather than a tool or a
+ * word in a summary. The Trust Center writes them when someone chooses "never".
+ *
+ * They are deliberately invisible to the text matcher below — matching
+ * "category:delete" against an action summary would be a coincidence, not an
+ * enforcement. They are enforced at `proposeAction`, where the category is a
+ * known fact rather than a guess, so a forbidden capability cannot be proposed
+ * at all, from any code path.
+ */
+export const CATEGORY_TARGET_PREFIX = "category:";
 
 /** The parsed shape (everything on a rule except the DB/ownership fields). */
 export type ParsedRule = Pick<
@@ -169,6 +184,11 @@ export function parsePermissionRule(text: string): ParsedRule {
 
 /** A one-line, plain-English rendering of a structured rule for the UI/audit. */
 export function describeRule(r: ParsedRule): string {
+  if (r.target.startsWith(CATEGORY_TARGET_PREFIX)) {
+    const cat = r.target.slice(CATEGORY_TARGET_PREFIX.length) as ActionCategory;
+    const label = CATEGORIES[cat]?.label.toLowerCase() ?? cat;
+    return `${label} — ${REQUIREMENT_SENTENCE[r.requirement]}.`;
+  }
   const scope =
     r.target === "any" && r.verb === "any"
       ? "any action"
@@ -177,14 +197,15 @@ export function describeRule(r: ParsedRule): string {
   if (r.condition.kind === "amount") cond = ` over $${r.condition.value}`.replace("over", r.condition.op === "<" ? "under" : "over");
   else if (r.condition.kind === "channel") cond = ` in ${r.condition.match}`;
   else if (r.condition.kind === "label") cond = ` labelled "${r.condition.match}"`;
-  const need: Record<RuleRequirement, string> = {
-    auto: "runs automatically",
-    approve: "waits for your approval",
-    sign: "requires your signature",
-    never: "is never allowed",
-  };
-  return `${scope}${cond} — ${need[r.requirement]}.`;
+  return `${scope}${cond} — ${REQUIREMENT_SENTENCE[r.requirement]}.`;
 }
+
+const REQUIREMENT_SENTENCE: Record<RuleRequirement, string> = {
+  auto: "runs automatically",
+  approve: "waits for your approval",
+  sign: "requires your signature",
+  never: "is never allowed",
+};
 
 /* ----------------------------------------------------- enforcement (tighten) */
 
@@ -228,6 +249,9 @@ const TARGET_SYNONYMS: Record<string, string[]> = {
 
 function targetMatches(rule: PermissionRuleRecord, ctx: RuleContext): boolean {
   if (rule.target === "any") return true;
+  // Category rules are enforced at the action door, on the real category.
+  // Fuzzy-matching them here would be a second, weaker copy of that check.
+  if (rule.target.startsWith(CATEGORY_TARGET_PREFIX)) return false;
   const hay = `${ctx.target} ${ctx.category ?? ""} ${ctx.summary ?? ""}`.toLowerCase();
   const needles = TARGET_SYNONYMS[rule.target] ?? [rule.target];
   return needles.some((n) => hay.includes(n));

@@ -15,6 +15,7 @@ import {
   Plug,
   Rocket,
   Settings,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { LogoHome } from "@/components/brand/LivingLogo";
@@ -51,6 +52,7 @@ const PRIMARY = [
  * label nobody understands is a door nobody opens.
  */
 const SECONDARY = [
+  { href: "/app/trust", label: "trust", icon: ShieldCheck },
   { href: "/app/monitoring", label: "monitoring", icon: Gauge },
   { href: "/app/mission-control", label: "control", icon: Radar },
   { href: "/app/twins", label: "capabilities", icon: Boxes },
