@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 const GUARANTEES = [
   {
     title: "approval is enforced in the state machine, not the UI",
-    body: "no code path moves an action to executed without a logged user approval. connected tools and custom integrations can propose; only your signature executes. destructive actions additionally require typed confirmation.",
+    body: "nothing that changes anything outside cosigno executes without your signature — sending, posting, updating, spending, deleting, refunding, and every call to a connected tool. searching, summarising, and drafting clear automatically, because they read or produce text and a draft cannot transmit. every auto-cleared action is logged as auto-cleared, never as approved by you. destructive actions additionally require typed confirmation.",
   },
   {
     title: "the agent can never escalate its own permissions",

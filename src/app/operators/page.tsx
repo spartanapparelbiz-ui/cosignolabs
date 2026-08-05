@@ -65,7 +65,7 @@ const OPERATORS = [
     caps: "connection_call",
     authority: "tiered per capability — read 1 · write 2 · destructive 3",
     detail:
-      "every connected capability gets a server-assigned authority level from its risk. a connector can propose, but only your signature executes — and it can never talk its way into a weaker approval.",
+      "every connected capability gets a server-assigned authority level from its risk. a connector can propose, but anything that changes something outside cosigno waits for your signature — and it can never talk its way into a weaker approval.",
   },
 ] as const;
 

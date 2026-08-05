@@ -374,8 +374,27 @@ export function ConnectionsPanel() {
                   <div className="mt-2 flex flex-col gap-1.5">
                     {p.actions.map((a) => (
                       <div key={a.id} className="flex items-center gap-2 rounded-btn bg-cream-deep/60 px-3 py-1.5">
-                        <span className="font-mono text-[11px] font-bold">{a.id}</span>
-                        <TierBadge tier={a.tier} />
+                        {/* This is the consent surface — what someone reads
+                            before granting access to their account. "create_issue"
+                            and a tier number are the engine's words; what a person
+                            needs to know is what it does and whether it can happen
+                            without them. */}
+                        <span className="text-[11px] font-bold">{humanizeActionId(a.id)}</span>
+                        <span
+                          className={`shrink-0 rounded-pill px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                            a.tier === 1
+                              ? "bg-cream-deep text-ink-soft"
+                              : a.tier === 3
+                                ? "bg-ink text-cream"
+                                : "bg-signal/20 text-ink"
+                          }`}
+                        >
+                          {a.tier === 1
+                            ? "no approval"
+                            : a.tier === 3
+                              ? "typed confirmation"
+                              : "your approval"}
+                        </span>
                         <span className="min-w-0 flex-1 truncate text-[11px] text-ink-soft" title={a.summary}>
                           {a.summary}
                         </span>
