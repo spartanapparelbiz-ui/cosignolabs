@@ -141,6 +141,7 @@ export const githubProvider: IntegrationProvider = {
   authType: "oauth2",
   scopeSummary: "read profile · read/write issues · repo",
   tracks: ["repositories", "open issues", "pull requests"],
+  setupEnv: ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"],
   usesPkce: false,
 
   isConfigured() {

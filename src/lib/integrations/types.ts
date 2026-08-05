@@ -158,6 +158,12 @@ export interface IntegrationProvider {
    * an empty business rather than the absence of a connection.
    */
   tracks?: string[];
+  /**
+   * The environment variable NAMES this connector needs before it can be
+   * connected. Names only — never values, and this is surfaced to the client
+   * so a failure can say exactly what is missing instead of "not available".
+   */
+  setupEnv?: string[];
   /** True once its required env (client id/secret, etc.) is present. */
   isConfigured(): boolean;
 

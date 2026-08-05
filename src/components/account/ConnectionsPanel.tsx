@@ -39,6 +39,8 @@ interface ProviderMeta {
   authType: string;
   scopeSummary: string;
   configured: boolean;
+  /** Env var NAMES needed to connect it. Names only — never values. */
+  setupEnv?: string[];
   icon: string;
   actions: Capability[];
   boundary?: IntegrationBoundary;
@@ -171,11 +173,49 @@ export function ConnectionsPanel() {
   const mcps = (data?.connections ?? []).filter((c) => c.kind === "mcp");
   const customs = (data?.connections ?? []).filter((c) => c.kind === "custom");
 
+  /**
+   * Start connecting an app — or say exactly why it can't be started.
+   *
+   * This used to be guarded by `disabled`, which meant a provider without
+   * credentials had a button that could not be clicked and said nothing. To
+   * the person in front of it that is indistinguishable from a broken button,
+   * and it hides the one fact that would let them fix it: which environment
+   * variables are missing.
+   */
+  /**
+   * The vault key is what makes storing any credential safe. Rather than
+   * greying these out — which reads as broken — the control opens and says
+   * what is missing.
+   */
+  function requireVault(): boolean {
+    if (data && !data.vaultReady) {
+      setError(
+        "Connections are turned off on this deployment: INTEGRATIONS_ENCRYPTION_KEY isn't set, and cosigno won't store credentials it can't encrypt."
+      );
+      return false;
+    }
+    return true;
+  }
+
   async function connect(key: string) {
-    setBusy(key);
+    const provider = data?.providers.find((p) => p.key === key);
     setError(null);
+
+    if (!requireVault()) return;
+    if (provider && !provider.configured) {
+      const names = provider.setupEnv ?? [];
+      setError(
+        names.length > 0
+          ? `${provider.name} can't be connected because this deployment has no ${provider.name} credentials. Set ${names.join(" and ")}, then redeploy.`
+          : `${provider.name} can't be connected because this deployment hasn't been configured for it yet.`
+      );
+      return;
+    }
+
+    setBusy(key);
     try {
       const { url } = await api(`/api/connections/${key}/connect`);
+      if (!url) throw new Error("the server didn't return a sign-in link for that app.");
       window.location.href = url;
     } catch (e) {
       setError(e instanceof Error ? e.message : "couldn't start that connection.");
@@ -332,7 +372,7 @@ export function ConnectionsPanel() {
                   ) : (
                     <button
                       onClick={() => connect(p.key)}
-                      disabled={!p.configured || !data.vaultReady || busy === p.key}
+                      disabled={busy === p.key}
                       className="rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                     >
                       {busy === p.key ? "…" : "connect"}
@@ -459,8 +499,7 @@ export function ConnectionsPanel() {
             custom MCP servers
           </h4>
           <button
-            onClick={() => setAddOpen((v) => !v)}
-            disabled={!data?.vaultReady}
+            onClick={() => requireVault() && setAddOpen((v) => !v)}
             className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             {addOpen ? <X size={12} /> : <Plus size={12} />}
@@ -506,8 +545,7 @@ export function ConnectionsPanel() {
             custom API tools
           </h4>
           <button
-            onClick={() => setAddApiOpen((v) => !v)}
-            disabled={!data?.vaultReady}
+            onClick={() => requireVault() && setAddApiOpen((v) => !v)}
             className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             {addApiOpen ? <X size={12} /> : <Plus size={12} />}

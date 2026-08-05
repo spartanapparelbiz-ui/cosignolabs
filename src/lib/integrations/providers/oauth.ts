@@ -75,6 +75,9 @@ export function makeOAuthProvider(cfg: OAuthProviderConfig): IntegrationProvider
     authType: "oauth2",
     scopeSummary: cfg.scopeSummary,
     tracks: cfg.tracks,
+    // Derived, not restated: the factory already knows these, and a second
+    // copy is a second thing to forget when one changes.
+    setupEnv: [cfg.clientIdEnv, ...(cfg.clientSecretEnv ? [cfg.clientSecretEnv] : [])],
     usesPkce: cfg.usesPkce,
 
     isConfigured() {

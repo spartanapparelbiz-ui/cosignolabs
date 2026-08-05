@@ -48,6 +48,8 @@ export interface ProviderMeta {
   scopeSummary: string;
   /** Whether the server env is set so this can actually be connected. */
   configured: boolean;
+  /** Env var NAMES required to connect it. Names only, never values. */
+  setupEnv: string[];
   /** Bundled, self-hosted logo path (never a vendor hotlink). */
   icon: string;
   /** Each capability with the SERVER-assigned tier it would be proposed at. */
@@ -64,6 +66,7 @@ export function providerMeta(p: IntegrationProvider): ProviderMeta {
     authType: p.authType,
     scopeSummary: p.scopeSummary,
     configured: p.isConfigured(),
+    setupEnv: p.setupEnv ?? [],
     icon: bundledLogo(p.key) ?? GENERIC_MCP_LOGO,
     actions: p.listActions().map((a) => ({
       id: a.id,
