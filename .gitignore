@@ -11,3 +11,7 @@ coverage/
 test-results/
 playwright-report/
 .fonts/
+
+# Per-run design-review captures (scripts/review-shots.mjs) — regenerable,
+# and one run is 13MB. The curated screenshots/ folders stay tracked.
+screenshots/review/

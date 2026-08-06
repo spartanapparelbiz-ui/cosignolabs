@@ -125,7 +125,13 @@ async function api(url: string, init?: RequestInit) {
   return body;
 }
 
-export function ConnectionsPanel() {
+/**
+ * `heading` renders the panel's own "connections" title. It belongs inside the
+ * account center, where the panel is one tab among several — but /app/connections
+ * is already titled "connections", so that page turns it off rather than
+ * stacking the same word twice with two near-identical descriptions under it.
+ */
+export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {}) {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState(false);
@@ -282,7 +288,7 @@ export function ConnectionsPanel() {
   }
 
   if (unavailable) {
-    return <ConnectionsComingSoon />;
+    return <ConnectionsComingSoon heading={heading} />;
   }
   if (!data && !error) {
     return <ConnectionsSkeleton />;
@@ -290,15 +296,7 @@ export function ConnectionsPanel() {
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <div>
-        <h3 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
-          connections
-        </h3>
-        <p className="mt-1 text-xs text-ink-soft">
-          the apps and MCP servers cosigno can act across — each stays off until
-          you connect it, and every action still waits for your signature.
-        </p>
-      </div>
+      {heading && <ConnectionsHeading />}
 
       {notice && (
         <p className="rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold" role="status">
@@ -682,18 +680,25 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
  * provisioned for this deployment yet. Nothing is broken — the feature just
  * isn't switched on — so we say exactly that, warmly, instead of an error.
  */
-function ConnectionsComingSoon() {
+/** The panel's own title — one definition, shared by every state it can be in. */
+function ConnectionsHeading() {
+  return (
+    <div>
+      <h3 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
+        connections
+      </h3>
+      <p className="mt-1 text-xs text-ink-soft">
+        the apps and MCP servers cosigno can act across — each stays off until
+        you connect it, and every action still waits for your signature.
+      </p>
+    </div>
+  );
+}
+
+function ConnectionsComingSoon({ heading }: { heading: boolean }) {
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <div>
-        <h3 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
-          connections
-        </h3>
-        <p className="mt-1 text-xs text-ink-soft">
-          the apps and MCP servers cosigno can act across — each stays off until
-          you connect it, and every action still waits for your signature.
-        </p>
-      </div>
+      {heading && <ConnectionsHeading />}
       <div className="group flex flex-1 flex-col items-center justify-center rounded-card bg-surface/60 px-8 py-16 text-center shadow-soft transition-all duration-slow ease-brand-out animate-spring-in hover:-translate-y-0.5 hover:shadow-depth">
         {/* Icon badge: radiating signal rings behind a gently floating plug. */}
         <div

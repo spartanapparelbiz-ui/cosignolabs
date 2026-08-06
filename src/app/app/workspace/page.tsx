@@ -3,7 +3,7 @@ import { TodayStrip } from "@/components/app/TodayStrip";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Workspace" };
+export const metadata = { title: "workspace" };
 
 /**
  * The command workspace — type a command, review the proposed action cards,

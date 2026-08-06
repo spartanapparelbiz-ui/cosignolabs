@@ -2,7 +2,7 @@ import { FocusMode } from "@/components/focus/FocusMode";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Focus" };
+export const metadata = { title: "focus" };
 
 /**
  * Focus — where cosigno hands work to the user. Everything irrelevant is

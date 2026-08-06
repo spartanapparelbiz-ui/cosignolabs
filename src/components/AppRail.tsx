@@ -56,7 +56,9 @@ const SECONDARY = [
   { href: "/app/twins", label: "capabilities", icon: Boxes },
   { href: "/app/simulation", label: "simulate", icon: FlaskConical },
   { href: "/app/templates", label: "templates", icon: LayoutTemplate },
-  { href: "/app/settings", label: "settings", icon: Settings },
+  // /app/settings redirects here; the surface it opens is titled "account",
+  // so the rail says the same word rather than a second name for one place.
+  { href: "/app/account", label: "account", icon: Settings },
 ] as const;
 
 

@@ -2,7 +2,7 @@ import { MemoryPanel } from "@/components/app/MemoryPanel";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Memory" };
+export const metadata = { title: "memory" };
 
 /**
  * My Rules & Memory — user-controlled operating principles and context the

@@ -2,7 +2,7 @@ import { ObjectivesPanel } from "@/components/app/ObjectivesPanel";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Objectives" };
+export const metadata = { title: "objectives" };
 
 /**
  * Objectives — the layer above Delegations. Outcomes the user owns over

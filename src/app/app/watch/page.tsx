@@ -3,7 +3,7 @@ import { AutomationsPanel } from "@/components/app/AutomationsPanel";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Watch" };
+export const metadata = { title: "watch" };
 
 /**
  * Watch — cosigno's standing eyes on your connected systems. A watch is a

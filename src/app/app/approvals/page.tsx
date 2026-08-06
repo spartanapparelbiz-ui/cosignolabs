@@ -6,7 +6,7 @@ import type { ActionRecord } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Approvals" };
+export const metadata = { title: "approvals" };
 
 /**
  * The Approval Inbox — only items that require human judgment. The waiting

@@ -68,7 +68,9 @@ export function DigitalTwins() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
       <header>
-        <p className="text-xs font-black uppercase tracking-[0.28em] text-signal">digital twins</p>
+        {/* "capabilities" is the word the nav uses. A twin is a thing nobody
+            can guess from the label, so the page says what it shows instead. */}
+        <p className="text-xs font-black uppercase tracking-[0.28em] text-signal">capabilities</p>
         <h1 className="mt-2 font-display text-3xl font-bold lowercase tracking-tight sm:text-4xl">
           cosigno models your tools before it touches them.
         </h1>
