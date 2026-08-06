@@ -70,7 +70,7 @@ export function MemoryPanel() {
         body: JSON.stringify({ memory_enabled: !masterOn }),
       });
       setMasterOn(!masterOn);
-      toast("success", !masterOn ? "memory on." : "memory off — nothing is fed to the planner.");
+      toast("success", !masterOn ? "memory on." : "memory off — cosigno stops using your notes.");
     } finally {
       setBusy(null);
     }
@@ -131,8 +131,8 @@ export function MemoryPanel() {
           <p className="text-sm font-extrabold lowercase">memory is {masterOn ? "on" : "off"}</p>
           <p className="text-xs text-ink-soft">
             {masterOn
-              ? "enabled notes below are given to the planner as your saved context."
-              : "nothing is fed to the planner — your notes are kept but unused."}
+              ? "enabled notes below are given to cosigno as your saved context."
+              : "cosigno isn\u2019t using your notes — they\u2019re kept, but unused."}
           </p>
         </div>
         <button

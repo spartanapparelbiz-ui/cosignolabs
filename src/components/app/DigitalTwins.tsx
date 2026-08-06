@@ -87,7 +87,7 @@ export function DigitalTwins() {
     // Recent work per app comes from the real action ledger — EXECUTED
     // connector actions only (a proposed card hasn't done anything yet), whose
     // summaries begin with the app's display name.
-    fetch("/api/activity?category=connection_call&status=executed&limit=50")
+    fetch("/api/activity?category=connection_call&status=executed&limit=1000")
       .then((r) => r.json())
       .then((d) => setRecent(Array.isArray(d.actions) ? d.actions : []))
       .catch(() => undefined);
@@ -103,9 +103,16 @@ export function DigitalTwins() {
           What cosigno can do in your apps
         </h1>
         <p className="mt-2 max-w-2xl text-base text-ink-soft">
-          Every ability listed is real — if it isn&apos;t listed here, cosigno can&apos;t do it,
-          and can&apos;t even plan it. Anything beyond reading waits for your approval.
+          Every ability listed is real — if it isn&apos;t listed here, cosigno can&apos;t do it.
+          Anything beyond reading waits for your approval.
         </p>
+        {recent.length > 0 && (
+          <p className="mt-3 inline-flex items-center rounded-pill bg-surface/70 px-3.5 py-1.5 text-xs font-bold shadow-soft">
+            {recent.length.toLocaleString()}
+            {recent.length >= 1000 ? "+" : ""} completed action
+            {recent.length === 1 ? "" : "s"} across your connected apps
+          </p>
+        )}
       </header>
 
       {error && (

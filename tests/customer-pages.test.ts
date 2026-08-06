@@ -44,10 +44,18 @@ describe("mission control: what is cosigno doing right now?", () => {
     expect(CONTROL_CODE).not.toMatch(/\beta\b/i);
   });
 
-  it("quiet is a designed state: delegate, templates, and where finished work went", () => {
-    expect(CONTROL).toMatch(/All quiet/);
-    expect(CONTROL).toMatch(/delegate something/);
+  it("quiet is a designed state: start a mission, templates, and where finished work went", () => {
+    expect(CONTROL).toMatch(/No work running/);
+    expect(CONTROL).toMatch(/start a mission/);
     expect(CONTROL).toMatch(/browse templates/);
+  });
+
+  it("the workspace summary shows only real, non-zero numbers", () => {
+    // Stats are filtered before render — a zero simply doesn't appear.
+    expect(CONTROL).toMatch(/running > 0 &&/);
+    expect(CONTROL).toMatch(/connectedApps > 0 &&/);
+    expect(CONTROL).toMatch(/opsThisMonth > 0 &&/);
+    expect(CONTROL).toMatch(/AI operations completed this month/);
   });
 
   it("names apps like a person would, never by tool id", () => {
@@ -87,6 +95,34 @@ describe("policy simulator: what would happen if I added this rule?", () => {
 
   it("states the tighten-only guarantee in plain words", () => {
     expect(SIM).toMatch(/can never give it more\s+permission/);
+  });
+
+  it("popular rules are one click, and each label matches its enforced parse", async () => {
+    expect(SIM).toMatch(/Popular rules/);
+    expect(SIM).toMatch(/POPULAR_RULES\.map/);
+    // Each catalog rule must parse into exactly what its label promises —
+    // a chip that enforces broader than it reads is a small lie with a big
+    // blast radius. Checked against the REAL parser.
+    const { parsePermissionRule } = await import("../src/lib/rules");
+    const want: Record<string, { requirement: string; verb: string }> = {
+      "Require approval for refunds": { requirement: "approve", verb: "refund" },
+      "Never delete anything": { requirement: "never", verb: "delete" },
+      "Require a signature for payments over $500": { requirement: "sign", verb: "payment" },
+      "Require approval before posting anything": { requirement: "approve", verb: "post" },
+      "Require approval for sending email": { requirement: "approve", verb: "send" },
+      "Never post to #announcements": { requirement: "never", verb: "post" },
+    };
+    for (const [textRule, expected] of Object.entries(want)) {
+      expect(SIM).toContain(`"${textRule}"`);
+      const parsed = parsePermissionRule(textRule);
+      expect(parsed.requirement, textRule).toBe(expected.requirement);
+      expect(parsed.verb, textRule).toBe(expected.verb);
+    }
+  });
+
+  it("explains who is affected, from the replayed decisions", () => {
+    expect(SIM).toMatch(/who&apos;s affected:/);
+    expect(SIM).toMatch(/rule\{activeRules === 1 \? "" : "s"\} currently protecting your workspace/);
   });
 });
 

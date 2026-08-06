@@ -107,14 +107,19 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   const [displayName] = useDisplayName();
   const [automation, setAutomation] = useState<AutomationRecord | null>(null);
   const [connections, setConnections] = useState<ConnectionView[]>([]);
+  // The quiet value line under the greeting — the real usage-meter count.
+  // Rendered only when it's non-zero; a zero reinforces nothing.
+  const [opsThisMonth, setOpsThisMonth] = useState(0);
 
 
   const loadSide = useCallback(async () => {
     // The right-column extras (next automation, connected apps).
-    const [au, c] = await Promise.all([
+    const [au, c, u] = await Promise.all([
       jsonFetch("/api/automations").catch(() => ({ automations: [] })),
       jsonFetch("/api/connections").catch(() => ({ connections: [] })),
+      jsonFetch("/api/usage").catch(() => ({})),
     ]);
+    setOpsThisMonth(Number(u.usage?.actions_executed) || 0);
     const enabled: AutomationRecord[] = (au.automations ?? []).filter((x: AutomationRecord) => x.enabled);
     enabled.sort((x, y) => new Date(x.next_run_at).getTime() - new Date(y.next_run_at).getTime());
     setAutomation(enabled[0] ?? null);
@@ -171,6 +176,12 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
         <h1 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl">
           What would you like Cosigno to do?
         </h1>
+        {opsThisMonth > 0 && (
+          <p className="mt-2 text-xs font-bold text-ink-soft">
+            {opsThisMonth.toLocaleString()} AI operation{opsThisMonth === 1 ? "" : "s"} completed
+            this month
+          </p>
+        )}
       </header>
 
       <div className="mt-6">

@@ -626,6 +626,10 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               <dl className="mt-2.5 flex flex-col gap-1.5">
                 {[
                   {
+                    k: "steps automated",
+                    v: `${(receipt.completed_steps as unknown[])?.length ?? 0}`,
+                  },
+                  {
                     k: "actions",
                     v: `${(receipt.changes as { made?: number } | null)?.made ?? budget?.used ?? 0}`,
                   },

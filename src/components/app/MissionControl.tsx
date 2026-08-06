@@ -120,6 +120,8 @@ export function MissionControl() {
         )}
       </header>
 
+      <WorkspaceSummary running={nodes.length} />
+
       {error && (
         <p className="mt-6 rounded-card bg-surface/70 p-4 text-sm font-semibold shadow-soft">
           {error}{" "}
@@ -151,6 +153,62 @@ export function MissionControl() {
 }
 
 /**
+ * The workspace at a glance, above the feed. Every number is real and a
+ * stat only renders when it has something to say — a row of zeros reinforces
+ * nothing, so zeros simply don't appear.
+ */
+function WorkspaceSummary({ running }: { running: number }) {
+  const [connectedApps, setConnectedApps] = useState(0);
+  const [opsThisMonth, setOpsThisMonth] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/connections")
+      .then((r) => r.json())
+      .then((d) =>
+        setConnectedApps(
+          (Array.isArray(d.connections) ? d.connections : []).filter(
+            (c: { status?: string }) => c.status === "connected"
+          ).length
+        )
+      )
+      .catch(() => undefined);
+    fetch("/api/usage")
+      .then((r) => r.json())
+      .then((d) => setOpsThisMonth(Number(d.usage?.actions_executed) || 0))
+      .catch(() => undefined);
+  }, []);
+
+  const stats = [
+    running > 0 && {
+      value: running,
+      label: `mission${running === 1 ? "" : "s"} running`,
+    },
+    connectedApps > 0 && {
+      value: connectedApps,
+      label: `connected app${connectedApps === 1 ? "" : "s"}`,
+    },
+    opsThisMonth > 0 && {
+      value: opsThisMonth,
+      label: "AI operations completed this month",
+    },
+  ].filter((s): s is { value: number; label: string } => Boolean(s));
+
+  if (stats.length === 0) return null;
+  return (
+    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      {stats.map((s) => (
+        <div key={s.label} className="rounded-card bg-surface/60 px-5 py-4 shadow-soft">
+          <p className="font-display text-3xl font-extrabold tabular-nums">
+            {s.value.toLocaleString()}
+          </p>
+          <p className="mt-0.5 text-xs font-bold lowercase text-ink-soft">{s.label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
  * Quiet is a good state, and the page says so — then offers the two things
  * someone actually does from here. Never six grey cards of nothing.
  */
@@ -160,17 +218,17 @@ function EmptyState({ finished }: { finished: number }) {
       <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-pill bg-cream-deep">
         <Radio size={22} className="text-ink-soft" aria-hidden="true" />
       </span>
-      <h2 className="mt-4 text-lg font-extrabold">All quiet</h2>
+      <h2 className="mt-4 text-lg font-extrabold">No work running</h2>
       <p className="mx-auto mt-1.5 max-w-md text-sm text-ink-soft">
-        Nothing is running. The moment you delegate work, it appears here live —
-        what cosigno is on, how far along, and what comes next.
+        The moment you start a mission, it appears here live — what cosigno is
+        on, how far along, and what comes next.
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
         <Link
           href="/app"
           className="rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold lowercase text-cream transition-transform duration-fast hover:-translate-y-px"
         >
-          delegate something
+          start a mission
         </Link>
         <Link
           href="/app/templates"

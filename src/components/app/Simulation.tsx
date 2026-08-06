@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, FlaskConical, ShieldCheck } from "lucide-react";
 import { useToast } from "@/components/Toast";
 
@@ -41,11 +41,22 @@ interface SimResult {
   history_size: number;
 }
 
-const EXAMPLES = [
-  "Never allow deleting production databases.",
-  "Require a signature for refunds over $500.",
-  "Require approval before anything is published.",
-  "Never send email to external addresses.",
+/**
+ * Popular rules — one click, no typing.
+ *
+ * Every entry here was checked against the rules engine's actual parse: the
+ * enforced rule matches the label. Candidates whose parse came out broader
+ * than their wording ("never delete production databases" would forbid ALL
+ * deletion) were rewritten or dropped — a chip that promises narrower than
+ * it enforces is a small lie with a big blast radius.
+ */
+const POPULAR_RULES = [
+  "Require approval for refunds",
+  "Never delete anything",
+  "Require a signature for payments over $500",
+  "Require approval before posting anything",
+  "Require approval for sending email",
+  "Never post to #announcements",
 ];
 
 /**
@@ -59,12 +70,28 @@ interface EnforcedPreview {
 export function Simulation() {
   const toast = useToast();
   const [text, setText] = useState("");
+  const [activeRules, setActiveRules] = useState(0);
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<SimResult | null>(null);
   const [enforced, setEnforced] = useState<EnforcedPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [enabling, setEnabling] = useState(false);
   const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    // The rules already protecting this workspace — real count, shown only
+    // when there's something to count.
+    fetch("/api/rules")
+      .then((r) => r.json())
+      .then((d) =>
+        setActiveRules(
+          (Array.isArray(d.rules) ? d.rules : []).filter(
+            (r: { enabled?: boolean }) => r.enabled !== false
+          ).length
+        )
+      )
+      .catch(() => undefined);
+  }, []);
 
   async function run(value?: string) {
     const t = (value ?? text).trim();
@@ -112,6 +139,7 @@ export function Simulation() {
       const data = await r.json();
       if (!r.ok) throw new Error(data.message || "the rule didn't save.");
       setEnabled(true);
+      setActiveRules((n) => n + 1);
       toast("success", "rule enabled — it applies to the next thing cosigno tries.");
     } catch (e) {
       toast("error", e instanceof Error ? e.message : "the rule didn't save.");
@@ -132,6 +160,12 @@ export function Simulation() {
           Write a rule in plain English. Cosigno replays it against everything that already
           happened and shows exactly what it would have stopped — before anything is enabled.
         </p>
+        {activeRules > 0 && (
+          <p className="mt-3 inline-flex items-center gap-2 rounded-pill bg-surface/70 px-3.5 py-1.5 text-xs font-bold shadow-soft">
+            <ShieldCheck size={13} className="text-signal" aria-hidden="true" />
+            {activeRules} rule{activeRules === 1 ? "" : "s"} currently protecting your workspace
+          </p>
+        )}
       </header>
 
       <div className="mt-8 flex flex-col gap-2 sm:flex-row">
@@ -152,20 +186,27 @@ export function Simulation() {
         </button>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        {EXAMPLES.map((e) => (
-          <button
-            key={e}
-            onClick={() => {
-              setText(e);
-              run(e);
-            }}
-            className="rounded-pill bg-cream-deep px-3.5 py-1.5 text-xs font-semibold text-ink-soft transition-colors duration-fast hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
-          >
-            {e}
-          </button>
-        ))}
-      </div>
+      {/* popular rules — most people won't know what to type, so they don't have to */}
+      <section className="mt-6">
+        <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
+          Popular rules — try one with a click
+        </h2>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {POPULAR_RULES.map((e) => (
+            <button
+              key={e}
+              onClick={() => {
+                setText(e);
+                run(e);
+              }}
+              disabled={busy}
+              className="rounded-card bg-surface/60 px-4 py-3 text-left text-sm font-semibold shadow-soft transition-all duration-fast ease-brand-out hover:-translate-y-0.5 hover:shadow-lift disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      </section>
 
       {error && (
         <p className="mt-5 rounded-card bg-surface/70 p-4 text-sm font-semibold shadow-soft" role="alert">
@@ -194,6 +235,9 @@ export function Simulation() {
               </p>
             </div>
           </div>
+
+          {/* who is affected — the distinct people/agents behind the changed work */}
+          <AffectedLine res={res} />
 
           {/* examples affected */}
           {res.would_have_stopped.length > 0 && (
@@ -243,6 +287,20 @@ export function Simulation() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Who the rule touches, read from the replayed decisions — never guessed. */
+function AffectedLine({ res }: { res: SimResult }) {
+  const actors = [...new Set(res.decisions.filter((d) => d.changed).map((d) => d.actor))];
+  if (actors.length === 0) return null;
+  return (
+    <p className="text-sm text-ink-soft">
+      <span className="font-bold lowercase text-ink">who&apos;s affected: </span>
+      {actors.slice(0, 4).join(", ")}
+      {actors.length > 4 ? ` and ${actors.length - 4} more` : ""} — everyone else&apos;s work is
+      untouched.
+    </p>
   );
 }
 

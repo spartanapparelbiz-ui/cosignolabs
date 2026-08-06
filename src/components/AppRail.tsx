@@ -55,7 +55,7 @@ const PRIMARY = [
 const SECONDARY = [
   { href: "/app/trust", label: "trust", icon: ShieldCheck },
   { href: "/app/monitoring", label: "monitoring", icon: Gauge },
-  { href: "/app/mission-control", label: "control", icon: Radar },
+  { href: "/app/mission-control", label: "live work", icon: Radar },
   { href: "/app/twins", label: "capabilities", icon: Boxes },
   { href: "/app/simulation", label: "simulate", icon: FlaskConical },
   { href: "/app/templates", label: "templates", icon: LayoutTemplate },
