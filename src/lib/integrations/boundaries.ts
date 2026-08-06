@@ -109,7 +109,9 @@ export function effectiveBoundary(
 ): IntegrationBoundary {
   if (rules.length === 0) return base;
   const actions = base.actions.map((row) => {
-    const ctx: RuleContext = { target, summary: row.summary };
+    // Normalized identity, same as the live proposal path — the boundary a
+    // person reads here is computed exactly the way the door computes it.
+    const ctx: RuleContext = { target, actionId: row.id, tier: row.tier, summary: row.summary };
     const decision = applyRules(rules, ctx);
     if (!decision.requirement) return row;
     const folded = applyRequirementToTier(row.tier, decision.requirement);

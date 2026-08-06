@@ -93,7 +93,13 @@ export async function proposeConnectorAction(
   const rules = await store.listPermissionRules(userId).catch(() => []);
   if (rules.length > 0) {
     const ctx: RuleContext = {
+      // The action's normalized identity: which system, and which capability.
+      // Rules are matched on these, never on `summary` — that is carried only
+      // for label conditions and the audit note.
       target: conn.provider_key,
+      actionId: input.capability,
+      risk: risk.risk,
+      tier: baseTier,
       category: conn.kind,
       summary,
       amount: argAmount(input.args ?? {}),

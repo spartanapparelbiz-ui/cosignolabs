@@ -4,6 +4,15 @@ import type {
   RuleRequirement,
   Tier,
 } from "./types";
+import {
+  normalizeAction,
+  operationCovers,
+  scopeCovers,
+  scopeLabel,
+  OPERATION_LABEL,
+  type NormalizedAction,
+  type Operation,
+} from "./ruleIntents";
 
 /**
  * Custom permission rules — a user's plain-language policy over what cosigno
@@ -33,49 +42,66 @@ const REQUIREMENT_RANK: Record<RuleRequirement, number> = {
 };
 
 /**
- * Integration / category keywords → a normalized target token. Matching is
- * loose on purpose (an email rule should also govern a Gmail connection), so
- * the token is compared with `contains` at enforcement time.
+ * Words that name a SCOPE — which system the rule governs. Each resolves to a
+ * scope token from `SCOPES`, and from there to an explicit set of providers.
+ * Nothing downstream re-reads the sentence; the token is all that survives.
+ *
+ * Order matters: the most specific name wins, so "gmail" beats the generic
+ * "email" and a rule about one provider is never widened to its whole family.
  */
-const TARGET_KEYWORDS: [RegExp, string][] = [
+const SCOPE_KEYWORDS: [RegExp, string][] = [
   [/\bgmail\b/, "gmail"],
   [/\boutlook\b/, "outlook"],
-  [/\b(e-?mails?|inbox)\b/, "email"],
   [/\bslack\b/, "slack"],
   [/\bgithub\b/, "github"],
-  [/\b(stripe|payments?|invoices?|refunds?|charges?|billing)\b/, "payment"],
-  [/\b(calendar|meetings?|events?)\b/, "calendar"],
-  [/\b(drive|dropbox|files?|folders?|documents?|docs?)\b/, "files"],
   [/\bnotion\b/, "notion"],
-  [/\bhubspot\b/, "hubspot"],
-  [/\bsalesforce\b/, "salesforce"],
-  [/\blinear\b/, "linear"],
-  [/\b(jira|asana|trello|clickup)\b/, "project"],
-  [/\bshopify\b/, "shopify"],
-  [/\b(quickbooks|xero)\b/, "accounting"],
-  [/\b(crm|erp|internal|proprietary|private api|our api)\b/, "internal"],
+  [/\bstripe\b/, "stripe"],
+  [/\bdropbox\b/, "dropbox"],
+  [/\bgoogle drive\b|\bdrive\b/, "google-drive"],
+  [/\bgoogle calendar\b/, "google-calendar"],
+  [/\b(e-?mails?|inbox|mailbox)\b/, "email"],
+  [/\b(calendar|meetings?|events?)\b/, "calendar"],
+  [/\b(files?|folders?|documents?|docs?)\b/, "files"],
+  [/\b(payments?|invoices?|refunds?|charges?|billing)\b/, "payment"],
+  [/\b(repos?|repositor(y|ies)|pull requests?|prs?|issues?|branch(es)?|code)\b/, "code"],
+  [/\b(channels?|messages?)\b/, "chat"],
+  [/\b(pages?|notes?|wiki)\b/, "docs"],
 ];
 
 /**
- * Action verbs cosigno might take — the primary one governs the rule. Patterns
- * tolerate common inflections (post/posts/posting/posted, move/moved…) so a
- * rule reads naturally in past or present tense.
+ * Words that name an OPERATION — the one thing the rule governs. Each resolves
+ * to a member of the closed `Operation` set, and the operation id is the only
+ * thing enforcement ever compares.
+ *
+ * Ordered most-specific first, because English overlaps: "send a payment" is a
+ * payment, not a send, and "delete" beats "archive" in "delete archived files".
+ * Every pattern is anchored with word boundaries and spells out its own
+ * inflections — no open-ended stem, which is what let "senders" read as "send".
  */
-const VERB_KEYWORDS: [RegExp, string][] = [
-  [/\brefund(s|ed|ing)?\b/, "refund"],
-  [/\b(pay|pays|paid|paying|payments?|charges?|charged|wire[sd]?|transfers?|transferred)\b/, "payment"],
-  [/\bpost(s|ed|ing)?\b/, "post"],
-  [/\b(send|sends|sending|sent)\b/, "send"],
-  [/\bdraft(s|ed|ing)?\b/, "draft"],
-  [/\b(delete[sd]?|deleting|remove[sd]?|removing|destroy(s|ed|ing)?)\b/, "delete"],
-  [/\bclos(e|es|ed|ing)\b/, "close"],
-  [/\bmerg(e|es|ed|ing)\b/, "merge"],
-  [/\bmov(e|es|ed|ing)\b/, "move"],
-  [/\barchiv(e|es|ed|ing)\b/, "archive"],
-  [/\bdeploy(s|ed|ing|ment)?\b/, "deploy"],
-  [/\bcancel(s|ed|led|ing|ling)?\b/, "cancel"],
-  [/\b(create[sd]?|creating|add|adds|added|adding)\b/, "create"],
-  [/\b(update[sd]?|updating|edit(s|ed|ing)?|change[sd]?|changing)\b/, "update"],
+const OPERATION_KEYWORDS: [RegExp, string][] = [
+  [/\brefunds?\b|\brefund(ed|ing)\b/, "refund"],
+  [
+    /\b(pay|pays|paid|paying|payments?|charges?|charged|charging|wire|wires|wired|transfers?|transferred|spend|spends|spending|spent)\b/,
+    "payment",
+  ],
+  [/\bdeploys?\b|\bdeploy(ed|ing|ment|ments)\b|\brelease[sd]?\b|\breleasing\b/, "deploy"],
+  [/\bdeletes?\b|\bdeleted\b|\bdeleting\b|\bremoves?\b|\bremoved\b|\bremoving\b|\bdestroys?\b|\bdestroyed\b|\bdestroying\b|\bpurges?\b|\btrash(es|ed|ing)?\b|\bwipes?\b|\bwiped\b/, "delete"],
+  [/\barchives?\b|\barchived\b|\barchiving\b/, "archive"],
+  [/\bpublish(es|ed|ing)?\b/, "publish"],
+  [/\bdrafts?\b|\bdrafted\b|\bdrafting\b|\bcomposes?\b|\bcomposed\b|\bcomposing\b/, "draft"],
+  // "email" as a bare word is the NOUN far more often than the verb, and it is
+  // already how a person names the scope. Only its unambiguous verb forms
+  // count, so "delete email" is a delete and not a send.
+  [/\bsends?\b|\bsent\b|\bsending\b|\bemailed\b|\bemailing\b|\bforwards?\b|\bforwarded\b|\bforwarding\b|\breplies\b|\breply\b|\breplied\b|\breplying\b/, "send"],
+  [/\bposts?\b|\bposted\b|\bposting\b|\bannounces?\b|\bannounced\b|\bannouncing\b/, "post"],
+  [/\bmerges?\b|\bmerged\b|\bmerging\b/, "merge"],
+  [/\bcloses?\b|\bclosed\b|\bclosing\b|\bresolves?\b|\bresolved\b|\bresolving\b/, "close"],
+  [/\bcancels?\b|\bcancell?ed\b|\bcancell?ing\b|\bvoids?\b|\bvoided\b|\brevokes?\b|\brevoked\b/, "cancel"],
+  [/\brenames?\b|\brenamed\b|\brenaming\b/, "rename"],
+  [/\bmoves?\b|\bmoved\b|\bmoving\b|\breschedules?\b|\brescheduled\b|\brescheduling\b/, "move"],
+  [/\bcreates?\b|\bcreated\b|\bcreating\b|\badds?\b|\badded\b|\badding\b|\bopens?\b|\bopened\b|\bopening\b/, "create"],
+  [/\bupdates?\b|\bupdated\b|\bupdating\b|\bedits?\b|\bedited\b|\bediting\b|\bchanges?\b|\bchanged\b|\bchanging\b|\blabels?\b|\blabell?ed\b|\bmodif(y|ies|ied|ying)\b/, "update"],
+  [/\breads?\b|\breading\b|\bviews?\b|\bviewed\b|\bviewing\b|\bsearch(es|ed|ing)?\b|\bscans?\b|\bscanned\b|\bscanning\b|\blists?\b|\blisted\b|\blisting\b|\bbrowse[sd]?\b|\bbrowsing\b/, "read"],
 ];
 
 /** Detect the requirement level from the sentence, most-specific first. */
@@ -105,6 +131,48 @@ function detectRequirement(t: string): { requirement: RuleRequirement; explicit:
 function firstMatch(pairs: [RegExp, string][], t: string): string | null {
   for (const [re, token] of pairs) if (re.test(t)) return token;
   return null;
+}
+
+/**
+ * Words that introduce the constraint. Whatever the rule restricts comes after
+ * one of these.
+ */
+const CONSTRAINT_TRIGGER =
+  /\b(never|cannot|can'?t|not allowed|forbid|forbidden|do not|don'?t|must not|before|without|unless|require[sd]?|requiring|needs?|always ask|ask before|block|prevent|prohibit)\b/;
+
+/**
+ * Which operation does the rule actually govern?
+ *
+ * A sentence can name several — "draft Slack messages but never post in
+ * #announcements" names both drafting and posting, and only one of them is
+ * being restricted. Table order alone gets this wrong, so the operation
+ * governed is the FIRST one appearing after the word that introduces the
+ * constraint ("never", "before", "without"…). Deterministic, and it matches
+ * how the sentence reads aloud.
+ *
+ * With no trigger word, or nothing after it, table order decides.
+ */
+function detectOperation(t: string): string | null {
+  const hits: { token: string; at: number }[] = [];
+  for (const [re, token] of OPERATION_KEYWORDS) {
+    const m = re.exec(t);
+    if (m) hits.push({ token, at: m.index });
+  }
+  if (hits.length === 0) return null;
+  if (hits.length === 1) return hits[0].token;
+
+  const trigger = CONSTRAINT_TRIGGER.exec(t);
+  if (trigger) {
+    const after = hits
+      .filter((h) => h.at > trigger.index)
+      .sort((a, b) => a.at - b.at);
+    if (after.length > 0) return after[0].token;
+  }
+  // No trigger to disambiguate: fall back to table order (most specific first).
+  for (const [, token] of OPERATION_KEYWORDS) {
+    if (hits.some((h) => h.token === token)) return token;
+  }
+  return hits[0].token;
 }
 
 /** Comparator modifiers that qualify a threshold, and the op each implies. */
@@ -149,21 +217,67 @@ function detectCondition(t: string): RuleCondition {
  */
 export function parsePermissionRule(text: string): ParsedRule {
   const t = ` ${text.toLowerCase().trim()} `;
-  const target = firstMatch(TARGET_KEYWORDS, t) ?? "any";
-  const verb = firstMatch(VERB_KEYWORDS, t) ?? "any";
+  const target = firstMatch(SCOPE_KEYWORDS, t) ?? "any";
+  const verb = detectOperation(t) ?? "any";
   const condition = detectCondition(t);
-  const { requirement, explicit } = detectRequirement(t);
+  const { requirement } = detectRequirement(t);
 
-  // High confidence when we pinned any real structure; low when it all fell to
-  // defaults (couldn't tell what tool/action/level the user meant).
-  const gotStructure =
-    explicit || target !== "any" || verb !== "any" || condition.kind !== "none";
+  /**
+   * Confidence is now about PRECISION, not about whether anything at all was
+   * extracted. A rule that names one operation is exact; a rule that names
+   * none governs every operation in its scope, which is a far larger claim
+   * than most people mean to make and has to be shown to them before it binds.
+   */
+  const confidence: "high" | "low" = verb === "any" ? "low" : "high";
+
+  return { target, verb, condition, requirement, confidence };
+}
+
+/**
+ * What cosigno understood, in the three terms that decide everything: the
+ * operation, what it demands, and how far it reaches. This is the same data
+ * enforcement uses — not a description generated alongside it — so a person
+ * reading this panel is reading the rule that will actually run.
+ */
+export interface RuleReading {
+  /** e.g. "Send" — the one operation governed, or every one in scope. */
+  action: string;
+  /** e.g. "Approval required". */
+  requirement: string;
+  /** e.g. "Gmail and Outlook". */
+  scope: string;
+  /** Present when the rule only applies above/below a value, or to a channel. */
+  qualifier?: string;
+  /** True when the rule names no operation and therefore governs all of them. */
+  broad: boolean;
+}
+
+const REQUIREMENT_READING: Record<RuleRequirement, string> = {
+  auto: "No change — runs as it already did",
+  approve: "Approval required",
+  sign: "Your signature required",
+  never: "Never allowed",
+};
+
+export function readRule(r: ParsedRule): RuleReading {
+  const broad = r.verb === "any";
+  const c = r.condition;
+  let qualifier: string | undefined;
+  if (c.kind === "amount" && typeof c.value === "number") {
+    const word = c.op === "<" || c.op === "<=" ? "under" : "over";
+    qualifier = `Only ${word} $${c.value.toLocaleString()}`;
+  } else if (c.kind === "channel" && c.match) {
+    qualifier = `Only in ${c.match}`;
+  } else if (c.kind === "label" && c.match) {
+    qualifier = `Only when labelled "${c.match}"`;
+  }
+
   return {
-    target,
-    verb,
-    condition,
-    requirement,
-    confidence: gotStructure ? "high" : "low",
+    action: broad ? "Every action" : OPERATION_LABEL[r.verb as Operation] ?? r.verb,
+    requirement: REQUIREMENT_READING[r.requirement],
+    scope: scopeLabel(r.target),
+    qualifier,
+    broad,
   };
 }
 
@@ -188,13 +302,26 @@ export function describeRule(r: ParsedRule): string {
 
 /* ----------------------------------------------------- enforcement (tighten) */
 
-/** The context an action carries when rules are checked at the Boundary door. */
+/**
+ * What an action declares about itself at the Boundary door.
+ *
+ * `providerKey` + `actionId` (or `category`) are normalized into exactly one
+ * (provider, operation) pair before any rule is consulted. `summary` is
+ * carried for logs and for label conditions only — it is NEVER used to decide
+ * whether a rule applies, which is the whole point of this module.
+ */
 export interface RuleContext {
-  /** Connection provider key or kind (e.g. "stripe", "custom", "slack"). */
-  target: string;
-  /** A category the action falls under (e.g. "payment"), if known. */
+  /** Connection provider key (e.g. "gmail", "stripe"), when there is one. */
+  target?: string;
+  /** The connector action id (e.g. "send_message"), when there is one. */
+  actionId?: string;
+  /** Cosigno's own action category (e.g. "send_email"), when there is one. */
   category?: string;
-  /** Free text (the action summary) used for loose verb matching. */
+  /** The capability's declared risk, used only for tools with no table entry. */
+  risk?: "read" | "write" | "destructive";
+  /** The server's resolved tier — recovers the risk class when none was declared. */
+  tier?: Tier;
+  /** Human summary — for label conditions and audit text, never for matching. */
   summary?: string;
   /** Amount involved, if the action's args carry one. */
   amount?: number;
@@ -203,90 +330,18 @@ export interface RuleContext {
 }
 
 /**
- * A target token expands to related words so a rule about "payment" fires on a
- * Stripe connection whose action reads "issue refund", etc. Matching stays
- * loose but never matches "any" implicitly.
+ * Resolve an action to its normalized identity — the single place a
+ * RuleContext becomes a (provider, operation) pair, so every caller of
+ * `applyRules` is judged by exactly the same reading.
  */
-const TARGET_SYNONYMS: Record<string, string[]> = {
-  payment: ["payment", "refund", "pay", "charge", "invoice", "billing", "stripe", "transfer", "wire", "quickbooks", "xero"],
-  // "send" was here and did not belong: a target names WHAT a rule governs,
-  // not what is being done to it. It made every action whose summary contained
-  // the word "send" look like an email action.
-  email: ["email", "gmail", "outlook", "mail", "inbox"],
-  gmail: ["gmail", "email", "mail", "inbox"],
-  outlook: ["outlook", "email", "mail"],
-  slack: ["slack", "channel", "message", "post"],
-  github: ["github", "issue", "pull request", "pr", "repo", "commit"],
-  calendar: ["calendar", "event", "meeting", "schedule"],
-  files: ["file", "drive", "dropbox", "folder", "document", "doc"],
-  notion: ["notion", "page"],
-  hubspot: ["hubspot", "contact", "crm", "lead"],
-  salesforce: ["salesforce", "crm", "lead", "opportunity"],
-  linear: ["linear", "issue", "ticket"],
-  project: ["jira", "asana", "trello", "clickup", "task", "ticket"],
-  shopify: ["shopify", "order", "product", "cart"],
-  accounting: ["quickbooks", "xero", "invoice", "ledger"],
-  internal: ["internal", "crm", "erp", "custom", "private"],
-};
-
-/**
- * Match a synonym as a WORD — with its ordinary inflections, and nothing else.
- *
- * Plain `includes` made "senders" match "send", so a rule about SENDING email
- * fired on "scan your inbox for promotional senders", which only reads it. A
- * rule that stops the wrong things is worse than no rule at all: people stop
- * believing the ones that are right.
- *
- * The allowed endings are named explicitly rather than "any few letters",
- * because "any few letters" is what let "senders" through in the first place.
- * A needle ending in `e` also matches its e-dropped forms, so "delete" still
- * covers "deleting" and "deleted".
- */
-const INFLECTIONS = "(?:s|es|d|ed|ing)?";
-
-function containsWord(hay: string, needle: string): boolean {
-  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const forms = [`${esc(needle)}${INFLECTIONS}`];
-  if (needle.endsWith("e")) forms.push(`${esc(needle.slice(0, -1))}(?:ing|ed)`);
-  return new RegExp(`\\b(?:${forms.join("|")})\\b`).test(hay);
-}
-
-function targetMatches(rule: PermissionRuleRecord, ctx: RuleContext): boolean {
-  if (rule.target === "any") return true;
-  const hay = `${ctx.target} ${ctx.category ?? ""} ${ctx.summary ?? ""}`.toLowerCase();
-  const needles = TARGET_SYNONYMS[rule.target] ?? [rule.target];
-  return needles.some((n) => containsWord(hay, n));
-}
-
-/**
- * A canonical verb token expands back to its synonyms so a rule about
- * "payment" (which the parser collapses pay/charge/wire/transfer into) also
- * matches an action summarized "create transfer" or "issue charge". Without
- * this reverse expansion a block/approval rule silently fails to fire on any
- * action worded with a synonym rather than the canonical word.
- */
-const VERB_SYNONYMS: Record<string, string[]> = {
-  refund: ["refund"],
-  payment: ["payment", "pay", "charge", "wire", "transfer", "remit", "disburse", "invoice"],
-  post: ["post", "publish", "announce", "message", "comment"],
-  send: ["send", "sent", "email", "deliver", "dispatch", "mail"],
-  draft: ["draft", "compose", "prepare"],
-  delete: ["delete", "remove", "destroy", "purge", "erase", "drop", "wipe", "trash"],
-  close: ["close", "resolve"],
-  merge: ["merge"],
-  move: ["move", "reschedule", "relocate"],
-  archive: ["archive"],
-  deploy: ["deploy", "release", "ship", "promote", "rollout"],
-  cancel: ["cancel", "void", "revoke", "abort"],
-  create: ["create", "add", "new", "open", "issue"],
-  update: ["update", "edit", "change", "modify", "patch", "set"],
-};
-
-function verbMatches(rule: PermissionRuleRecord, ctx: RuleContext): boolean {
-  if (rule.verb === "any") return true;
-  const hay = `${ctx.summary ?? ""}`.toLowerCase();
-  const needles = VERB_SYNONYMS[rule.verb] ?? [rule.verb];
-  return needles.some((n) => containsWord(hay, n));
+export function normalizeContext(ctx: RuleContext): NormalizedAction {
+  return normalizeAction({
+    category: ctx.category,
+    providerKey: ctx.target,
+    actionId: ctx.actionId,
+    risk: ctx.risk,
+    tier: ctx.tier,
+  });
 }
 
 function conditionMatches(rule: PermissionRuleRecord, ctx: RuleContext): boolean {
@@ -329,14 +384,21 @@ export interface RuleDecision {
 
 /**
  * The single most restrictive requirement across all enabled, matching rules.
- * Returns `{requirement:null}` when no rule applies (behavior unchanged).
+ * Returns `{requirement:null}` when no rule applies.
+ *
+ * THE one place a rule is judged against an action, for previews and for live
+ * execution alike. The action is normalized once, then every test is set
+ * membership over closed vocabularies: does the rule's scope cover this
+ * provider, and is the rule's operation this operation. No sentence is read,
+ * so no rule can fire on a word that merely appears in a summary.
  */
 export function applyRules(rules: PermissionRuleRecord[], ctx: RuleContext): RuleDecision {
+  const action = normalizeContext(ctx);
   let best: RuleDecision = { requirement: null, rule: null };
   for (const rule of rules) {
     if (!rule.enabled) continue;
-    if (!targetMatches(rule, ctx)) continue;
-    if (!verbMatches(rule, ctx)) continue;
+    if (!scopeCovers(rule.target, action.provider)) continue;
+    if (!operationCovers(rule.verb, action.operation)) continue;
     if (!conditionMatches(rule, ctx)) continue;
     if (best.requirement === null || REQUIREMENT_RANK[rule.requirement] > REQUIREMENT_RANK[best.requirement]) {
       best = { requirement: rule.requirement, rule };

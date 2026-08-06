@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Check, Loader2, ShieldCheck, TriangleAlert } from "lucide-react";
+import { GALLERY } from "./galleryRules";
 
 /**
  * Safety rules — "test an AI rule before turning it on."
@@ -24,8 +25,23 @@ interface Affected {
   to: string;
 }
 
+/** What cosigno understood — the same structure enforcement matches on. */
+interface RuleReading {
+  action: string;
+  requirement: string;
+  scope: string;
+  qualifier?: string;
+  broad: boolean;
+}
+
 interface CheckResult {
-  rule: { text: string; description: string; requirement: string; confidence: "high" | "low" };
+  rule: {
+    text: string;
+    description: string;
+    requirement: string;
+    confidence: "high" | "low";
+    reading: RuleReading;
+  };
   checked: number;
   missions_affected: number;
   changed: number;
@@ -42,48 +58,7 @@ interface SavedRule {
   enabled: boolean;
 }
 
-/**
- * The starting points. Nobody opens a blank box and invents a good safety
- * rule, so the page offers the ones people actually want — grouped by what a
- * person is protecting, not by which system enforces them.
- *
- * Every sentence here is one the rule parser reads confidently. A gallery that
- * taught phrasings the engine can't understand would be worse than no gallery.
- */
-const GALLERY: { group: string; rules: string[] }[] = [
-  {
-    group: "money",
-    rules: [
-      "Require approval before refunds",
-      "Require my signature for payments over $500",
-      "Always ask before sending an invoice",
-    ],
-  },
-  {
-    group: "things that can't be undone",
-    rules: [
-      "Always ask before deleting files",
-      "Never delete a GitHub repository",
-      "Always ask before deleting a Notion page",
-    ],
-  },
-  {
-    group: "anything that leaves your workspace",
-    rules: [
-      "Always ask before sending email",
-      "Always ask before posting to Slack",
-      "Require approval before publishing content",
-    ],
-  },
-  {
-    group: "shipping code",
-    rules: [
-      "Require approval before deploying",
-      "Always ask before merging a pull request",
-      "Never delete production databases",
-    ],
-  },
-];
+
 
 /**
  * What cosigno now promises, said as behaviour rather than as a requirement
@@ -110,7 +85,7 @@ const VERDICT: Record<
   review: {
     tone: "warn",
     title: "read this one before turning it on.",
-    body: "it reaches further than most rules do — check the list below and make sure every one of those is something you want stopped.",
+    body: "it reaches further than most rules do. make sure everything it would catch is something you actually want stopped.",
   },
   no_effect: {
     tone: "flat",
@@ -387,13 +362,7 @@ function Report({
 
   return (
     <div className="mt-8">
-      <div className="rounded-card border border-line bg-surface p-5 shadow-soft">
-        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ink-soft">the rule</p>
-        <p className="mt-1.5 font-display text-xl font-bold">{result.rule.text}</p>
-        <p className="mt-1 text-sm text-ink-soft">
-          cosigno reads this as: <span className="font-semibold text-ink">{result.rule.description}</span>
-        </p>
-      </div>
+      <Understood rule={result.rule} />
 
       <h2 className="mt-8 font-display text-xl font-bold lowercase">over your previous work</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -467,6 +436,56 @@ function Report({
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * "You wrote / cosigno understood" — the whole trust argument of this page in
+ * one panel. The three terms shown are literally the three the engine matches
+ * on, so there is nothing understood that is not displayed, and nothing
+ * displayed that is not enforced.
+ */
+function Understood({ rule }: { rule: CheckResult["rule"] }) {
+  const r = rule.reading;
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div className="rounded-card border border-line bg-surface p-5 shadow-soft">
+        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ink-soft">you wrote</p>
+        <p className="mt-1.5 font-display text-lg font-bold">{rule.text}</p>
+      </div>
+
+      <div className="rounded-card border border-line bg-surface p-5 shadow-soft">
+        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ink-soft">
+          cosigno understood
+        </p>
+        <dl className="mt-2.5 flex flex-col gap-2">
+          <Term label="action" value={r.action} />
+          <Term label="requirement" value={r.requirement} />
+          <Term label="scope" value={r.scope} />
+          {r.qualifier && <Term label="only when" value={r.qualifier} />}
+        </dl>
+      </div>
+
+      {r.broad && (
+        <p className="flex items-start gap-2.5 rounded-card border border-ink bg-surface p-4 text-sm shadow-soft sm:col-span-2">
+          <TriangleAlert size={16} className="mt-0.5 shrink-0 text-ink" aria-hidden="true" />
+          <span>
+            <b>this rule doesn&apos;t name one action.</b> as written it governs{" "}
+            <b>everything</b> cosigno does in {r.scope.toLowerCase()} — including reading. name the
+            action you mean (send, delete, post…) and it will only ever catch that.
+          </span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Term({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <dt className="w-24 shrink-0 text-[11px] font-bold lowercase text-ink-soft">{label}</dt>
+      <dd className="text-sm font-bold">{value}</dd>
     </div>
   );
 }

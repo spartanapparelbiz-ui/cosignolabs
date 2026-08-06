@@ -8,6 +8,7 @@ import {
   applyRules,
   describeRule,
   parsePermissionRule,
+  readRule,
 } from "@/lib/rules";
 import type { ActionRecord, PermissionRuleRecord, Tier } from "@/lib/types";
 
@@ -104,7 +105,8 @@ export async function POST(req: NextRequest) {
 
     for (const action of past) {
       const decision = applyRules([draft], {
-        target: action.category,
+        // The action's own category IS its normalized identity for work
+        // cosigno did itself; there is no provider key to pass.
         category: action.category,
         summary: action.summary,
         amount: amountOf(action),
@@ -159,11 +161,17 @@ export async function POST(req: NextRequest) {
           description: describeRule(parsed),
           requirement: parsed.requirement,
           confidence: parsed.confidence,
+          // What cosigno understood, from the SAME structure enforcement uses.
+          reading: readRule(parsed),
         },
         checked: past.length,
         missions_affected: missions.size,
         changed,
-        unaffected: past.length - changed - alreadyCovered,
+        // Everything the rule does not stop carries on exactly as before —
+        // including the actions it matched but had nothing to add to. Reporting
+        // those separately made the three numbers on screen fail to add up to
+        // the number of things checked, which reads as a bug in the check.
+        unaffected: past.length - changed,
         already_covered: alreadyCovered,
         // Newest first, capped — the list is evidence, not an export.
         would_ask: wouldAsk.slice(0, 8),

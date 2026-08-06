@@ -130,93 +130,192 @@ function rule(text: string): PermissionRuleRecord {
   };
 }
 
-describe("applyRules (most restrictive matching rule wins)", () => {
-  it("matches a payment rule against a refund action by synonym", () => {
+describe("applyRules — matching is on normalized identity, never on words", () => {
+  /**
+   * Every case below states the action the way the system states it: which
+   * provider, and which capability id. Nothing here passes a sentence for the
+   * engine to interpret, because the engine no longer interprets sentences.
+   */
+
+  it("matches a refund rule against Stripe's refund action", () => {
     const rules = [rule("never refund more than $200 without my signature")];
-    const d = applyRules(rules, { target: "custom", summary: "Acme: issue refund", amount: 250 });
+    const d = applyRules(rules, { target: "stripe", category: "refund", amount: 250 });
     expect(d.requirement).toBe("sign");
   });
 
   it("does not fire the amount rule below the threshold", () => {
     const rules = [rule("never refund more than $200 without my signature")];
-    const d = applyRules(rules, { target: "custom", summary: "Acme: issue refund", amount: 50 });
+    const d = applyRules(rules, { target: "stripe", category: "refund", amount: 50 });
     expect(d.requirement).toBeNull();
   });
 
   it("disabled rules never fire", () => {
     const r = rule("never delete anything");
     r.enabled = false;
-    const d = applyRules([r], { target: "custom", summary: "delete record" });
-    expect(d.requirement).toBeNull();
+    expect(applyRules([r], { target: "google", actionId: "trash" }).requirement).toBeNull();
   });
 
   it("picks the strictest when several match", () => {
     const rules = [rule("any action requires approval"), rule("never delete anything")];
-    const d = applyRules(rules, { target: "custom", summary: "delete the record" });
+    const d = applyRules(rules, { target: "google", actionId: "trash" });
     expect(d.requirement).toBe("never");
   });
 
-  // Regression: rule verbs collapse synonyms; matching must expand them back so
-  // a rule fires on a synonym-worded action summary.
-  it("matches a 'delete' rule against a 'Remove contact' action (synonym)", () => {
-    const d = applyRules([rule("never delete anything")], { target: "custom", summary: "HubSpot: Remove contact" });
-    expect(d.requirement).toBe("never");
-  });
+  /* -------------------------------------------------- zero false positives */
 
-  it("matches a 'wire money' rule against a 'Create transfer' action (synonym)", () => {
-    const d = applyRules([rule("never wire money")], { target: "custom", summary: "Acme: Create transfer" });
-    expect(d.requirement).toBe("never");
-  });
+  /**
+   * The rule this whole layer exists for. "Send email" must govern sending and
+   * NOTHING else in the mailbox — not searching it, not reading a message, not
+   * labelling one. Previously every one of these matched, because each summary
+   * sentence happened to contain a word the rule also used.
+   */
+  it("a 'send email' rule governs sending only, across every mail operation", () => {
+    const r = [rule("always ask before sending email")];
+    const fires = (actionId: string) =>
+      applyRules(r, { target: "google", actionId }).requirement !== null;
 
-  /* Regression: synonyms matched as bare substrings, so a rule about SENDING
-     email fired on reading it — "promotional senders" contains "send". A rule
-     that stops the wrong actions is worse than no rule, because the person
-     stops believing the ones that are right. */
-  it("does not fire a 'send email' rule on an action that only reads mail", () => {
-    const d = applyRules([rule("always ask before sending email")], {
-      target: "search",
-      category: "search",
-      summary: "scan your inbox for newsletter and promotional senders from the last 30 days.",
-    });
-    expect(d.requirement).toBeNull();
-  });
-
-  it("still fires that rule on an action that actually sends mail", () => {
-    const d = applyRules([rule("always ask before sending email")], {
-      target: "send_email",
-      category: "send_email",
-      summary: "send the email about the proposal to the recipient named in your command.",
-    });
-    expect(d.requirement).toBe("approve");
-  });
-
-  it("keeps ordinary inflections matching (delete → deleting/deleted)", () => {
-    for (const summary of ["deleting the stale records", "deleted the old branch", "delete it"]) {
-      expect(applyRules([rule("never delete anything")], { target: "custom", summary }).requirement).toBe(
-        "never"
-      );
+    expect(fires("send_message")).toBe(true);
+    for (const readOnly of ["search_messages", "read_message", "create_draft", "archive", "label", "mark_read", "trash"]) {
+      expect(fires(readOnly), `send-rule must not fire on ${readOnly}`).toBe(false);
     }
   });
 
-  it("does not let an unrelated word that merely starts the same match", () => {
-    // "postpone" is not "post"; "payload" is not "pay".
-    expect(
-      applyRules([rule("always ask before posting to slack")], {
-        target: "slack",
-        summary: "postpone the slack reminder",
-      }).requirement
-    ).toBeNull();
+  it("a 'delete' rule governs deleting only, not reading the same resource", () => {
+    const r = [rule("never delete a github repository")];
+    const fires = (actionId: string) =>
+      applyRules(r, { target: "github", actionId }).requirement !== null;
+    for (const readOnly of ["whoami", "list_repos", "list_issues", "create_issue"]) {
+      expect(fires(readOnly), `delete-rule must not fire on ${readOnly}`).toBe(false);
+    }
+    // GitHub exposes no delete capability today, so the rule binds nothing —
+    // which the page states rather than implying coverage it does not have.
   });
 
-  // Regression: a non-numeric string arg must NOT read as 0 and satisfy "under $X".
-  it("does not fire an 'under $100' rule when the amount is non-numeric/unknown", () => {
+  it("a rule scoped to one provider never reaches another", () => {
+    const r = [rule("always ask before posting to slack")];
+    expect(applyRules(r, { target: "slack", actionId: "post_message" }).requirement).toBe("approve");
+    expect(applyRules(r, { target: "notion", actionId: "create_page" }).requirement).toBeNull();
+    expect(applyRules(r, { target: "google", actionId: "send_message" }).requirement).toBeNull();
+  });
+
+  it("an email-family rule covers both mail providers and nothing else", () => {
+    const r = [rule("always ask before sending email")];
+    expect(applyRules(r, { target: "google", actionId: "send_message" }).requirement).toBe("approve");
+    expect(applyRules(r, { target: "outlook", actionId: "send_message" }).requirement).toBe("approve");
+    expect(applyRules(r, { target: "slack", actionId: "post_message" }).requirement).toBeNull();
+  });
+
+  it("does not fire an 'under $100' rule when the amount is unknown", () => {
     const d = applyRules([rule("approve any payment under $100")], {
-      target: "custom",
-      summary: "Acme: charge customer",
-      // amount omitted (as argAmount would yield for a non-numeric value)
+      target: "stripe",
+      category: "payment",
     });
     expect(d.requirement).toBeNull();
   });
+});
+
+/* ------------------------------------------- the adversarial audit matrix -- */
+
+/**
+ * Every operation of every built-in provider, against a rule for every
+ * operation. A rule must fire on its own operation and on no other. This is
+ * the property the safety-rules page promises, checked exhaustively rather
+ * than sampled.
+ */
+describe("adversarial matrix: one rule fires on exactly one operation", () => {
+  const PROVIDER_RULES: { provider: string; scopeWord: string; actions: Record<string, string> }[] = [
+    {
+      provider: "google",
+      scopeWord: "gmail",
+      actions: {
+        search_messages: "read",
+        read_message: "read",
+        create_draft: "draft",
+        send_message: "send",
+        archive: "archive",
+        label: "update",
+        mark_read: "update",
+        trash: "delete",
+      },
+    },
+    {
+      provider: "outlook",
+      scopeWord: "outlook",
+      actions: {
+        search_messages: "read",
+        read_message: "read",
+        create_draft: "draft",
+        send_message: "send",
+        mark_read: "update",
+        trash: "delete",
+      },
+    },
+    {
+      provider: "github",
+      scopeWord: "github",
+      actions: { whoami: "read", list_repos: "read", list_issues: "read", create_issue: "create" },
+    },
+    {
+      provider: "slack",
+      scopeWord: "slack",
+      actions: { list_channels: "read", post_message: "post" },
+    },
+    {
+      provider: "notion",
+      scopeWord: "notion",
+      actions: { search_pages: "read", create_page: "create", append_note: "update" },
+    },
+    {
+      provider: "google-drive",
+      scopeWord: "google drive",
+      actions: {
+        list_files: "read",
+        create_text_file: "create",
+        update_text_file: "update",
+        trash_file: "delete",
+      },
+    },
+    {
+      provider: "google-calendar",
+      scopeWord: "google calendar",
+      actions: {
+        list_events: "read",
+        find_free_slots: "read",
+        create_event: "create",
+        delete_event: "delete",
+      },
+    },
+  ];
+
+  /** A sentence that unambiguously names one operation, for rule-building. */
+  const RULE_FOR: Record<string, (scope: string) => string> = {
+    read: (s) => `always ask before reading ${s}`,
+    draft: (s) => `always ask before drafting in ${s}`,
+    send: (s) => `always ask before sending in ${s}`,
+    post: (s) => `always ask before posting in ${s}`,
+    create: (s) => `always ask before creating in ${s}`,
+    update: (s) => `always ask before updating in ${s}`,
+    archive: (s) => `always ask before archiving in ${s}`,
+    delete: (s) => `always ask before deleting in ${s}`,
+  };
+
+  for (const { provider, scopeWord, actions } of PROVIDER_RULES) {
+    for (const [ruleOp, build] of Object.entries(RULE_FOR)) {
+      it(`${provider}: a "${ruleOp}" rule fires on ${ruleOp} actions only`, () => {
+        const parsed = parsePermissionRule(build(scopeWord));
+        // The rule must first have parsed to the operation it names.
+        expect(parsed.verb, `"${build(scopeWord)}" parsed as ${parsed.verb}`).toBe(ruleOp);
+
+        const r = [rule(build(scopeWord))];
+        for (const [actionId, actionOp] of Object.entries(actions)) {
+          const fired = applyRules(r, { target: provider, actionId }).requirement !== null;
+          expect(fired, `${ruleOp}-rule on ${provider}.${actionId} (a ${actionOp})`).toBe(
+            actionOp === ruleOp
+          );
+        }
+      });
+    }
+  }
 });
 
 /* ----------------------------------- enforcement at the connector Boundary */
