@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   X,
 } from "lucide-react";
+import { providersWithoutConnector } from "@/lib/ruleIntents";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { ConnectionInsight } from "@/components/account/ConnectionInsight";
 import { humanizeActionId, humanizeEndpoint } from "@/lib/integrations/engine/humanize";
@@ -340,6 +341,15 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
                     needs setup
                   </span>
                 )}
+                {/* "Configured but not connected" is a real, different state
+                    from "connected" and from "needs setup", and it was the
+                    only one with no label — an absence a reader has to infer.
+                    Naming it is what makes the other two mean something. */}
+                {p.configured && !conn && (
+                  <span className="rounded-pill px-2 py-0.5 text-[10px] font-bold lowercase text-ink-soft ring-1 ring-inset ring-line">
+                    ready to connect
+                  </span>
+                )}
                 <span className="ml-auto flex gap-2">
                   {conn ? (
                     <>
@@ -489,6 +499,8 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
           );
         })}
       </section>
+
+      <NotYetAvailable />
 
       {/* ---- custom MCP servers ---- */}
       <section className="flex flex-col gap-2.5">
@@ -680,6 +692,46 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
  * provisioned for this deployment yet. Nothing is broken — the feature just
  * isn't switched on — so we say exactly that, warmly, instead of an error.
  */
+/**
+ * Systems cosigno understands the words for but has no connector to — Stripe
+ * and Dropbox today.
+ *
+ * They are listed because a rule can name them, and a page that showed only
+ * what works would let a person assume anything unmentioned is handled. The
+ * list is derived from the connector tables, so it empties itself the day
+ * those connectors ship rather than needing to be remembered.
+ */
+function NotYetAvailable() {
+  const missing = providersWithoutConnector();
+  if (missing.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-2.5">
+      <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">not yet available</h4>
+      <div className="rounded-card bg-surface/60 p-4 shadow-soft">
+        <div className="flex flex-wrap items-center gap-2">
+          {missing.map((m) => (
+            <span
+              key={m.provider}
+              className="inline-flex items-center gap-1.5 rounded-pill bg-cream-deep px-2.5 py-1 text-xs font-bold text-ink-soft"
+            >
+              {m.label}
+              <span className="text-[10px] font-black uppercase tracking-wider">
+                no connector
+              </span>
+            </span>
+          ))}
+        </div>
+        <p className="mt-2.5 text-[11px] text-ink-soft">
+          cosigno cannot act in these yet — there is no connector for them, configured or
+          otherwise. a safety rule naming one is stored and understood, but it protects nothing
+          until the connector exists. nothing on this page is hidden: if a tool is not listed
+          anywhere above, cosigno cannot touch it.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 /** The panel's own title — one definition, shared by every state it can be in. */
 function ConnectionsHeading() {
   return (

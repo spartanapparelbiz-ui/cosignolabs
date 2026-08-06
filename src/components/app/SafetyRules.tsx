@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, Check, Loader2, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ArrowRight, Check, Info, Loader2, ShieldCheck, TriangleAlert } from "lucide-react";
 import { GALLERY } from "./galleryRules";
 
 /**
@@ -50,12 +50,29 @@ interface CheckResult {
   would_ask: Affected[];
   would_block: Affected[];
   recommendation: "safe" | "review" | "no_effect" | "no_history";
+  coverage: Coverage;
+}
+
+/** What a rule can actually govern today — see coverageFor(). */
+interface Coverage {
+  covered: { provider: string; label: string; capabilities: number }[];
+  noConnector: { provider: string; label: string }[];
+  noSuchCapability: { provider: string; label: string }[];
+  viaOwnWork: boolean;
+  unreachable: boolean;
 }
 
 interface SavedRule {
   id: string;
   text: string;
   enabled: boolean;
+}
+
+/** Join a list of names the way a person would say it. */
+function listNames(items: { label: string }[]): string {
+  const names = items.map((i) => i.label);
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
 
@@ -357,12 +374,24 @@ function Report({
   onTurnOn: () => void;
   alreadyOn: boolean;
 }) {
-  const verdict = VERDICT[result.recommendation];
+  /**
+   * A rule nothing can trigger must never be summarised as "safe to turn on" —
+   * that reads as "you'll be protected". The coverage notice above states the
+   * gap; the verdict has to agree with it rather than contradict it.
+   */
+  const verdict: (typeof VERDICT)[keyof typeof VERDICT] = result.coverage.unreachable
+    ? {
+        tone: "warn",
+        title: "turning this on would not protect anything yet.",
+        body: "the rule is understood and will be saved, but cosigno cannot perform the action it guards today. it starts working if that support is added.",
+      }
+    : VERDICT[result.recommendation];
   const affected = [...result.would_block, ...result.would_ask];
 
   return (
     <div className="mt-8">
       <Understood rule={result.rule} />
+      <CoverageNotice coverage={result.coverage} reading={result.rule.reading} />
 
       <h2 className="mt-8 font-display text-xl font-bold lowercase">over your previous work</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -427,12 +456,17 @@ function Report({
               </>
             ) : (
               <>
-                <ShieldCheck size={16} aria-hidden="true" /> turn this rule on
+                <ShieldCheck size={16} aria-hidden="true" />
+                {/* The button must not say "turn on" for something that will
+                    not do anything — that is the claim, restated as a verb. */}
+                {result.coverage.unreachable ? "save this rule anyway" : "turn this rule on"}
               </>
             )}
           </button>
           <p className="text-xs text-ink-soft">
-            you can turn it off again at any time. it never changes work that already happened.
+            {result.coverage.unreachable
+              ? "it will be kept and start working if cosigno gains this capability. you can remove it at any time."
+              : "you can turn it off again at any time. it never changes work that already happened."}
           </p>
         </div>
       )}
@@ -478,6 +512,70 @@ function Understood({ rule }: { rule: CheckResult["rule"] }) {
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * What this rule can and cannot reach today.
+ *
+ * A stored rule looks like protection whether or not anything can trigger it.
+ * If cosigno cannot perform the action the rule guards, saying nothing lets a
+ * person believe they are covered when they are not — the single most
+ * expensive thing this product could get wrong. So the gap is stated first,
+ * in the same breath as the reading, and it names which tools rather than
+ * gesturing at "some".
+ */
+function CoverageNotice({ coverage, reading }: { coverage: Coverage; reading: RuleReading }) {
+  const { covered, noConnector, noSuchCapability, viaOwnWork, unreachable } = coverage;
+
+  if (unreachable) {
+    const why =
+      noConnector.length > 0
+        ? `cosigno has no connector for ${listNames(noConnector)} yet`
+        : noSuchCapability.length > 0
+          ? `cosigno can't ${reading.action.toLowerCase()} in ${listNames(noSuchCapability)} — that isn't something it can do there`
+          : "cosigno can't perform this action anywhere yet";
+    return (
+      <p className="mt-3 flex items-start gap-2.5 rounded-card border border-ink bg-surface p-4 text-sm shadow-soft">
+        <TriangleAlert size={16} className="mt-0.5 shrink-0 text-ink" aria-hidden="true" />
+        <span>
+          <b>this rule is valid, but nothing can trigger it today.</b> {why}, so turning it on
+          protects nothing right now. it will be stored, and it starts protecting the moment that
+          support exists — but do not count on it until then.
+        </span>
+      </p>
+    );
+  }
+
+  // Reachable, but only partly. Naming the gap matters as much as naming the
+  // cover: "protected in Gmail" is true, "protected everywhere" would not be.
+  const gaps = [...noConnector, ...noSuchCapability];
+  if (gaps.length === 0) return null;
+
+  return (
+    <p className="mt-3 flex items-start gap-2.5 rounded-card border border-line bg-surface p-4 text-sm text-ink-soft shadow-soft">
+      <Info size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+      <span>
+        this covers{" "}
+        <b className="text-ink">
+          {covered.length > 0 ? listNames(covered) : "cosigno's own work"}
+          {covered.length > 0 && viaOwnWork ? ", and cosigno's own work" : ""}
+        </b>
+        .{" "}
+        {noConnector.length > 0 && (
+          <>
+            it does <b className="text-ink">not</b> cover {listNames(noConnector)} — there is no
+            connector for {noConnector.length === 1 ? "it" : "those"} yet.{" "}
+          </>
+        )}
+        {noSuchCapability.length > 0 && (
+          <>
+            it also does <b className="text-ink">not</b> cover {listNames(noSuchCapability)}, where{" "}
+            cosigno has no {reading.action.toLowerCase()} capability.
+          </>
+        )}
+      </span>
+    </p>
   );
 }
 
@@ -544,22 +642,35 @@ function Pill({ label, tone }: { label: string; tone: "before" | "after" | "bloc
 function RuleEnabled({ result, onAddAnother }: { result: CheckResult; onAddAnother: () => void }) {
   return (
     <div className="mt-8 animate-spring-in rounded-card border border-signal bg-surface p-8 text-center shadow-depth">
-      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-pill bg-signal">
+      <span className={`mx-auto flex h-12 w-12 items-center justify-center rounded-pill ${result.coverage.unreachable ? "bg-cream-deep" : "bg-signal"}`}>
         <Check size={26} strokeWidth={3} className="text-ink" aria-hidden="true" />
       </span>
-      <p className="mt-4 font-display text-2xl font-bold lowercase">rule is on</p>
+      <p className="mt-4 font-display text-2xl font-bold lowercase">
+        {result.coverage.unreachable ? "rule saved" : "rule is on"}
+      </p>
       {/* The person's own sentence back, and what cosigno now promises about
           it — not the parser's structured reading, which belongs in the report
           where it is being checked, not in the confirmation. */}
       <p className="mx-auto mt-2 max-w-md font-display text-lg font-bold">
         {result.rule.text}
       </p>
-      <p className="mx-auto mt-2 max-w-md text-sm font-semibold">
-        from now on, {PROMISE[result.rule.requirement] ?? "cosigno checks with you first"}.
-      </p>
-      <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
-        nothing else changes, and work that already happened is untouched.
-      </p>
+      {result.coverage.unreachable ? (
+        /* Confirming a save is honest; celebrating protection that does not
+           exist is not. The wording changes because the truth changed. */
+        <p className="mx-auto mt-2 max-w-md text-sm font-semibold">
+          it is not protecting anything yet — cosigno cannot perform this action today. it will
+          start the moment that support exists.
+        </p>
+      ) : (
+        <>
+          <p className="mx-auto mt-2 max-w-md text-sm font-semibold">
+            from now on, {PROMISE[result.rule.requirement] ?? "cosigno checks with you first"}.
+          </p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
+            nothing else changes, and work that already happened is untouched.
+          </p>
+        </>
+      )}
       <button
         onClick={onAddAnother}
         className="mt-6 rounded-btn px-5 py-2.5 text-sm font-bold lowercase ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"

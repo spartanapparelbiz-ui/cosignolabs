@@ -17,6 +17,7 @@ import {
 import type { MissionSourceRecord, MissionSourceStatus } from "@/lib/types";
 import { classifyDelegation, returnCondition } from "@/lib/delegate";
 import { useToast } from "@/components/Toast";
+import { useBackgroundExecution } from "./useBackgroundExecution";
 
 /**
  * The ask-box body: a place to type a request and, without leaving the
@@ -164,6 +165,7 @@ export function SourceComposer({
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
+  const backgroundActive = useBackgroundExecution();
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [goal, setGoal] = useState("");
@@ -331,11 +333,17 @@ export function SourceComposer({
             mode: intent.mode,
           }),
         });
+        /* Both of these promise work that happens while you are away. If
+           nothing runs on a schedule here, saying so at the moment of
+           creation is the only honest version — the alternative is a watch
+           that silently never watches. */
         toast(
           "success",
-          intent.kind === "watch"
-            ? "watching — cosigno will tell you when something happens."
-            : "recurring rule created — cosigno will prepare it on schedule."
+          backgroundActive === false
+            ? "saved — but nothing runs it on a schedule yet on this deployment. run it from watch, or set up background execution."
+            : intent.kind === "watch"
+              ? "watching — cosigno will tell you when something happens."
+              : "recurring rule created — cosigno will prepare it on schedule."
         );
         setGoal("");
         onStarted();

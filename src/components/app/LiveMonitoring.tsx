@@ -138,8 +138,12 @@ export function LiveMonitoring() {
           <h1 className="mt-2 font-display text-3xl font-bold lowercase tracking-tight sm:text-4xl">
             what cosigno is doing, right now.
           </h1>
+          {/* "Monitoring" implies something watches while you are away. This
+              page polls from the browser: it shows the current state every few
+              seconds WHILE OPEN, and observes nothing once it is closed. */}
           <p className="mt-2 max-w-2xl text-sm font-semibold text-ink-soft">
-            Counted from live state and refreshed every {POLL_MS / 1000} seconds.
+            counted from live state, re-read every {POLL_MS / 1000} seconds while this page
+            is open. closing it stops the updates — it does not stop the work.
           </p>
         </div>
         <button
@@ -285,7 +289,17 @@ export function LiveMonitoring() {
           <Section title="event stream" icon={Activity} count={events.length}>
             {events.length === 0 ? (
               <Empty>
-                No authorization events yet. Every decision cosigno makes lands here permanently.
+                {/* These events come from the in-memory authorization registry,
+                    which is cleared when the server restarts. "Permanently" was
+                    plainly untrue, and the permanent record is the activity log
+                    — so point at the one that actually keeps things. */}
+                no authorization events yet. this stream shows agent-API decisions
+                held in memory since the server last started — the durable record of
+                everything cosigno did is in{" "}
+                <a href="/app/activity" className="underline underline-offset-2">
+                  activity
+                </a>
+                .
               </Empty>
             ) : (
               <ol className="relative flex flex-col gap-0 border-l border-line pl-4">

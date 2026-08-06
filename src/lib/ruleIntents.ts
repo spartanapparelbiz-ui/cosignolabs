@@ -326,6 +326,117 @@ function resolveProvider(providerKey?: string, category?: ActionCategory | strin
   return fromCategory ?? "internal";
 }
 
+/* ----------------------------------------------------------- reachability - */
+
+/**
+ * Provider → the key its connector is registered under, when one exists at
+ * all. A provider absent from this map is one cosigno can name but cannot
+ * currently act through: a rule about it is valid and stored, and it protects
+ * nothing today. The product has to say that rather than let the rule sit
+ * there looking like a guard.
+ */
+export const PROVIDER_REGISTRY_KEY: Partial<Record<Provider, string>> = {
+  gmail: "google",
+  outlook: "outlook",
+  slack: "slack",
+  notion: "notion",
+  github: "github",
+  "google-drive": "google-drive",
+  "google-calendar": "google-calendar",
+};
+
+/**
+ * Systems a person can name in a rule that cosigno has NO connector for.
+ *
+ * Derived from the tables above rather than listed by hand, so it cannot
+ * drift: the day a Stripe connector is registered, it stops being reported as
+ * unavailable everywhere at once. The connections screen shows this list
+ * explicitly — omitting it would be the quiet kind of dishonesty, where a
+ * person assumes anything not mentioned must be handled.
+ */
+export function providersWithoutConnector(): { provider: Provider; label: string }[] {
+  return PROVIDERS.filter(
+    (p) => p !== "custom" && p !== "internal" && !PROVIDER_REGISTRY_KEY[p]
+  ).map((provider) => ({ provider, label: PROVIDER_LABEL[provider] }));
+}
+
+/**
+ * Every normalized action cosigno can perform WITHOUT a connector — its own
+ * categories, resolved through the same normalizer everything else uses so
+ * there is no second opinion about what a category means.
+ */
+const OWN_WORK_ACTIONS: NormalizedAction[] = (
+  Object.keys(CATEGORY_OPERATION) as ActionCategory[]
+).map((category) => normalizeAction({ category }));
+
+export interface RuleCoverage {
+  /** Providers with a real capability this rule would govern. */
+  covered: { provider: Provider; label: string; capabilities: number }[];
+  /**
+   * Providers the rule names that cosigno has no connector for at all. Named
+   * so the UI can say which ones, rather than a vague "some tools".
+   */
+  noConnector: { provider: Provider; label: string }[];
+  /**
+   * Providers with a connector that simply has no capability of this
+   * operation — e.g. GitHub cannot delete, so a delete rule about GitHub
+   * cannot fire even though GitHub is fully supported.
+   */
+  noSuchCapability: { provider: Provider; label: string }[];
+  /** True when cosigno's own (connector-free) work can trigger this rule. */
+  viaOwnWork: boolean;
+  /** True when nothing, anywhere, can trigger this rule today. */
+  unreachable: boolean;
+}
+
+/**
+ * What can this rule actually govern right now?
+ *
+ * A rule that no capability can trigger is not protection, however correct it
+ * is. Answering this honestly is the difference between "you are covered" and
+ * "you will be covered if we ever build it".
+ */
+export function coverageFor(scope: string, operation: string): RuleCoverage {
+  const providers: Provider[] =
+    scope === "any" ? [...PROVIDERS] : (SCOPES[scope] ?? []);
+
+  const covered: RuleCoverage["covered"] = [];
+  const noConnector: RuleCoverage["noConnector"] = [];
+  const noSuchCapability: RuleCoverage["noSuchCapability"] = [];
+
+  for (const provider of providers) {
+    if (provider === "internal" || provider === "custom") continue;
+    const registryKey = PROVIDER_REGISTRY_KEY[provider];
+    if (!registryKey) {
+      noConnector.push({ provider, label: PROVIDER_LABEL[provider] });
+      continue;
+    }
+    const table = PROVIDER_ACTION_OPERATION[registryKey] ?? {};
+    const capabilities = Object.values(table).filter(
+      (op) => operation === "any" || op === operation
+    ).length;
+    if (capabilities > 0) {
+      covered.push({ provider, label: PROVIDER_LABEL[provider], capabilities });
+    } else {
+      noSuchCapability.push({ provider, label: PROVIDER_LABEL[provider] });
+    }
+  }
+
+  // Judged with the SAME two predicates enforcement uses, so "can this rule
+  // ever fire" and "does this rule fire" can never disagree.
+  const viaOwnWork = OWN_WORK_ACTIONS.some(
+    (a) => scopeCovers(scope, a.provider) && operationCovers(operation, a.operation)
+  );
+
+  return {
+    covered,
+    noConnector,
+    noSuchCapability,
+    viaOwnWork,
+    unreachable: covered.length === 0 && !viaOwnWork,
+  };
+}
+
 /* ------------------------------------------------------------- matching --- */
 
 /** Does a rule's scope token cover this action's provider? */

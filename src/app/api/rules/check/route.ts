@@ -10,6 +10,7 @@ import {
   parsePermissionRule,
   readRule,
 } from "@/lib/rules";
+import { coverageFor } from "@/lib/ruleIntents";
 import type { ActionRecord, PermissionRuleRecord, Tier } from "@/lib/types";
 
 /**
@@ -164,6 +165,10 @@ export async function POST(req: NextRequest) {
           // What cosigno understood, from the SAME structure enforcement uses.
           reading: readRule(parsed),
         },
+        // What this rule can actually govern today. A valid rule that nothing
+        // can trigger is not protection, and the page must not present it as
+        // though it were.
+        coverage: coverageFor(parsed.target, parsed.verb),
         checked: past.length,
         missions_affected: missions.size,
         changed,
