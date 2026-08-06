@@ -209,7 +209,10 @@ export interface RuleContext {
  */
 const TARGET_SYNONYMS: Record<string, string[]> = {
   payment: ["payment", "refund", "pay", "charge", "invoice", "billing", "stripe", "transfer", "wire", "quickbooks", "xero"],
-  email: ["email", "gmail", "outlook", "mail", "inbox", "send"],
+  // "send" was here and did not belong: a target names WHAT a rule governs,
+  // not what is being done to it. It made every action whose summary contained
+  // the word "send" look like an email action.
+  email: ["email", "gmail", "outlook", "mail", "inbox"],
   gmail: ["gmail", "email", "mail", "inbox"],
   outlook: ["outlook", "email", "mail"],
   slack: ["slack", "channel", "message", "post"],
@@ -226,11 +229,33 @@ const TARGET_SYNONYMS: Record<string, string[]> = {
   internal: ["internal", "crm", "erp", "custom", "private"],
 };
 
+/**
+ * Match a synonym as a WORD — with its ordinary inflections, and nothing else.
+ *
+ * Plain `includes` made "senders" match "send", so a rule about SENDING email
+ * fired on "scan your inbox for promotional senders", which only reads it. A
+ * rule that stops the wrong things is worse than no rule at all: people stop
+ * believing the ones that are right.
+ *
+ * The allowed endings are named explicitly rather than "any few letters",
+ * because "any few letters" is what let "senders" through in the first place.
+ * A needle ending in `e` also matches its e-dropped forms, so "delete" still
+ * covers "deleting" and "deleted".
+ */
+const INFLECTIONS = "(?:s|es|d|ed|ing)?";
+
+function containsWord(hay: string, needle: string): boolean {
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const forms = [`${esc(needle)}${INFLECTIONS}`];
+  if (needle.endsWith("e")) forms.push(`${esc(needle.slice(0, -1))}(?:ing|ed)`);
+  return new RegExp(`\\b(?:${forms.join("|")})\\b`).test(hay);
+}
+
 function targetMatches(rule: PermissionRuleRecord, ctx: RuleContext): boolean {
   if (rule.target === "any") return true;
   const hay = `${ctx.target} ${ctx.category ?? ""} ${ctx.summary ?? ""}`.toLowerCase();
   const needles = TARGET_SYNONYMS[rule.target] ?? [rule.target];
-  return needles.some((n) => hay.includes(n));
+  return needles.some((n) => containsWord(hay, n));
 }
 
 /**
@@ -261,7 +286,7 @@ function verbMatches(rule: PermissionRuleRecord, ctx: RuleContext): boolean {
   if (rule.verb === "any") return true;
   const hay = `${ctx.summary ?? ""}`.toLowerCase();
   const needles = VERB_SYNONYMS[rule.verb] ?? [rule.verb];
-  return needles.some((n) => hay.includes(n));
+  return needles.some((n) => containsWord(hay, n));
 }
 
 function conditionMatches(rule: PermissionRuleRecord, ctx: RuleContext): boolean {

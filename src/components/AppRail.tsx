@@ -8,7 +8,6 @@ import {
   Gauge,
   Radar,
   Boxes,
-  FlaskConical,
   Home,
   LayoutTemplate,
   PenLine,
@@ -54,7 +53,9 @@ const SECONDARY = [
   { href: "/app/monitoring", label: "monitoring", icon: Gauge },
   { href: "/app/mission-control", label: "control", icon: Radar },
   { href: "/app/twins", label: "capabilities", icon: Boxes },
-  { href: "/app/simulation", label: "simulate", icon: FlaskConical },
+  // Safety rules is deliberately NOT here. Deciding how far cosigno may go on
+  // its own is something you do once, not part of a day — it lives under
+  // account, reachable from the rules section it governs.
   { href: "/app/templates", label: "templates", icon: LayoutTemplate },
   // /app/settings redirects here; the surface it opens is titled "account",
   // so the rail says the same word rather than a second name for one place.

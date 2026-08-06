@@ -168,6 +168,46 @@ describe("applyRules (most restrictive matching rule wins)", () => {
     expect(d.requirement).toBe("never");
   });
 
+  /* Regression: synonyms matched as bare substrings, so a rule about SENDING
+     email fired on reading it — "promotional senders" contains "send". A rule
+     that stops the wrong actions is worse than no rule, because the person
+     stops believing the ones that are right. */
+  it("does not fire a 'send email' rule on an action that only reads mail", () => {
+    const d = applyRules([rule("always ask before sending email")], {
+      target: "search",
+      category: "search",
+      summary: "scan your inbox for newsletter and promotional senders from the last 30 days.",
+    });
+    expect(d.requirement).toBeNull();
+  });
+
+  it("still fires that rule on an action that actually sends mail", () => {
+    const d = applyRules([rule("always ask before sending email")], {
+      target: "send_email",
+      category: "send_email",
+      summary: "send the email about the proposal to the recipient named in your command.",
+    });
+    expect(d.requirement).toBe("approve");
+  });
+
+  it("keeps ordinary inflections matching (delete → deleting/deleted)", () => {
+    for (const summary of ["deleting the stale records", "deleted the old branch", "delete it"]) {
+      expect(applyRules([rule("never delete anything")], { target: "custom", summary }).requirement).toBe(
+        "never"
+      );
+    }
+  });
+
+  it("does not let an unrelated word that merely starts the same match", () => {
+    // "postpone" is not "post"; "payload" is not "pay".
+    expect(
+      applyRules([rule("always ask before posting to slack")], {
+        target: "slack",
+        summary: "postpone the slack reminder",
+      }).requirement
+    ).toBeNull();
+  });
+
   // Regression: a non-numeric string arg must NOT read as 0 and satisfy "under $X".
   it("does not fire an 'under $100' rule when the amount is non-numeric/unknown", () => {
     const d = applyRules([rule("approve any payment under $100")], {

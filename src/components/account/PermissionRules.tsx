@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ShieldCheck, Trash2, X } from "lucide-react";
 import { describeRule, parsePermissionRule } from "@/lib/rules";
@@ -114,6 +115,14 @@ export function PermissionRules() {
           into a visible rule. rules only ever <span className="font-bold">tighten</span> what
           cosigno may do (require approval or a signature, or forbid it), never loosen it.
         </p>
+        {/* Writing a rule straight into the box is fine, but the safer path is
+            to see what it would have done first. Offer it right here. */}
+        <Link
+          href="/app/settings/rules"
+          className="mt-1.5 inline-block text-[11px] font-bold text-ink underline decoration-signal underline-offset-2 hover:text-signal"
+        >
+          not sure about a rule? test it against your past work first →
+        </Link>
       </div>
 
       <div className="rounded-card bg-surface/60 p-3 shadow-soft">

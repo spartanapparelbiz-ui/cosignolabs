@@ -1,9 +1,10 @@
-import { Simulation } from "@/components/app/Simulation";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export const metadata = { title: "simulate" };
-
-export default function SimulationPage() {
-  return <Simulation />;
+/**
+ * "Simulation" asked people to understand a replay engine before they could
+ * use it. The page it became answers the question they actually arrived with
+ * — "can I test a rule before trusting it?" — and lives under settings.
+ */
+export default function SimulationRedirect() {
+  redirect("/app/settings/rules");
 }
