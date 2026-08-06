@@ -247,6 +247,25 @@ const TARGET_SYNONYMS: Record<string, string[]> = {
   internal: ["internal", "crm", "erp", "custom", "private"],
 };
 
+/**
+ * Whether a rule governs a given app, for display grouping ("the rules that
+ * affect GitHub"). Uses the SAME synonym expansion enforcement uses, so the
+ * list a user sees under an app is exactly the set that can fire on it —
+ * a display filter that disagreed with enforcement would be a quiet lie.
+ */
+export function ruleAppliesToApp(
+  rule: Pick<PermissionRuleRecord, "target" | "enabled">,
+  providerKey: string,
+  providerName: string
+): boolean {
+  if (!rule.enabled) return false;
+  if (rule.target === "any") return true;
+  if (rule.target.startsWith(CATEGORY_TARGET_PREFIX)) return false;
+  const hay = `${providerKey} ${providerName}`.toLowerCase();
+  const needles = TARGET_SYNONYMS[rule.target] ?? [rule.target];
+  return needles.some((n) => hay.includes(n)) || hay.includes(rule.target);
+}
+
 function targetMatches(rule: PermissionRuleRecord, ctx: RuleContext): boolean {
   if (rule.target === "any") return true;
   // Category rules are enforced at the action door, on the real category.

@@ -13,6 +13,7 @@ import {
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { ConnectionInsight } from "@/components/account/ConnectionInsight";
 import { humanizeActionId, humanizeEndpoint } from "@/lib/integrations/engine/humanize";
+import { ruleAppliesToApp } from "@/lib/rules";
 
 /**
  * The Connections screen: available third-party apps, the user's connected
@@ -82,6 +83,8 @@ interface ConnectionView {
   status: "connected" | "needs_reauth" | "error" | "revoked";
   scopes: string | null;
   metadata: Record<string, unknown>;
+  /** When the connection last passed its real health check. */
+  last_health_at?: string | null;
 }
 
 interface CustomApiActionView {
@@ -136,11 +139,26 @@ export function ConnectionsPanel() {
   // Provider key that JUST completed OAuth — its card pulses once on return.
   const [justConnected, setJustConnected] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
+  // Real recent work + standing rules, so each app card can show what
+  // happened in it lately and which rules govern it. Both are the actual
+  // ledgers — the same records activity and the rules list read.
+  const [recentWork, setRecentWork] = useState<
+    { id: string; summary: string; created_at: string }[]
+  >([]);
+  const [rules, setRules] = useState<
+    { id: string; text: string; target: string; enabled: boolean }[]
+  >([]);
 
   async function load() {
     try {
       setData(await api("/api/connections"));
       setUnavailable(false);
+      api("/api/activity?category=connection_call&status=executed&limit=200")
+        .then((d) => setRecentWork(Array.isArray(d.actions) ? d.actions : []))
+        .catch(() => undefined);
+      api("/api/rules")
+        .then((d) => setRules(Array.isArray(d.rules) ? d.rules : []))
+        .catch(() => undefined);
     } catch {
       // The connections backend isn't fully provisioned on this deployment
       // yet (login + database + per-app setup). Rather than show a scary
@@ -404,10 +422,41 @@ export function ConnectionsPanel() {
                 </p>
               )}
 
+              {/* Not connected: what connecting UNLOCKS — the app's real
+                  abilities as checkmarks, not an empty model. One click away. */}
+              {!conn && p.actions.length > 0 && (
+                <div className="mt-2 rounded-btn bg-cream-deep/50 px-3.5 py-2.5">
+                  <p className="text-[11px] font-bold">connect {p.name} to let cosigno</p>
+                  <ul className="mt-1 flex flex-col gap-0.5">
+                    {p.actions.slice(0, 4).map((a) => (
+                      <li key={a.id} className="text-[11px] text-ink-soft">
+                        <span className="text-signal" aria-hidden="true">✓</span>{" "}
+                        {humanizeActionId(a.id).toLowerCase()}
+                        {a.tier > 1 ? " (asks first)" : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* Once connected, show what's really in the account and exactly
                   what cosigno may do with it — measured live, never examples. */}
               {conn && conn.status === "connected" && (
-                <ConnectionInsight connectionId={conn.id} providerName={p.name} />
+                <>
+                  <ConnectionInsight connectionId={conn.id} providerName={p.name} />
+                  <AppRecentWork
+                    name={conn.display_name || p.name}
+                    lastCheckedAt={conn.last_health_at ?? null}
+                    work={recentWork
+                      .filter((a) => a.summary.startsWith(`${conn.display_name || p.name}:`))
+                      .slice(0, 3)}
+                  />
+                  <AppPolicies
+                    providerKey={p.key}
+                    providerName={p.name}
+                    rules={rules}
+                  />
+                </>
               )}
               <p className="mt-0.5 text-[11px] text-ink-soft/80">
                 {conn?.metadata?.account
@@ -609,6 +658,90 @@ export function ConnectionsPanel() {
  * require, the request (with the key's placement but never its value), and any
  * permission rule that applies — with an unmissable "nothing happened" note.
  */
+
+/** Minutes/hours/days ago, for the last real health check. */
+function checkedAgo(iso: string): string {
+  const mins = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+/**
+ * What cosigno actually did in this app lately — executed actions only (a
+ * proposed card hasn't done anything yet), read from the same ledger the
+ * activity page shows. With nothing yet, it says so instead of hiding.
+ */
+function AppRecentWork({
+  name,
+  lastCheckedAt,
+  work,
+}: {
+  name: string;
+  lastCheckedAt: string | null;
+  work: { id: string; summary: string; created_at: string }[];
+}) {
+  return (
+    <div className="mt-2 rounded-btn bg-cream-deep/40 px-3.5 py-2.5">
+      <p className="flex items-baseline justify-between gap-2 text-[11px] font-bold">
+        <span>recently, in {name}</span>
+        {lastCheckedAt && (
+          <span className="font-semibold text-ink-soft">
+            last checked {checkedAgo(lastCheckedAt)}
+          </span>
+        )}
+      </p>
+      {work.length === 0 ? (
+        <p className="mt-1 text-[11px] text-ink-soft">
+          nothing yet — when cosigno works in {name}, what it did shows up here.
+        </p>
+      ) : (
+        <ul className="mt-1 flex flex-col gap-0.5">
+          {work.map((a) => (
+            <li key={a.id} className="flex items-baseline justify-between gap-2 text-[11px]">
+              <span className="min-w-0 truncate">{a.summary.slice(name.length + 1).trim()}</span>
+              <span className="shrink-0 text-ink-soft">{checkedAgo(a.created_at)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The standing rules that govern this app — filtered with the SAME matching
+ * enforcement uses, so this list is exactly the set that can fire here.
+ */
+function AppPolicies({
+  providerKey,
+  providerName,
+  rules,
+}: {
+  providerKey: string;
+  providerName: string;
+  rules: { id: string; text: string; target: string; enabled: boolean }[];
+}) {
+  const applicable = rules.filter((r) => ruleAppliesToApp(r, providerKey, providerName));
+  if (applicable.length === 0) return null;
+  return (
+    <div className="mt-2 rounded-btn bg-cream-deep/40 px-3.5 py-2.5">
+      <p className="text-[11px] font-bold">
+        rules protecting {providerName} ({applicable.length})
+      </p>
+      <ul className="mt-1 flex flex-col gap-0.5">
+        {applicable.slice(0, 4).map((r) => (
+          <li key={r.id} className="text-[11px] text-ink-soft">
+            • {r.text}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: () => void }) {
   const req = preview.request;
   return (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 /**
  * Mission Control, the Policy Simulator, and "What cosigno can do" are
@@ -13,8 +13,7 @@ const CONTROL = readFileSync("src/components/app/MissionControl.tsx", "utf8");
 const CONTROL_CODE = strip(CONTROL);
 const CONTROL_API = readFileSync("src/app/api/mission-control/route.ts", "utf8");
 const SIM = readFileSync("src/components/app/Simulation.tsx", "utf8");
-const TWINS = readFileSync("src/components/app/DigitalTwins.tsx", "utf8");
-const TWINS_CODE = strip(TWINS);
+const CONNECTIONS = readFileSync("src/components/account/ConnectionsPanel.tsx", "utf8");
 
 describe("mission control: what is cosigno doing right now?", () => {
   it("asks and answers the question in the header", () => {
@@ -126,41 +125,57 @@ describe("policy simulator: what would happen if I added this rule?", () => {
   });
 });
 
-describe("what cosigno can do: capabilities in the reader's verbs", () => {
-  it("asks and answers the question in the header", () => {
-    expect(TWINS).toMatch(/What cosigno can do in your apps/);
+describe("the twin concept is gone; connections is the complete app experience", () => {
+  it("nothing named twin ships to users — no page, no component, no endpoint", () => {
+    expect(existsSync("src/components/app/DigitalTwins.tsx")).toBe(false);
+    expect(existsSync("src/app/api/twin/route.ts")).toBe(false);
+    expect(existsSync("src/lib/twin/model.ts")).toBe(false);
+    // The old route survives only as a redirect into connections.
+    const page = readFileSync("src/app/app/twins/page.tsx", "utf8");
+    expect(page).toMatch(/redirect\("\/app\/connections"\)/);
   });
 
-  it("groups by read / create / update / delete — no modeling vocabulary", () => {
-    expect(TWINS).toMatch(/title: "Read"/);
-    expect(TWINS).toMatch(/title: "Create"/);
-    expect(TWINS).toMatch(/title: "Update"/);
-    expect(TWINS).toMatch(/title: "Delete"/);
-    for (const jargon of [/resource type/i, /capability model/i, /schema[_ ]only/i, /twin/i]) {
-      // The rendered strings, not the file name or type names.
-      const rendered = TWINS_CODE.replace(/import[^;]+;/g, "");
-      expect(rendered.match(jargon)?.[0] ?? "").not.toMatch(/resource type|capability model|schema/i);
+  it("a connected app shows its recent real work and when it was last checked", () => {
+    expect(CONNECTIONS).toMatch(/status=executed/);
+    expect(CONNECTIONS).toMatch(/recently, in \{name\}/);
+    expect(CONNECTIONS).toMatch(/last checked \{checkedAgo\(lastCheckedAt\)\}/);
+  });
+
+  it("a connected app lists the standing rules that govern it — via the SAME matcher enforcement uses", () => {
+    expect(CONNECTIONS).toMatch(/ruleAppliesToApp\(r, providerKey, providerName\)/);
+    expect(CONNECTIONS).toMatch(/rules protecting \{providerName\}/);
+    const rulesLib = readFileSync("src/lib/rules.ts", "utf8");
+    expect(rulesLib).toMatch(/export function ruleAppliesToApp/);
+    expect(rulesLib).toMatch(/TARGET_SYNONYMS\[rule\.target\]/);
+  });
+
+  it("a disconnected app sells what connecting unlocks — its real abilities, one click away", () => {
+    expect(CONNECTIONS).toMatch(/connect \{p\.name\} to let cosigno/);
+    expect(CONNECTIONS).toMatch(/humanizeActionId\(a\.id\)/);
+    expect(CONNECTIONS).toMatch(/asks first/);
+  });
+
+  it("abilities read in plain English with the approval fact — never method names or tier numbers alone", () => {
+    expect(CONNECTIONS).toMatch(/no approval|your approval|typed confirmation/);
+  });
+});
+
+describe("no engineering vocabulary reaches a rendered string", () => {
+  it("sweeps every component for the banned words", () => {
+    // Rendered strings only — comments and identifiers are the maintainer's
+    // business. Sweep string literals + JSX text across all components.
+    const { execSync } = require("node:child_process") as typeof import("node:child_process");
+    const files = execSync("git ls-files 'src/components/*.tsx' 'src/components/**/*.tsx'")
+      .toString()
+      .trim()
+      .split("\n");
+    const banned = /(digital twin|capability model|resource type|operator graph|execution graph|execution engine|internal state|execution context)/i;
+    const offenders: string[] = [];
+    for (const file of files) {
+      const code = strip(readFileSync(file, "utf8"));
+      const m = code.match(banned);
+      if (m) offenders.push(`${file}: ${m[0]}`);
     }
-  });
-
-  it("marks approval-required abilities in plain words", () => {
-    expect(TWINS).toMatch(/asks you first/);
-    expect(TWINS).toMatch(/needsApproval/);
-  });
-
-  it("a connected app shows real recent activity — executed actions only", () => {
-    expect(TWINS).toMatch(/status=executed/);
-    expect(TWINS).toMatch(/Recently, in \{t\.name\}/);
-  });
-
-  it("a disconnected app says exactly what connecting unlocks, with the door", () => {
-    expect(TWINS).toMatch(/connecting unlocks all of this/);
-    expect(TWINS).toMatch(/connect \{t\.name\}/);
-  });
-
-  it("last checked is the connection's real health check, never an invented sync time", () => {
-    expect(TWINS).toMatch(/last_checked_at/);
-    const api = readFileSync("src/app/api/twin/route.ts", "utf8");
-    expect(api).toMatch(/last_checked_at: c\.last_health_at/);
+    expect(offenders).toEqual([]);
   });
 });

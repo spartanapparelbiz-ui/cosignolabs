@@ -7,7 +7,6 @@ import {
   Activity,
   Gauge,
   Radar,
-  Boxes,
   FlaskConical,
   Home,
   LayoutTemplate,
@@ -48,15 +47,11 @@ const PRIMARY = [
  * they sit below a divider because none of them is part of a normal day, and
  * eleven equal-weight destinations made the first screen read as a control
  * panel rather than a workspace.
- *
- * "capabilities" was "twins": a person cannot guess what a twin is, and a
- * label nobody understands is a door nobody opens.
  */
 const SECONDARY = [
   { href: "/app/trust", label: "trust", icon: ShieldCheck },
   { href: "/app/monitoring", label: "monitoring", icon: Gauge },
   { href: "/app/mission-control", label: "live work", icon: Radar },
-  { href: "/app/twins", label: "capabilities", icon: Boxes },
   { href: "/app/simulation", label: "simulate", icon: FlaskConical },
   { href: "/app/templates", label: "templates", icon: LayoutTemplate },
   { href: "/app/settings", label: "settings", icon: Settings },
