@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { Boxes, ChevronDown, Lock } from "lucide-react";
 
 /**
- * Digital twins — the capability model of every connected application.
+ * Capabilities — the capability model of every connected application. The
+ * route and the API still say "twin"; only the words a person reads changed.
  *
  * Shows what each app actually exposes: resource types, the operations on each,
  * and the authority each operation requires. Reuses the existing dashboard
@@ -55,12 +56,12 @@ export function DigitalTwins() {
     (async () => {
       try {
         const res = await fetch("/api/twin?available=1", { cache: "no-store" });
-        if (!res.ok) throw new Error(`twins unavailable (${res.status})`);
+        if (!res.ok) throw new Error(`capabilities unavailable (${res.status})`);
         const data = await res.json();
         setTwins(data.twins ?? []);
         setOpen(data.twins?.[0]?.connection_key ?? null);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "couldn't load twins.");
+        setError(e instanceof Error ? e.message : "couldn't load capabilities.");
       }
     })();
   }, []);
@@ -75,10 +76,10 @@ export function DigitalTwins() {
           cosigno models your tools before it touches them.
         </h1>
         <p className="mt-2 max-w-2xl text-sm font-semibold text-ink-soft">
-          Every connected app has a twin: its resource types, the operations on each, and the
-          authority each one requires. The planner reasons over this model — an operation that
-          isn&apos;t in the twin can&apos;t be planned, so a made-up API call never reaches the
-          network.
+          every connected app has a capability model: its resource types, the operations on
+          each, and the authority each one requires. the planner reasons over this model — an
+          operation that isn&apos;t in it can&apos;t be planned, so a made-up API call never
+          reaches the network.
         </p>
       </header>
 
@@ -97,9 +98,10 @@ export function DigitalTwins() {
       ) : twins && twins.length === 0 ? (
         <div className="mt-6 rounded-card border border-dashed border-line bg-surface/60 p-10 text-center">
           <Boxes size={22} className="mx-auto text-ink-soft" aria-hidden="true" />
-          <p className="mt-3 text-sm font-bold">No twins yet</p>
+          <p className="mt-3 text-sm font-bold">nothing modelled yet</p>
           <p className="mx-auto mt-1 max-w-sm text-sm text-ink-soft">
-            Connect a tool and its twin is built automatically from the operations it exposes.
+            connect a tool and its capability model is built automatically from the
+            operations it exposes.
           </p>
         </div>
       ) : (
@@ -145,7 +147,7 @@ export function DigitalTwins() {
                   <div className="border-t border-line px-4 py-4">
                     {t.resources.length === 0 ? (
                       <p className="text-sm text-ink-soft">
-                        This connection hasn&apos;t advertised any operations yet.
+                        this connection hasn&apos;t advertised any operations yet.
                       </p>
                     ) : (
                       <div className="flex flex-col gap-4">
@@ -197,7 +199,7 @@ export function DigitalTwins() {
       )}
 
       <p className="mt-10 text-center text-[11px] leading-relaxed text-ink-soft">
-        A twin models an app&apos;s capability surface, not its records. Resources show
+        this models an app&apos;s capability surface, not its records. resources show
         &ldquo;not synced&rdquo; unless instances have actually been observed — cosigno never
         claims to hold data it hasn&apos;t fetched.
       </p>
