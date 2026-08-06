@@ -32,6 +32,17 @@ const LIVE_STATES = new Set([
 
 const QUEUED_STEP_STATES = new Set(["ready", "retrying"]);
 
+/** Tool-id prefix → the app name a person recognises. Unlisted = internal. */
+const APP_NAME: Record<string, string> = {
+  gmail: "Gmail",
+  calendar: "Google Calendar",
+  drive: "Google Drive",
+  github: "GitHub",
+  browser: "the browser",
+  laptop: "the browser",
+  inbox: "Gmail",
+};
+
 /** Health is derived, never asserted: retries and failures degrade it. */
 function healthOf(m: MissionRecord, steps: MissionStepRecord[]): {
   score: number;
@@ -61,7 +72,11 @@ export async function GET() {
 
     const missions = await store.listMissions(userId, 40).catch(() => []);
     const live = missions.filter((m) => LIVE_STATES.has(m.state));
-    const shown = (live.length ? live : missions).slice(0, 12);
+    // ONLY live work is shown. Finished missions are archived — the missions
+    // page is their home — and idle cards answer no question anyone came here
+    // to ask. The count still travels so the page can say where they went.
+    const shown = live.slice(0, 12);
+    const finishedCount = missions.length - live.length;
 
     const stepLists = await Promise.all(
       shown.map((m) => store.listMissionSteps(userId, m.id).catch(() => [] as MissionStepRecord[]))
@@ -86,11 +101,21 @@ export async function GET() {
       const steps = stepLists[i] ?? [];
       const running = steps.find((s) => s.state === "running");
       const done = steps.filter((s) => s.state === "completed");
+      // What happens after the current step: the first step that is ready to
+      // run and isn't the one running. Read from the real plan, not predicted.
+      const upNext = steps
+        .filter((s) => QUEUED_STEP_STATES.has(s.state) && s.id !== running?.id)
+        .sort((a, b) => a.idx - b.idx)[0];
       const last = [...done].sort(
         (a, b) => Date.parse(b.completed_at ?? "0") - Date.parse(a.completed_at ?? "0")
       )[0];
       const operator = running?.operator ?? last?.operator ?? "operator";
-      const connectors = Array.from(new Set(steps.map((s) => s.tool).filter(Boolean)));
+      // Apps by their names, not tool ids — "Gmail", never "gmail.search_related".
+      // Internal machinery (deliverables, receipts, analysis) isn't an app the
+      // user recognises, so it doesn't appear.
+      const connectors = Array.from(
+        new Set(steps.map((s) => APP_NAME[s.tool.split(".")[0]] ?? "").filter(Boolean))
+      );
       const health = healthOf(m, steps);
       const leaseLive = m.lease_expires_at ? Date.parse(m.lease_expires_at) > now : false;
 
@@ -120,7 +145,9 @@ export async function GET() {
         steps_done: done.length,
         queue_size: steps.filter((s) => QUEUED_STEP_STATES.has(s.state)).length,
         retries: steps.reduce((n, s) => n + (s.retry_count ?? 0), 0),
+        next_step: upNext?.purpose ?? null,
         // real timing
+        started_at: m.created_at,
         runtime_ms: Math.max(0, now - Date.parse(m.created_at)),
         updated_ms_ago: Math.max(0, now - Date.parse(m.updated_at)),
         worker_attached: leaseLive,
@@ -143,6 +170,7 @@ export async function GET() {
       {
         generated_at: new Date().toISOString(),
         live_count: live.length,
+        finished_count: finishedCount,
         nodes,
         // Declared so the UI can state the gap rather than imply completeness.
         not_instrumented: ["cpu", "memory", "tokens", "cost_per_minute", "confidence"],

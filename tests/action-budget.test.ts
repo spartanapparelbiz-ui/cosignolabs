@@ -400,8 +400,10 @@ describe("what the surfaces show", () => {
   it("shows changes against a limit, never a dollar figure", () => {
     expect(WORKSPACE).not.toMatch(/budget_cents/);
     expect(CONTROL).not.toMatch(/budget_cents/);
-    expect(CONTROL).toMatch(/execution budget/);
+    // Mission Control's inspector now words it as "actions used" with the
+    // limit inline — same fact, the reader's phrasing.
     expect(CONTROL).toMatch(/actions used/);
+    expect(CONTROL).toMatch(/changes_allowed/);
   });
 
   it("stopped-for-budget offers more room and a way to finish, not a dead end", () => {

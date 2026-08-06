@@ -34,8 +34,8 @@ export async function GET(req: Request) {
       if (c.kind === "mcp") {
         // MCP: the twin is the tool list the server actually advertised.
         const tools = await store.listMcpTools(userId, c.id).catch(() => []);
-        twins.push(
-          buildTwin({
+        twins.push({
+          ...buildTwin({
             connection_key: c.provider_key,
             name: c.display_name,
             kind: "mcp",
@@ -48,23 +48,27 @@ export async function GET(req: Request) {
               // non-sensitive: unknown side effects are assumed consequential.
               mutates: t.sensitive !== false,
             })),
-          })
-        );
+          }),
+          // When cosigno last successfully reached this connection — the
+          // honest "last synced": a real check, not a heartbeat we invent.
+          last_checked_at: c.last_health_at,
+        });
         continue;
       }
 
       const provider = getProvider(c.provider_key);
       if (!provider) continue;
-      twins.push(
-        buildTwin({
+      twins.push({
+        ...buildTwin({
           connection_key: c.provider_key,
           name: c.display_name || provider.name,
           kind: "app",
           status: c.status,
           source: "provider",
           actions: provider.listActions() as RawAction[],
-        })
-      );
+        }),
+        last_checked_at: c.last_health_at,
+      });
     }
 
     if (includeAvailable) {

@@ -64,6 +64,11 @@ export interface DigitalTwin {
   operation_count: number;
   /** True when NO resource has synced instances (capability-only twin). */
   schema_only: boolean;
+  /**
+   * When cosigno last successfully reached the connection (its real health
+   * check) — the honest "last synced". Null: never checked, or not connected.
+   */
+  last_checked_at?: string | null;
 }
 
 /* -------------------------------------------------------------------------- */

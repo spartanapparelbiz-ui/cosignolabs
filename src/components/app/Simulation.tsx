@@ -1,11 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, FlaskConical } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FlaskConical, ShieldCheck } from "lucide-react";
+import { useToast } from "@/components/Toast";
 
 /**
- * Simulation — replay a draft policy against real decision history before
- * enabling it. Existing dashboard vocabulary only.
+ * The Policy Simulator answers one question: what would happen if I added
+ * this rule?
+ *
+ * Type a rule, and it replays against the real decision history: how much
+ * past work would have been stopped, how much would still pass, and the
+ * specific actions affected — then a verdict in a sentence, and an Enable
+ * button that saves the rule for real.
+ *
+ * The verdict is derived, never asserted: a rule can only ever TIGHTEN what
+ * cosigno may do (the engine cannot parse a rule into more permission), so
+ * "safe" here means "won't unexpectedly stop your routine work", and the
+ * numbers that produced the verdict sit right next to it.
  */
 
 interface SimDecision {
@@ -13,22 +24,17 @@ interface SimDecision {
   actor: string;
   action: string;
   resource: string;
-  before: string;
-  after: string;
   changed: boolean;
-  newly_held: boolean;
   newly_blocked: boolean;
-  already_executed: boolean;
   reason: string;
 }
+
 interface SimResult {
-  rule: { text?: string; action?: string; actor?: string; min_amount_cents?: number; requirement: string };
   evaluated: number;
-  matched: number;
-  unchanged: number;
   tightened: number;
   newly_held: number;
   newly_blocked: number;
+  unchanged: number;
   would_have_stopped: SimDecision[];
   decisions: SimDecision[];
   confidence: "high" | "low";
@@ -37,73 +43,112 @@ interface SimResult {
 
 const EXAMPLES = [
   "Never allow deleting production databases.",
-  "Require two approvals for deployments.",
-  "Only approve payments over $5,000 with a signature.",
-  "Marketing cannot publish campaigns without approval.",
+  "Require a signature for refunds over $500.",
+  "Require approval before anything is published.",
+  "Never send email to external addresses.",
 ];
 
-const AUTH_TONE: Record<string, string> = {
-  auto: "bg-cream-deep text-ink-soft",
-  approve: "bg-signal/15 text-ink",
-  sign: "bg-signal text-ink",
-  deny: "bg-ink text-cream",
-};
+/**
+ * The rule's enforced interpretation, from the permissions engine that will
+ * actually hold it. Shown before enabling, so what you approve is what runs.
+ */
+interface EnforcedPreview {
+  description: string;
+}
 
 export function Simulation() {
+  const toast = useToast();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<SimResult | null>(null);
+  const [enforced, setEnforced] = useState<EnforcedPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [enabling, setEnabling] = useState(false);
+  const [enabled, setEnabled] = useState(false);
 
   async function run(value?: string) {
     const t = (value ?? text).trim();
     if (!t) return;
     setBusy(true);
     setError(null);
+    setEnabled(false);
     try {
-      const r = await fetch("/api/v1/simulate", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: t }),
-      });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.message || "simulation failed.");
-      setRes(data);
+      // Two reads, one truth each: the ledger replay (what history says), and
+      // the permissions engine's parse (what enabling will actually enforce).
+      const [simRes, prevRes] = await Promise.all([
+        fetch("/api/v1/simulate", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ text: t }),
+        }),
+        fetch("/api/rules?preview=1", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ text: t }),
+        }),
+      ]);
+      const sim = await simRes.json();
+      if (!simRes.ok) throw new Error(sim.message || "the simulation didn't run.");
+      setRes(sim);
+      const prev = await prevRes.json().catch(() => null);
+      setEnforced(prevRes.ok && prev?.description ? { description: prev.description } : null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "simulation failed.");
+      setError(e instanceof Error ? e.message : "the simulation didn't run.");
     } finally {
       setBusy(false);
     }
   }
 
+  async function enable() {
+    const t = text.trim();
+    if (!t) return;
+    setEnabling(true);
+    try {
+      const r = await fetch("/api/rules", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: t }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.message || "the rule didn't save.");
+      setEnabled(true);
+      toast("success", "rule enabled — it applies to the next thing cosigno tries.");
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "the rule didn't save.");
+    } finally {
+      setEnabling(false);
+    }
+  }
+
+  const stillPass = res ? res.evaluated - res.tightened : 0;
+
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8">
+    <div className="mx-auto w-full max-w-4xl px-6 py-10 lg:px-10">
       <header>
-        <p className="text-xs font-black uppercase tracking-[0.28em] text-signal">simulation</p>
-        <h1 className="mt-2 font-display text-3xl font-bold lowercase tracking-tight sm:text-4xl">
-          see what a policy would have done.
+        <h1 className="font-display text-3xl font-extrabold sm:text-4xl">
+          What would happen if I added this rule?
         </h1>
-        <p className="mt-2 max-w-2xl text-sm font-semibold text-ink-soft">
-          Write a rule in plain English. Cosigno replays it against every decision already on your
-          ledger and reports exactly what it would have caught — before you enable it on anything.
+        <p className="mt-2 max-w-2xl text-base text-ink-soft">
+          Write a rule in plain English. Cosigno replays it against everything that already
+          happened and shows exactly what it would have stopped — before anything is enabled.
         </p>
       </header>
 
-      <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-8 flex flex-col gap-2 sm:flex-row">
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && run()}
           placeholder="e.g. Require a signature for refunds over $500"
-          aria-label="draft policy rule"
-          className="min-h-[48px] flex-1 rounded-btn border border-line bg-surface px-4 text-sm outline-none transition focus:ring-2 focus:ring-signal"
+          aria-label="draft rule"
+          className="min-h-[52px] flex-1 rounded-card bg-surface/70 px-4 text-base font-semibold shadow-soft outline-none ring-1 ring-inset ring-transparent transition-all duration-fast placeholder:text-ink-soft/60 focus:ring-ink/30"
         />
         <button
           onClick={() => run()}
           disabled={busy || !text.trim()}
-          className="inline-flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-btn bg-signal px-6 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+          className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-card bg-ink px-6 text-sm font-extrabold lowercase text-cream transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
         >
-          <FlaskConical size={16} /> {busy ? "Simulating…" : "Simulate"}
+          <FlaskConical size={16} aria-hidden="true" /> {busy ? "trying it…" : "try it"}
         </button>
       </div>
 
@@ -115,7 +160,7 @@ export function Simulation() {
               setText(e);
               run(e);
             }}
-            className="rounded-pill border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+            className="rounded-pill bg-cream-deep px-3.5 py-1.5 text-xs font-semibold text-ink-soft transition-colors duration-fast hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
           >
             {e}
           </button>
@@ -123,114 +168,145 @@ export function Simulation() {
       </div>
 
       {error && (
-        <p className="mt-4 rounded-card border border-line bg-surface p-4 text-sm font-semibold">{error}</p>
+        <p className="mt-5 rounded-card bg-surface/70 p-4 text-sm font-semibold shadow-soft" role="alert">
+          {error}
+        </p>
       )}
 
       {res && (
-        <>
-          {res.confidence === "low" && (
-            <p className="mt-6 flex items-start gap-2 rounded-card border border-signal bg-surface p-4 text-sm">
-              <AlertTriangle size={16} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
-              <span>
-                <b>Read this rule before saving.</b> Cosigno couldn&apos;t confidently parse part of
-                it, so it fell back to the stricter reading (
-                <span className="font-mono text-xs">{res.rule.requirement}</span>). It never guesses
-                in the permissive direction.
-              </span>
-            </p>
-          )}
+        <div className="mt-8 flex flex-col gap-5 animate-fade-through">
+          <Verdict res={res} />
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: "decisions replayed", value: res.evaluated, note: `${res.matched} in scope` },
-              {
-                label: "tightened",
-                value: res.tightened,
-                note: `${res.newly_held} newly need a human`,
-              },
-              { label: "newly blocked", value: res.newly_blocked, note: "would be refused" },
-              { label: "no change", value: res.unchanged, note: "already this strict" },
-            ].map((s) => (
-              <div key={s.label} className="rounded-card border border-line bg-surface p-4 shadow-soft">
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ink-soft">
-                  {s.label}
-                </p>
-                <p className="mt-1.5 font-display text-3xl font-bold tabular-nums">{s.value}</p>
-                <p className="mt-0.5 text-xs text-ink-soft">{s.note}</p>
-              </div>
-            ))}
+          {/* the two numbers someone actually asked for */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-card bg-surface/70 p-5 shadow-soft">
+              <p className="font-display text-4xl font-extrabold tabular-nums">{res.tightened}</p>
+              <p className="mt-1 text-sm font-bold">would have been stopped</p>
+              <p className="mt-0.5 text-xs text-ink-soft">
+                {res.newly_blocked} refused outright · {res.newly_held} paused for you
+              </p>
+            </div>
+            <div className="rounded-card bg-surface/70 p-5 shadow-soft">
+              <p className="font-display text-4xl font-extrabold tabular-nums">{stillPass}</p>
+              <p className="mt-1 text-sm font-bold">would still pass</p>
+              <p className="mt-0.5 text-xs text-ink-soft">
+                of {res.evaluated} past action{res.evaluated === 1 ? "" : "s"} replayed
+              </p>
+            </div>
           </div>
 
+          {/* examples affected */}
           {res.would_have_stopped.length > 0 && (
-            <div className="mt-6 rounded-card border border-signal bg-surface p-4 shadow-soft">
-              <p className="text-sm font-bold">
-                This rule would have stopped {res.would_have_stopped.length} action
-                {res.would_have_stopped.length === 1 ? "" : "s"} that already ran.
-              </p>
-              <ul className="mt-2 flex flex-col gap-1.5">
+            <div className="rounded-card bg-surface/70 p-5 shadow-soft">
+              <p className="text-sm font-extrabold">what this rule would have caught</p>
+              <ul className="mt-2.5 flex flex-col gap-2">
                 {res.would_have_stopped.slice(0, 5).map((d) => (
-                  <li key={d.decision_id} className="text-xs text-ink-soft">
-                    <span className="font-mono">{d.actor}</span>{" "}
-                    <span className="font-bold text-ink">{d.action}</span> on {d.resource} —{" "}
-                    {d.reason}
+                  <li key={d.decision_id} className="flex items-start gap-2 text-sm">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-pill bg-signal" aria-hidden="true" />
+                    <span>
+                      <span className="font-bold">{d.action}</span>
+                      <span className="text-ink-soft"> on {d.resource} — {d.reason}</span>
+                    </span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
 
-          <section className="mt-8">
-            <h2 className="font-display text-xl font-bold lowercase">what changes</h2>
-            {res.decisions.filter((d) => d.changed).length === 0 ? (
-              <p className="mt-3 rounded-card border border-dashed border-line bg-surface/60 p-6 text-center text-sm text-ink-soft">
-                This rule changes nothing on your current history — every matching decision already
-                required at least this much authority.
+          {/* enable — with the enforced interpretation shown first */}
+          <div className="rounded-card bg-surface/70 p-5 shadow-soft">
+            {enforced ? (
+              <p className="text-sm">
+                <span className="font-bold lowercase text-ink-soft">enabling saves it as: </span>
+                <span className="font-extrabold">{enforced.description}</span>
               </p>
             ) : (
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full min-w-[640px] border-separate border-spacing-y-2 text-sm">
-                  <thead>
-                    <tr className="text-left text-[11px] font-black uppercase tracking-[0.14em] text-ink-soft">
-                      <th className="px-3">actor / action</th>
-                      <th className="px-3">before</th>
-                      <th className="px-3">after</th>
-                      <th className="px-3 text-right">note</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {res.decisions
-                      .filter((d) => d.changed)
-                      .slice(0, 25)
-                      .map((d) => (
-                        <tr key={d.decision_id} className="bg-surface shadow-soft">
-                          <td className="rounded-l-card border-y border-l border-line px-3 py-3">
-                            <p className="font-mono text-[11px] text-ink-soft">{d.actor}</p>
-                            <p className="font-bold">{d.action}</p>
-                          </td>
-                          <td className="border-y border-line px-3 py-3">
-                            <span className={`rounded-pill px-2 py-0.5 text-[11px] font-black uppercase ${AUTH_TONE[d.before]}`}>
-                              {d.before}
-                            </span>
-                          </td>
-                          <td className="border-y border-line px-3 py-3">
-                            <span className={`rounded-pill px-2 py-0.5 text-[11px] font-black uppercase ${AUTH_TONE[d.after]}`}>
-                              {d.after}
-                            </span>
-                          </td>
-                          <td className="rounded-r-card border-y border-r border-line px-3 py-3 text-right text-xs text-ink-soft">
-                            {d.already_executed ? "already executed" : d.reason}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
+              <p className="text-sm text-ink-soft">
+                this rule can be simulated, but the permissions engine couldn&apos;t turn it into an
+                enforceable rule — rephrase it to enable it.
+              </p>
             )}
-          </section>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button
+                onClick={enable}
+                disabled={!enforced || enabling || enabled}
+                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold lowercase text-ink transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
+              >
+                {enabled ? "enabled ✓" : enabling ? "enabling…" : "enable this rule"}
+              </button>
+              <p className="text-xs text-ink-soft">
+                rules only ever tighten what cosigno may do — enabling one can never give it more
+                permission. change or remove it any time in connections → rules.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-          <p className="mt-8 text-center text-[11px] text-ink-soft">
-            A rule can only ever raise the authority an action requires — simulation can never show
-            a policy making the system more permissive, because a policy cannot.
+/**
+ * One sentence, derived from the replay. The thresholds are visible logic,
+ * not vibes: a rule that stops most of the user's routine work gets called
+ * broad; a rule the parser wasn't sure about gets called out for reading.
+ */
+function Verdict({ res }: { res: SimResult }) {
+  if (res.confidence === "low") {
+    return (
+      <div className="flex items-start gap-3 rounded-card bg-signal/10 p-4 ring-1 ring-inset ring-signal/30">
+        <AlertTriangle size={18} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
+        <p className="text-sm">
+          <span className="font-extrabold">Read this one before enabling.</span> Part of the rule
+          couldn&apos;t be confidently understood, so cosigno fell back to the stricter reading —
+          it never guesses in the permissive direction.
+        </p>
+      </div>
+    );
+  }
+  if (res.evaluated === 0) {
+    return (
+      <div className="flex items-start gap-3 rounded-card bg-surface/70 p-4 shadow-soft">
+        <ShieldCheck size={18} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
+        <p className="text-sm">
+          <span className="font-extrabold">Nothing to replay yet.</span> There&apos;s no past work
+          to test this rule against — it can still be enabled, and it applies from the next
+          thing cosigno tries.
+        </p>
+      </div>
+    );
+  }
+  const share = res.tightened / res.evaluated;
+  if (share > 0.5 && res.evaluated >= 4) {
+    return (
+      <div className="flex items-start gap-3 rounded-card bg-signal/10 p-4 ring-1 ring-inset ring-signal/30">
+        <AlertTriangle size={18} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
+        <p className="text-sm">
+          <span className="font-extrabold">This rule is broad.</span> It would have stopped{" "}
+          {Math.round(share * 100)}% of your past work — that may be exactly what you want, but
+          expect cosigno to pause for you a lot more often.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-start gap-3 rounded-card bg-surface/70 p-4 shadow-soft">
+      {res.tightened === 0 ? (
+        <>
+          <ShieldCheck size={18} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
+          <p className="text-sm">
+            <span className="font-extrabold">Safe to enable.</span> Nothing you&apos;ve done so far
+            would have been affected — this rule guards against something that hasn&apos;t
+            happened yet.
+          </p>
+        </>
+      ) : (
+        <>
+          <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
+          <p className="text-sm">
+            <span className="font-extrabold">Looks safe to enable.</span> It would have stopped{" "}
+            {res.tightened} specific action{res.tightened === 1 ? "" : "s"} and left the rest of
+            your work untouched.
           </p>
         </>
       )}
