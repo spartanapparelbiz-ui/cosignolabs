@@ -161,6 +161,7 @@ export const gmailProvider = makeOAuthProvider({
   name: "Gmail",
   detail: "search, read, draft, and (with your signature) send, archive, or trash mail.",
   scopeSummary: "gmail: read · draft · send · modify",
+  homeUrl: "https://mail.google.com",
   tracks: ["unread mail", "threads waiting on a reply", "drafts"],
   authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
   tokenUrl: "https://oauth2.googleapis.com/token",

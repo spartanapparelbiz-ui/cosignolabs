@@ -120,6 +120,7 @@ export const googleDriveProvider = makeOAuthProvider({
   name: "Google Drive",
   detail: "save and update text files in your Drive — cosigno only sees files it created.",
   scopeSummary: "drive: app-created files only",
+  homeUrl: "https://drive.google.com",
   tracks: ["files cosigno created", "recent documents"],
   authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
   tokenUrl: "https://oauth2.googleapis.com/token",

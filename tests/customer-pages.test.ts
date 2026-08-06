@@ -136,9 +136,37 @@ describe("the twin concept is gone; connections is the complete app experience",
   });
 
   it("a connected app shows its recent real work and when it was last checked", () => {
-    expect(CONNECTIONS).toMatch(/status=executed/);
+    // Recent work is EXECUTED actions only — a proposed card hasn't done
+    // anything, and listing it as work done would be a claim, not a record.
+    expect(CONNECTIONS).toMatch(/mine\.filter\(\(a\) => a\.status === "executed"\)/);
+    expect(CONNECTIONS).toMatch(/recent: done\.slice\(0, 3\)/);
     expect(CONNECTIONS).toMatch(/recently, in \{name\}/);
     expect(CONNECTIONS).toMatch(/last checked \{checkedAgo\(lastCheckedAt\)\}/);
+  });
+
+  it("per-app value counts are real and never render a zero", () => {
+    expect(CONNECTIONS).toMatch(/stats\.completed > 0 &&/);
+    expect(CONNECTIONS).toMatch(/stats\.approvals > 0 &&/);
+    expect(CONNECTIONS).toMatch(/stats\.automatic > 0 &&/);
+    expect(CONNECTIONS).toMatch(/actions completed/);
+    expect(CONNECTIONS).toMatch(/approvals requested/);
+    expect(CONNECTIONS).toMatch(/completed automatically/);
+  });
+
+  it("apps are searchable, and no match says so rather than showing an empty list", () => {
+    expect(CONNECTIONS).toMatch(/aria-label="search apps"/);
+    expect(CONNECTIONS).toMatch(/visibleProviders/);
+    expect(CONNECTIONS).toMatch(/no app matches/);
+  });
+
+  it("open-app links go to the app's real declared home, never a guessed URL", async () => {
+    expect(CONNECTIONS).toMatch(/href=\{p\.homeUrl\}/);
+    expect(CONNECTIONS).toMatch(/rel="noreferrer noopener"/);
+    // Only providers that actually declare a home get the link.
+    const { listProviderMeta } = await import("../src/lib/integrations/registry");
+    for (const meta of listProviderMeta()) {
+      if (meta.homeUrl) expect(meta.homeUrl).toMatch(/^https:\/\//);
+    }
   });
 
   it("a connected app lists the standing rules that govern it — via the SAME matcher enforcement uses", () => {
@@ -151,8 +179,27 @@ describe("the twin concept is gone; connections is the complete app experience",
 
   it("a disconnected app sells what connecting unlocks — its real abilities, one click away", () => {
     expect(CONNECTIONS).toMatch(/connect \{p\.name\} to let cosigno/);
-    expect(CONNECTIONS).toMatch(/humanizeActionId\(a\.id\)/);
-    expect(CONNECTIONS).toMatch(/asks first/);
+    // The provider's OWN plain-English summary, not the action id: "whoami"
+    // is the engine's word, "read your GitHub profile" is the outcome.
+    expect(CONNECTIONS).toMatch(/\{a\.summary\.replace/);
+    expect(CONNECTIONS).toMatch(/asks you first/);
+  });
+
+  it("no provider ability reads like an engine identifier", async () => {
+    const { listProviderMeta } = await import("../src/lib/integrations/registry");
+    for (const meta of listProviderMeta()) {
+      for (const a of meta.actions) {
+        // Summaries are what the unlock list renders — they must be sentences,
+        // never snake_case ids or bare API verbs.
+        expect(a.summary, `${meta.key}.${a.id}`).not.toMatch(/^[a-z]+_[a-z_]+$/);
+        expect(a.summary, `${meta.key}.${a.id}`).not.toMatch(/whoami|GET |POST |PATCH |DELETE /);
+        expect(a.summary.length, `${meta.key}.${a.id}`).toBeGreaterThan(8);
+      }
+    }
+  });
+
+  it("the panel doesn't repeat the page's own heading", () => {
+    expect(CONNECTIONS).not.toMatch(/the apps and MCP servers cosigno can act across/);
   });
 
   it("abilities read in plain English with the approval fact — never method names or tier numbers alone", () => {

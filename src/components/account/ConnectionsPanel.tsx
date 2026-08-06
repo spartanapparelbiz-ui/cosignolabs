@@ -6,7 +6,9 @@ import {
   Check,
   Plug,
   Plus,
+  ExternalLink,
   RefreshCw,
+  Search,
   ShieldAlert,
   X,
 } from "lucide-react";
@@ -39,6 +41,8 @@ interface ProviderMeta {
   detail: string;
   authType: string;
   scopeSummary: string;
+  /** Where the app itself lives — present only when it has a public home. */
+  homeUrl?: string;
   configured: boolean;
   /** Env var NAMES needed to connect it. Names only — never values. */
   setupEnv?: string[];
@@ -95,6 +99,9 @@ interface CustomApiActionView {
   risk: "read" | "write" | "destructive";
 }
 const RISK_TIER_UI: Record<string, 1 | 2 | 3> = { read: 1, write: 2, destructive: 3 };
+
+/** Abilities listed in a not-yet-connected app's "what this unlocks" box. */
+const UNLOCK_SHOWN = 5;
 interface McpTool {
   connection_id: string;
   name: string;
@@ -143,8 +150,10 @@ export function ConnectionsPanel() {
   // happened in it lately and which rules govern it. Both are the actual
   // ledgers — the same records activity and the rules list read.
   const [recentWork, setRecentWork] = useState<
-    { id: string; summary: string; created_at: string }[]
+    { id: string; summary: string; created_at: string; status: string; tier: number }[]
   >([]);
+  /** Instant filter over app names. Empty = show everything. */
+  const [query, setQuery] = useState("");
   const [rules, setRules] = useState<
     { id: string; text: string; target: string; enabled: boolean }[]
   >([]);
@@ -153,7 +162,10 @@ export function ConnectionsPanel() {
     try {
       setData(await api("/api/connections"));
       setUnavailable(false);
-      api("/api/activity?category=connection_call&status=executed&limit=200")
+      // Every connector action, any status — executed ones are the work done,
+      // tier>1 ones are the approvals asked for. Both counted from the same
+      // ledger the activity page shows.
+      api("/api/activity?category=connection_call&limit=1000")
         .then((d) => setRecentWork(Array.isArray(d.actions) ? d.actions : []))
         .catch(() => undefined);
       api("/api/rules")
@@ -198,6 +210,27 @@ export function ConnectionsPanel() {
   const connByProvider = new Map(
     (data?.connections ?? []).filter((c) => c.kind === "app").map((c) => [c.provider_key, c])
   );
+
+  const q = query.trim().toLowerCase();
+  const visibleProviders = (data?.providers ?? []).filter(
+    (p) => !q || p.name.toLowerCase().includes(q) || p.detail.toLowerCase().includes(q)
+  );
+
+  /**
+   * What cosigno has actually done in one app, from the ledger. Executed =
+   * work completed; tier>1 = an approval it asked you for; tier 1 executed =
+   * work it completed on its own. Nothing here is estimated.
+   */
+  function statsFor(displayName: string) {
+    const mine = recentWork.filter((a) => a.summary.startsWith(`${displayName}:`));
+    const done = mine.filter((a) => a.status === "executed");
+    return {
+      completed: done.length,
+      approvals: mine.filter((a) => a.tier > 1).length,
+      automatic: done.filter((a) => a.tier === 1).length,
+      recent: done.slice(0, 3),
+    };
+  }
   const mcps = (data?.connections ?? []).filter((c) => c.kind === "mcp");
   const customs = (data?.connections ?? []).filter((c) => c.kind === "custom");
 
@@ -318,16 +351,8 @@ export function ConnectionsPanel() {
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <div>
-        <h3 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
-          connections
-        </h3>
-        <p className="mt-1 text-xs text-ink-soft">
-          the apps and MCP servers cosigno can act across — each stays off until
-          you connect it, and every action still waits for your signature.
-        </p>
-      </div>
-
+      {/* No heading here: the page above already says "connections" and what
+          it is. Saying it twice is the page apologising for itself. */}
       {notice && (
         <p className="rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold" role="status">
           {notice}
@@ -347,21 +372,44 @@ export function ConnectionsPanel() {
       )}
 
       {/* ---- third-party apps ---- */}
-      <section className="flex flex-col gap-2.5">
-        <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">apps</h4>
-        {data?.providers.map((p, i) => {
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">apps</h4>
+          {(data?.providers.length ?? 0) > 3 && (
+            <label className="relative w-full sm:w-64">
+              <Search
+                size={14}
+                aria-hidden="true"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
+              />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="search apps"
+                aria-label="search apps"
+                className="w-full rounded-pill bg-cream-deep py-2 pl-8 pr-3 text-xs font-semibold outline-none ring-1 ring-inset ring-transparent transition-all duration-fast placeholder:text-ink-soft/60 focus:ring-ink/25"
+              />
+            </label>
+          )}
+        </div>
+        {visibleProviders.length === 0 && (
+          <p className="rounded-card bg-surface/40 px-4 py-6 text-center text-xs text-ink-soft">
+            no app matches &ldquo;{query}&rdquo;.
+          </p>
+        )}
+        {visibleProviders.map((p, i) => {
           const conn = connByProvider.get(p.key);
           return (
             <div
               key={p.key}
               style={{ animationDelay: `${i * 70}ms` }}
-              className={`rounded-card bg-surface/60 p-4 shadow-soft transition-all duration-base ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth ${
+              className={`rounded-card bg-surface/60 p-5 shadow-soft transition-all duration-base ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth ${
                 justConnected === p.key ? "ring-2 ring-signal animate-pulse-glow" : ""
               }`}
             >
-              <div className="flex flex-wrap items-center gap-2">
-                <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={26} />
-                <span className="text-sm font-extrabold">{p.name}</span>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={30} />
+                <span className="text-base font-extrabold">{p.name}</span>
                 {conn && <StatusPill status={conn.status} />}
                 {/* "coming soon" told people to wait for cosigno to build
                     something that already exists — the connector works, this
@@ -391,6 +439,16 @@ export function ConnectionsPanel() {
                       >
                         <RefreshCw size={12} className={busy === conn.id ? "animate-spin" : ""} />
                       </button>
+                      {p.homeUrl && (
+                        <a
+                          href={p.homeUrl}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="inline-flex items-center gap-1 rounded-btn px-3 py-1.5 text-xs font-bold text-ink-soft hover:bg-cream-deep hover:text-ink"
+                        >
+                          open {p.name} <ExternalLink size={11} aria-hidden="true" />
+                        </a>
+                      )}
                       <button
                         onClick={() => disconnect(conn.id)}
                         disabled={busy === conn.id}
@@ -427,15 +485,26 @@ export function ConnectionsPanel() {
               {!conn && p.actions.length > 0 && (
                 <div className="mt-2 rounded-btn bg-cream-deep/50 px-3.5 py-2.5">
                   <p className="text-[11px] font-bold">connect {p.name} to let cosigno</p>
-                  <ul className="mt-1 flex flex-col gap-0.5">
-                    {p.actions.slice(0, 4).map((a) => (
-                      <li key={a.id} className="text-[11px] text-ink-soft">
-                        <span className="text-signal" aria-hidden="true">✓</span>{" "}
-                        {humanizeActionId(a.id).toLowerCase()}
-                        {a.tier > 1 ? " (asks first)" : ""}
+                  <ul className="mt-1.5 flex flex-col gap-1">
+                    {p.actions.slice(0, UNLOCK_SHOWN).map((a) => (
+                      <li key={a.id} className="flex items-start gap-1.5 text-[11px]">
+                        <span className="mt-px shrink-0 text-signal" aria-hidden="true">
+                          ✓
+                        </span>
+                        <span>
+                          {a.summary.replace(/\.$/, "")}
+                          {a.tier > 1 && (
+                            <span className="text-ink-soft"> — asks you first</span>
+                          )}
+                        </span>
                       </li>
                     ))}
                   </ul>
+                  {p.actions.length > UNLOCK_SHOWN && (
+                    <p className="mt-1.5 text-[11px] text-ink-soft">
+                      and {p.actions.length - UNLOCK_SHOWN} more
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -444,12 +513,11 @@ export function ConnectionsPanel() {
               {conn && conn.status === "connected" && (
                 <>
                   <ConnectionInsight connectionId={conn.id} providerName={p.name} />
+                  <AppValue stats={statsFor(conn.display_name || p.name)} />
                   <AppRecentWork
                     name={conn.display_name || p.name}
                     lastCheckedAt={conn.last_health_at ?? null}
-                    work={recentWork
-                      .filter((a) => a.summary.startsWith(`${conn.display_name || p.name}:`))
-                      .slice(0, 3)}
+                    work={statsFor(conn.display_name || p.name).recent}
                   />
                   <AppPolicies
                     providerKey={p.key}
@@ -466,7 +534,7 @@ export function ConnectionsPanel() {
               </p>
 
               {/* What it can do + the tier each capability is proposed at. */}
-              {p.actions.length > 0 && (
+              {conn && p.actions.length > 0 && (
                 <details className="group mt-2">
                   <summary className="cursor-pointer list-none text-xs font-bold lowercase text-ink-soft underline underline-offset-2 marker:content-['']">
                     <span className="group-open:hidden">what it can do ({p.actions.length})</span>
@@ -659,6 +727,38 @@ export function ConnectionsPanel() {
  * permission rule that applies — with an unmissable "nothing happened" note.
  */
 
+/**
+ * What this app has been worth, in three real counts from the ledger. A count
+ * at zero is omitted rather than shown — "0 actions completed" reinforces
+ * nothing, and a card of zeros reads as a product that doesn't work. With
+ * nothing yet, the row simply isn't there and the recent-work block below
+ * says so in words.
+ */
+function AppValue({
+  stats,
+}: {
+  stats: { completed: number; approvals: number; automatic: number };
+}) {
+  const cells = [
+    stats.completed > 0 && { n: stats.completed, label: "actions completed" },
+    stats.approvals > 0 && { n: stats.approvals, label: "approvals requested" },
+    stats.automatic > 0 && { n: stats.automatic, label: "completed automatically" },
+  ].filter((c): c is { n: number; label: string } => Boolean(c));
+  if (cells.length === 0) return null;
+  return (
+    <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5">
+      {cells.map((c) => (
+        <span key={c.label} className="text-[11px]">
+          <span className="font-display text-sm font-extrabold tabular-nums">
+            {c.n.toLocaleString()}
+          </span>{" "}
+          <span className="text-ink-soft">{c.label}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** Minutes/hours/days ago, for the last real health check. */
 function checkedAgo(iso: string): string {
   const mins = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
@@ -830,15 +930,7 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
 function ConnectionsComingSoon() {
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <div>
-        <h3 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
-          connections
-        </h3>
-        <p className="mt-1 text-xs text-ink-soft">
-          the apps and MCP servers cosigno can act across — each stays off until
-          you connect it, and every action still waits for your signature.
-        </p>
-      </div>
+      {/* No heading — the page above already carries it. */}
       <div className="group flex flex-1 flex-col items-center justify-center rounded-card bg-surface/60 px-8 py-16 text-center shadow-soft transition-all duration-slow ease-brand-out animate-spring-in hover:-translate-y-0.5 hover:shadow-depth">
         {/* Icon badge: radiating signal rings behind a gently floating plug. */}
         <div
@@ -886,16 +978,15 @@ function ConnectionsComingSoon() {
 function ConnectionsSkeleton() {
   return (
     <div className="flex flex-col gap-6" aria-busy="true" aria-label="loading connections">
-      <div>
-        <div className="h-3.5 w-28 rounded-pill bg-cream-deep" />
-        <div className="mt-2 h-3 w-3/4 rounded-pill bg-cream-deep/70" />
-      </div>
-      <section className="flex flex-col gap-2.5">
-        <div className="h-3 w-10 rounded-pill bg-cream-deep/70" />
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="h-3 w-10 rounded-pill bg-cream-deep/70" />
+          <div className="h-8 w-full max-w-[16rem] rounded-pill bg-cream-deep/60" />
+        </div>
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-card bg-surface/60 p-4 shadow-soft">
-            <div className="flex items-center gap-2">
-              <span className="h-[26px] w-[26px] shrink-0 rounded-btn bg-cream-deep" />
+          <div key={i} className="rounded-card bg-surface/60 p-5 shadow-soft">
+            <div className="flex items-center gap-2.5">
+              <span className="h-[30px] w-[30px] shrink-0 rounded-btn bg-cream-deep" />
               <span className="h-3.5 w-24 rounded-pill bg-cream-deep" />
               <span className="ml-auto h-7 w-20 rounded-btn bg-cream-deep" />
             </div>
