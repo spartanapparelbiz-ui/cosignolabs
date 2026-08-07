@@ -33,14 +33,47 @@ describe("no control is disabled by configuration state", () => {
 });
 
 describe("every refusal names what is missing", () => {
-  it("a provider without credentials is told which variables to set", () => {
-    expect(PANEL).toMatch(/can't be connected because this deployment has no/);
-    expect(PANEL).toMatch(/names\.join\(" and "\)/);
+  /**
+   * A refusal has three jobs: name what happened, say why, and say who can
+   * change it. It must do all three WITHOUT a variable name — the person
+   * reading it in a browser cannot set one, so naming it only tells them they
+   * are not the audience. Setting names belong in diagnostics, for whoever is.
+   */
+  it("a provider that is switched off names the app and who can enable it", () => {
+    expect(PANEL).toMatch(/isn't switched on for this workspace yet/);
+    expect(PANEL).toMatch(/an administrator can enable it/);
+    expect(PANEL).toMatch(/nothing to fix on your side/);
   });
 
-  it("a missing vault key says so, and why it matters", () => {
-    expect(PANEL).toMatch(/INTEGRATIONS_ENCRYPTION_KEY isn't set/);
-    expect(PANEL).toMatch(/won't store credentials it can't encrypt/);
+  it("a workspace without secure storage says so, and why it matters", () => {
+    expect(PANEL).toMatch(/connecting apps isn't switched on for this workspace yet/);
+    expect(PANEL).toMatch(/won't hold an account's keys until secure storage is turned on/);
+    expect(PANEL).toMatch(/until an administrator enables it/);
+  });
+
+  it("no message shown to a customer names a setting they cannot change", () => {
+    // Only PROSE matters: `TIER_META` as a constant is fine, "set TIER_META"
+    // shown to a founder is not. Comments explaining the rule are stripped.
+    const code = PANEL.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    const prose = (code.match(/"[^"\n]*\s[^"\n]*"/g) ?? []).concat(
+      code.match(/`[^`\n]*\s[^`\n]*`/g) ?? []
+    );
+    const leaks = prose.filter((line) => /\b[A-Z][A-Z0-9]{2,}(_[A-Z0-9]+)+\b/.test(line));
+    expect(
+      leaks,
+      `these customer-facing strings name a setting nobody can change from a browser: ${leaks.join(" | ")}`
+    ).toEqual([]);
+  });
+
+  it("never renders the list of settings an administrator must set", () => {
+    const code = PANEL.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    // The field may exist on the type — it must never be read into a message.
+    const declarations = code.match(/setupEnv\?: string\[\];/g) ?? [];
+    const allMentions = code.match(/setupEnv/g) ?? [];
+    expect(
+      allMentions.length,
+      "setupEnv is read somewhere other than its type declaration — check it is not being shown"
+    ).toBe(declarations.length);
   });
 
   it("a server that returns no link is an error, not a silent no-op", () => {

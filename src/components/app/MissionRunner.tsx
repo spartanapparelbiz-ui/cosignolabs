@@ -372,8 +372,10 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
         <div className="flex items-start gap-2 rounded-card bg-signal/10 p-3 text-xs font-semibold ring-1 ring-inset ring-signal/30">
           <Square size={13} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
           <span>
-            background mission execution isn&apos;t configured — missions advance
-            only while this page is open. <a href="/app/health" className="underline underline-offset-2">deployment health</a>.
+            {/* What happens to them, not what we failed to set up. */}
+            this mission moves forward while you have this page open. background
+            running isn&apos;t available for this workspace yet, so closing the tab
+            pauses it rather than losing it — reopen and it picks up where it stopped.
           </span>
         </div>
       )}
@@ -394,9 +396,9 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
           <p className="text-sm font-extrabold lowercase">prepare everything for tomorrow&apos;s meeting</p>
           <p className="text-xs text-ink-soft">
             finds the event, reviews related mail and files, builds a brief +
-            agenda, and drafts the follow-up. keeps working server-side even if
-            you close this tab. uses your connected apps — or a clearly-marked
-            sandbox until you connect them.
+            agenda, and drafts the follow-up. keeps going even if you close this
+            tab. uses your connected apps — or a clearly-marked sandbox until you
+            connect them.
           </p>
         </div>
         <button

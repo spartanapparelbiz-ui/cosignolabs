@@ -191,7 +191,7 @@ export function LiveMonitoring() {
             <Stat label="running" value={a.missions_active ?? 0} note={`${a.missions_total ?? 0} total missions`} />
             <Stat label="awaiting you" value={a.approvals_pending ?? 0} note="need your signature" />
             <Stat label="executed" value={a.actions_executed ?? 0} note={`${a.actions_vetoed ?? 0} vetoed`} />
-            <Stat label="automations" value={a.automations_enabled ?? 0} note={`${a.automations_total ?? 0} configured`} />
+            <Stat label="automations" value={a.automations_enabled ?? 0} note={`${a.automations_total ?? 0} set up`} />
           </div>
 
           {(snap?.alerts.length ?? 0) > 0 && (
@@ -293,9 +293,9 @@ export function LiveMonitoring() {
                     which is cleared when the server restarts. "Permanently" was
                     plainly untrue, and the permanent record is the activity log
                     — so point at the one that actually keeps things. */}
-                no authorization events yet. this stream shows agent-API decisions
-                held in memory since the server last started — the durable record of
-                everything cosigno did is in{" "}
+                nothing here yet. this stream covers work driven through cosigno&apos;s
+                API, and it only goes back as far as the last restart — the permanent
+                record of everything cosigno has done is in{" "}
                 <a href="/app/activity" className="underline underline-offset-2">
                   activity
                 </a>

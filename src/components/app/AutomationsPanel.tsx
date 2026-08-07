@@ -230,14 +230,11 @@ export function AutomationsPanel() {
         >
           <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
           <span>
-            <b>nothing is running these on a schedule yet.</b> this deployment has no background
-            scheduler, so a standing order will not fire on its own — no matter what cadence you
-            pick. you can still use <b>run now</b>, and orders you save start running as soon as
-            background execution is set up.{" "}
-            <a href="/app/health" className="underline underline-offset-2">
-              check deployment health
-            </a>
-            .
+            <b>standing orders can&apos;t run on their own yet.</b> background automation
+            isn&apos;t available for this workspace, so nothing will fire on a schedule — no
+            matter which cadence you pick. you can still run any order yourself with{" "}
+            <b>run now</b>, and everything you save here starts running by itself once an
+            administrator switches it on.
           </span>
         </p>
       )}
@@ -325,7 +322,7 @@ export function AutomationsPanel() {
             turn repeated work into a recurring mission — a morning inbox
             review, a weekly report.{" "}
             {backgroundActive === false
-              ? "on this deployment nothing runs them on a schedule yet, so they only run when you press run now."
+              ? "scheduled running isn't available for this workspace yet, so these run when you press run now."
               : "cosigno prepares the work on schedule;"}{" "}
             anything consequential still waits for your signature.
           </p>

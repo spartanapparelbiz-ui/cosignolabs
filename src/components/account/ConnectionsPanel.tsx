@@ -196,8 +196,14 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
    */
   function requireVault(): boolean {
     if (data && !data.vaultReady) {
+      /**
+       * What happened, why, and who can fix it — in that order, with no
+       * variable names. The person reading this cannot set an environment
+       * variable from a browser, so naming one only tells them they are not
+       * the audience. The name lives in account → diagnostics, for whoever is.
+       */
       setError(
-        "Connections are turned off on this deployment: INTEGRATIONS_ENCRYPTION_KEY isn't set, and cosigno won't store credentials it can't encrypt."
+        "connecting apps isn't switched on for this workspace yet. cosigno won't hold an account's keys until secure storage is turned on, so nothing can be connected until an administrator enables it."
       );
       return false;
     }
@@ -210,11 +216,11 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
 
     if (!requireVault()) return;
     if (provider && !provider.configured) {
-      const names = provider.setupEnv ?? [];
+      /* The exact key names are a setup task for an administrator, and they
+         live in account → diagnostics. Here we say what a person can act on:
+         which app, that it is off, and who can switch it on. */
       setError(
-        names.length > 0
-          ? `${provider.name} can't be connected because this deployment has no ${provider.name} credentials. Set ${names.join(" and ")}, then redeploy.`
-          : `${provider.name} can't be connected because this deployment hasn't been configured for it yet.`
+        `${provider.name} isn't switched on for this workspace yet. an administrator can enable it — there's nothing to fix on your side.`
       );
       return;
     }
@@ -312,8 +318,9 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
       {data && !data.vaultReady && (
         <p className="flex items-start gap-2 rounded-btn bg-signal/10 px-3 py-2 text-xs font-semibold text-signal ring-1 ring-inset ring-signal/30">
           <ShieldAlert size={14} className="mt-px shrink-0" />
-          the server isn&apos;t configured to store credentials yet
-          (INTEGRATIONS_ENCRYPTION_KEY). connecting is disabled until it is.
+          connecting apps isn&apos;t switched on for this workspace yet — an administrator
+          needs to enable secure storage first. everything below still shows exactly what
+          each app would be able to do.
         </p>
       )}
 
@@ -395,8 +402,8 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
                   or waiting on them. */}
               {!p.configured && !conn && (
                 <p className="mt-1 text-[11px] text-ink-soft/80">
-                  This deployment has no {p.name} credentials yet — add them and
-                  it turns on.
+                  {p.name} isn&apos;t switched on for this workspace yet — an administrator
+                  can enable it.
                 </p>
               )}
 
@@ -722,10 +729,10 @@ function NotYetAvailable() {
           ))}
         </div>
         <p className="mt-2.5 text-[11px] text-ink-soft">
-          cosigno cannot act in these yet — there is no connector for them, configured or
-          otherwise. a safety rule naming one is stored and understood, but it protects nothing
-          until the connector exists. nothing on this page is hidden: if a tool is not listed
-          anywhere above, cosigno cannot touch it.
+          cosigno can&apos;t work with these at all yet — not switched off, not built. a safety
+          rule naming one is saved and understood, but it protects nothing until support
+          arrives. nothing here is hidden: if a tool isn&apos;t listed anywhere above,
+          cosigno can&apos;t touch it.
         </p>
       </div>
     </section>
