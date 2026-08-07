@@ -33,6 +33,33 @@ export async function register() {
       }
     }
 
+    /**
+     * The redirect URIs this deployment will actually send providers, printed
+     * so they can be pasted into each provider's console without anyone having
+     * to work out the pattern.
+     *
+     * This is the failure nothing else catches: a provider rejects a URI it
+     * doesn't recognise BEFORE any of our code runs, so there is no error to
+     * log and no message to show — the person just lands back where they
+     * started. Google is the sharp edge, because Gmail, Calendar and Drive
+     * share one OAuth client but are three separate connectors, so that one
+     * client needs all three URIs registered.
+     */
+    try {
+      const { appUrl } = await import("@/lib/stripe");
+      const { listProviderMeta } = await import("@/lib/integrations/registry");
+      const oauth = listProviderMeta().filter((p) => p.authType === "oauth2");
+      console.log(
+        `[cosigno] OAuth redirect URIs for this deployment (${appUrl()}) — ` +
+          "each must be registered with its provider, or connecting fails silently:"
+      );
+      for (const p of oauth) {
+        console.log(`[cosigno]   ${p.name}: ${appUrl()}/api/connections/${p.key}/callback`);
+      }
+    } catch {
+      /* Diagnostic only — never let it affect boot. */
+    }
+
     if (prod && appGated()) {
       if (publicSandbox()) {
         console.warn(
