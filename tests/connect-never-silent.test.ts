@@ -102,8 +102,26 @@ describe("every refusal names what is missing", () => {
     expect(PANEL).toMatch(/if \(!url\) throw new Error/);
   });
 
-  it("an API failure surfaces the server's own message", () => {
-    expect(PANEL).toMatch(/setError\(e instanceof Error \? e\.message/);
+  /**
+   * The inverse of what this once asserted. Rendering the server's sentence
+   * is how "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, then redeploy"
+   * reached a customer: any layer that threw got to write the UI's copy.
+   * The panel now maps a failure CODE to its own wording.
+   */
+  it("never renders the server's own sentence", () => {
+    expect(PANEL).not.toMatch(/setError\(e instanceof Error \? e\.message/);
+    expect(PANEL).not.toMatch(/toast\("error", e instanceof Error \? e\.message/);
+    expect(PANEL).toMatch(/function readable\(err: unknown\)/);
+    expect(PANEL).toMatch(/const FAILURE_MESSAGE: Record<string, string>/);
+  });
+
+  it("routes every caught failure through that mapping", () => {
+    const catches = PANEL.match(/catch \(e\) \{[\s\S]{0,200}?\}/g) ?? [];
+    const shown = catches.filter((block) => /setError|setImportMsg|onError|toast\(/.test(block));
+    expect(shown.length, "expected some catch blocks that show a message").toBeGreaterThan(4);
+    for (const block of shown) {
+      expect(block, `this catch shows a message without readable():\n${block}`).toMatch(/readable\(e\)/);
+    }
   });
 });
 
@@ -116,8 +134,14 @@ describe("the server states the reason too, so the client can relay it", () => {
     expect(CONNECT_ROUTE).toMatch(re);
   });
 
-  it("names the provider in the not-configured message", () => {
-    expect(CONNECT_ROUTE).toMatch(/\$\{provider\.name\} isn't set up on this server yet/);
+  it("names the app, and never the settings, in the not-configured message", () => {
+    expect(CONNECT_ROUTE).toMatch(/\$\{provider\.name\} sign-in isn't available right now/);
+    // The settings ride in the developer channel, which is stripped in prod.
+    expect(CONNECT_ROUTE).toMatch(/provider\.setupEnv \?\? \[\]/);
+    const messages = CONNECT_ROUTE.match(/"[^"\n]*\s[^"\n]*"/g) ?? [];
+    for (const m of messages) {
+      expect(m, `message names a setting: ${m}`).not.toMatch(/\b[A-Z][A-Z0-9]{2,}(_[A-Z0-9]+)+\b/);
+    }
   });
 });
 

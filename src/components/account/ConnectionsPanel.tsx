@@ -119,13 +119,58 @@ const STATUS_STYLE: Record<ConnectionView["status"], { label: string; cls: strin
   revoked: { label: "disconnected", cls: "ring-1 ring-inset ring-ink/30 text-ink-soft" },
 };
 
+/**
+ * An API failure, kept structured rather than flattened to a string.
+ *
+ * Flattening was the original sin here: `throw new Error(body.message)` turned
+ * every backend failure into text the UI then rendered verbatim, so ANY layer
+ * — a provider, the crypto module, a rate limiter — could put its own wording
+ * in front of a customer. Keeping the code means the UI decides what a person
+ * reads, and the server's own sentence is only ever a fallback.
+ */
+class ApiFailure extends Error {
+  constructor(
+    public code: string,
+    /** The server's sentence. Only shown when no mapping covers the code. */
+    public serverMessage: string,
+    /** Setting names — present in development builds only. */
+    public developer?: string[]
+  ) {
+    super(serverMessage);
+  }
+}
+
+/** What a person reads, by failure code. The server's wording is not used. */
+const FAILURE_MESSAGE: Record<string, string> = {
+  vault_unconfigured:
+    "Connecting apps isn't available right now. Please try again later, or contact support.",
+  not_configured: "That app isn't available to connect right now. Please try again later, or contact support.",
+  unknown_provider: "We don't recognise that app.",
+  rate_limited: "That was a lot at once — give it a moment and try again.",
+  plan_limit: "You've reached the number of connected apps your plan includes.",
+  internal: "Something went wrong on our side. Please try again in a moment.",
+};
+
+function readable(err: unknown): string {
+  if (err instanceof ApiFailure) {
+    return FAILURE_MESSAGE[err.code] ?? "That didn't work. Please try again in a moment.";
+  }
+  return "That didn't work. Please try again in a moment.";
+}
+
 async function api(url: string, init?: RequestInit) {
   const res = await fetch(url, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) {
+    throw new ApiFailure(
+      String(body.error ?? "internal"),
+      String(body.message ?? ""),
+      Array.isArray(body.developer) ? body.developer : undefined
+    );
+  }
   return body;
 }
 
@@ -234,7 +279,7 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
       if (!url) throw new Error("the server didn't return a sign-in link for that app.");
       window.location.href = url;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't start that connection.");
+      setError(readable(e));
       setBusy(null);
     }
   }
@@ -244,7 +289,7 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
       await api(`/api/connections/${id}/disconnect`, { method: "POST" });
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't disconnect.");
+      setError(readable(e));
     } finally {
       setBusy(null);
     }
@@ -276,7 +321,7 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
         setNotice("prepared — review and approve it at the boundary.");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't propose that action.");
+      setError(readable(e));
     } finally {
       setBusy(null);
     }
@@ -291,7 +336,7 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
       });
       setPreview(p);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't preview that action.");
+      setError(readable(e));
     } finally {
       setBusy(null);
     }
@@ -1146,7 +1191,7 @@ function ToolRow({
       setConfirming(false);
       await onReload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't update that tool.");
+      setError(readable(e));
     } finally {
       setBusy(false);
     }
@@ -1239,7 +1284,7 @@ function AddMcpForm({ onAdded }: { onAdded: () => Promise<void> }) {
       setResult(bits.join(" · ") + " — all off until you enable them.");
       await onAdded();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't add that server.");
+      setError(readable(e));
     } finally {
       setBusy(false);
     }
@@ -1426,7 +1471,7 @@ function AddApiToolForm({
       setImportMsg(`detected ${found.length} action${found.length === 1 ? "" : "s"}${extra}. review the tiers, add your key, then activate.`);
       setImportOpen(false);
     } catch (e) {
-      setImportMsg(e instanceof Error ? e.message : "couldn't parse that spec.");
+      setImportMsg(readable(e));
     } finally {
       setImporting(false);
     }
@@ -1449,7 +1494,7 @@ function AddApiToolForm({
       });
       await onAdded();
     } catch (e) {
-      onError(e instanceof Error ? e.message : "couldn't add that tool.");
+      onError(readable(e));
     } finally {
       setBusy(false);
     }
