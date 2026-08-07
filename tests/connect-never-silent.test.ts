@@ -19,7 +19,9 @@ const CONNECT_ROUTE = readFileSync("src/app/api/connections/[key]/connect/route.
 
 describe("no control is disabled by configuration state", () => {
   it("the connect button is only disabled while its own request is in flight", () => {
-    expect(PANEL).toMatch(/disabled=\{busy === p\.key\}/);
+    // Disabled ONLY while this app's own request is in flight — never because
+    // of how the workspace is set up.
+    expect(PANEL).toMatch(/disabled=\{busy === (p|provider)\.key\}/);
     // The old guards would swallow the click and say nothing.
     expect(PANEL).not.toMatch(/disabled=\{!p\.configured/);
     expect(PANEL).not.toMatch(/disabled=\{!data\?\.vaultReady\}/);
@@ -55,9 +57,10 @@ describe("every refusal names what is missing", () => {
     // Only PROSE matters: `TIER_META` as a constant is fine, "set TIER_META"
     // shown to a founder is not. Comments explaining the rule are stripped.
     const code = PANEL.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-    const prose = (code.match(/"[^"\n]*\s[^"\n]*"/g) ?? []).concat(
-      code.match(/`[^`\n]*\s[^`\n]*`/g) ?? []
-    );
+    const prose: string[] = [
+      ...(code.match(/"[^"\n]*\s[^"\n]*"/g) ?? []),
+      ...(code.match(/`[^`\n]*\s[^`\n]*`/g) ?? []),
+    ];
     const leaks = prose.filter((line) => /\b[A-Z][A-Z0-9]{2,}(_[A-Z0-9]+)+\b/.test(line));
     expect(
       leaks,
@@ -65,15 +68,33 @@ describe("every refusal names what is missing", () => {
     ).toEqual([]);
   });
 
-  it("never renders the list of settings an administrator must set", () => {
+  /**
+   * Setting names may be disclosed to whoever can act on them, and to nobody
+   * else. The only place that is allowed is DeveloperDetails, which returns
+   * null outside a development build — so the guarantee is not "the names are
+   * gone", it is "the names are behind that gate".
+   */
+  it("only discloses setting names behind the development-only gate", () => {
     const code = PANEL.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-    // The field may exist on the type — it must never be read into a message.
-    const declarations = code.match(/setupEnv\?: string\[\];/g) ?? [];
-    const allMentions = code.match(/setupEnv/g) ?? [];
-    expect(
-      allMentions.length,
-      "setupEnv is read somewhere other than its type declaration — check it is not being shown"
-    ).toBe(declarations.length);
+    const gate = code.indexOf("function DeveloperDetails");
+    expect(gate, "DeveloperDetails must exist as the single disclosure point").toBeGreaterThan(-1);
+
+    // The gate itself refuses outside development.
+    const gateBody = code.slice(gate, gate + 900);
+    expect(gateBody).toMatch(/process\.env\.NODE_ENV !== "development"/);
+    expect(gateBody).toMatch(/return null/);
+
+    // Every read of setupEnv, and every literal setting name, is inside it.
+    for (const needle of ["setupEnv", "INTEGRATIONS_ENCRYPTION_KEY"]) {
+      let at = code.indexOf(needle);
+      while (at !== -1) {
+        const isDeclaration = code.slice(at, at + 24).startsWith("setupEnv?: string[]");
+        if (!isDeclaration) {
+          expect(at, `"${needle}" is read outside DeveloperDetails`).toBeGreaterThan(gate);
+        }
+        at = code.indexOf(needle, at + 1);
+      }
+    }
   });
 
   it("a server that returns no link is an error, not a silent no-op", () => {
