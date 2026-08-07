@@ -22,6 +22,7 @@ import {
 import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/lib/types";
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
+import { useBackgroundExecution } from "./useBackgroundExecution";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { missionStatus, STATUS_TONE } from "@/lib/status";
 
@@ -228,7 +229,7 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
   const [sources, setSources] = useState<Record<string, MissionSourceRecord[]>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [bgActive, setBgActive] = useState<boolean | null>(null);
+  const bgActive = useBackgroundExecution();
   const toast = useToast();
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -257,10 +258,6 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
 
   useEffect(() => {
     load();
-    fetch("/api/health/mission")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((h) => h && setBgActive(Boolean(h.background_execution_active)))
-      .catch(() => {});
   }, [load]);
 
   // While an ACTIVE mission is open, keep the engine moving (the cron tick
@@ -296,7 +293,14 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
         method: "POST",
         body: JSON.stringify({ template: "meeting_prep" }),
       });
-      toast("success", "mission started — it keeps working even if you close this tab.");
+      toast(
+        "success",
+        bgActive === true
+          ? "mission started — it keeps working even if you close this tab."
+          : bgActive === false
+            ? "mission started — keep this mission open; it pauses when you close it."
+            : "mission started — keep it open until we can confirm it runs in the background."
+      );
       setSteps((s) => ({ ...s, [data.mission.id]: data.steps ?? [] }));
       await load();
       setOpenId(data.mission.id);
@@ -372,8 +376,14 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
         <div className="flex items-start gap-2 rounded-card bg-signal/10 p-3 text-xs font-semibold ring-1 ring-inset ring-signal/30">
           <Square size={13} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
           <span>
-            background mission execution isn&apos;t configured — missions advance
-            only while this page is open. <a href="/app/health" className="underline underline-offset-2">deployment health</a>.
+            {/* What happens to them, not what we failed to set up. */}
+            {/* Advancement is driven by the interval above, which only runs
+                while an ACTIVE mission is OPEN — not merely while this page is.
+                Saying "reopen the page" would be a promise the code does not
+                keep. */}
+            a mission moves forward only while you have it open. background running
+            isn&apos;t available for this workspace yet, so closing it pauses the work
+            rather than losing it — open the mission again to carry on.
           </span>
         </div>
       )}
@@ -394,9 +404,14 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
           <p className="text-sm font-extrabold lowercase">prepare everything for tomorrow&apos;s meeting</p>
           <p className="text-xs text-ink-soft">
             finds the event, reviews related mail and files, builds a brief +
-            agenda, and drafts the follow-up. keeps working server-side even if
-            you close this tab. uses your connected apps — or a clearly-marked
-            sandbox until you connect them.
+            agenda, and drafts the follow-up.{" "}
+            {bgActive === true
+              ? "keeps going even if you close this tab."
+              : bgActive === false
+                ? "keep it open while it runs — it pauses when closed."
+                : "keep it open while it runs until background running is confirmed."}{" "}
+            uses your connected apps — or a clearly-marked sandbox until you
+            connect them.
           </p>
         </div>
         <button

@@ -16,11 +16,15 @@ const OUTCOMES = [
   {
     icon: Reply,
     title: "replies prepared",
-    body: "drafts written and saved for every waiting thread. drafts can't send.",
+    // "every waiting thread" claimed completeness the job cannot promise — it
+    // drafts for the threads it found, which is a different sentence.
+    body: "drafts written and saved for the threads it finds waiting. drafts can't send.",
   },
   {
     icon: Sunrise,
-    title: "calendar protected",
+    // "protected" says cosigno guards the calendar. It reads free/busy and
+    // picks times around it; nothing is being defended.
+    title: "calendar respected",
     body: "send times and reminders checked against your real free/busy.",
   },
 ] as const;

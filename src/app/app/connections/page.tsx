@@ -4,7 +4,7 @@ import { AdaptiveDashboard } from "@/components/app/AdaptiveDashboard";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Connections" };
+export const metadata = { title: "connections" };
 
 /** Connections — the apps cosigno can work with, on their own page. */
 export default function ConnectionsPage() {
@@ -23,7 +23,9 @@ export default function ConnectionsPage() {
       </div>
 
       <div className="flex-1">
-        <ConnectionsPanel />
+        {/* The page's own h1 already says "connections" — the panel's heading
+            would repeat the word and its description directly beneath it. */}
+        <ConnectionsPanel heading={false} />
       </div>
       <hr className="my-8 border-ink/10" />
       <PermissionRules />

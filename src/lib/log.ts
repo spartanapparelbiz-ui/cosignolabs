@@ -9,6 +9,8 @@ import { randomUUID } from "crypto";
 export type SecurityEvent =
   | "auth_failure"
   | "serving_blocked"
+  /** An outgoing message named a configuration key and was replaced. */
+  | "config_name_withheld"
   | "rate_limited"
   | "rejected_privileged_field"
   | "rejected_status_write"

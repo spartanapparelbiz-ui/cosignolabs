@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
@@ -482,6 +483,26 @@ function PermissionsPanel({
           </div>
         ))}
       </div>
+
+      {/* Tiers set how much rope every category gets. A safety rule is the
+          narrower instrument — one sentence about one kind of action — and it
+          can be tried against real work before it binds anything. */}
+      <Link
+        href="/app/settings/rules"
+        className="mt-5 flex items-center justify-between gap-3 rounded-card bg-surface/60 p-4 shadow-soft transition-all duration-fast hover:-translate-y-0.5 hover:shadow-depth"
+      >
+        <span>
+          <span className="flex items-center gap-1.5 text-sm font-bold lowercase">
+            <ShieldCheck size={14} aria-hidden="true" /> safety rules
+          </span>
+          <span className="mt-0.5 block text-[11px] text-ink-soft">
+            test an AI rule against your past work, then turn it on.
+          </span>
+        </span>
+        <span aria-hidden="true" className="shrink-0 text-sm font-bold text-ink-soft">
+          →
+        </span>
+      </Link>
     </section>
   );
 }

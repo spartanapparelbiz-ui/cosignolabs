@@ -2,7 +2,7 @@ import { MemoryPanel } from "@/components/app/MemoryPanel";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Memory" };
+export const metadata = { title: "memory" };
 
 /**
  * My Rules & Memory — user-controlled operating principles and context the
@@ -20,8 +20,9 @@ export default function MemoryPage() {
         external emails for review,&rdquo; &ldquo;never cancel a meeting without asking.&rdquo;
         the operator reads every enabled rule as explicit context on every
         delegation. only you write here; explicit rules override anything
-        cosigno has inferred, and one switch turns it all off. hard boundaries
-        (signatures, locked actions) are enforced server-side either way.
+        cosigno has inferred, and one switch turns it all off. the hard limits —
+        signatures and locked actions — hold either way, and nothing you write
+        here can loosen them.
       </p>
       <div className="mt-6 flex-1">
         <MemoryPanel />

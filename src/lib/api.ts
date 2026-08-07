@@ -6,14 +6,58 @@ import { servingAllowed } from "./env";
 import { logError, logSecurity, newRequestId } from "./log";
 import { RateLimitError } from "./ratelimit";
 
+/**
+ * An error with two audiences.
+ *
+ * `message` is for the person in the browser: what happened, in their words.
+ * `developer` is the setting names that would fix it — useful to whoever
+ * operates the workspace, meaningless (and slightly alarming) to everyone
+ * else. It is attached at the throw site and STRIPPED FROM THE RESPONSE
+ * outside development, so a route cannot leak it by forgetting to.
+ *
+ * The rule this encodes: naming a setting a reader cannot change tells them
+ * only that they are not the audience. Making that impossible in one place
+ * beats remembering it at every throw.
+ */
 export class ApiError extends Error {
   constructor(
     public status: number,
     public code: string,
-    message: string
+    message: string,
+    /** Setting NAMES only — never a value, never a secret. */
+    public developer?: string[]
   ) {
     super(message);
   }
+}
+
+/** Development builds may see setting names; nothing else ever does. */
+export function developerDetail(names: string[] | undefined): { developer?: string[] } {
+  if (!names?.length) return {};
+  if (process.env.NODE_ENV !== "development") return {};
+  return { developer: names };
+}
+
+/** A configuration key: SCREAMING_SNAKE_CASE with at least one underscore. */
+const SETTING_NAME = /\b[A-Z][A-Z0-9]{2,}(?:_[A-Z0-9]+)+\b/;
+
+/**
+ * The last gate before a message leaves the server.
+ *
+ * Components across this app render `err.message` directly, and errors are
+ * thrown from everywhere — providers, the crypto module, rate limiters, the
+ * planner. Fixing each call site fixes today and not tomorrow, because the
+ * next throw is one commit away and nobody will remember this rule.
+ *
+ * So the guarantee is made HERE, once: any message on its way to a browser
+ * that names a configuration key is replaced wholesale. A customer cannot act
+ * on a key name, so losing the detail costs them nothing — and the real text
+ * is logged, where the person who can act on it is already looking.
+ */
+export function safeMessage(message: string, code: string): string {
+  if (!SETTING_NAME.test(message)) return message;
+  logSecurity("config_name_withheld", { code, detail: message.slice(0, 200) });
+  return "This isn't available right now. Please try again later, or contact support.";
 }
 
 /**
@@ -58,19 +102,19 @@ const ENGINE_STATUS: Record<string, number> = {
 export function errorResponse(err: unknown): NextResponse {
   if (err instanceof ApiError) {
     return NextResponse.json(
-      { error: err.code, message: err.message },
+      { error: err.code, message: safeMessage(err.message, err.code), ...developerDetail(err.developer) },
       { status: err.status }
     );
   }
   if (err instanceof RateLimitError) {
     return NextResponse.json(
-      { error: "rate_limited", message: err.message },
+      { error: "rate_limited", message: safeMessage(err.message, "rate_limited") },
       { status: 429, headers: { "Retry-After": String(err.retryAfter) } }
     );
   }
   if (err instanceof EngineError) {
     return NextResponse.json(
-      { error: err.code, message: err.message },
+      { error: err.code, message: safeMessage(err.message, err.code) },
       { status: ENGINE_STATUS[err.code] ?? 400 }
     );
   }
@@ -81,7 +125,7 @@ export function errorResponse(err: unknown): NextResponse {
   if (err instanceof PlannerError) {
     const requestId = newRequestId();
     return NextResponse.json(
-      { error: "planner_failed", message: err.message, requestId },
+      { error: "planner_failed", message: safeMessage(err.message, "planner_failed"), requestId },
       { status: 502 }
     );
   }

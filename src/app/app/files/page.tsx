@@ -2,7 +2,7 @@ import { FilesPanel } from "@/components/app/FilesPanel";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Files" };
+export const metadata = { title: "files" };
 
 /** Files — text deliverables that live inside cosigno, versioned on every save. */
 export default function FilesPage() {

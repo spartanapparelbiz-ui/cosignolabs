@@ -8,7 +8,7 @@ import type { MissionRecord } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Missions" };
+export const metadata = { title: "missions" };
 
 /**
  * Delegations — every outcome handed to cosigno, active until it's done.

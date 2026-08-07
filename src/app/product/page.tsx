@@ -22,7 +22,7 @@ const LOOP = [
   ["prepare", "reads and drafts run instantly; nothing external moves yet."],
   ["preview", "every consequential action becomes a card you can inspect."],
   ["approve", "you sign, edit, or veto. locked actions need typed confirmation."],
-  ["execute", "approved actions run server-side — never before, never without you."],
+  ["execute", "approved actions run away from your browser — never before, never without you."],
   ["verify", "the real result lands on the card, not a vague success."],
   ["receipt", "everything is written to your permanent, exportable audit trail."],
 ] as const;

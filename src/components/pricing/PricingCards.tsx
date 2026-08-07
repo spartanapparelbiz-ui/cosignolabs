@@ -118,9 +118,12 @@ export function PricingCards() {
           onPointerUp={() => track("pricing_probe", { actions: probe })}
           className="mt-2 h-11 w-full cursor-pointer accent-signal"
         />
+        {/* Name the plan's REAL ceiling, not the number on the slider —
+            "pro covers 300 actions / month" read as pro's limit being 300,
+            directly contradicting the 1,000 printed on pro's own card. */}
         <p className="mt-1 text-sm font-semibold">
-          <span className="font-extrabold">{PLANS[covering].name}</span> covers{" "}
-          {probe.toLocaleString()} actions / month.
+          <span className="font-extrabold">{PLANS[covering].name}</span> covers that
+          — {PLANS[covering].actionLimit.toLocaleString()} actions / month.
         </p>
       </div>
 

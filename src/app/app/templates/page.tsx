@@ -2,7 +2,7 @@ import { TemplateGallery } from "@/components/app/TemplateGallery";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Templates" };
+export const metadata = { title: "templates" };
 
 /**
  * Templates — installable jobs, not blog cards. Only jobs with a COMPLETE

@@ -6,13 +6,17 @@ import {
   Check,
   Plug,
   Plus,
+  Loader2,
   RefreshCw,
+  Search,
   ShieldAlert,
   X,
 } from "lucide-react";
+import { providersWithoutConnector } from "@/lib/ruleIntents";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { ConnectionInsight } from "@/components/account/ConnectionInsight";
 import { humanizeActionId, humanizeEndpoint } from "@/lib/integrations/engine/humanize";
+import { outcomesFor } from "@/components/account/providerOutcomes";
 
 /**
  * The Connections screen: available third-party apps, the user's connected
@@ -115,17 +119,69 @@ const STATUS_STYLE: Record<ConnectionView["status"], { label: string; cls: strin
   revoked: { label: "disconnected", cls: "ring-1 ring-inset ring-ink/30 text-ink-soft" },
 };
 
+/**
+ * An API failure, kept structured rather than flattened to a string.
+ *
+ * Flattening was the original sin here: `throw new Error(body.message)` turned
+ * every backend failure into text the UI then rendered verbatim, so ANY layer
+ * — a provider, the crypto module, a rate limiter — could put its own wording
+ * in front of a customer. Keeping the code means the UI decides what a person
+ * reads, and the server's own sentence is only ever a fallback.
+ */
+class ApiFailure extends Error {
+  constructor(
+    public code: string,
+    /** The server's sentence. Only shown when no mapping covers the code. */
+    public serverMessage: string,
+    /** Setting names — present in development builds only. */
+    public developer?: string[]
+  ) {
+    super(serverMessage);
+  }
+}
+
+/** What a person reads, by failure code. The server's wording is not used. */
+const FAILURE_MESSAGE: Record<string, string> = {
+  vault_unconfigured:
+    "Connecting apps isn't available right now. Please try again later, or contact support.",
+  not_configured: "That app isn't available to connect right now. Please try again later, or contact support.",
+  no_signin_link: "We couldn't start sign-in for that app. Please try again in a moment.",
+  unknown_provider: "We don't recognise that app.",
+  rate_limited: "That was a lot at once — give it a moment and try again.",
+  plan_limit: "You've reached the number of connected apps your plan includes.",
+  internal: "Something went wrong on our side. Please try again in a moment.",
+};
+
+function readable(err: unknown): string {
+  if (err instanceof ApiFailure) {
+    return FAILURE_MESSAGE[err.code] ?? "That didn't work. Please try again in a moment.";
+  }
+  return "That didn't work. Please try again in a moment.";
+}
+
 async function api(url: string, init?: RequestInit) {
   const res = await fetch(url, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) {
+    throw new ApiFailure(
+      String(body.error ?? "internal"),
+      String(body.message ?? ""),
+      Array.isArray(body.developer) ? body.developer : undefined
+    );
+  }
   return body;
 }
 
-export function ConnectionsPanel() {
+/**
+ * `heading` renders the panel's own "connections" title. It belongs inside the
+ * account center, where the panel is one tab among several — but /app/connections
+ * is already titled "connections", so that page turns it off rather than
+ * stacking the same word twice with two near-identical descriptions under it.
+ */
+export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {}) {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState(false);
@@ -189,8 +245,14 @@ export function ConnectionsPanel() {
    */
   function requireVault(): boolean {
     if (data && !data.vaultReady) {
+      /**
+       * What happened, why, and who can fix it — in that order, with no
+       * variable names. The person reading this cannot set an environment
+       * variable from a browser, so naming one only tells them they are not
+       * the audience. The name lives in account → diagnostics, for whoever is.
+       */
       setError(
-        "Connections are turned off on this deployment: INTEGRATIONS_ENCRYPTION_KEY isn't set, and cosigno won't store credentials it can't encrypt."
+        "connecting apps isn't switched on for this workspace yet. cosigno won't hold an account's keys until secure storage is turned on, so nothing can be connected until an administrator enables it."
       );
       return false;
     }
@@ -203,11 +265,11 @@ export function ConnectionsPanel() {
 
     if (!requireVault()) return;
     if (provider && !provider.configured) {
-      const names = provider.setupEnv ?? [];
+      /* The exact key names are a setup task for an administrator, and they
+         live in account → diagnostics. Here we say what a person can act on:
+         which app, that it is off, and who can switch it on. */
       setError(
-        names.length > 0
-          ? `${provider.name} can't be connected because this deployment has no ${provider.name} credentials. Set ${names.join(" and ")}, then redeploy.`
-          : `${provider.name} can't be connected because this deployment hasn't been configured for it yet.`
+        `${provider.name} isn't switched on for this workspace yet. an administrator can enable it — there's nothing to fix on your side.`
       );
       return;
     }
@@ -215,10 +277,13 @@ export function ConnectionsPanel() {
     setBusy(key);
     try {
       const { url } = await api(`/api/connections/${key}/connect`);
-      if (!url) throw new Error("the server didn't return a sign-in link for that app.");
+      // An ApiFailure, not a bare Error: `readable()` maps codes, so a plain
+      // Error would silently become the generic fallback and this sentence
+      // would never be seen by anyone.
+      if (!url) throw new ApiFailure("no_signin_link", "");
       window.location.href = url;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't start that connection.");
+      setError(readable(e));
       setBusy(null);
     }
   }
@@ -228,7 +293,7 @@ export function ConnectionsPanel() {
       await api(`/api/connections/${id}/disconnect`, { method: "POST" });
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't disconnect.");
+      setError(readable(e));
     } finally {
       setBusy(null);
     }
@@ -260,7 +325,7 @@ export function ConnectionsPanel() {
         setNotice("prepared — review and approve it at the boundary.");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't propose that action.");
+      setError(readable(e));
     } finally {
       setBusy(null);
     }
@@ -275,14 +340,14 @@ export function ConnectionsPanel() {
       });
       setPreview(p);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't preview that action.");
+      setError(readable(e));
     } finally {
       setBusy(null);
     }
   }
 
   if (unavailable) {
-    return <ConnectionsComingSoon />;
+    return <ConnectionsComingSoon heading={heading} />;
   }
   if (!data && !error) {
     return <ConnectionsSkeleton />;
@@ -290,15 +355,7 @@ export function ConnectionsPanel() {
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <div>
-        <h3 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
-          connections
-        </h3>
-        <p className="mt-1 text-xs text-ink-soft">
-          the apps and MCP servers cosigno can act across — each stays off until
-          you connect it, and every action still waits for your signature.
-        </p>
-      </div>
+      {heading && <ConnectionsHeading />}
 
       {notice && (
         <p className="rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold" role="status">
@@ -310,187 +367,24 @@ export function ConnectionsPanel() {
           {error}
         </p>
       )}
-      {data && !data.vaultReady && (
-        <p className="flex items-start gap-2 rounded-btn bg-signal/10 px-3 py-2 text-xs font-semibold text-signal ring-1 ring-inset ring-signal/30">
-          <ShieldAlert size={14} className="mt-px shrink-0" />
-          the server isn&apos;t configured to store credentials yet
-          (INTEGRATIONS_ENCRYPTION_KEY). connecting is disabled until it is.
-        </p>
-      )}
-
       {/* ---- third-party apps ---- */}
-      <section className="flex flex-col gap-2.5">
-        <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">apps</h4>
-        {data?.providers.map((p, i) => {
-          const conn = connByProvider.get(p.key);
-          return (
-            <div
-              key={p.key}
-              style={{ animationDelay: `${i * 70}ms` }}
-              className="rounded-card bg-surface/60 p-4 shadow-soft transition-all duration-base ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={26} />
-                <span className="text-sm font-extrabold">{p.name}</span>
-                {conn && <StatusPill status={conn.status} />}
-                {/* "coming soon" told people to wait for cosigno to build
-                    something that already exists — the connector works, this
-                    deployment just has no credentials for it. That sends the
-                    one person who could fix it away to wait. */}
-                {!p.configured && !conn && (
-                  <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-[10px] font-bold lowercase text-ink-soft">
-                    needs setup
-                  </span>
-                )}
-                <span className="ml-auto flex gap-2">
-                  {conn ? (
-                    <>
-                      {conn.status === "needs_reauth" && (
-                        <button
-                          onClick={() => connect(p.key)}
-                          className="rounded-btn bg-signal px-3 py-1.5 text-xs font-bold text-ink"
-                        >
-                          reconnect
-                        </button>
-                      )}
-                      <button
-                        onClick={() => recheck(conn.id)}
-                        disabled={busy === conn.id}
-                        className="rounded-btn px-2 py-1.5 text-xs font-bold text-ink-soft hover:bg-cream-deep"
-                        title="re-check status"
-                      >
-                        <RefreshCw size={12} className={busy === conn.id ? "animate-spin" : ""} />
-                      </button>
-                      <button
-                        onClick={() => disconnect(conn.id)}
-                        disabled={busy === conn.id}
-                        className="rounded-btn px-3 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
-                      >
-                        disconnect
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => connect(p.key)}
-                      disabled={busy === p.key}
-                      className="rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-                    >
-                      {busy === p.key ? "…" : "connect"}
-                    </button>
-                  )}
-                </span>
-              </div>
-              <p className="mt-1.5 text-xs text-ink-soft">{p.detail}</p>
+      {/*
+        Connected first, always. Someone opening this page is far more often
+        checking on what already works than shopping for something new, and
+        making them scroll past seven things they cannot use to reach the one
+        they can is the difference between a product and an admin panel.
+      */}
+      <AppsSection
+        providers={data?.providers ?? []}
+        connByProvider={connByProvider}
+        vaultReady={data?.vaultReady !== false}
+        busy={busy}
+        onConnect={connect}
+        onDisconnect={disconnect}
+        onRecheck={recheck}
+      />
 
-              {/* An unavailable thing has to say what would make it available,
-                  or the reader is left to guess whether it's broken, unbuilt,
-                  or waiting on them. */}
-              {!p.configured && !conn && (
-                <p className="mt-1 text-[11px] text-ink-soft/80">
-                  This deployment has no {p.name} credentials yet — add them and
-                  it turns on.
-                </p>
-              )}
-
-              {/* Once connected, show what's really in the account and exactly
-                  what cosigno may do with it — measured live, never examples. */}
-              {conn && conn.status === "connected" && (
-                <ConnectionInsight connectionId={conn.id} providerName={p.name} />
-              )}
-              <p className="mt-0.5 text-[11px] text-ink-soft/80">
-                {conn?.metadata?.account
-                  ? `${String(conn.metadata.account)} · `
-                  : ""}
-                {p.scopeSummary}
-              </p>
-
-              {/* What it can do + the tier each capability is proposed at. */}
-              {p.actions.length > 0 && (
-                <details className="group mt-2">
-                  <summary className="cursor-pointer list-none text-xs font-bold lowercase text-ink-soft underline underline-offset-2 marker:content-['']">
-                    <span className="group-open:hidden">what it can do ({p.actions.length})</span>
-                    <span className="hidden group-open:inline">hide capabilities</span>
-                  </summary>
-                  <div className="mt-2 flex flex-col gap-1.5">
-                    {p.actions.map((a) => (
-                      <div key={a.id} className="flex items-center gap-2 rounded-btn bg-cream-deep/60 px-3 py-1.5">
-                        {/* This is the consent surface — what someone reads
-                            before granting access to their account. "create_issue"
-                            and a tier number are the engine's words; what a person
-                            needs to know is what it does and whether it can happen
-                            without them. */}
-                        <span className="text-[11px] font-bold">{humanizeActionId(a.id)}</span>
-                        <span
-                          className={`shrink-0 rounded-pill px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
-                            a.tier === 1
-                              ? "bg-cream-deep text-ink-soft"
-                              : a.tier === 3
-                                ? "bg-ink text-cream"
-                                : "bg-signal/20 text-ink"
-                          }`}
-                        >
-                          {a.tier === 1
-                            ? "no approval"
-                            : a.tier === 3
-                              ? "typed confirmation"
-                              : "your approval"}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate text-[11px] text-ink-soft" title={a.summary}>
-                          {a.summary}
-                        </span>
-                        {conn && conn.status === "connected" && (
-                          <>
-                            <button
-                              onClick={() => runPreview(conn.id, a.id)}
-                              disabled={busy === `preview:${conn.id}:${a.id}`}
-                              className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="dry-run: see what this would do, without doing it"
-                            >
-                              {busy === `preview:${conn.id}:${a.id}` ? "…" : "dry run"}
-                            </button>
-                            <button
-                              onClick={() => propose(conn.id, a.id)}
-                              disabled={busy === `${conn.id}:${a.id}`}
-                              className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="propose this action to your workspace"
-                            >
-                              {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                    <p className="mt-0.5 text-[10px] text-ink-soft/70">
-                      tiers are set by cosigno, not the app — t1 runs automatically, t2 waits for
-                      your signature, t3 needs typed confirmation.
-                    </p>
-                    {p.boundary && (
-                      <div className="mt-2 grid gap-1.5 rounded-btn bg-cream-deep/40 p-2.5 sm:grid-cols-2">
-                        <div>
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-ink-soft">can access</p>
-                          <ul className="mt-0.5 space-y-0.5">
-                            {p.boundary.data.canAccess.map((s, k) => (
-                              <li key={k} className="text-[10px] text-ink-soft">• {s}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-ink-soft">cannot</p>
-                          <ul className="mt-0.5 space-y-0.5">
-                            {p.boundary.data.cannotAccess.map((s, k) => (
-                              <li key={k} className="text-[10px] text-ink-soft">• {s}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </details>
-              )}
-            </div>
-          );
-        })}
-      </section>
+      <NotYetAvailable />
 
       {/* ---- custom MCP servers ---- */}
       <section className="flex flex-col gap-2.5">
@@ -682,18 +576,465 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
  * provisioned for this deployment yet. Nothing is broken — the feature just
  * isn't switched on — so we say exactly that, warmly, instead of an error.
  */
-function ConnectionsComingSoon() {
+/* ================================================================== apps == */
+
+type Filter = "all" | "connected" | "available" | "setup";
+
+/** The four states a provider can be in, as one badge vocabulary. */
+function AppBadge({ state }: { state: "connected" | "attention" | "ready" | "setup" }) {
+  const META = {
+    connected: { label: "Connected", dot: "bg-signal", text: "text-ink" },
+    attention: { label: "Attention", dot: "bg-ink", text: "text-ink" },
+    ready: { label: "Ready", dot: "bg-ink/30", text: "text-ink-soft" },
+    // Distinct from the "not yet available" section below, which is for tools
+    // with no connector at all. This one exists and is simply switched off.
+    setup: { label: "Needs setup", dot: "bg-ink/15", text: "text-ink-soft" },
+  } as const;
+  const m = META[state];
   return (
-    <div className="flex flex-1 flex-col gap-6">
+    <span className={`inline-flex shrink-0 items-center gap-1.5 text-[11px] font-bold ${m.text}`}>
+      <span className={`h-1.5 w-1.5 rounded-pill ${m.dot}`} aria-hidden="true" />
+      {m.label}
+    </span>
+  );
+}
+
+/**
+ * The apps list: a short summary line, a filter, then connected apps before
+ * everything else.
+ */
+function AppsSection({
+  providers,
+  connByProvider,
+  vaultReady,
+  busy,
+  onConnect,
+  onDisconnect,
+  onRecheck,
+}: {
+  providers: ProviderMeta[];
+  connByProvider: Map<string, ConnectionView>;
+  vaultReady: boolean;
+  busy: string | null;
+  onConnect: (key: string) => void;
+  onDisconnect: (id: string) => void;
+  onRecheck: (id: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+
+  const stateOf = (p: ProviderMeta): "connected" | "attention" | "ready" | "setup" => {
+    const conn = connByProvider.get(p.key);
+    if (conn) return conn.status === "connected" ? "connected" : "attention";
+    return p.configured && vaultReady ? "ready" : "setup";
+  };
+
+  const counts = {
+    // The "connected" FILTER shows connected + attention, so its COUNT has to
+    // agree — otherwise the chip says 1 and the list below shows two rows.
+    connected: providers.filter((p) => {
+      const st = stateOf(p);
+      return st === "connected" || st === "attention";
+    }).length,
+    ready: providers.filter((p) => stateOf(p) === "ready").length,
+    setup: providers.filter((p) => stateOf(p) === "setup").length,
+  };
+
+  const q = query.trim().toLowerCase();
+  const visible = providers
+    // Match the key too: Gmail's connector is registered as "google", and
+    // typing what you see in a URL should find the thing.
+    .filter((p) => (q ? `${p.name} ${p.key}`.toLowerCase().includes(q) : true))
+    .filter((p) => {
+      const st = stateOf(p);
+      if (filter === "connected") return st === "connected" || st === "attention";
+      if (filter === "available") return st === "ready";
+      if (filter === "setup") return st === "setup";
+      return true;
+    });
+
+  /* Connected first — see the note at the call site. */
+  const ORDER = { connected: 0, attention: 1, ready: 2, setup: 3 } as const;
+  const sorted = [...visible].sort((a, b) => ORDER[stateOf(a)] - ORDER[stateOf(b)]);
+
+  const FILTERS: { id: Filter; label: string; n?: number }[] = [
+    { id: "all", label: "All", n: providers.length },
+    { id: "connected", label: "Connected", n: counts.connected },
+    { id: "available", label: "Available", n: counts.ready },
+    { id: "setup", label: "Needs setup", n: counts.setup },
+  ];
+
+  return (
+    <section className="flex flex-col gap-5">
       <div>
-        <h3 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
-          connections
-        </h3>
-        <p className="mt-1 text-xs text-ink-soft">
-          the apps and MCP servers cosigno can act across — each stays off until
-          you connect it, and every action still waits for your signature.
+        <h2 className="font-display text-xl font-bold">
+          Connected apps let cosigno do real work for you.
+        </h2>
+        <p className="mt-1 max-w-2xl text-sm text-ink-soft">
+          Nothing is touched until you connect it, and anything that changes something
+          still waits for your approval.
+        </p>
+        {/*
+          One quiet line, not a red banner across a page about seven apps. The
+          reason still has to be readable without opening anything — otherwise
+          seven cards say "Needs setup" and none of them says why.
+        */}
+        {!vaultReady && (
+          <p className="mt-2.5 inline-flex items-center gap-2 rounded-pill bg-cream-deep px-3 py-1.5 text-xs font-semibold text-ink-soft">
+            <ShieldAlert size={13} className="shrink-0" aria-hidden="true" />
+            Connecting apps isn&apos;t switched on for this workspace yet — an administrator
+            can enable it.
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="relative flex-1 sm:max-w-xs">
+          <Search
+            size={14}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
+            aria-hidden="true"
+          />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search apps…"
+            aria-label="search apps"
+            className="h-9 w-full rounded-pill bg-cream-deep pl-8 pr-3 text-sm outline-none transition focus:ring-2 focus:ring-signal"
+          />
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              aria-pressed={filter === f.id}
+              className={`rounded-pill px-3 py-1.5 text-xs font-bold transition-colors duration-fast ${
+                filter === f.id
+                  ? "bg-ink text-cream"
+                  : "text-ink-soft hover:bg-cream-deep hover:text-ink"
+              }`}
+            >
+              {f.label}
+              {typeof f.n === "number" && <span className="ml-1 opacity-60">{f.n}</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {sorted.length === 0 ? (
+        <p className="rounded-card bg-surface/60 px-5 py-10 text-center text-sm text-ink-soft shadow-soft">
+          {q ? `No app matches “${query}”.` : "Nothing here."}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {sorted.map((p, i) => (
+            <AppRow
+              key={p.key}
+              provider={p}
+              connection={connByProvider.get(p.key)}
+              state={stateOf(p)}
+              vaultReady={vaultReady}
+              busy={busy}
+              index={i}
+              onConnect={onConnect}
+              onDisconnect={onDisconnect}
+              onRecheck={onRecheck}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/**
+ * One app, one row.
+ *
+ * Collapsed it answers the only question that matters at a glance — is this
+ * on, and what does it do for me. Everything else (the operations, the
+ * approval level each one lands at, what an administrator would need to
+ * switch on) is real and stays available, one disclosure down, where it does
+ * not compete with the decision.
+ */
+function AppRow({
+  provider,
+  connection,
+  state,
+  vaultReady,
+  busy,
+  index,
+  onConnect,
+  onDisconnect,
+  onRecheck,
+}: {
+  provider: ProviderMeta;
+  connection?: ConnectionView;
+  state: "connected" | "attention" | "ready" | "setup";
+  vaultReady: boolean;
+  busy: string | null;
+  index: number;
+  onConnect: (key: string) => void;
+  onDisconnect: (id: string) => void;
+  onRecheck: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const outcomes = outcomesFor(provider.key);
+  const account = connection?.metadata?.account;
+
+  return (
+    <div
+      style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
+      className="rounded-card bg-surface/60 shadow-soft transition-shadow duration-base ease-brand-out animate-rise-in hover:shadow-depth"
+    >
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5">
+        <ConnectorLogo kind="app" providerKey={provider.key} displayName={provider.name} size={28} />
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2.5">
+            <p className="truncate text-sm font-extrabold">{provider.name}</p>
+            <AppBadge state={state} />
+          </div>
+          <p className="mt-0.5 truncate text-xs text-ink-soft">
+            {account ? `${String(account)} · ` : ""}
+            {outcomes.headline}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="rounded-btn px-2.5 py-1.5 text-xs font-bold text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink"
+          >
+            {open ? "Less" : "Details"}
+          </button>
+          {connection ? (
+            <>
+              {connection.status !== "connected" && (
+                <button
+                  onClick={() => onConnect(provider.key)}
+                  disabled={busy === provider.key}
+                  className="rounded-btn bg-signal px-3 py-1.5 text-xs font-bold text-ink transition-transform duration-fast active:scale-95 disabled:opacity-60"
+                >
+                  {busy === provider.key ? "Reconnecting…" : "Reconnect"}
+                </button>
+              )}
+              <button
+                onClick={() => onRecheck(connection.id)}
+                disabled={busy === connection.id}
+                title="check this connection"
+                aria-label={`check ${provider.name}`}
+                className="rounded-btn px-2 py-1.5 text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink"
+              >
+                <RefreshCw size={13} className={busy === connection.id ? "animate-spin" : ""} />
+              </button>
+              <button
+                onClick={() => onDisconnect(connection.id)}
+                disabled={busy === connection.id}
+                className="rounded-btn px-3 py-1.5 text-xs font-bold text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink"
+              >
+                Disconnect
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => onConnect(provider.key)}
+              disabled={busy === provider.key}
+              className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-1.5 text-xs font-bold text-cream transition-transform duration-fast active:scale-95 disabled:opacity-60"
+            >
+              {busy === provider.key ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" aria-hidden="true" /> Connecting…
+                </>
+              ) : (
+                "Connect"
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {open && (
+        <div className="border-t border-line/60 px-4 py-4">
+          <AppDetails provider={provider} connection={connection} state={state} vaultReady={vaultReady} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AppDetails({
+  provider,
+  connection,
+  state,
+  vaultReady,
+}: {
+  provider: ProviderMeta;
+  connection?: ConnectionView;
+  state: "connected" | "attention" | "ready" | "setup";
+  vaultReady: boolean;
+}) {
+  const outcomes = outcomesFor(provider.key);
+  return (
+    <div className="flex flex-col gap-4">
+      {outcomes.can.length > 0 ? (
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ink-soft">
+            What it can do for you
+          </p>
+          <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
+            {outcomes.can.slice(0, 4).map((line) => (
+              <li key={line} className="flex items-start gap-2 text-sm">
+                <Check size={14} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
+                {line}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs font-semibold text-ink-soft">{outcomes.never}</p>
+        </div>
+      ) : (
+        /* A connector with no written outcomes still gets the line that
+           matters most — otherwise a new tool shows nothing at all. */
+        <p className="text-xs font-semibold text-ink-soft">{outcomes.never}</p>
+      )}
+
+      {/*
+        The setup gap belongs HERE, on the app it affects, not as a banner
+        across a page about seven other apps that are fine.
+      */}
+      {state === "setup" && (
+        <div className="rounded-btn bg-cream-deep px-3 py-2.5">
+          <p className="text-xs font-bold">
+            {vaultReady
+              ? `${provider.name} isn't switched on for this workspace yet.`
+              : "Connecting apps isn't switched on for this workspace yet."}
+          </p>
+          <p className="mt-0.5 text-xs text-ink-soft">
+            An administrator can enable it — there&apos;s nothing to fix on your side.
+          </p>
+          <DeveloperDetails provider={provider} vaultReady={vaultReady} />
+        </div>
+      )}
+
+      {connection && <ConnectionInsight connectionId={connection.id} providerName={provider.name} />}
+
+      {/*
+        Operations, and the approval level each lands at. Real, exact, and
+        deliberately not the first thing anyone reads — this is the answer to
+        "prove it", not to "what is this".
+      */}
+      <details className="group">
+        <summary className="cursor-pointer list-none text-xs font-bold text-ink-soft transition-colors hover:text-ink">
+          <span className="underline decoration-dotted underline-offset-4">Technical details</span>
+        </summary>
+        <div className="mt-3 flex flex-col gap-2">
+          <p className="text-xs text-ink-soft">{provider.scopeSummary}</p>
+          <ul className="flex flex-col gap-1">
+            {provider.actions.map((a) => (
+              <li
+                key={a.id}
+                className="flex flex-wrap items-center gap-2 rounded-btn bg-cream/40 px-3 py-1.5 text-xs"
+              >
+                <span className="font-mono text-[11px] text-ink-soft">{a.id}</span>
+                <span className="min-w-0 flex-1 text-ink-soft">{a.summary}</span>
+                <TierBadge tier={a.tier} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </details>
+    </div>
+  );
+}
+
+/**
+ * Setting names, for the person who can act on them — and only in development.
+ *
+ * In a real workspace an end user seeing GOOGLE_CLIENT_ID learns nothing they
+ * can use; it just tells them they are not the audience. There is no admin
+ * role in this product yet, so rather than invent one this discloses in
+ * development builds only, and says so.
+ */
+function DeveloperDetails({ provider, vaultReady }: { provider: ProviderMeta; vaultReady: boolean }) {
+  if (process.env.NODE_ENV !== "development") return null;
+  const names = [...(vaultReady ? [] : ["INTEGRATIONS_ENCRYPTION_KEY"]), ...(provider.setupEnv ?? [])];
+  if (names.length === 0) return null;
+  return (
+    <details className="mt-2">
+      <summary className="cursor-pointer list-none text-[11px] font-bold text-ink-soft underline decoration-dotted underline-offset-4">
+        Developer details (shown in development only)
+      </summary>
+      <ul className="mt-1.5 flex flex-col gap-0.5">
+        {names.map((n) => (
+          <li key={n} className="font-mono text-[11px] text-ink-soft">
+            {n} — not set
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/**
+ * Systems cosigno understands the words for but has no connector to — Stripe
+ * and Dropbox today.
+ *
+ * They are listed because a rule can name them, and a page that showed only
+ * what works would let a person assume anything unmentioned is handled. The
+ * list is derived from the connector tables, so it empties itself the day
+ * those connectors ship rather than needing to be remembered.
+ */
+function NotYetAvailable() {
+  const missing = providersWithoutConnector();
+  if (missing.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-2.5">
+      <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">not yet available</h4>
+      <div className="rounded-card bg-surface/60 p-4 shadow-soft">
+        <div className="flex flex-wrap items-center gap-2">
+          {missing.map((m) => (
+            <span
+              key={m.provider}
+              className="inline-flex items-center gap-1.5 rounded-pill bg-cream-deep px-2.5 py-1 text-xs font-bold text-ink-soft"
+            >
+              {m.label}
+              <span className="text-[10px] font-black uppercase tracking-wider">
+                no connector
+              </span>
+            </span>
+          ))}
+        </div>
+        <p className="mt-2.5 text-[11px] text-ink-soft">
+          cosigno can&apos;t work with these at all yet — not switched off, not built. a safety
+          rule naming one is saved and understood, but it protects nothing until support
+          arrives. nothing here is hidden: if a tool isn&apos;t listed anywhere above,
+          cosigno can&apos;t touch it.
         </p>
       </div>
+    </section>
+  );
+}
+
+/** The panel's own title — one definition, shared by every state it can be in. */
+function ConnectionsHeading() {
+  return (
+    <div>
+      <h3 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
+        connections
+      </h3>
+      <p className="mt-1 text-xs text-ink-soft">
+        the apps and MCP servers cosigno can act across — each stays off until
+        you connect it, and every action still waits for your signature.
+      </p>
+    </div>
+  );
+}
+
+function ConnectionsComingSoon({ heading }: { heading: boolean }) {
+  return (
+    <div className="flex flex-1 flex-col gap-6">
+      {heading && <ConnectionsHeading />}
       <div className="group flex flex-1 flex-col items-center justify-center rounded-card bg-surface/60 px-8 py-16 text-center shadow-soft transition-all duration-slow ease-brand-out animate-spring-in hover:-translate-y-0.5 hover:shadow-depth">
         {/* Icon badge: radiating signal rings behind a gently floating plug. */}
         <div
@@ -866,7 +1207,7 @@ function ToolRow({
       setConfirming(false);
       await onReload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't update that tool.");
+      setError(readable(e));
     } finally {
       setBusy(false);
     }
@@ -959,7 +1300,7 @@ function AddMcpForm({ onAdded }: { onAdded: () => Promise<void> }) {
       setResult(bits.join(" · ") + " — all off until you enable them.");
       await onAdded();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't add that server.");
+      setError(readable(e));
     } finally {
       setBusy(false);
     }
@@ -1146,7 +1487,7 @@ function AddApiToolForm({
       setImportMsg(`detected ${found.length} action${found.length === 1 ? "" : "s"}${extra}. review the tiers, add your key, then activate.`);
       setImportOpen(false);
     } catch (e) {
-      setImportMsg(e instanceof Error ? e.message : "couldn't parse that spec.");
+      setImportMsg(readable(e));
     } finally {
       setImporting(false);
     }
@@ -1169,7 +1510,7 @@ function AddApiToolForm({
       });
       await onAdded();
     } catch (e) {
-      onError(e instanceof Error ? e.message : "couldn't add that tool.");
+      onError(readable(e));
     } finally {
       setBusy(false);
     }

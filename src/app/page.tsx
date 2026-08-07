@@ -288,7 +288,7 @@ export default function LandingPage() {
               security, permissions, and a total audit trail
             </h2>
             <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
-              connections request minimum scopes, secrets stay server-side, and
+              connections request the least access that works, your keys never reach the browser, and
               every proposal, approval, veto, and execution is permanently
               logged with its exact payload — filterable, exportable, and
               yours. you can always answer the only question that matters:

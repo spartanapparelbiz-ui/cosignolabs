@@ -2,7 +2,7 @@ import { ActivityStream } from "@/components/app/ActivityStream";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Activity" };
+export const metadata = { title: "activity" };
 
 /**
  * One history for the whole workspace: work, decisions, app changes, rule
