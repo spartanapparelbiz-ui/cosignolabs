@@ -15,7 +15,10 @@ import { join } from "node:path";
 
 const BASE = process.env.BASE ?? "http://localhost:3400";
 const RUN = process.env.RUN ?? "current";
-const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+// Pinned only where the image provides one. Unset elsewhere so Playwright
+// resolves its own installed browser — a hardcoded revision path breaks on
+// any other machine and after any Playwright upgrade.
+const CHROME = process.env.CHROME_PATH ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const OUT = join(process.cwd(), "screenshots", "review", RUN);
 
 /**
@@ -32,7 +35,7 @@ const SURFACES = {
   monitoring: { path: "/app/monitoring" },
   control: { path: "/app/mission-control" },
   capabilities: { path: "/app/twins" },
-  simulation: { path: "/app/simulation" },
+  rules: { path: "/app/settings/rules", wait: "test an AI rule" },
   templates: { path: "/app/templates" },
   settings: { path: "/app/settings" },
   health: { path: "/app/health" },
@@ -68,7 +71,7 @@ if (unknown.length) {
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch({ executablePath: CHROME });
+const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
 const report = [];
 
 for (const vp of VIEWPORTS) {

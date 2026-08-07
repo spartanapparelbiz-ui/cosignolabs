@@ -26,7 +26,16 @@ export function useBackgroundExecution(): boolean | null {
     fetch("/api/health/mission", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (!cancelled && d) setActive(Boolean(d.background_execution_active));
+        /**
+         * Only a real boolean answers the question. `Boolean(...)` turned a
+         * missing field into `false` and the string "false" into `true`,
+         * which is worse than not knowing — unknown must stay unknown so
+         * callers can say so.
+         */
+        if (cancelled) return;
+        if (typeof d?.background_execution_active === "boolean") {
+          setActive(d.background_execution_active);
+        }
       })
       .catch(() => {
         /* unknown stays unknown — see above */

@@ -180,15 +180,24 @@ describe("applyRules — matching is on normalized identity, never on words", ()
     }
   });
 
+  /**
+   * This was written against GitHub, which exposes no delete capability — so
+   * every assertion held whether or not operation matching worked at all. A
+   * test that cannot fail is worse than no test in a suite whose whole job is
+   * removing false assurance. Google Drive has both a delete and reads, so a
+   * regression in either direction now fails here.
+   */
   it("a 'delete' rule governs deleting only, not reading the same resource", () => {
-    const r = [rule("never delete a github repository")];
+    const r = [rule("never delete a file in google drive")];
     const fires = (actionId: string) =>
-      applyRules(r, { target: "github", actionId }).requirement !== null;
-    for (const readOnly of ["whoami", "list_repos", "list_issues", "create_issue"]) {
-      expect(fires(readOnly), `delete-rule must not fire on ${readOnly}`).toBe(false);
+      applyRules(r, { target: "google-drive", actionId }).requirement !== null;
+
+    // It fires on the delete — proving the rule is live, not inert.
+    expect(fires("trash_file"), "delete-rule must fire on the delete").toBe(true);
+    // …and on nothing else in the same app.
+    for (const other of ["list_files", "create_text_file", "update_text_file"]) {
+      expect(fires(other), `delete-rule must not fire on ${other}`).toBe(false);
     }
-    // GitHub exposes no delete capability today, so the rule binds nothing —
-    // which the page states rather than implying coverage it does not have.
   });
 
   it("a rule scoped to one provider never reaches another", () => {

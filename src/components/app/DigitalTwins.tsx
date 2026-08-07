@@ -199,7 +199,7 @@ export function DigitalTwins() {
       )}
 
       <p className="mt-10 text-center text-[11px] leading-relaxed text-ink-soft">
-        this models an app&apos;s capability surface, not its records. resources show
+        the capability model describes an app&apos;s capability surface, not its records. resources show
         &ldquo;not synced&rdquo; unless instances have actually been observed — cosigno never
         claims to hold data it hasn&apos;t fetched.
       </p>

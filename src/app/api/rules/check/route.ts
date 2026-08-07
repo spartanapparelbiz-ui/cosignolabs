@@ -65,7 +65,10 @@ function amountOf(action: ActionRecord): number | undefined {
     }
     if (typeof raw === "string") {
       const n = parseFloat(raw.replace(/[$,]/g, ""));
-      if (Number.isFinite(n)) return n;
+      // Same conversion as the numeric branch — a payload storing cents as a
+      // string would otherwise read as dollars, and "over $200" would match
+      // nearly everything.
+      if (Number.isFinite(n)) return key === "amount_cents" ? n / 100 : n;
     }
   }
   const m = /\$\s?([\d,]+(?:\.\d{1,2})?)/.exec(action.summary);

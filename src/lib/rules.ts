@@ -5,11 +5,13 @@ import type {
   Tier,
 } from "./types";
 import {
+  isOperation,
   normalizeAction,
   operationCovers,
   scopeCovers,
   scopeLabel,
   OPERATION_LABEL,
+  SCOPES,
   type NormalizedAction,
   type Operation,
 } from "./ruleIntents";
@@ -155,11 +157,17 @@ const CONSTRAINT_TRIGGER =
 function detectOperation(t: string): string | null {
   const hits: { token: string; at: number }[] = [];
   for (const [re, token] of OPERATION_KEYWORDS) {
-    const m = re.exec(t);
-    if (m) hits.push({ token, at: m.index });
+    /**
+     * EVERY occurrence, not just the first. "post updates but never post in
+     * #announcements" says post twice; recording only the first pins it before
+     * the trigger, the after-trigger filter drops it, and table order picks
+     * "update" — governing an operation the sentence never restricted.
+     */
+    const all = new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`);
+    for (const m of t.matchAll(all)) hits.push({ token, at: m.index });
   }
   if (hits.length === 0) return null;
-  if (hits.length === 1) return hits[0].token;
+  if (new Set(hits.map((h) => h.token)).size === 1) return hits[0].token;
 
   const trigger = CONSTRAINT_TRIGGER.exec(t);
   if (trigger) {
@@ -375,6 +383,35 @@ function conditionMatches(rule: PermissionRuleRecord, ctx: RuleContext): boolean
   return false;
 }
 
+/**
+ * Bring a stored rule into the current vocabulary before it is judged.
+ *
+ * Rules are persisted as `target` + `verb` strings, parsed by whatever version
+ * of the parser was running when they were saved. The vocabulary has since
+ * become a closed set, and older tokens are not in it — a rule saved as
+ * `target: "hubspot"` now matches `SCOPES` nowhere, so `scopeCovers` returns
+ * false and the rule SILENTLY STOPS PROTECTING. No error, no warning; the
+ * person who wrote it still sees it listed as enabled.
+ *
+ * The original sentence is kept verbatim precisely so this is recoverable:
+ * when a stored token is outside the current vocabulary, the rule is re-parsed
+ * from its own text. Re-parsing can only widen or keep the scope, never
+ * narrow it, and a rule may only ever tighten what cosigno does — so the
+ * conservative direction is preserved either way.
+ */
+export function normalizeStoredRule(rule: PermissionRuleRecord): PermissionRuleRecord {
+  const scopeKnown = rule.target === "any" || rule.target in SCOPES;
+  const verbKnown = rule.verb === "any" || isOperation(rule.verb);
+  if (scopeKnown && verbKnown) return rule;
+
+  const reparsed = parsePermissionRule(rule.text);
+  return {
+    ...rule,
+    target: scopeKnown ? rule.target : reparsed.target,
+    verb: verbKnown ? rule.verb : reparsed.verb,
+  };
+}
+
 export interface RuleDecision {
   /** The most restrictive requirement any matching enabled rule imposes. */
   requirement: RuleRequirement | null;
@@ -395,8 +432,9 @@ export interface RuleDecision {
 export function applyRules(rules: PermissionRuleRecord[], ctx: RuleContext): RuleDecision {
   const action = normalizeContext(ctx);
   let best: RuleDecision = { requirement: null, rule: null };
-  for (const rule of rules) {
-    if (!rule.enabled) continue;
+  for (const stored of rules) {
+    if (!stored.enabled) continue;
+    const rule = normalizeStoredRule(stored);
     if (!scopeCovers(rule.target, action.provider)) continue;
     if (!operationCovers(rule.verb, action.operation)) continue;
     if (!conditionMatches(rule, ctx)) continue;

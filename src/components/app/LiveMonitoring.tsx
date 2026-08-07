@@ -97,25 +97,35 @@ export function LiveMonitoring() {
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/monitoring", { cache: "no-store" });
-      if (!res.ok) throw new Error(`monitoring unavailable (${res.status})`);
+      /* The status code is ours to read, not theirs. A founder can act on
+         "we couldn't read it" and can do nothing with a 503. */
+      if (!res.ok) throw new Error("couldn't read the current state just now.");
       setSnap(await res.json());
       setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't reach monitoring.");
+    } catch {
+      setError("couldn't read the current state just now.");
     }
   }, []);
 
   useEffect(() => {
     load();
     if (!live) return;
+    /* Clearing the timeout is not enough on its own: when cleanup runs while a
+       tick is already awaiting load(), the handle it clears has already fired,
+       and that in-flight callback would schedule a fresh timeout after the
+       component is gone. The flag is what actually stops the loop. */
+    let stopped = false;
     const tick = () => {
       timer.current = setTimeout(async () => {
+        if (stopped) return;
         await load();
+        if (stopped) return;
         tick();
       }, POLL_MS);
     };
     tick();
     return () => {
+      stopped = true;
       if (timer.current) clearTimeout(timer.current);
     };
   }, [load, live]);

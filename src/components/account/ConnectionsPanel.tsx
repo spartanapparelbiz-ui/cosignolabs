@@ -145,6 +145,7 @@ const FAILURE_MESSAGE: Record<string, string> = {
   vault_unconfigured:
     "Connecting apps isn't available right now. Please try again later, or contact support.",
   not_configured: "That app isn't available to connect right now. Please try again later, or contact support.",
+  no_signin_link: "We couldn't start sign-in for that app. Please try again in a moment.",
   unknown_provider: "We don't recognise that app.",
   rate_limited: "That was a lot at once — give it a moment and try again.",
   plan_limit: "You've reached the number of connected apps your plan includes.",
@@ -276,7 +277,10 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
     setBusy(key);
     try {
       const { url } = await api(`/api/connections/${key}/connect`);
-      if (!url) throw new Error("the server didn't return a sign-in link for that app.");
+      // An ApiFailure, not a bare Error: `readable()` maps codes, so a plain
+      // Error would silently become the generic fallback and this sentence
+      // would never be seen by anyone.
+      if (!url) throw new ApiFailure("no_signin_link", "");
       window.location.href = url;
     } catch (e) {
       setError(readable(e));
@@ -626,14 +630,21 @@ function AppsSection({
   };
 
   const counts = {
-    connected: providers.filter((p) => stateOf(p) === "connected").length,
+    // The "connected" FILTER shows connected + attention, so its COUNT has to
+    // agree — otherwise the chip says 1 and the list below shows two rows.
+    connected: providers.filter((p) => {
+      const st = stateOf(p);
+      return st === "connected" || st === "attention";
+    }).length,
     ready: providers.filter((p) => stateOf(p) === "ready").length,
     setup: providers.filter((p) => stateOf(p) === "setup").length,
   };
 
   const q = query.trim().toLowerCase();
   const visible = providers
-    .filter((p) => (q ? p.name.toLowerCase().includes(q) : true))
+    // Match the key too: Gmail's connector is registered as "google", and
+    // typing what you see in a URL should find the thing.
+    .filter((p) => (q ? `${p.name} ${p.key}`.toLowerCase().includes(q) : true))
     .filter((p) => {
       const st = stateOf(p);
       if (filter === "connected") return st === "connected" || st === "attention";
@@ -803,9 +814,10 @@ function AppRow({
               {connection.status !== "connected" && (
                 <button
                   onClick={() => onConnect(provider.key)}
-                  className="rounded-btn bg-signal px-3 py-1.5 text-xs font-bold text-ink transition-transform duration-fast active:scale-95"
+                  disabled={busy === provider.key}
+                  className="rounded-btn bg-signal px-3 py-1.5 text-xs font-bold text-ink transition-transform duration-fast active:scale-95 disabled:opacity-60"
                 >
-                  Reconnect
+                  {busy === provider.key ? "Reconnecting…" : "Reconnect"}
                 </button>
               )}
               <button
@@ -866,7 +878,7 @@ function AppDetails({
   const outcomes = outcomesFor(provider.key);
   return (
     <div className="flex flex-col gap-4">
-      {outcomes.can.length > 0 && (
+      {outcomes.can.length > 0 ? (
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ink-soft">
             What it can do for you
@@ -881,6 +893,10 @@ function AppDetails({
           </ul>
           <p className="mt-2 text-xs font-semibold text-ink-soft">{outcomes.never}</p>
         </div>
+      ) : (
+        /* A connector with no written outcomes still gets the line that
+           matters most — otherwise a new tool shows nothing at all. */
+        <p className="text-xs font-semibold text-ink-soft">{outcomes.never}</p>
       )}
 
       {/*

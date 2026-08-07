@@ -5,6 +5,7 @@ import {
   providersWithoutConnector,
   PROVIDER_ACTION_OPERATION,
   PROVIDER_REGISTRY_KEY,
+  PROVIDERS,
 } from "../src/lib/ruleIntents";
 import { listProviders } from "../src/lib/integrations/registry";
 import { GALLERY_RULES } from "../src/components/app/galleryRules";
@@ -88,18 +89,13 @@ describe("the unavailable list stays truthful on its own", () => {
   it("nothing is silently omitted — every nameable provider is either supported or listed", () => {
     const supported = new Set(Object.keys(PROVIDER_REGISTRY_KEY));
     const unavailable = new Set(providersWithoutConnector().map((p) => p.provider));
-    // "custom" and "internal" are not third-party systems a person connects.
-    const nameable = [
-      "gmail",
-      "outlook",
-      "slack",
-      "notion",
-      "github",
-      "google-drive",
-      "google-calendar",
-      "dropbox",
-      "stripe",
-    ] as const;
+    /* Derived from the vocabulary itself, so a provider added to PROVIDERS is
+       covered by this test the moment it is added. A hand-written copy of the
+       list would have gone stale silently — which is the exact failure the
+       test exists to catch. "custom" and "internal" are excluded because they
+       are not third-party systems a person connects. */
+    const nameable = PROVIDERS.filter((p) => p !== "custom" && p !== "internal");
+    expect(nameable.length, "expected real third-party providers to check").toBeGreaterThan(0);
     for (const provider of nameable) {
       expect(
         supported.has(provider) || unavailable.has(provider),

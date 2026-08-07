@@ -213,7 +213,9 @@ export const PROVIDER_ACTION_OPERATION: Record<string, Record<string, Operation>
  * A custom API tool or MCP server names its own actions, so there is no table
  * for them. They still declare a risk class, which IS a normalized statement
  * about what the action does — so it is used directly rather than reading the
- * action's name. Unknown risk resolves to the strictest reading.
+ * action's name. A declared read stays a read and a declared destructive
+ * action is a delete; everything else — including an undeclared risk — is
+ * treated as an update.
  */
 export function operationForRisk(risk: "read" | "write" | "destructive" | undefined): Operation {
   if (risk === "read") return "read";

@@ -79,8 +79,15 @@ describe("every refusal names what is missing", () => {
     const gate = code.indexOf("function DeveloperDetails");
     expect(gate, "DeveloperDetails must exist as the single disclosure point").toBeGreaterThan(-1);
 
+    /* The gate's real extent, not a guessed window. `at > gate` would have
+       passed every component declared BELOW DeveloperDetails — i.e. most of
+       the file — so the assertion has to end where the function ends. */
+    const rest = code.slice(gate + 1);
+    const nextTopLevel = rest.search(/\n(?:export )?function /);
+    const end = nextTopLevel === -1 ? code.length : gate + 1 + nextTopLevel;
+
     // The gate itself refuses outside development.
-    const gateBody = code.slice(gate, gate + 900);
+    const gateBody = code.slice(gate, end);
     expect(gateBody).toMatch(/process\.env\.NODE_ENV !== "development"/);
     expect(gateBody).toMatch(/return null/);
 
@@ -90,7 +97,10 @@ describe("every refusal names what is missing", () => {
       while (at !== -1) {
         const isDeclaration = code.slice(at, at + 24).startsWith("setupEnv?: string[]");
         if (!isDeclaration) {
-          expect(at, `"${needle}" is read outside DeveloperDetails`).toBeGreaterThan(gate);
+          expect(
+            at >= gate && at < end,
+            `"${needle}" is read outside the body of DeveloperDetails`
+          ).toBe(true);
         }
         at = code.indexOf(needle, at + 1);
       }
@@ -99,7 +109,13 @@ describe("every refusal names what is missing", () => {
 
   it("a server that returns no link is an error, not a silent no-op", () => {
     // window.location.href = undefined would simply do nothing.
-    expect(PANEL).toMatch(/if \(!url\) throw new Error/);
+    // It must be a CODED failure: readable() maps codes, so a bare Error
+    // would collapse into the generic fallback and lose the sentence.
+    expect(PANEL).toMatch(/if \(!url\) throw new ApiFailure\("no_signin_link"/);
+    // …and that code must have wording, or readable() falls back anyway.
+    const map = PANEL.match(/const FAILURE_MESSAGE: Record<string, string> = \{[\s\S]*?\n\};/)?.[0];
+    expect(map, "FAILURE_MESSAGE must exist").toBeTruthy();
+    expect(map).toMatch(/\n\s*no_signin_link:/);
   });
 
   /**

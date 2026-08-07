@@ -119,11 +119,16 @@ export function AutomationsPanel() {
       setCommand("");
       setMode("prepare");
       setAddOpen(false);
+      /* Three states, not two. `null` means we do not yet know whether
+         anything runs these — confirming a schedule then is a guess dressed
+         as a fact. */
       toast(
         "success",
-        backgroundActive === false
-          ? "standing order saved — but nothing runs it yet. use “run now”, or set up background execution."
-          : "standing order created — its first run is scheduled."
+        backgroundActive === true
+          ? "standing order created — its first run is scheduled."
+          : backgroundActive === false
+            ? "standing order saved — but nothing runs it yet. use “run now”, or set up background execution."
+            : "standing order saved — we couldn't confirm whether it will run on a schedule. use “run now” until it does."
       );
       await load();
     } catch (e) {
@@ -321,9 +326,11 @@ export function AutomationsPanel() {
           <p className="max-w-sm text-xs text-ink-soft">
             turn repeated work into a recurring mission — a morning inbox
             review, a weekly report.{" "}
-            {backgroundActive === false
-              ? "scheduled running isn't available for this workspace yet, so these run when you press run now."
-              : "cosigno prepares the work on schedule;"}{" "}
+            {backgroundActive === true
+              ? "cosigno prepares the work on schedule;"
+              : backgroundActive === false
+                ? "scheduled running isn't available for this workspace yet, so these run when you press run now."
+                : "we couldn't confirm whether these run on a schedule here — use run now to be sure."}{" "}
             anything consequential still waits for your signature.
           </p>
         </div>

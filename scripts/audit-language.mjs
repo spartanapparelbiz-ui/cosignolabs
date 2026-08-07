@@ -14,7 +14,10 @@
 import { chromium } from "@playwright/test";
 
 const BASE = process.env.BASE ?? "http://localhost:3400";
-const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+// Pinned only where the image provides one. Unset elsewhere so Playwright
+// resolves its own installed browser — a hardcoded revision path breaks on
+// any other machine and after any Playwright upgrade.
+const CHROME = process.env.CHROME_PATH ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const STRICT = process.argv.includes("--strict");
 
 /** Pages a customer uses. Every one of these must read as plain English. */
@@ -93,7 +96,7 @@ function isAllowed(line) {
   return ALLOWED.find(([re]) => re.test(line));
 }
 
-const browser = await chromium.launch({ executablePath: CHROME });
+const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 1200 } });
 await ctx.addInitScript(() => {
   try {
@@ -110,7 +113,17 @@ let allowedCount = 0;
 const seen = new Set();
 
 for (const path of SURFACES) {
-  await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 90_000 }).catch(() => {});
+  /* A surface that fails to load produces empty text, no hits, and a clean
+     bill of health — the audit would pass a broken page. Unreachable IS a
+     finding. */
+  const res = await page
+    .goto(`${BASE}${path}`, { waitUntil: "load", timeout: 90_000 })
+    .catch(() => null);
+  if (!res || res.status() >= 400) {
+    console.log(`\n${path}\n  [unreachable] ${res ? `HTTP ${res.status()}` : "navigation failed"}`);
+    findings += 1;
+    continue;
+  }
   await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
   await page.waitForTimeout(500);
 

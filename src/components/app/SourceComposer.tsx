@@ -339,11 +339,13 @@ export function SourceComposer({
            that silently never watches. */
         toast(
           "success",
-          backgroundActive === false
-            ? "saved — but nothing runs it on a schedule yet on this deployment. run it from watch, or set up background execution."
-            : intent.kind === "watch"
+          backgroundActive === true
+            ? intent.kind === "watch"
               ? "watching — cosigno will tell you when something happens."
               : "recurring rule created — cosigno will prepare it on schedule."
+            : backgroundActive === false
+              ? "saved — but scheduled running isn't available for this workspace yet. run it from watch, or ask an administrator to switch it on."
+              : "saved — we couldn't confirm whether it will run on a schedule. check watch to run it yourself."
         );
         setGoal("");
         onStarted();

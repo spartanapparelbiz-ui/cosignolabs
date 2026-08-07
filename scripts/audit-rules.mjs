@@ -8,7 +8,7 @@
 //
 //   node scripts/audit-rules.mjs
 import { spawnSync } from "node:child_process";
-import { writeFileSync, unlinkSync } from "node:fs";
+import { writeFileSync, rmSync } from "node:fs";
 
 // The engine is TypeScript; run the audit through vitest, which already has
 // the transform configured, rather than maintaining a second build path.
@@ -82,9 +82,15 @@ describe("audit", () => {
 
 const path = "tests/__audit.tmp.test.ts";
 writeFileSync(path, SPEC);
-const res = spawnSync("npx", ["vitest", "run", path, "--reporter=basic"], {
-  stdio: "inherit",
-  shell: false,
-});
-unlinkSync(path);
-process.exit(res.status ?? 1);
+let res;
+try {
+  res = spawnSync("npx", ["vitest", "run", path, "--reporter=basic"], {
+    stdio: "inherit",
+    shell: false,
+  });
+} finally {
+  // A leftover spec matches the default Vitest glob, so the next ordinary
+  // `npm test` would pick up this audit and fail for unrelated reasons.
+  rmSync(path, { force: true });
+}
+process.exit(res?.status ?? 1);

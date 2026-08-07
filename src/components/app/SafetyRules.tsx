@@ -262,7 +262,11 @@ function Editor({
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && onCheck()}
+        // The button is disabled while a check runs; the key must be too, or
+        // holding Enter fires several 500-action reads at once.
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !busy) onCheck();
+        }}
         placeholder="e.g. always ask before deleting files"
         aria-label="the rule you want to test"
         className="min-h-[52px] flex-1 rounded-btn border border-line bg-surface px-4 text-sm outline-none transition focus:ring-2 focus:ring-signal"
