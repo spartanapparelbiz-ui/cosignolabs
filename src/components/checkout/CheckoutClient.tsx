@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Lock } from "lucide-react";
-import { getPlan, moneyLabel, type Interval, type PlanId } from "@/lib/plans";
+import { getPlan, moneyLabel, type Interval, type PublicPlanId } from "@/lib/plans";
 import { useCountUp } from "@/lib/useCountUp";
 import { embeddedCheckoutEnabled } from "@/lib/stripeClient";
 import { track } from "@/lib/analytics";
@@ -30,7 +30,7 @@ const ElementsForm = dynamic(() => import("./ElementsForm"), {
 });
 
 export interface CheckoutDriverProps {
-  plan: PlanId;
+  plan: PublicPlanId;
   interval: Interval;
   name: string;
   setCard: (patch: Partial<CardState>) => void;
@@ -45,7 +45,7 @@ export function CheckoutClient({
   plan: planId,
   interval: initialInterval,
 }: {
-  plan: PlanId;
+  plan: PublicPlanId;
   interval: Interval;
 }) {
   const plan = getPlan(planId);

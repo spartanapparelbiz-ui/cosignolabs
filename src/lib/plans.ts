@@ -9,7 +9,15 @@
  * count. Fail closed: an unknown/missing plan is always treated as `free`.
  */
 
-export type PlanId = "free" | "pro" | "max";
+/** The tiers a customer can see, compare, and buy. */
+export type PublicPlanId = "free" | "pro" | "max";
+/**
+ * Every tier the server can resolve. `owner` is internal — it is granted ONLY
+ * by the OWNER_IDS override (see lib/owner.ts) and is deliberately absent from
+ * PLAN_ORDER and PAID_PLANS, so it can never render on a pricing surface or
+ * get a Stripe price. Use PublicPlanId for anything customer-facing.
+ */
+export type PlanId = PublicPlanId | "owner";
 export type Interval = "monthly" | "annual";
 
 export interface PlanPrice {
@@ -109,10 +117,46 @@ export const PLANS: Record<PlanId, Plan> = {
     ],
     examples: ["run heavy volume", "premium AI routing", "webhook & API access", "priority support"],
   },
+  /**
+   * INTERNAL — the owner override's plan. Not purchasable and not renderable:
+   * it is missing from PLAN_ORDER (so pricing + the landing tier board skip
+   * it) and from PAID_PLANS (so stripe-setup never creates a price), the
+   * checkout routes hard-enumerate ["pro","max"], the Stripe webhook coerces
+   * anything else to "free", and getUserPlan ignores an "owner" value found on
+   * a stored subscription row. The ONLY way to hold it is OWNER_IDS.
+   *
+   * `features`/`examples` stay empty because nothing ever renders this plan —
+   * see publicFace() for what an owner's own account page shows instead.
+   */
+  owner: {
+    id: "owner",
+    name: "owner",
+    tagline: "internal — not a purchasable plan.",
+    price: { monthly: 0, annual: 0 },
+    actionLimit: Infinity,
+    integrationLimit: Infinity,
+    customMcp: true,
+    upgradeTo: null,
+    strongerModel: true,
+    canExportCsv: true,
+    features: [],
+  },
 };
 
-export const PLAN_ORDER: PlanId[] = ["free", "pro", "max"];
-export const PAID_PLANS: PlanId[] = ["pro", "max"];
+export const PLAN_ORDER: PublicPlanId[] = ["free", "pro", "max"];
+export const PAID_PLANS: PublicPlanId[] = ["pro", "max"];
+
+/**
+ * The tier a plan is PRESENTED as in customer-facing payloads.
+ *
+ * The owner override is internal, so an owner's own account page must look
+ * exactly like the top public tier rather than announce a hidden one. This
+ * affects DISPLAY ONLY — every enforcement point keeps using the real
+ * resolved plan, which is why the mapping lives here and not in getUserPlan.
+ */
+export function publicFace(planId: PlanId): PublicPlanId {
+  return planId === "owner" ? "max" : planId;
+}
 
 export function getPlan(id: PlanId | string | null | undefined): Plan {
   return (id && PLANS[id as PlanId]) || PLANS.free;
