@@ -118,10 +118,10 @@ export function PermissionRules() {
         {/* Writing a rule straight into the box is fine, but the safer path is
             to see what it would have done first. Offer it right here. */}
         <Link
-          href="/app/settings/rules"
+          href="/app/preview"
           className="mt-1.5 inline-block text-[11px] font-bold text-ink underline decoration-signal underline-offset-2 hover:text-signal"
         >
-          not sure about a rule? test it against your past work first →
+          not sure about a rule? see what it changes first →
         </Link>
       </div>
 

@@ -35,7 +35,7 @@ const SURFACES = {
   monitoring: { path: "/app/monitoring" },
   control: { path: "/app/mission-control" },
   capabilities: { path: "/app/twins" },
-  rules: { path: "/app/settings/rules", wait: "test an AI rule" },
+  preview: { path: "/app/preview", wait: "See exactly what changes" },
   templates: { path: "/app/templates" },
   settings: { path: "/app/settings" },
   health: { path: "/app/health" },

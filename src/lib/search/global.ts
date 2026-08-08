@@ -44,6 +44,12 @@ const PAGES: Array<{ title: string; subtitle: string; href: string; terms: strin
     href: "/app/trust",
     terms: "trust permissions security safety allow block never approve limit budget",
   },
+  {
+    title: "Preview",
+    subtitle: "see what a rule changes before you enable it",
+    href: "/app/preview",
+    terms: "preview rule try test before after change enable approval",
+  },
 ];
 
 function matches(haystack: string, needle: string): boolean {

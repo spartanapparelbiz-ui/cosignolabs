@@ -1,13 +1,12 @@
-import { SafetyRules } from "@/components/app/SafetyRules";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "safety rules" };
-
 /**
- * Safety rules lives under settings, not in the rail. It is the thing you do
- * once when you decide how far cosigno may go on its own — not part of a day.
+ * The old home of this surface, back when it lived under settings. Trying a
+ * rule is an experiment, not a preference, so it moved to /app/preview — and
+ * every link anyone saved still lands there.
  */
-export default function SafetyRulesPage() {
-  return <SafetyRules />;
+export default function RulesSettingsPage() {
+  redirect("/app/preview");
 }

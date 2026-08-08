@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Activity,
+  Eye,
   Gauge,
   Radar,
-  FlaskConical,
   Home,
   LayoutTemplate,
   PenLine,
@@ -53,9 +53,9 @@ const SECONDARY = [
   { href: "/app/monitoring", label: "monitoring", icon: Gauge },
   { href: "/app/mission-control", label: "live work", icon: Radar },
   /* Digital twins are gone — "capabilities" went with them, and everything it
-     showed now lives on Connections. "simulate" points straight at the rule
-     tester rather than through /app/simulation, which only redirects. */
-  { href: "/app/settings/rules", label: "simulate", icon: FlaskConical },
+     showed now lives on Connections. "preview" points straight at its own
+     page rather than through an address that only redirects. */
+  { href: "/app/preview", label: "preview", icon: Eye },
   { href: "/app/templates", label: "templates", icon: LayoutTemplate },
   // /app/settings redirects here; the surface it opens is titled "account",
   // so the rail says the same word rather than a second name for one place.
