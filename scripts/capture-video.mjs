@@ -6,7 +6,16 @@
 //
 // Run: node scripts/capture-video.mjs   (dev server must be on :3400)
 import { chromium } from "@playwright/test";
-import { mkdirSync, readdirSync, renameSync, rmSync, writeFileSync, statSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 const BASE = "http://localhost:3400";
@@ -18,6 +27,13 @@ const RAW = join(OUT, ".raw");
 const SIZE = { width: 1280, height: 800 };
 
 for (const d of [OUT, VID, SHOTS, RAW]) mkdirSync(d, { recursive: true });
+
+// ONLY=slug[,slug] re-shoots named chapters and splices them back into the
+// existing manifest, so fixing one chapter costs one chapter, not a full run.
+const ONLY = (process.env.ONLY ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 const manifest = [];
 const browser = await chromium.launch({ executablePath: CHROME });
@@ -124,9 +140,22 @@ async function beat(page, ms = 900) {
   await page.waitForTimeout(ms);
 }
 
+// Surfaces that fetch on mount render a skeleton first, and this app marks
+// every one of them aria-busy. Waiting for that to detach is what keeps a
+// capture off a screen full of grey placeholder bars.
+async function settle(page) {
+  await page
+    .locator('[aria-busy="true"]')
+    .first()
+    .waitFor({ state: "detached", timeout: 15_000 })
+    .catch(() => {});
+  await page.waitForTimeout(350);
+}
+
 async function goto(page, path, step) {
   await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 90_000 }).catch(() => {});
   await page.waitForTimeout(500);
+  await settle(page);
   if (step) await caption(page, step);
   else await reassert(page);
   await page.waitForTimeout(700);
@@ -193,6 +222,7 @@ async function scroll(page, distance = 1400, stepPx = 55) {
 
 /* ---------------------------------------------------------------- chapter -- */
 async function chapter(slug, title, body) {
+  if (ONLY.length && !ONLY.includes(slug)) return;
   console.log(`\n== ${slug} — ${title}`);
   current = { chapter: title, step: "" };
   const dir = join(RAW, slug);
@@ -242,7 +272,7 @@ async function chapter(slug, title, body) {
 /* ----------------------------------------------------------------- warmup -- */
 // The dev server compiles each route on first hit. Warming them here keeps
 // multi-second compile stalls out of the recordings.
-{
+if (!ONLY.length) {
   console.log("== warming routes (keeps compile stalls out of the video)");
   const w = await browser.newContext({ viewport: SIZE });
   const wp = await w.newPage();
@@ -520,7 +550,40 @@ await chapter("12-other-surfaces", "The rest of the app", async (page) => {
 await browser.close();
 rmSync(RAW, { recursive: true, force: true });
 
-writeFileSync(join(OUT, "manifest.json"), JSON.stringify(manifest, null, 2));
+/* The manifest is a flat, ordered list: each chapter's stills followed by its
+   video entry. A partial re-shoot has to land back in the same slot, so splice
+   the new run's groups over the old ones rather than appending. */
+const MANIFEST = join(OUT, "manifest.json");
+
+function group(list) {
+  const out = [];
+  let pending = [];
+  for (const e of list) {
+    if (e.kind === "still") {
+      pending.push(e);
+      continue;
+    }
+    out.push({ slug: e.file.replace(/^video\//, "").replace(/\.webm$/, ""), stills: pending, video: e });
+    pending = [];
+  }
+  if (pending.length) out.push({ slug: null, stills: pending, video: null });
+  return out;
+}
+
+let final = manifest;
+if (ONLY.length && existsSync(MANIFEST)) {
+  const prev = group(JSON.parse(readFileSync(MANIFEST, "utf8")));
+  const fresh = new Map(group(manifest).map((g) => [g.slug, g]));
+  final = prev.flatMap((g) => {
+    const replacement = fresh.get(g.slug) ?? g;
+    fresh.delete(g.slug);
+    return [...replacement.stills, ...(replacement.video ? [replacement.video] : [])];
+  });
+  // Any re-shot chapter with no prior entry still belongs in the record.
+  for (const g of fresh.values()) final.push(...g.stills, ...(g.video ? [g.video] : []));
+}
+
+writeFileSync(MANIFEST, JSON.stringify(final, null, 2));
 
 const vids = manifest.filter((m) => m.kind === "video");
 const stills = manifest.filter((m) => m.kind === "still");

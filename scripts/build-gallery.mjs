@@ -273,6 +273,9 @@ h1{
   margin:0;
   text-wrap:balance;
 }
+/* The dotted i is an inline-block, which is a legal break opportunity — without
+   this the wordmark splits across lines as "cosi / gno". */
+h1 .brand{white-space:nowrap}
 h1 .dotted{position:relative;display:inline-block}
 h1 .dotted::after{
   content:"";position:absolute;left:50%;top:.2em;width:.15em;height:.15em;
@@ -417,7 +420,7 @@ footer{
 <div class="wrap">
   <header class="masthead">
     <span class="eyebrow">capture record · ${esc(captured)}</span>
-    <h1>Every surface of cos<span class="dotted">ı</span>gno, recorded end to end</h1>
+    <h1>Every surface of <span class="brand">cos<span class="dotted">ı</span>gno</span>, recorded end to end</h1>
     <p class="standfirst">
       The app was booted and driven for real — no mockups, no stitched frames. Each chapter below is a
       screen recording of the running product, with the stills pulled from that same pass.
