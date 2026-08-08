@@ -89,6 +89,20 @@ export const SERVICES = [
     breaks: "paid plans can't be purchased — generate with scripts/stripe-setup.ts",
     where: "created by `npx tsx scripts/stripe-setup.ts`",
   },
+  {
+    // Internal access control, not a vendor. Listed here for one reason: if
+    // the variable doesn't land on the deployment, the override silently
+    // doesn't apply and the accounts on it just look like ordinary customers
+    // — a failure with no error to notice. Presence is the only thing printed
+    // (this file never prints values), so the addresses stay server-side.
+    name: "OWNER_ACCESS",
+    vars: ["OWNER_EMAILS"],
+    gatesApp: false,
+    note: "optional (internal)",
+    breaks:
+      "internal accounts fall back to their normal plan — nothing is exposed or broken, the override simply isn't in effect",
+    where: "set to a comma-separated list of internal sign-in addresses",
+  },
 ];
 
 /** present = every var in the service has a non-empty value (or a legacy fallback). */

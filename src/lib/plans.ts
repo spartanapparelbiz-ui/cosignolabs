@@ -40,7 +40,19 @@ export interface Plan {
   /** gets the stronger planning model for complex plans */
   strongerModel: boolean;
   canExportCsv: boolean;
+  /**
+   * INTERNAL — no quota of any kind, present or future. Only OWNER_PLAN sets
+   * it, and only server-side code reads it.
+   *
+   * It exists so a paid feature added later is unlimited for owners without
+   * anyone having to remember this file: a new gate that has no dedicated
+   * Plan field of its own checks `plan.unlimited` first and is done.
+   */
+  unlimited?: boolean;
 }
+
+/** No ceiling. `Infinity` throughout — a limit comparison against it is never true. */
+export const UNLIMITED = Infinity;
 
 export const PLANS: Record<PlanId, Plan> = {
   free: {
@@ -113,6 +125,50 @@ export const PLANS: Record<PlanId, Plan> = {
 
 export const PLAN_ORDER: PlanId[] = ["free", "pro", "max"];
 export const PAID_PLANS: PlanId[] = ["pro", "max"];
+
+/**
+ * THE OWNER PLAN — internal. Granted by getUserPlan() to the addresses in
+ * OWNER_EMAILS and to nobody else (see src/lib/owner.ts for the check).
+ *
+ * Unlimited actions, missions, automations, connections, AI usage, storage,
+ * uploads, templates, monitoring and preview — and, via `unlimited`, whatever
+ * gets sold next. Billing and subscription state are not consulted at all:
+ * an owner has no Stripe row to be active, past due, or canceled.
+ *
+ * WHY IT IS NOT IN `PLANS`
+ * ------------------------
+ * `PLANS` and `PLAN_ORDER` are what pricing, the account panel, the upgrade
+ * prompts and the Stripe setup script iterate. Anything listed there is, by
+ * construction, something a user can see and buy. Keeping the Owner plan out
+ * of them is what makes "never show Owner in the UI" a property of the data
+ * rather than a rule someone has to remember at each render site.
+ *
+ * WHY IT WEARS THE TOP PLAN'S NAME AND ID
+ * ---------------------------------------
+ * Its public identity is deliberately `max`/"command": the account page, the
+ * usage meter and every API response an owner's browser receives look exactly
+ * like a normal top-tier subscriber's. There is no "owner" string to leak,
+ * and nothing an owner could screenshot that a paying customer couldn't.
+ * Only the LIMITS differ, and limits are enforced server-side.
+ */
+export const OWNER_PLAN: Plan = {
+  // Public identity: a normal, purchasable plan. Storage/metadata never sees
+  // this object — owners have no subscription row — so nothing can orphan.
+  id: "max",
+  name: PLANS.max.name,
+  tagline: PLANS.max.tagline,
+  price: PLANS.max.price,
+  features: PLANS.max.features,
+  examples: PLANS.max.examples,
+  upgradeTo: null,
+  // The actual grant.
+  actionLimit: UNLIMITED,
+  integrationLimit: UNLIMITED,
+  customMcp: true,
+  strongerModel: true,
+  canExportCsv: true,
+  unlimited: true,
+};
 
 export function getPlan(id: PlanId | string | null | undefined): Plan {
   return (id && PLANS[id as PlanId]) || PLANS.free;

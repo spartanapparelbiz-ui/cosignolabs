@@ -1,4 +1,5 @@
 import { logSecurity } from "./log";
+import { isOwnerUser } from "./owner";
 
 /**
  * Rate limiting. Production uses Upstash Redis (@upstash/ratelimit sliding
@@ -152,6 +153,21 @@ export class RateLimitError extends Error {
 
 /** Throws RateLimitError (mapped to HTTP 429) when the window is exhausted. */
 export async function enforceLimit(name: LimitName, key: string): Promise<void> {
+  // ─── OWNER OVERRIDE ────────────────────────────────────────────────────
+  // Per-user windows are a plan-shaped ceiling too — they cap AI usage,
+  // connector previews, uploads and every other authenticated action by the
+  // minute and by the day. An owner has none of them.
+  //
+  // The bypass keys off the SAME value the window is keyed by, so it applies
+  // exactly where identity is known: `key` is the user id for every
+  // authenticated limit. Windows keyed by IP (the anonymous landing sandbox,
+  // the beta form) have no user behind them and are unaffected — there is
+  // nobody to recognize, which is the point of those two surfaces.
+  //
+  // Costs nothing when OWNER_EMAILS is unset: isOwnerUser() returns false
+  // before touching auth. See src/lib/owner.ts.
+  if (await isOwnerUser(key)) return;
+
   const limiter = await getLimiter(name);
   const res = await limiter.limit(key);
   if (!res.success) {
@@ -164,8 +180,18 @@ export async function enforceLimit(name: LimitName, key: string): Promise<void> 
  * Global circuit breaker: bounds total daily planner invocations across
  * ALL users, so even a per-user-limit bypass has a hard ceiling. Uses a
  * Redis daily counter when Upstash is configured, else process memory.
+ *
+ * `userId` is optional only because a caller without one still gets the
+ * ceiling; pass it wherever it's known so the owner override can apply.
  */
-export async function enforceGlobalPlanningBudget(): Promise<void> {
+export async function enforceGlobalPlanningBudget(userId?: string): Promise<void> {
+  // ─── OWNER OVERRIDE ────────────────────────────────────────────────────
+  // "Unlimited AI usage" has to mean this one too — it is the last ceiling
+  // standing between an owner and the planner. Owners return BEFORE the
+  // counter increments, so their traffic neither hits the shared beta cap nor
+  // eats into it on behalf of paying users.
+  if (await isOwnerUser(userId)) return;
+
   // Hard daily ceiling on total planner (spend) calls across ALL users.
   // DAILY_PLAN_CAP is the canonical env var; COSIGNO_GLOBAL_DAILY_PLANS is
   // still read for backward-compat. Default 500 — a sane beta ceiling.

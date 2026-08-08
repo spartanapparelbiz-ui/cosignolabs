@@ -1,6 +1,7 @@
+import { isOwnerUser } from "../owner";
 import { getStore } from "../store";
 import type { MissionRecord } from "../types";
-import { budgetState, limitFor, type BudgetState } from "./budget";
+import { budgetState, effectiveLimit, limitFor, UNLIMITED, type BudgetState } from "./budget";
 
 /**
  * A mission's live position against its limit — the server half of the action
@@ -19,9 +20,17 @@ export async function missionBudget(
   mission: MissionRecord
 ): Promise<BudgetState> {
   const store = getStore();
-  const [prefs, actions] = await Promise.all([
+  const [prefs, actions, owner] = await Promise.all([
     store.getPrefs(userId).catch(() => null),
     store.listActions(userId, { session_id: mission.session_id }),
+    isOwnerUser(userId),
   ]);
-  return budgetState(actions, limitFor(mission.action_budget, prefs?.action_budget));
+  // ─── OWNER OVERRIDE ──────────────────────────────────────────────────────
+  // The action budget is the one mission limit that can stop work mid-flight,
+  // so "unlimited missions" is enforced here: an owner's mission runs with no
+  // ceiling regardless of what the mission or the workspace default says. The
+  // counter still runs — budgetState() keeps reporting what was spent, it just
+  // never reaches a limit — so the receipt stays as honest as everyone else's.
+  const limit = owner ? effectiveLimit(UNLIMITED) : limitFor(mission.action_budget, prefs?.action_budget);
+  return budgetState(actions, limit);
 }

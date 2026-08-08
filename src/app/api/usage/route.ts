@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { errorResponse, requireUser } from "@/lib/api";
 import { getUserPlan } from "@/lib/billing";
 import { getStore } from "@/lib/store";
+import { PLANS } from "@/lib/plans";
 import { REFUND_WINDOW_DAYS, withinRefundWindow } from "@/lib/promos";
 
 export const runtime = "nodejs";
@@ -24,8 +25,19 @@ export async function GET() {
       Boolean(subscription?.stripe_subscription_id) &&
       withinRefundWindow(subscription?.started_at ?? null);
     // The effective limit comes from the plan, not the stored usage row.
+    //
+    // An unlimited plan has no finite ceiling, and JSON has no way to carry
+    // one — `Infinity` serializes to `null`, which the usage meter would then
+    // try to format and crash on. So the DISPLAY value falls back to the top
+    // published plan's number. It is display only: enforcement never reads
+    // this field, it reads the plan server-side, where the limit is still
+    // unlimited. This also keeps the account page indistinguishable from a
+    // top-tier subscriber's — nothing here can hint that an override exists.
+    const shownLimit = Number.isFinite(resolved.plan.actionLimit)
+      ? resolved.plan.actionLimit
+      : PLANS.max.actionLimit;
     return NextResponse.json({
-      usage: { ...usage, limit: resolved.plan.actionLimit },
+      usage: { ...usage, limit: shownLimit },
       plan: {
         id: resolved.planId,
         name: resolved.plan.name,
