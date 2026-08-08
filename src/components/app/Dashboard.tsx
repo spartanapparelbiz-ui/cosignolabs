@@ -28,7 +28,7 @@ import { todayDigest } from "@/lib/missions/today";
  */
 function greeting(name: string): string {
   const h = new Date().getHours();
-  const part = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  const part = h < 12 ? "good morning" : h < 18 ? "good afternoon" : "good evening";
   return name.trim() ? `${part}, ${name.trim()}` : `${part}`;
 }
 
@@ -174,7 +174,7 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
       <header className="text-center">
         <p className="text-sm font-bold text-ink-soft">{greeting(displayName)}</p>
         <h1 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          What would you like Cosigno to do?
+          what would you like cosigno to do?
         </h1>
         {opsThisMonth > 0 && (
           <p className="mt-2 text-xs font-bold text-ink-soft">
@@ -274,7 +274,7 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           the product is for rather than reporting an absence. */}
       {working.length === 0 && waiting.length === 0 && finished.length === 0 && missions !== null && (
         <p className="mt-10 text-center text-sm font-semibold text-ink-soft">
-          Cosigno is ready.
+          cosigno is ready.
         </p>
       )}
     </div>

@@ -14,6 +14,9 @@
     "test": "vitest run",
     "test:visual": "playwright test",
     "assets": "node scripts/generate-assets.mjs",
+    "audit:rules": "node scripts/audit-rules.mjs",
+    "audit:claims": "node scripts/audit-claims.mjs",
+    "audit:language": "node scripts/audit-language.mjs",
     "check:env": "node scripts/check-env.mjs",
     "verify:deploy": "node scripts/verify-deploy.mjs"
   },

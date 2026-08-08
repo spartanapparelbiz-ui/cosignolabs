@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Pause, Play, Plus, Trash2, Zap } from "lucide-react";
+import { AlertTriangle, Pause, Play, Plus, Trash2, Zap } from "lucide-react";
 import type { AutomationRecord, AutomationRunRecord } from "@/lib/types";
 import { useToast } from "@/components/Toast";
+import { useBackgroundExecution } from "./useBackgroundExecution";
 
 /**
  * Automations — recurring missions. Create (name + command + cadence), run
@@ -77,6 +78,7 @@ export function AutomationsPanel() {
   const [command, setCommand] = useState("");
   const [hours, setHours] = useState<number>(24);
   const [mode, setMode] = useState<AutomationRecord["mode"]>("prepare");
+  const backgroundActive = useBackgroundExecution();
   const searchParams = useSearchParams();
 
   // "Handle this the same way next time" lands here prefilled — the form
@@ -117,7 +119,17 @@ export function AutomationsPanel() {
       setCommand("");
       setMode("prepare");
       setAddOpen(false);
-      toast("success", "standing order created — its first run is scheduled.");
+      /* Three states, not two. `null` means we do not yet know whether
+         anything runs these — confirming a schedule then is a guess dressed
+         as a fact. */
+      toast(
+        "success",
+        backgroundActive === true
+          ? "standing order created — its first run is scheduled."
+          : backgroundActive === false
+            ? "standing order saved — but nothing runs it yet. use “run now”, or set up background execution."
+            : "standing order saved — we couldn't confirm whether it will run on a schedule. use “run now” until it does."
+      );
       await load();
     } catch (e) {
       toast("error", e instanceof Error ? e.message : "couldn't create that automation.");
@@ -213,6 +225,24 @@ export function AutomationsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* The whole page assumes something runs these while you are away. When
+          that is not true, it is the first thing a person needs to know —
+          before they write an order and trust it to fire. */}
+      {backgroundActive === false && (
+        <p
+          role="status"
+          className="flex items-start gap-2.5 rounded-card border border-ink bg-surface p-4 text-sm shadow-soft"
+        >
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <span>
+            <b>standing orders can&apos;t run on their own yet.</b> background automation
+            isn&apos;t available for this workspace, so nothing will fire on a schedule — no
+            matter which cadence you pick. you can still run any order yourself with{" "}
+            <b>run now</b>, and everything you save here starts running by itself once an
+            administrator switches it on.
+          </span>
+        </p>
+      )}
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold lowercase tracking-wide text-ink-soft">
           standing orders are ongoing responsibilities — every run goes through
@@ -295,7 +325,12 @@ export function AutomationsPanel() {
           <p className="text-sm font-extrabold lowercase">no automations yet.</p>
           <p className="max-w-sm text-xs text-ink-soft">
             turn repeated work into a recurring mission — a morning inbox
-            review, a weekly report. cosigno prepares the work on schedule;
+            review, a weekly report.{" "}
+            {backgroundActive === true
+              ? "cosigno prepares the work on schedule;"
+              : backgroundActive === false
+                ? "scheduled running isn't available for this workspace yet, so these run when you press run now."
+                : "we couldn't confirm whether these run on a schedule here — use run now to be sure."}{" "}
             anything consequential still waits for your signature.
           </p>
         </div>

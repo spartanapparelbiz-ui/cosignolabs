@@ -2,7 +2,7 @@ import { SkillsPanel } from "@/components/app/SkillsPanel";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Skills" };
+export const metadata = { title: "skills" };
 
 /**
  * Skills — installable capability packs. Installing one creates a small,

@@ -33,9 +33,14 @@ function PriceNumber({ plan, interval }: { plan: (typeof PLANS)[PlanId]; interva
   const target = plan.price.monthly === 0 ? 0 : interval === "annual" ? plan.price.annual : plan.price.monthly;
   const shown = useCountUp(target, 420);
   const suffix = plan.price.monthly === 0 ? "" : interval === "annual" ? "/yr" : "/mo";
+  /* A cent-bearing price must render its cents. The count-up returns a raw
+     number, which bypassed priceLabel() and printed "$44.4" — a price nobody
+     writes. Whole prices stay whole; only a fractional one grows a second
+     decimal, and it keeps it for every frame of the animation. */
+  const label = Number.isInteger(target) ? shown.toLocaleString() : shown.toFixed(2);
   return (
     <div className="mt-4 flex items-baseline gap-1">
-      <span className="text-4xl font-extrabold tabular-nums">${shown}</span>
+      <span className="text-4xl font-extrabold tabular-nums">${label}</span>
       <span className="text-sm text-ink-soft">{suffix}</span>
     </div>
   );
@@ -118,9 +123,15 @@ export function PricingCards() {
           onPointerUp={() => track("pricing_probe", { actions: probe })}
           className="mt-2 h-11 w-full cursor-pointer accent-signal"
         />
+        {/* Name the plan's REAL ceiling, not the number on the slider —
+            "pro covers 300 actions / month" read as pro's limit being 300,
+            directly contradicting the 1,000 printed on pro's own card. */}
         <p className="mt-1 text-sm font-semibold">
-          <span className="font-extrabold">{PLANS[covering].name}</span> covers{" "}
-          {probe.toLocaleString()} AI operations / month.
+          {/* Name the plan's REAL ceiling, not the number under the thumb —
+              "operator covers 300 AI operations / month" read as operator's
+              limit being 300, contradicting the 1,000 on operator's own card. */}
+          <span className="font-extrabold">{PLANS[covering].name}</span> covers that
+          — {PLANS[covering].actionLimit.toLocaleString()} AI operations / month.
         </p>
       </div>
 

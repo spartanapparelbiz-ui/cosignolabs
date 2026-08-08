@@ -174,7 +174,12 @@ describe("the twin concept is gone; connections is the complete app experience",
     expect(CONNECTIONS).toMatch(/rules protecting \{providerName\}/);
     const rulesLib = readFileSync("src/lib/rules.ts", "utf8");
     expect(rulesLib).toMatch(/export function ruleAppliesToApp/);
-    expect(rulesLib).toMatch(/TARGET_SYNONYMS\[rule\.target\]/);
+    /* Enforcement stopped reading prose: it resolves both sides to a closed
+       (provider, operation) vocabulary first. The display filter has to use
+       that SAME test — the point of this assertion — so it now pins
+       scopeCovers rather than the substring table that was removed. */
+    expect(rulesLib).toMatch(/return provider \? scopeCovers\(rule\.target, provider\) : false;/);
+    expect(rulesLib).not.toMatch(/TARGET_SYNONYMS/);
   });
 
   it("a disconnected app sells what connecting unlocks — its real abilities, one click away", () => {

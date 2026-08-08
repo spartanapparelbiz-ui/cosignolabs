@@ -13,11 +13,21 @@ export const dynamic = "force-dynamic";
  * store the connection (encrypted), and bounce back to the Connections screen
  * with a status flag. Errors never expose provider detail.
  */
+/**
+ * Return to the page people actually start from, and name the app that just
+ * connected.
+ *
+ * Two fixes, one function. It used to send everyone to
+ * /app/account?tab=integrations — the only connections surface when that line
+ * was written — so finishing a connect dropped you on a different screen than
+ * the one you left, and a working connection looked like a failure.
+ *
+ * `key` is our own registry key (validated upstream, never provider-supplied
+ * text), carried back so the panel can celebrate the RIGHT card.
+ */
 function back(status: string, key?: string): NextResponse {
-  // `key` is our own registry key (validated upstream), included so the panel
-  // can celebrate the RIGHT card. Never provider-supplied text.
   const suffix = key ? `&key=${encodeURIComponent(key)}` : "";
-  return NextResponse.redirect(`${appUrl()}/app/account?tab=integrations&status=${status}${suffix}`);
+  return NextResponse.redirect(`${appUrl()}/app/connections?status=${status}${suffix}`);
 }
 
 export async function GET(

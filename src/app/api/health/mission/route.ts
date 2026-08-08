@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { errorResponse, requireUser } from "@/lib/api";
+import { developerDetail, errorResponse, requireUser } from "@/lib/api";
 import { getStore, supabaseConfigured } from "@/lib/store";
 import { browserProviderConfigured, isLiveBrowser } from "@/lib/browser";
 import { plannerConfigured } from "@/lib/agent/provider";
@@ -31,9 +31,15 @@ export async function GET() {
       planner_configured: plannerConfigured(),
       browser_provider_configured: browserProviderConfigured(),
       browser_live: isLiveBrowser(),
+      /**
+       * The status is for anyone; the setting name is for whoever can change
+       * it. This endpoint is reachable by any signed-in user, so the name is
+       * disclosed the same way every other one is — development builds only.
+       */
       note: cronConfigured
-        ? "background mission execution is configured."
-        : "background mission execution is NOT configured — missions advance only while the missions page is open. set CRON_SECRET and point a scheduler at /api/missions/tick.",
+        ? "Background running is switched on for this workspace."
+        : "Background running isn't available for this workspace yet — work advances while its page is open, and scheduled orders don't fire on their own.",
+      ...developerDetail(cronConfigured ? [] : ["CRON_SECRET"]),
     });
   } catch (err) {
     return errorResponse(err);

@@ -125,13 +125,59 @@ const STATUS_STYLE: Record<ConnectionView["status"], { label: string; cls: strin
   revoked: { label: "disconnected", cls: "ring-1 ring-inset ring-ink/30 text-ink-soft" },
 };
 
+/**
+ * A failure carries its CODE up to the UI.
+ *
+ * Rendering the server's own sentence is how "Set GOOGLE_CLIENT_ID and
+ * GOOGLE_CLIENT_SECRET, then redeploy" reached a customer: any layer that
+ * threw got to write the copy someone reads. The panel maps a code to its own
+ * wording instead, so a new error deep in the stack cannot invent new UI text.
+ */
+class ApiFailure extends Error {
+  constructor(
+    public code: string,
+    /** The server's sentence. Never rendered; kept for logs. */
+    public serverMessage: string,
+    /** Setting names — present in development builds only. */
+    public developer?: string[]
+  ) {
+    super(serverMessage);
+  }
+}
+
+const FAILURE_MESSAGE: Record<string, string> = {
+  vault_unconfigured:
+    "Connecting apps isn't switched on for this workspace yet — an administrator can enable it.",
+  not_configured:
+    "That app isn't switched on for this workspace yet — an administrator can enable it.",
+  no_signin_link: "We couldn't start sign-in for that app. Please try again in a moment.",
+  unknown_provider: "We don't recognise that app.",
+  rate_limited: "That was a lot at once — give it a moment and try again.",
+  upgrade_required: "You've reached the number of connected apps your plan includes.",
+  plan_limit: "You've reached the number of connected apps your plan includes.",
+  internal: "Something went wrong on our side. Please try again in a moment.",
+};
+
+function readable(err: unknown): string {
+  if (err instanceof ApiFailure) {
+    return FAILURE_MESSAGE[err.code] ?? "That didn't work. Please try again in a moment.";
+  }
+  return "That didn't work. Please try again in a moment.";
+}
+
 async function api(url: string, init?: RequestInit) {
   const res = await fetch(url, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) {
+    throw new ApiFailure(
+      String(body.error ?? "internal"),
+      String(body.message ?? ""),
+      Array.isArray(body.developer) ? body.developer : undefined
+    );
+  }
   return body;
 }
 
@@ -251,7 +297,7 @@ export function ConnectionsPanel() {
   function requireVault(): boolean {
     if (data && !data.vaultReady) {
       setError(
-        "Connections are turned off on this deployment: INTEGRATIONS_ENCRYPTION_KEY isn't set, and cosigno won't store credentials it can't encrypt."
+        "connecting apps isn't switched on for this workspace yet. cosigno won't hold an account's keys until secure storage is turned on, so nothing can be connected until an administrator enables it."
       );
       return false;
     }
@@ -264,11 +310,12 @@ export function ConnectionsPanel() {
 
     if (!requireVault()) return;
     if (provider && !provider.configured) {
-      const names = provider.setupEnv ?? [];
+      /* Name the app and who can change it — never the settings. The person
+         reading this in a browser cannot set an environment variable, so
+         naming one only tells them they are not the audience. The names ride
+         in DeveloperDetails, for whoever is. */
       setError(
-        names.length > 0
-          ? `${provider.name} can't be connected because this deployment has no ${provider.name} credentials. Set ${names.join(" and ")}, then redeploy.`
-          : `${provider.name} can't be connected because this deployment hasn't been configured for it yet.`
+        `${provider.name} isn't switched on for this workspace yet — an administrator can enable it. there's nothing to fix on your side.`
       );
       return;
     }
@@ -276,10 +323,10 @@ export function ConnectionsPanel() {
     setBusy(key);
     try {
       const { url } = await api(`/api/connections/${key}/connect`);
-      if (!url) throw new Error("the server didn't return a sign-in link for that app.");
+      if (!url) throw new ApiFailure("no_signin_link", "");
       window.location.href = url;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't start that connection.");
+      setError(readable(e));
       setBusy(null);
     }
   }
@@ -289,7 +336,7 @@ export function ConnectionsPanel() {
       await api(`/api/connections/${id}/disconnect`, { method: "POST" });
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't disconnect.");
+      setError(readable(e));
     } finally {
       setBusy(null);
     }
@@ -321,7 +368,7 @@ export function ConnectionsPanel() {
         setNotice("prepared — review and approve it at the boundary.");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't propose that action.");
+      setError(readable(e));
     } finally {
       setBusy(null);
     }
@@ -336,7 +383,7 @@ export function ConnectionsPanel() {
       });
       setPreview(p);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't preview that action.");
+      setError(readable(e));
     } finally {
       setBusy(null);
     }
@@ -366,8 +413,8 @@ export function ConnectionsPanel() {
       {data && !data.vaultReady && (
         <p className="flex items-start gap-2 rounded-btn bg-signal/10 px-3 py-2 text-xs font-semibold text-signal ring-1 ring-inset ring-signal/30">
           <ShieldAlert size={14} className="mt-px shrink-0" />
-          the server isn&apos;t configured to store credentials yet
-          (INTEGRATIONS_ENCRYPTION_KEY). connecting is disabled until it is.
+          connecting apps isn&apos;t switched on for this workspace yet — an
+          administrator can enable it.
         </p>
       )}
 
@@ -426,9 +473,10 @@ export function ConnectionsPanel() {
                       {conn.status === "needs_reauth" && (
                         <button
                           onClick={() => connect(p.key)}
-                          className="rounded-btn bg-signal px-3 py-1.5 text-xs font-bold text-ink"
+                          disabled={busy === p.key}
+                          className="rounded-btn bg-signal px-3 py-1.5 text-xs font-bold text-ink disabled:opacity-60"
                         >
-                          reconnect
+                          {busy === p.key ? "reconnecting…" : "reconnect"}
                         </button>
                       )}
                       <button
@@ -475,9 +523,12 @@ export function ConnectionsPanel() {
                   or waiting on them. */}
               {!p.configured && !conn && (
                 <p className="mt-1 text-[11px] text-ink-soft/80">
-                  This deployment has no {p.name} credentials yet — add them and
-                  it turns on.
+                  {p.name} isn&apos;t switched on for this workspace yet — an
+                  administrator can enable it.
                 </p>
+              )}
+              {!p.configured && !conn && (
+                <DeveloperDetails provider={p} vaultReady={Boolean(data?.vaultReady)} />
               )}
 
               {/* Not connected: what connecting UNLOCKS — the app's real
@@ -1102,7 +1153,7 @@ function ToolRow({
       setConfirming(false);
       await onReload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't update that tool.");
+      setError(readable(e));
     } finally {
       setBusy(false);
     }
@@ -1195,7 +1246,7 @@ function AddMcpForm({ onAdded }: { onAdded: () => Promise<void> }) {
       setResult(bits.join(" · ") + " — all off until you enable them.");
       await onAdded();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't add that server.");
+      setError(readable(e));
     } finally {
       setBusy(false);
     }
@@ -1382,7 +1433,7 @@ function AddApiToolForm({
       setImportMsg(`detected ${found.length} action${found.length === 1 ? "" : "s"}${extra}. review the tiers, add your key, then activate.`);
       setImportOpen(false);
     } catch (e) {
-      setImportMsg(e instanceof Error ? e.message : "couldn't parse that spec.");
+      setImportMsg(readable(e));
     } finally {
       setImporting(false);
     }
@@ -1405,7 +1456,7 @@ function AddApiToolForm({
       });
       await onAdded();
     } catch (e) {
-      onError(e instanceof Error ? e.message : "couldn't add that tool.");
+      onError(readable(e));
     } finally {
       setBusy(false);
     }
@@ -1507,5 +1558,33 @@ function AddApiToolForm({
         {busy ? "adding…" : <><Check size={14} /> add tool</>}
       </button>
     </div>
+  );
+}
+
+/**
+ * Setting names, for whoever can actually set them.
+ *
+ * The guarantee this component carries is not "the names are gone" — it is
+ * "the names are behind this gate". It renders nothing outside a development
+ * build, so a customer can never reach it, and it is the ONLY place in the
+ * panel that reads setupEnv or names a configuration key.
+ */
+function DeveloperDetails({ provider, vaultReady }: { provider: ProviderMeta; vaultReady: boolean }) {
+  if (process.env.NODE_ENV !== "development") return null;
+  const names = [...(vaultReady ? [] : ["INTEGRATIONS_ENCRYPTION_KEY"]), ...(provider.setupEnv ?? [])];
+  if (names.length === 0) return null;
+  return (
+    <details className="mt-2">
+      <summary className="cursor-pointer list-none text-[11px] font-bold text-ink-soft underline decoration-dotted underline-offset-4">
+        Developer details (shown in development only)
+      </summary>
+      <ul className="mt-1.5 flex flex-col gap-0.5">
+        {names.map((n) => (
+          <li key={n} className="font-mono text-[11px] text-ink-soft">
+            {n} — not set
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

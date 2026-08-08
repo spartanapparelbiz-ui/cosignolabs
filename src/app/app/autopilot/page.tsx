@@ -2,7 +2,7 @@ import { AutopilotView } from "@/components/autopilot/AutopilotView";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Autopilot" };
+export const metadata = { title: "autopilot" };
 
 /**
  * Autopilot — the intelligence layer. One page that answers: what changed,
