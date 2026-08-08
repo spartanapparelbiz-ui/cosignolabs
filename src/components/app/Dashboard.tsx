@@ -177,12 +177,6 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
                 finished: finished.length,
               })}
         </p>
-        {opsThisMonth > 0 && (
-          <p className="mt-3 text-[11px] font-bold uppercase tracking-widest text-ink-soft/70">
-            {opsThisMonth.toLocaleString()} operation{opsThisMonth === 1 ? "" : "s"} completed this
-            month
-          </p>
-        )}
       </header>
 
       <div className="mt-7">
@@ -287,9 +281,17 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           would only report the same absence twice. What belongs at the bottom
           of a quiet page is the state of the machine, quietly. */}
       {working.length === 0 && waiting.length === 0 && finished.length === 0 && missions !== null && (
-        <p className="mt-12 flex items-center justify-center gap-2 text-center text-xs font-bold lowercase tracking-widest text-ink-soft/70">
+        <p className="mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs font-bold lowercase tracking-widest text-ink-soft/70">
           <span className="h-1.5 w-1.5 rounded-pill bg-signal/70" aria-hidden="true" />
           ready to work
+          {/* The month's real count, kept down here where a quiet number
+              belongs. It was competing with the greeting at the top of the
+              page, which is the one line that should own that space. */}
+          {opsThisMonth > 0 && (
+            <span>
+              · {opsThisMonth.toLocaleString()} operation{opsThisMonth === 1 ? "" : "s"} this month
+            </span>
+          )}
         </p>
       )}
     </div>

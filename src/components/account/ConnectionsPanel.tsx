@@ -191,6 +191,10 @@ export function ConnectionsPanel() {
   const [addOpen, setAddOpen] = useState(false);
   const [addApiOpen, setAddApiOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // What KIND of outcome the notice reports. Kept separate from the
+  // `justConnected` card-highlight, which is a short-lived animation timer —
+  // a message’s tone must not depend on how long ago it appeared.
+  const [noticeOk, setNoticeOk] = useState(false);
   // Provider key that JUST completed OAuth — its card pulses once on return.
   const [justConnected, setJustConnected] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
@@ -240,9 +244,10 @@ export function ConnectionsPanel() {
       setTimeout(() => setJustConnected(null), 2600);
     }
     if (s) {
+      setNoticeOk(s === "connected");
       setNotice(
         s === "connected"
-          ? "connected — cosigno can work with it now."
+          ? "Connected. cosigno can work with it now."
           : s === "denied"
             ? "you cancelled that connection."
             : s === "expired"
@@ -403,7 +408,30 @@ export function ConnectionsPanel() {
       {/* No heading here: the page above already says "connections" and what
           it is. Saying it twice is the page apologising for itself. */}
       {notice && (
-        <p className="rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold" role="status">
+        // Connecting an app is the moment cosigno becomes able to do something
+        // it could not do a second ago. A grey information bar is the wrong
+        // shape for that: the success case draws the brand check and carries
+        // the signal, while the cancelled/expired cases stay plainly neutral.
+        <p
+          className={`flex animate-row-in items-center gap-2 rounded-btn px-3 py-2.5 text-sm font-semibold ${
+            noticeOk ? "bg-signal/12 ring-1 ring-inset ring-signal/35" : "bg-cream-deep"
+          }`}
+          role="status"
+        >
+          {noticeOk && (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M4.5 12.5 10 18 20 6.5"
+                stroke="rgb(var(--c-signal))"
+                strokeWidth="3.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                pathLength={1}
+                strokeDasharray="1"
+                className="motion-safe:animate-logo-draw"
+              />
+            </svg>
+          )}
           {notice}
         </p>
       )}
