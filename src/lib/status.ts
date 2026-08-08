@@ -36,16 +36,30 @@ export type Status =
   | "Stopped"
   | "Needs attention";
 
-export const STATUS_TONE: Record<Status, string> = {
-  // Working pulses softly (box-shadow only — no movement, no layout shift):
-  // the one status where "is anything happening?" is the live question.
-  Working: "bg-cream-deep text-ink-soft animate-pulse-glow",
-  Waiting: "bg-signal/15 text-ink ring-1 ring-inset ring-signal/40",
-  "Needs approval": "bg-signal text-ink",
-  Finished: "bg-signal/15 text-ink ring-1 ring-inset ring-signal/40",
-  Failed: "bg-ink text-cream",
-  Stopped: "bg-ink text-cream",
-  "Needs attention": "bg-signal/15 text-ink ring-1 ring-inset ring-signal/40",
+/**
+ * The one color each status is allowed to wear, expressed as a meaning rather
+ * than as a class name so every badge, dot and row in the product resolves the
+ * same state to the same color.
+ *
+ *   signal   something is waiting on you
+ *   positive it worked
+ *   danger   it didn't
+ *   neutral  everything else, which is most of it
+ *
+ * "Working" is deliberately neutral: work in progress is the normal condition
+ * of this product, and a workspace where the normal condition is colored is a
+ * workspace with no colors left for the abnormal one.
+ */
+export type StatusTone = "neutral" | "positive" | "signal" | "danger";
+
+export const STATUS_TONE: Record<Status, StatusTone> = {
+  Working: "neutral",
+  Waiting: "signal",
+  "Needs approval": "signal",
+  Finished: "positive",
+  Failed: "danger",
+  Stopped: "neutral",
+  "Needs attention": "signal",
 };
 
 /** A mission's state, in the shared words. */

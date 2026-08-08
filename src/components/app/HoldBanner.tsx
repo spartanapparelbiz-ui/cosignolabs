@@ -80,13 +80,13 @@ export function HoldBanner() {
 
   return (
     <div className="bg-ink text-cream">
-      <div className="mx-auto flex w-full max-w-none flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-center text-[12px] font-bold">
+      <div className="mx-auto flex w-full max-w-none flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-center text-[12px] font-semibold">
         <PauseCircle size={15} className="shrink-0" aria-hidden="true" />
         <span>{MESSAGE[scope]}</span>
         <button
           onClick={resume}
           disabled={busy}
-          className="rounded-pill bg-cream px-3 py-0.5 text-[11px] font-extrabold text-ink transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-pill bg-cream px-3 py-0.5 text-[0.75rem] font-semibold text-ink transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {busy ? "Resuming…" : "Resume cosigno"}
         </button>

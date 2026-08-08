@@ -23,6 +23,9 @@ const config: Config = {
         line: "rgb(var(--c-line) / <alpha-value>)",
         // Raised card surface (was literal white); themed so cards read in dark.
         surface: "rgb(var(--c-surface) / <alpha-value>)",
+        // Two meanings, never decoration: connected/done, and destructive/failed.
+        positive: "rgb(var(--c-positive) / <alpha-value>)",
+        danger: "rgb(var(--c-danger) / <alpha-value>)",
       },
       borderRadius: {
         card: "14px",
@@ -30,6 +33,13 @@ const config: Config = {
         pill: "999px",
       },
       boxShadow: {
+        // The workspace elevation scale. Theme-aware (see globals.css): on
+        // cream it is a shadow, on ink it is a hairline, and both read as the
+        // same one step off the page. Everything in /app uses these three.
+        hairline: "var(--elev-hairline)",
+        rest: "var(--elev-rest)",
+        raise: "var(--elev-hover)",
+        overlay: "var(--elev-overlay)",
         soft: "0 2px 16px rgba(20, 20, 20, 0.06)",
         lift: "0 10px 32px rgba(20, 20, 20, 0.10)",
         // Layered card depth: a 1px inset top highlight over two stacked

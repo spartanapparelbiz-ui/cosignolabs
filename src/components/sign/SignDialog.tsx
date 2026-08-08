@@ -20,6 +20,7 @@ import { CosignoMark } from "@/components/brand/Logo";
  */
 
 import { SignaturePad, type SignaturePadHandle } from "./SignaturePad";
+import { btn, field } from "@/components/ui/styles";
 
 type Phase = "review" | "sealing" | "executing" | "completed" | "error";
 
@@ -125,13 +126,13 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
       }}
     >
       <div
-        className={`w-full max-w-lg animate-spring-in rounded-card bg-surface p-6 shadow-depth-lift ${
+        className={`w-full max-w-lg animate-spring-in rounded-card bg-surface p-6 shadow-raise ${
           phase === "sealing" ? "animate-sig-seal" : ""
         }`}
       >
         {/* status line */}
         <div className="flex items-center justify-between">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
+          <p className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-ink-soft">
             {phase === "review" && "Awaiting signature"}
             {phase === "sealing" && "Signed"}
             {phase === "executing" && "Executing…"}
@@ -152,27 +153,26 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
         {/* exactly what will happen */}
         {scope && scope.length > 1 ? (
           <>
-            <h2 className="mt-3 text-lg font-extrabold leading-snug">
+            <h2 className="t-title mt-4 text-[1.0625rem]">
               Authorize {scope.length} actions together
             </h2>
-            <ul className="mt-2 flex max-h-40 flex-col gap-1 overflow-auto rounded-btn bg-cream-deep px-3 py-2">
+            <ul className="surface-scroll mt-3 flex max-h-40 flex-col gap-1.5 overflow-auto">
               {scope.map((s) => (
-                <li key={s} className="flex gap-2 text-sm font-semibold">
-                  <span className="text-ink-soft">•</span>
+                <li key={s} className="t-body">
                   {s}
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-[11px] font-semibold text-ink-soft">
-              One signature authorizes exactly these {scope.length} actions, once each — every
-              one gets its own authorization record in your audit trail.
+            <p className="t-caption mt-3">
+              One signature authorizes exactly these {scope.length} actions, once each. Each
+              gets its own record in your audit trail.
             </p>
           </>
         ) : (
           <>
-            <h2 className="mt-3 text-lg font-extrabold leading-snug">{action.summary}</h2>
-            <p className="mt-1 text-sm text-ink-soft">{effectLine(action)}</p>
-            <p className="mt-2 text-[11px] font-semibold text-ink-soft">
+            <h2 className="t-title mt-4 text-[1.0625rem]">{action.summary}</h2>
+            <p className="t-body mt-1.5 text-ink-soft">{effectLine(action)}</p>
+            <p className="t-caption mt-3">
               Signing authorizes exactly this action, once. It is recorded in your audit trail.
             </p>
           </>
@@ -196,7 +196,7 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
                   onPointerDown={startHold}
                   onPointerUp={cancelHold}
                   onPointerLeave={cancelHold}
-                  className="relative mt-3 w-full overflow-hidden rounded-btn bg-ink px-5 py-3 text-sm font-extrabold text-cream"
+                  className="relative mt-4 w-full overflow-hidden rounded-btn bg-ink px-5 py-3 text-[0.9375rem] font-semibold text-cream"
                 >
                   {/* hold progress fill */}
                   <span
@@ -208,22 +208,22 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
                 </button>
                 <button
                   onClick={() => setDrawInstead(true)}
-                  className="mt-2 w-full text-center text-xs font-bold text-ink-soft hover:text-ink"
+                  className="t-caption mt-3 w-full text-center transition-colors duration-fast hover:text-ink"
                 >
-                  draw it fresh instead
+                  Draw it fresh instead
                 </button>
               </div>
             ) : (
               <div>
                 <SignaturePad ref={padRef} onInk={() => setInked(true)} />
                 <div className="mt-3 flex items-center gap-2">
-                  <label className="flex min-w-0 flex-1 items-center gap-2 text-xs font-bold text-ink-soft">
-                    <span className="shrink-0">Signed by</span>
+                  <label className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <span className="t-caption shrink-0">Signed by</span>
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       maxLength={80}
-                      className="min-w-0 flex-1 rounded-btn bg-cream-deep px-3 py-1.5 text-sm font-semibold text-ink"
+                      className={field("sm")}
                       aria-label="your name for the signature record"
                     />
                   </label>
@@ -232,13 +232,13 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
                       padRef.current?.clear();
                       setInked(false);
                     }}
-                    className="shrink-0 rounded-btn px-3 py-1.5 text-xs font-bold text-ink-soft hover:bg-cream-deep"
+                    className={btn("ghost", "sm", "shrink-0")}
                   >
-                    clear
+                    Clear
                   </button>
                 </div>
                 {!saved && (
-                  <label className="mt-2 flex items-start gap-2 text-[11px] font-semibold text-ink-soft">
+                  <label className="t-caption mt-3 flex items-start gap-2">
                     <input
                       type="checkbox"
                       checked={remember}
@@ -254,7 +254,7 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
                 <button
                   onClick={signDrawn}
                   disabled={!inked || !name.trim()}
-                  className="mt-3 w-full rounded-btn bg-signal px-5 py-3 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.99] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                  className={btn("sign", "lg", "mt-4 w-full")}
                 >
                   Sign to authorize
                 </button>
@@ -287,10 +287,10 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
             </div>
             <div className="mt-3 flex items-center justify-between">
               <div>
-                <p className="text-sm font-extrabold">Signed by {saved && !sealedImage ? saved.name : name}</p>
+                <p className="text-sm font-semibold">Signed by {saved && !sealedImage ? saved.name : name}</p>
                 <p className="text-xs text-ink-soft">Authorized through Cosigno · {authorizedAt}</p>
               </div>
-              <div className="text-right text-xs font-bold text-ink-soft" aria-live="polite">
+              <div className="text-right text-xs font-semibold text-ink-soft" aria-live="polite">
                 {phase === "executing" && (
                   <span className="flex items-center gap-1.5">
                     <span className="h-2 w-2 animate-orb-pulse rounded-pill bg-signal" aria-hidden="true" />
@@ -314,7 +314,7 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
                 setError(null);
                 setPhase("review");
               }}
-              className="mt-3 rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
+              className="mt-3 rounded-btn px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep"
             >
               try again
             </button>

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Radio, X } from "lucide-react";
 import { missionStatus, STATUS_TONE, type Status } from "@/lib/status";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
+import { Page, PageHeader } from "@/components/ui/Page";
 
 /**
  * Mission Control answers exactly one question: what is cosigno doing right
@@ -96,51 +98,46 @@ export function MissionControl() {
   const open = nodes.find((n) => n.id === openId) ?? null;
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-6 py-10 lg:px-10">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-extrabold sm:text-4xl">
-            What cosigno is doing right now
-          </h1>
-          <p className="mt-2 max-w-2xl text-base text-ink-soft">
-            {nodes.length === 0
-              ? "Nothing is running at the moment."
-              : nodes.length === 1
-                ? "One mission is in motion. It refreshes live."
-                : `${nodes.length} missions are in motion. They refresh live.`}
-          </p>
-        </div>
-        {(snap?.finished_count ?? 0) > 0 && (
-          <Link
-            href="/app/missions"
-            className="inline-flex items-center gap-1.5 rounded-btn px-4 py-2 text-sm font-bold lowercase text-ink-soft ring-1 ring-inset ring-line transition-all duration-fast hover:-translate-y-px hover:bg-cream-deep hover:text-ink"
-          >
-            finished work <ArrowRight size={14} aria-hidden="true" />
-          </Link>
-        )}
-      </header>
+    <Page width="work">
+      <PageHeader
+        title="What is in motion?"
+        description={
+          nodes.length === 0
+            ? "Nothing is running at the moment."
+            : nodes.length === 1
+              ? "One mission is moving. It refreshes live."
+              : `${nodes.length} missions are moving. They refresh live.`
+        }
+        action={
+          (snap?.finished_count ?? 0) > 0 ? (
+            <Link href="/app/missions" className={btn("ghost", "sm")}>
+              Finished work <ArrowRight size={14} strokeWidth={2} aria-hidden="true" />
+            </Link>
+          ) : undefined
+        }
+      />
 
       <WorkspaceSummary running={nodes.length} />
 
       {error && (
-        <p className="mt-6 rounded-card bg-surface/70 p-4 text-sm font-semibold shadow-soft">
+        <p className="t-body mt-8 border-l-2 border-danger pl-3.5 text-danger">
           {error}{" "}
-          <button onClick={load} className="underline decoration-signal underline-offset-2">
-            retry
+          <button onClick={load} className="underline underline-offset-2">
+            Retry
           </button>
         </p>
       )}
 
       {!snap && !error ? (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2" aria-hidden="true">
+        <div className="mt-12 grid gap-3 sm:grid-cols-2" aria-hidden="true">
           {[0, 1].map((i) => (
-            <div key={i} className="h-[190px] animate-pulse rounded-card bg-cream-deep" />
+            <div key={i} className="h-[170px] animate-shimmer rounded-card bg-ink/[0.055]" />
           ))}
         </div>
       ) : nodes.length === 0 && !error ? (
         <EmptyState finished={snap?.finished_count ?? 0} />
       ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="mt-12 grid gap-3 sm:grid-cols-2">
           {nodes.map((n) => (
             <MissionCard key={n.id} node={n} onOpen={() => setOpenId(n.id)} />
           ))}
@@ -148,7 +145,7 @@ export function MissionControl() {
       )}
 
       {open && <Inspector node={open} onClose={() => setOpenId(null)} />}
-    </div>
+    </Page>
   );
 }
 
@@ -195,13 +192,13 @@ function WorkspaceSummary({ running }: { running: number }) {
 
   if (stats.length === 0) return null;
   return (
-    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+    <div className="mt-10 grid gap-x-8 gap-y-6 sm:grid-cols-3">
       {stats.map((s) => (
-        <div key={s.label} className="rounded-card bg-surface/60 px-5 py-4 shadow-soft">
-          <p className="font-display text-3xl font-extrabold tabular-nums">
+        <div key={s.label}>
+          <p className="font-display text-[1.75rem] leading-none tabular-nums">
             {s.value.toLocaleString()}
           </p>
-          <p className="mt-0.5 text-xs font-bold lowercase text-ink-soft">{s.label}</p>
+          <p className="t-caption mt-2">{s.label}</p>
         </div>
       ))}
     </div>
@@ -214,33 +211,25 @@ function WorkspaceSummary({ running }: { running: number }) {
  */
 function EmptyState({ finished }: { finished: number }) {
   return (
-    <div className="mt-8 rounded-card bg-surface/60 p-12 text-center shadow-soft animate-fade-through">
-      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-pill bg-cream-deep">
-        <Radio size={22} className="text-ink-soft" aria-hidden="true" />
-      </span>
-      <h2 className="mt-4 text-lg font-extrabold">No work running</h2>
-      <p className="mx-auto mt-1.5 max-w-md text-sm text-ink-soft">
-        The moment you start a mission, it appears here live — what cosigno is
-        on, how far along, and what comes next.
+    <div className="flex animate-fade-through flex-col items-center px-6 py-20 text-center">
+      <Radio size={22} strokeWidth={1.6} className="text-ink-soft opacity-70" aria-hidden="true" />
+      <h2 className="t-title mt-5">Nothing is running</h2>
+      <p className="t-caption mt-2 max-w-[26rem]">
+        The moment a mission starts, it appears here live — what cosigno is on, how far
+        along, and what comes next.
       </p>
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-        <Link
-          href="/app"
-          className="rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold lowercase text-cream transition-transform duration-fast hover:-translate-y-px"
-        >
-          start a mission
+      <div className="mt-7 flex flex-wrap items-center justify-center gap-1.5">
+        <Link href="/app" className={btn("primary", "md")}>
+          Start a mission
         </Link>
-        <Link
-          href="/app/templates"
-          className="rounded-btn px-5 py-2.5 text-sm font-bold lowercase ring-1 ring-inset ring-ink transition-all duration-fast hover:-translate-y-px hover:bg-cream-deep"
-        >
-          browse templates
+        <Link href="/app/templates" className={btn("ghost", "md")}>
+          Browse templates
         </Link>
       </div>
       {finished > 0 && (
         <p className="mt-5 text-xs text-ink-soft">
           {finished} finished mission{finished === 1 ? "" : "s"} — see{" "}
-          <Link href="/app/missions" className="font-bold underline underline-offset-2">
+          <Link href="/app/missions" className="font-semibold underline underline-offset-2">
             missions
           </Link>{" "}
           for what they achieved.
@@ -255,8 +244,8 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px] font-bold lowercase text-ink-soft">progress</span>
-        <span className="text-xs font-bold tabular-nums">
+        <span className="text-[0.75rem] font-semibold text-ink-soft">progress</span>
+        <span className="text-xs font-semibold tabular-nums">
           {done} of {total} steps
         </span>
       </div>
@@ -282,18 +271,19 @@ function MissionCard({ node: n, onOpen }: { node: Node; onOpen: () => void }) {
     <button
       onClick={onOpen}
       aria-label={`check on: ${n.goal}`}
-      className="group rounded-card bg-surface/70 p-5 text-left shadow-soft transition-all duration-base ease-brand-out hover:-translate-y-0.5 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+      className={`${card(true)} group p-5 text-left focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_rgb(var(--c-signal))]`}
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="min-w-0 truncate text-base font-extrabold">{n.goal}</p>
-        <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-bold ${STATUS_TONE[label as Status]}`}>
+        <p className="t-title min-w-0 truncate">{n.goal}</p>
+        <span className={badge(STATUS_TONE[label as Status])}>
+          <span className={dot(STATUS_TONE[label as Status])} aria-hidden="true" />
           {label}
         </span>
       </div>
 
       <p className="mt-2 min-h-[20px] text-sm text-ink-soft">
         {n.blocked_on ? (
-          <span className="font-bold text-ink">waiting on {n.blocked_on}</span>
+          <span className="font-semibold text-ink">waiting on {n.blocked_on}</span>
         ) : (
           (n.current_task ?? "between steps")
         )}
@@ -305,7 +295,7 @@ function MissionCard({ node: n, onOpen }: { node: Node; onOpen: () => void }) {
 
       {n.next_step && (
         <p className="mt-3 truncate text-xs text-ink-soft">
-          <span className="font-bold lowercase">next:</span> {n.next_step}
+          <span className="font-semibold">next:</span> {n.next_step}
         </p>
       )}
       <p className="mt-1 text-xs text-ink-soft">started {startedAgo(n.started_at)}</p>
@@ -342,10 +332,10 @@ function Inspector({ node: n, onClose }: { node: Node; onClose: () => void }) {
         aria-modal="true"
         aria-label={`checking on: ${n.goal}`}
         onClick={(e) => e.stopPropagation()}
-        className="h-full w-full max-w-md animate-modal-in overflow-y-auto bg-cream p-6 shadow-lift"
+        className="h-full w-full max-w-md animate-modal-in overflow-y-auto bg-cream p-6 shadow-raise"
       >
         <div className="flex items-start justify-between gap-3">
-          <h2 className="font-display text-xl font-bold">{n.goal}</h2>
+          <h2 className="font-display text-xl font-semibold">{n.goal}</h2>
           <button
             onClick={onClose}
             aria-label="close"
@@ -359,13 +349,13 @@ function Inspector({ node: n, onClose }: { node: Node; onClose: () => void }) {
           <ProgressBar done={n.steps_done} total={n.steps_total} />
         </div>
 
-        <dl className="mt-5 flex flex-col rounded-card bg-surface/70 px-4 py-1 shadow-soft">
+        <dl className="mt-5 flex flex-col rounded-card bg-surface px-4 py-1 shadow-rest">
           {rows.map(([k, v]) => (
             <div
               key={k}
               className="flex items-baseline justify-between gap-3 border-b border-line/60 py-2.5 last:border-0"
             >
-              <dt className="shrink-0 text-[11px] font-bold lowercase text-ink-soft">{k}</dt>
+              <dt className="shrink-0 text-[0.75rem] font-semibold text-ink-soft">{k}</dt>
               <dd className="min-w-0 text-right text-sm font-semibold">{v}</dd>
             </div>
           ))}
@@ -377,11 +367,8 @@ function Inspector({ node: n, onClose }: { node: Node; onClose: () => void }) {
           </p>
         )}
 
-        <Link
-          href={`/app/missions/${n.id}`}
-          className="mt-6 flex w-full items-center justify-center gap-1.5 rounded-btn bg-ink py-2.5 text-sm font-extrabold lowercase text-cream transition-transform duration-fast hover:-translate-y-px"
-        >
-          open this mission <ArrowRight size={14} aria-hidden="true" />
+        <Link href={`/app/missions/${n.id}`} className={btn("primary", "md", "mt-7 w-full")}>
+          Open this mission <ArrowRight size={14} strokeWidth={2} aria-hidden="true" />
         </Link>
       </aside>
     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
 
 interface Health {
   mission_cron_configured: boolean;
@@ -81,7 +82,7 @@ export function MissionHealth() {
 
   if (error)
     return (
-      <p className="flex items-start gap-2 rounded-card bg-signal/10 p-4 text-sm font-semibold ring-1 ring-inset ring-signal/30">
+      <p className="t-body flex items-start gap-2.5 border-l-2 border-signal pl-3.5">
         <AlertTriangle size={16} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
         <span>{error}</span>
       </p>
@@ -91,12 +92,12 @@ export function MissionHealth() {
   return (
     <div className="flex flex-col gap-4">
       {!health.background_execution_active && (
-        <div className="flex items-start gap-2 rounded-card bg-signal/10 p-4 text-sm font-semibold ring-1 ring-inset ring-signal/30">
+        <div className="t-body flex items-start gap-2.5 border-l-2 border-signal pl-3.5">
           <AlertTriangle size={16} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
           <span>{health.note}</span>
         </div>
       )}
-      <ul className="rounded-card bg-surface/60 px-4 shadow-soft">
+      <ul className="rounded-card bg-surface px-4 shadow-rest">
         <Row label="background mission execution" ok={health.background_execution_active} value={health.background_execution_active ? "active" : "not configured"} />
         <Row label="mission cron" ok={health.mission_cron_configured} />
         <Row label="missions waiting for a tick" value={String(health.missions_waiting_for_tick)} />

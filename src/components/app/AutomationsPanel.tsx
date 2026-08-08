@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AlertTriangle, Pause, Play, Plus, Trash2, Zap } from "lucide-react";
+import { Pause, Play, Plus, Trash2 } from "lucide-react";
 import type { AutomationRecord, AutomationRunRecord } from "@/lib/types";
 import { useToast } from "@/components/Toast";
 import { useBackgroundExecution } from "./useBackgroundExecution";
+import { SkeletonRows } from "@/components/Skeleton";
+import { EmptyState } from "@/components/ui/Page";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
 
 /**
  * Automations — recurring missions. Create (name + command + cadence), run
@@ -198,73 +201,54 @@ export function AutomationsPanel() {
 
   if (error) {
     return (
-      <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
-        <p className="text-sm font-semibold text-ink-soft">{error}</p>
+      <div className="px-6 py-16 text-center">
+        <p className="t-body">{error}</p>
         <button
           onClick={load}
-          className="mt-3 rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep"
+          className={btn("secondary", "md", "mt-5")}
         >
-          try again
+          Try again
         </button>
       </div>
     );
   }
 
   if (automations === null) {
-    return (
-      <div className="flex flex-col gap-3" aria-busy="true" aria-label="loading automations">
-        {[0, 1].map((i) => (
-          <div key={i} className="h-24 animate-pulse rounded-card bg-cream-deep" />
-        ))}
-      </div>
-    );
+    return <SkeletonRows rows={3} />;
   }
 
-  const inputCls =
-    "w-full rounded-btn bg-surface px-3 py-2.5 text-sm shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal";
+  const inputCls = field("md");
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {/* The whole page assumes something runs these while you are away. When
           that is not true, it is the first thing a person needs to know —
           before they write an order and trust it to fire. */}
       {backgroundActive === false && (
-        <p
-          role="status"
-          className="flex items-start gap-2.5 rounded-card border border-ink bg-surface p-4 text-sm shadow-soft"
-        >
-          <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-          <span>
-            <b>standing orders can&apos;t run on their own yet.</b> background automation
-            isn&apos;t available for this workspace, so nothing will fire on a schedule — no
-            matter which cadence you pick. you can still run any order yourself with{" "}
-            <b>run now</b>, and everything you save here starts running by itself once an
-            administrator switches it on.
-          </span>
+        <p role="status" className="t-body border-l-2 border-signal pl-3.5">
+          Nothing here fires on a schedule yet — background running isn&apos;t switched on
+          for this workspace, whatever cadence you pick. You can still run any of them
+          yourself, and they start running on their own once an administrator enables it.
         </p>
       )}
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-bold lowercase tracking-wide text-ink-soft">
-          standing orders are ongoing responsibilities — every run goes through
-          the same approval loop, and nothing important crosses the boundary
-          without you.
+      <div className="flex items-center justify-between gap-4">
+        <p className="t-caption">
+          Every run goes through the same approval loop. Nothing important crosses the
+          boundary without you.
         </p>
-        <button
-          onClick={() => setAddOpen((v) => !v)}
-          className="inline-flex shrink-0 items-center gap-1 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream"
-        >
-          <Plus size={13} /> {addOpen ? "cancel" : "new standing order"}
+        <button onClick={() => setAddOpen((v) => !v)} className={btn("secondary", "sm", "shrink-0")}>
+          <Plus size={13} strokeWidth={1.9} /> {addOpen ? "Cancel" : "New"}
         </button>
       </div>
 
       {addOpen && (
-        <div className="flex flex-col gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-bold lowercase tracking-wide text-ink-soft">name</span>
+        <div className={`${card()} flex animate-card-in flex-col gap-4 p-5`}>
+          <label className="flex flex-col gap-1.5">
+            <span className="t-eyebrow">Name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="morning inbox review" className={inputCls} />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-bold lowercase tracking-wide text-ink-soft">what should it do?</span>
+          <label className="flex flex-col gap-1.5">
+            <span className="t-eyebrow">What should it do?</span>
             <textarea
               value={command}
               onChange={(e) => setCommand(e.target.value)}
@@ -273,8 +257,8 @@ export function AutomationsPanel() {
               className={inputCls}
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-bold lowercase tracking-wide text-ink-soft">cadence</span>
+          <label className="flex flex-col gap-1.5">
+            <span className="t-eyebrow">How often</span>
             <select value={hours} onChange={(e) => setHours(Number(e.target.value))} className={inputCls}>
               {CADENCES.map((c) => (
                 <option key={c.hours} value={c.hours}>{c.label}</option>
@@ -282,15 +266,13 @@ export function AutomationsPanel() {
             </select>
           </label>
           <fieldset className="flex flex-col gap-1">
-            <legend className="text-[11px] font-bold lowercase tracking-wide text-ink-soft">
-              what may it do?
-            </legend>
+            <legend className="t-eyebrow">What may it do?</legend>
             <div className="mt-1 flex flex-col gap-1.5">
               {MODES.map((m) => (
                 <label
                   key={m.value}
-                  className={`flex cursor-pointer items-start gap-2.5 rounded-btn px-3 py-2 ring-1 ring-inset ${
-                    mode === m.value ? "ring-ink bg-cream-deep" : "ring-line/70"
+                  className={`flex cursor-pointer items-start gap-2.5 rounded-btn px-3 py-2.5 transition-colors duration-fast ${
+                    mode === m.value ? "bg-ink/[0.06]" : "hover:bg-ink/[0.03]"
                   }`}
                 >
                   <input
@@ -302,8 +284,8 @@ export function AutomationsPanel() {
                     className="mt-0.5 accent-[#FB4C20]"
                   />
                   <span>
-                    <span className="text-xs font-extrabold lowercase">{m.label}</span>
-                    <span className="block text-[11px] text-ink-soft">{m.detail}</span>
+                    <span className="text-[0.875rem]">{m.label}</span>
+                    <span className="t-caption block">{m.detail}</span>
                   </span>
                 </label>
               ))}
@@ -312,102 +294,85 @@ export function AutomationsPanel() {
           <button
             onClick={create}
             disabled={busy === "create" || !name.trim() || !command.trim()}
-            className="self-start rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+            className={btn("primary", "md", "self-start")}
           >
-            {busy === "create" ? "creating…" : "create standing order"}
+            {busy === "create" ? "Creating…" : "Create"}
           </button>
         </div>
       )}
 
       {automations.length === 0 && !addOpen && (
-        <div className="flex flex-col items-center gap-2 rounded-card bg-surface/40 px-6 py-12 text-center shadow-soft">
-          <Zap size={22} className="text-ink-soft" />
-          <p className="text-sm font-extrabold lowercase">no automations yet.</p>
-          <p className="max-w-sm text-xs text-ink-soft">
-            turn repeated work into a recurring mission — a morning inbox
-            review, a weekly report.{" "}
-            {backgroundActive === true
-              ? "cosigno prepares the work on schedule;"
+        <EmptyState
+          title="Nothing standing yet"
+          description={
+            backgroundActive === true
+              ? "Turn repeated work into a recurring mission — a morning inbox review, a weekly report. Anything consequential still waits for your signature."
               : backgroundActive === false
-                ? "scheduled running isn't available for this workspace yet, so these run when you press run now."
-                : "we couldn't confirm whether these run on a schedule here — use run now to be sure."}{" "}
-            anything consequential still waits for your signature.
-          </p>
-        </div>
+                ? "Turn repeated work into a recurring mission. Scheduled running isn't switched on here yet, so these run when you press run."
+                : "Turn repeated work into a recurring mission. Use run to be sure it happens."
+          }
+        />
       )}
 
       {automations.map((a) => (
-        <div key={a.id} className="rounded-card bg-surface/60 p-4 shadow-soft">
+        <div key={a.id} className={`${card()} p-5`}>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="min-w-0 flex-1 truncate text-sm font-extrabold" title={a.name}>
+            <h2 className="min-w-0 flex-1 truncate text-sm font-semibold" title={a.name}>
               {a.name}
             </h2>
             <span
-              className="rounded-pill bg-cream-deep px-2.5 py-0.5 text-[10px] font-bold lowercase tracking-wide text-ink-soft"
+              className="rounded-pill bg-cream-deep px-2.5 py-0.5 text-[0.6875rem] font-semibold tracking-wide text-ink-soft"
               title={MODES.find((m) => m.value === a.mode)?.detail}
             >
               {MODE_LABEL[a.mode] ?? "prepare"}
             </span>
             <span
-              className={`rounded-pill px-2.5 py-0.5 text-[10px] font-bold lowercase tracking-wide ${
+              className={`rounded-pill px-2.5 py-0.5 text-[0.6875rem] font-semibold tracking-wide ${
                 a.enabled ? "bg-signal text-cream" : "ring-1 ring-inset ring-ink/40 text-ink-soft"
               }`}
             >
               {a.enabled ? "active" : "paused"}
             </span>
           </div>
-          <p className="mt-1.5 line-clamp-2 font-mono text-[11px] text-ink-soft">“{a.command}”</p>
-          <p className="mt-1 text-[11px] font-semibold text-ink-soft">
+          <p className="mt-1.5 line-clamp-2 font-mono text-[0.75rem] text-ink-soft">“{a.command}”</p>
+          <p className="mt-1 text-[0.75rem] font-semibold text-ink-soft">
             {cadenceLabel(a.interval_hours)} ·{" "}
             {a.last_run_at ? `last ran ${new Date(a.last_run_at).toLocaleString()}` : "hasn't run yet"} ·{" "}
             {a.enabled ? `next ${new Date(a.next_run_at).toLocaleString()}` : "paused"}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              onClick={() => runNow(a)}
-              disabled={busy === a.id}
-              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-btn bg-ink px-3.5 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-            >
-              <Play size={12} /> {busy === a.id ? "…" : "run now"}
+            <button onClick={() => runNow(a)} disabled={busy === a.id} className={btn("secondary", "sm")}>
+              <Play size={12} strokeWidth={1.9} /> {busy === a.id ? "…" : "Run now"}
             </button>
             <button
               onClick={() => setEnabled(a, !a.enabled)}
               disabled={busy === a.id}
-              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-btn px-3.5 py-1.5 text-xs font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep"
+              className={btn("ghost", "sm")}
             >
-              {a.enabled ? <Pause size={12} /> : <Play size={12} />}
-              {a.enabled ? "pause" : "resume"}
+              {a.enabled ? <Pause size={12} strokeWidth={1.9} /> : <Play size={12} strokeWidth={1.9} />}
+              {a.enabled ? "Pause" : "Resume"}
             </button>
-            <button
-              onClick={() => toggleRuns(a.id)}
-              className="min-h-[36px] rounded-btn px-3.5 py-1.5 text-xs font-bold lowercase text-ink-soft hover:bg-cream-deep"
-            >
-              {runs[a.id] ? "hide runs" : "run history"}
+            <button onClick={() => toggleRuns(a.id)} className={btn("ghost", "sm")}>
+              {runs[a.id] ? "Hide history" : "History"}
             </button>
             <button
               onClick={() => remove(a)}
               disabled={busy === a.id}
-              className="ml-auto inline-flex min-h-[36px] items-center gap-1.5 rounded-btn px-3 py-1.5 text-xs font-bold lowercase text-ink-soft ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
+              className={btn("ghost", "sm", "ml-auto")}
               title="delete — stops all future runs"
             >
-              <Trash2 size={12} /> delete
+              <Trash2 size={12} strokeWidth={1.9} /> Delete
             </button>
           </div>
           {runs[a.id] && (
             <div className="mt-3 flex flex-col gap-1.5 border-t border-line/50 pt-3">
-              {runs[a.id].length === 0 && (
-                <p className="text-[11px] text-ink-soft">no runs yet.</p>
-              )}
+              {runs[a.id].length === 0 && <p className="t-caption">No runs yet.</p>}
               {runs[a.id].map((r) => (
-                <p key={r.id} className="flex items-baseline gap-2 text-[11px]">
-                  <span
-                    className={`shrink-0 font-bold lowercase ${
-                      r.status === "ok" ? "text-signal" : "text-ink"
-                    }`}
-                  >
+                <p key={r.id} className="t-caption flex items-baseline gap-2">
+                  <span className={`shrink-0 ${r.status === "ok" ? "text-positive" : "text-danger"}`}>
                     {r.status}
                   </span>
-                  <span className="text-ink-soft">
+                  <span>
                     {new Date(r.created_at).toLocaleString()} — {r.detail ?? ""}
                   </span>
                 </p>

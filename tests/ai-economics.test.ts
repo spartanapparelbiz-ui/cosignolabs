@@ -197,6 +197,6 @@ describe("usage is named for what it counts", () => {
 
   it("the usage panel explains what an operation is, where usage is shown", () => {
     const account = readFileSync("src/components/account/AccountCenter.tsx", "utf8");
-    expect(account).toMatch(/every planning call and every executed action counts as one operation/);
+    expect(account).toMatch(/Planning and every executed action count as one/);
   });
 });

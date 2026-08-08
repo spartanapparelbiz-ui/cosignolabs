@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Brain, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import type { MemoryRecord } from "@/lib/types";
 import { useToast } from "@/components/Toast";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
+import { EmptyState } from "@/components/ui/Page";
 
 /**
  * Memory — user-controlled planner context. Everything the directive demands:
@@ -100,10 +102,10 @@ export function MemoryPanel() {
 
   if (error) {
     return (
-      <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
-        <p className="text-sm font-semibold text-ink-soft">{error}</p>
-        <button onClick={load} className="mt-3 rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep">
-          try again
+      <div className="px-6 py-16 text-center">
+        <p className="t-body">{error}</p>
+        <button onClick={load} className="mt-3 rounded-btn px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep">
+          Try again
         </button>
       </div>
     );
@@ -119,20 +121,18 @@ export function MemoryPanel() {
     );
   }
 
-  const inputCls =
-    "w-full rounded-btn bg-surface px-3 py-2.5 text-sm shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal";
+  const inputCls = field("md");
 
   return (
     <div className="flex flex-col gap-4">
       {/* master switch */}
-      <div className="flex items-center gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
-        <Brain size={18} className="shrink-0 text-ink-soft" />
+      <div className="flex items-center gap-3 border-b border-line/40 pb-6">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold lowercase">memory is {masterOn ? "on" : "off"}</p>
-          <p className="text-xs text-ink-soft">
+          <p className="text-[0.9375rem] font-semibold">Memory is {masterOn ? "on" : "off"}</p>
+          <p className="t-caption mt-0.5">
             {masterOn
-              ? "enabled notes below are given to cosigno as your saved context."
-              : "cosigno isn\u2019t using your notes — they\u2019re kept, but unused."}
+              ? "Enabled notes below go to cosigno as your saved context."
+              : "cosigno isn\u2019t using your notes. They\u2019re kept, but unused."}
           </p>
         </div>
         <button
@@ -141,11 +141,11 @@ export function MemoryPanel() {
           role="switch"
           aria-checked={masterOn}
           className={`inline-flex h-6 w-11 shrink-0 items-center rounded-pill p-0.5 transition-colors duration-base ${
-            masterOn ? "bg-signal" : "bg-line"
+            masterOn ? "bg-ink" : "bg-ink/15"
           }`}
         >
           <span
-            className={`h-5 w-5 rounded-pill bg-surface shadow-soft transition-transform duration-base ${
+            className={`h-5 w-5 rounded-pill bg-surface shadow-rest transition-transform duration-base ${
               masterOn ? "translate-x-5" : "translate-x-0"
             }`}
           />
@@ -159,31 +159,28 @@ export function MemoryPanel() {
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()}
           maxLength={300}
-          placeholder="remember that… (e.g. keep my replies under 100 words)"
+          placeholder="Remember that… (e.g. keep my replies under 100 words)"
           className={inputCls}
           aria-label="new memory"
         />
         <button
           onClick={add}
           disabled={busy === "add" || !draft.trim()}
-          className="inline-flex shrink-0 items-center gap-1 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+          className={btn("secondary", "md", "shrink-0")}
         >
-          <Plus size={13} /> save
+          <Plus size={13} strokeWidth={1.9} /> Save
         </button>
       </div>
 
       {memories.length === 0 && (
-        <div className="flex flex-col items-center gap-2 rounded-card bg-surface/40 px-6 py-10 text-center shadow-soft">
-          <p className="text-sm font-extrabold lowercase">nothing saved yet.</p>
-          <p className="max-w-sm text-xs text-ink-soft">
-            save short notes about how you like things done — tone, priorities,
-            constraints. only you can write here; the operator only reads.
-          </p>
-        </div>
+        <EmptyState
+          title="Nothing saved yet"
+          description="Short notes about how you like things done — tone, priorities, constraints. Only you write here; cosigno only reads."
+        />
       )}
 
       {memories.map((m) => (
-        <div key={m.id} className={`rounded-card bg-surface/60 p-4 shadow-soft ${m.enabled ? "" : "opacity-60"}`}>
+        <div key={m.id} className={`${card()} p-5 ${m.enabled ? "" : "opacity-55"}`}>
           {editing === m.id ? (
             <div className="flex flex-col gap-2">
               <textarea
@@ -198,12 +195,12 @@ export function MemoryPanel() {
                 <button
                   onClick={() => patch(m, { content: editText.trim() })}
                   disabled={!editText.trim() || busy === m.id}
-                  className="rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                  className={btn("secondary", "sm")}
                 >
                   save
                 </button>
-                <button onClick={() => setEditing(null)} className="rounded-btn px-4 py-1.5 text-xs font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep">
-                  cancel
+                <button onClick={() => setEditing(null)} className="rounded-btn px-4 py-1.5 text-xs font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep">
+                  Cancel
                 </button>
               </div>
             </div>
@@ -214,7 +211,7 @@ export function MemoryPanel() {
                 <button
                   onClick={() => patch(m, { enabled: !m.enabled })}
                   disabled={busy === m.id}
-                  className="min-h-[32px] rounded-pill px-3 py-1 text-[11px] font-bold lowercase ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
+                  className="min-h-[32px] rounded-pill px-3 py-1 text-[0.75rem] font-semibold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                 >
                   {m.enabled ? "in use — click to exclude" : "excluded — click to include"}
                 </button>
@@ -223,16 +220,16 @@ export function MemoryPanel() {
                     setEditing(m.id);
                     setEditText(m.content);
                   }}
-                  className="min-h-[32px] rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep"
+                  className="min-h-[32px] rounded-pill px-3 py-1 text-[0.75rem] font-semibold text-ink-soft hover:bg-cream-deep"
                 >
                   edit
                 </button>
                 <button
                   onClick={() => remove(m)}
                   disabled={busy === m.id}
-                  className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep"
+                  className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-pill px-3 py-1 text-[0.75rem] font-semibold text-ink-soft hover:bg-cream-deep"
                 >
-                  <Trash2 size={11} /> forget
+                  <Trash2 size={11} /> Forget
                 </button>
               </div>
             </>

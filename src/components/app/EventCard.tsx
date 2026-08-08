@@ -8,7 +8,6 @@ import {
   Plug,
   ShieldQuestion,
   Sliders,
-  X,
 } from "lucide-react";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 
@@ -69,48 +68,46 @@ export function EventCard({
 
   const body = (
     <>
-      <span className="mt-0.5 shrink-0" aria-hidden="true">
+      <span className="mt-[3px] shrink-0 text-ink-soft" aria-hidden="true">
         {event.providerKey ? (
           <ConnectorLogo
             kind="app"
             providerKey={event.providerKey}
             displayName={event.app ?? ""}
-            size={18}
+            size={15}
           />
         ) : (
-          <span
-            className={`flex h-[18px] w-[18px] items-center justify-center rounded-btn ${
-              event.pinned ? "bg-signal text-ink" : "bg-cream-deep text-ink-soft"
-            }`}
-          >
-            <Icon size={11} />
-          </span>
+          <Icon size={14} strokeWidth={1.9} className={event.pinned ? "text-signal" : undefined} />
         )}
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="block text-xs font-bold leading-snug">{event.headline}</span>
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-ink-soft">
+        <span className="block text-[0.875rem] leading-snug">{event.headline}</span>
+        <span className="t-caption mt-0.5 flex flex-wrap items-center gap-x-1.5">
           {/* Who did it — said the way a person would, never "system". */}
-          <span>{event.actor === "you" ? "you" : "cosigno"}</span>
+          <span>{event.actor === "you" ? "You" : "cosigno"}</span>
           {event.app && <span>· {event.app}</span>}
           <span>· {when(event.at)}</span>
-          {event.detail && <span className="w-full font-semibold">{event.detail}</span>}
+          {event.detail && <span className="w-full">{event.detail}</span>}
         </span>
       </span>
 
       {event.href && (
         <ArrowUpRight
           size={13}
-          className="mt-0.5 shrink-0 text-ink-soft opacity-0 transition-opacity group-hover:opacity-100"
+          strokeWidth={2}
+          className="mt-1 shrink-0 -translate-x-1 text-ink-soft opacity-0 transition-all duration-base ease-brand-out group-hover:translate-x-0 group-hover:opacity-100"
           aria-hidden="true"
         />
       )}
     </>
   );
 
-  const className = `group flex w-full items-start gap-2.5 rounded-btn px-2.5 py-2 text-left transition-colors ${
-    event.pinned ? "bg-signal/10 ring-1 ring-inset ring-signal/30" : "hover:bg-cream-deep/50"
+  /* A pinned event is the one thing still waiting on you. It gets a single
+     orange rule down its left edge — no tinted background, because a row of
+     tinted blocks turns a history into a warning sign. */
+  const className = `group flex w-full items-start gap-3 rounded-btn py-2.5 pr-3 text-left transition-colors duration-fast hover:bg-ink/[0.035] ${
+    event.pinned ? "border-l-2 border-signal pl-[10px]" : "pl-3"
   }`;
 
   // A decision carries its signed receipt — the proof of what was authorised
@@ -144,15 +141,13 @@ export function EventStream({
 }) {
   if (events.length === 0) {
     return (
-      <div className="rounded-card border border-dashed border-line bg-surface/40 px-6 py-10 text-center">
-        <p className="text-sm font-semibold text-ink-soft">
-          {empty ?? "Nothing has happened yet."}
-        </p>
-      </div>
+      <p className="t-caption animate-fade-through px-3 py-16 text-center">
+        {empty ?? "Nothing has happened yet."}
+      </p>
     );
   }
   return (
-    <ol className="flex flex-col gap-0.5">
+    <ol className="-mx-3 flex flex-col">
       {events.map((e) => (
         <li key={e.id}>
           <EventCard event={e} onSelect={onSelect} />

@@ -43,13 +43,13 @@ export function StarterJobs() {
 
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2">
-      <span className="text-xs font-bold lowercase text-ink-soft">or start a job:</span>
+      <span className="text-xs font-semibold text-ink-soft">Or start a job:</span>
       {JOBS.map((job) => (
         <button
           key={job.key}
           onClick={() => start(job.key)}
           disabled={busy !== null}
-          className="flex items-center gap-1.5 rounded-pill bg-cream-deep px-3 py-1.5 text-xs font-bold lowercase transition-colors hover:bg-signal/15 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 rounded-pill bg-cream-deep px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-signal/15 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
         >
           <job.icon size={13} className="text-ink-soft" aria-hidden="true" />
           {busy === job.key ? "starting…" : job.label}

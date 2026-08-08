@@ -15,18 +15,19 @@ import {
   Rocket,
   Settings,
   ShieldCheck,
-  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { LogoHome } from "@/components/brand/LivingLogo";
 
 /**
  * The app's navigation chrome: a compact left rail on desktop, a bottom bar
- * on mobile. The seven everyday destinations — nothing else lives here (no
- * upgrade ads, per the shell rules). The approvals item carries a count badge
- * ONLY when something actually needs a signature. Advanced surfaces (memory,
- * team, health, automations, files) stay reachable from their in-page links
- * and settings.
+ * on mobile.
+ *
+ * The rail is furniture, so it is built to be ignored: one weight of type, one
+ * icon size, and an active state that is a soft surface rather than a slab of
+ * black. Nothing in it advertises anything — an upgrade prompt in the
+ * navigation is an ad in the one part of the product a person has to look at
+ * every minute, so plan changes live in the account menu instead.
  */
 
 /**
@@ -83,12 +84,12 @@ function RailLink({
       href={href}
       prefetch
       aria-current={active ? "page" : undefined}
-      className={`relative flex w-[60px] flex-col items-center gap-0.5 rounded-btn px-1 py-2 text-[10px] font-bold lowercase transition-colors ${
-        active ? "bg-ink text-cream" : "text-ink-soft hover:bg-cream-deep hover:text-ink"
+      className={`relative flex w-[64px] flex-col items-center gap-1 rounded-btn px-1 py-2.5 text-[0.6875rem] font-semibold lowercase tracking-wide transition-colors duration-fast ease-brand-out ${
+        active ? "bg-ink/[0.07] text-ink" : "text-ink-soft hover:bg-ink/[0.04] hover:text-ink"
       }`}
     >
       <span className="relative">
-        <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
+        <Icon size={17} strokeWidth={active ? 2.2 : 1.9} aria-hidden="true" />
         {badge > 0 && <Badge count={badge} />}
       </span>
       {label}
@@ -152,31 +153,13 @@ function usePendingCount(): number {
 }
 
 /**
- * Whether this workspace is on the free plan — the ONE condition under which
- * the rail shows an upgrade destination. Paid users manage their plan from
- * settings; putting an upgrade ad in front of someone already paying is the
- * pushiness the shell rules exist to prevent. Until the plan is known, the
- * item is absent (no flash of an ad that then disappears).
+ * The count of decisions waiting on you — the only number the navigation is
+ * allowed to show, because it is the only one that changes what you do next.
  */
-function useIsFreePlan(): boolean {
-  const [free, setFree] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/usage")
-      .then((r) => r.json())
-      .then((d) => alive && setFree((d.plan?.id ?? "free") === "free"))
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, []);
-  return free;
-}
-
 function Badge({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
-    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-pill bg-signal px-1 text-[9px] font-extrabold text-ink">
+    <span className="absolute -right-1.5 -top-1 flex h-[15px] min-w-[15px] animate-check-pop items-center justify-center rounded-pill bg-signal px-1 text-[0.6875rem] font-semibold tabular-nums text-ink">
       {count > 9 ? "9+" : count}
     </span>
   );
@@ -186,14 +169,13 @@ function Badge({ count }: { count: number }) {
 export function AppRail() {
   const pathname = usePathname();
   const pending = usePendingCount();
-  const isFree = useIsFreePlan();
   return (
     <aside
-      className="sticky top-0 hidden h-screen w-[76px] shrink-0 flex-col items-center gap-1 border-r border-line/60 bg-cream/80 py-4 lg:flex"
+      className="sticky top-0 hidden h-screen w-[80px] shrink-0 flex-col items-center gap-0.5 border-r border-line/40 bg-cream py-5 lg:flex"
       aria-label="app navigation"
     >
-      <div className="mb-3">
-        <LogoHome href="/app" label="cosigno home" size={28} variant="mark" />
+      <div className="mb-5">
+        <LogoHome href="/app" label="cosigno home" size={26} variant="mark" />
       </div>
       {PRIMARY.map(({ href, label, icon: Icon }) => (
         <RailLink
@@ -206,7 +188,7 @@ export function AppRail() {
         />
       ))}
 
-      <span className="my-1 h-px w-7 bg-line" aria-hidden="true" />
+      <span className="my-3 h-px w-8 bg-line/70" aria-hidden="true" />
 
       {SECONDARY.map(({ href, label, icon: Icon }) => (
         <RailLink
@@ -218,16 +200,6 @@ export function AppRail() {
           badge={0}
         />
       ))}
-
-      {isFree && (
-        <RailLink
-          href="/pricing"
-          label="upgrade"
-          Icon={Sparkles}
-          active={false}
-          badge={0}
-        />
-      )}
     </aside>
   );
 }
@@ -245,7 +217,7 @@ export function AppBottomNav() {
   const pending = usePendingCount();
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line/60 bg-cream/95 px-1 pb-[max(4px,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line/40 bg-cream/92 px-1 pb-[max(6px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md lg:hidden"
       aria-label="app navigation"
     >
       {PRIMARY.map(({ href, label, icon: Icon }) => {
@@ -256,12 +228,16 @@ export function AppBottomNav() {
             href={href}
             prefetch
             aria-current={active ? "page" : undefined}
-            className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-btn py-1 text-[9px] font-bold lowercase ${
+            className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-btn py-1 text-[0.6875rem] font-semibold lowercase tracking-wide transition-colors duration-fast ${
               active ? "text-ink" : "text-ink-soft"
             }`}
           >
-            <span className={`relative rounded-pill px-2.5 py-0.5 ${active ? "bg-signal/20" : ""}`}>
-              <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
+            <span
+              className={`relative rounded-pill px-3 py-1 transition-colors duration-fast ${
+                active ? "bg-ink/[0.07]" : ""
+              }`}
+            >
+              <Icon size={17} strokeWidth={active ? 2.2 : 1.9} aria-hidden="true" />
               {label === "approvals" && <Badge count={pending} />}
             </span>
             <span className="truncate">{label}</span>

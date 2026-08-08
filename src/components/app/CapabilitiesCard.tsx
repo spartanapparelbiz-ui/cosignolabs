@@ -11,8 +11,8 @@ import type { CapabilityReport } from "@/lib/capabilities";
  * user's authority. Collapsed by default so NOW stays calm.
  */
 
-const CARD = "rounded-card border border-line/70 bg-surface p-5 shadow-soft";
-const SECTION_TITLE = "text-xs font-extrabold uppercase tracking-widest text-ink-soft";
+const CARD = "rounded-card border border-line/70 bg-surface p-5 shadow-rest";
+const SECTION_TITLE = "text-xs font-semibold uppercase tracking-[0.1em] text-ink-soft";
 
 export function CapabilitiesCard() {
   const [open, setOpen] = useState(false);
@@ -49,7 +49,7 @@ export function CapabilitiesCard() {
               <div className="h-24 animate-pulse rounded-btn bg-cream-deep" aria-hidden="true" />
             ) : (
               <>
-                <p className="text-[11px] font-extrabold uppercase tracking-wide text-ink-soft">Right now I can</p>
+                <p className="text-[0.75rem] font-semibold uppercase tracking-wide text-ink-soft">Right now I can</p>
                 <ul className="mt-1.5 flex flex-col gap-1">
                   {report.can_now.map((c) => (
                     <li key={c} className="flex items-start gap-2 text-sm font-semibold">
@@ -60,7 +60,7 @@ export function CapabilitiesCard() {
                 </ul>
                 {report.needs_you.length > 0 && (
                   <>
-                    <p className="mt-3 text-[11px] font-extrabold uppercase tracking-wide text-ink-soft">
+                    <p className="mt-3 text-[0.75rem] font-semibold uppercase tracking-wide text-ink-soft">
                       I&apos;ll need you to authorize
                     </p>
                     <ul className="mt-1.5 flex flex-col gap-1">

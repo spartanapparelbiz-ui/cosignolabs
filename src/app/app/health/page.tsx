@@ -1,4 +1,5 @@
 import { MissionHealth } from "@/components/app/MissionHealth";
+import { Page, PageHeader } from "@/components/ui/Page";
 
 export const dynamic = "force-dynamic";
 
@@ -15,15 +16,14 @@ export const metadata = { title: "diagnostics" };
  */
 export default function HealthPage() {
   return (
-    <div className="mx-auto flex w-full max-w-none flex-1 flex-col px-6 lg:px-10 py-8">
-      <h1 className="font-display text-2xl font-bold lowercase">diagnostics</h1>
-      <p className="mt-1 text-sm font-semibold text-ink-soft">
-        for whoever set this workspace up: which services are switched on, and what to
-        change if one isn&apos;t. names of settings only — never their values.
-      </p>
-      <div className="mt-6 flex-1">
+    <Page width="work">
+      <PageHeader
+        title="Is this workspace set up?"
+        description="For whoever configured it: which services are on, and what to change if one isn't. Names of settings only, never their values."
+      />
+      <div className="mt-12 flex-1">
         <MissionHealth />
       </div>
-    </div>
+    </Page>
   );
 }

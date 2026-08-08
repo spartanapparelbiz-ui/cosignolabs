@@ -1,4 +1,5 @@
 import { TemplateGallery } from "@/components/app/TemplateGallery";
+import { Page, PageHeader } from "@/components/ui/Page";
 
 export const dynamic = "force-dynamic";
 
@@ -11,15 +12,14 @@ export const metadata = { title: "templates" };
  */
 export default function TemplatesPage() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-10 lg:px-10">
-      <h1 className="font-display text-3xl font-extrabold sm:text-4xl">Templates</h1>
-      <p className="mt-2 max-w-2xl text-base text-ink-soft">
-        Ready-made work. One click starts a real mission — read-only work runs on its
-        own, and anything that changes your apps waits for your approval.
-      </p>
-      <div className="mt-8 flex-1">
+    <Page width="wide">
+      <PageHeader
+        title="What can cosigno do for you?"
+        description="Each one starts real work. Reading runs on its own; anything that changes your apps waits for you."
+      />
+      <div className="mt-12 flex-1">
         <TemplateGallery />
       </div>
-    </div>
+    </Page>
   );
 }

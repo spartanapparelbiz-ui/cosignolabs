@@ -50,12 +50,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="pointer-events-auto flex items-start gap-2.5 rounded-btn bg-ink px-4 py-3 text-sm font-semibold text-cream shadow-lift animate-toast-in"
+            className="pointer-events-auto flex animate-toast-in items-start gap-2.5 rounded-btn bg-ink px-4 py-3 text-[0.875rem] text-cream shadow-overlay"
           >
             {t.kind === "success" ? (
-              <Check size={16} strokeWidth={2.5} className="mt-0.5 shrink-0 text-signal" />
+              <Check size={15} strokeWidth={2.2} className="mt-0.5 shrink-0 text-positive" />
             ) : (
-              <X size={16} strokeWidth={2.5} className="mt-0.5 shrink-0" />
+              <X size={15} strokeWidth={2.2} className="mt-0.5 shrink-0 text-danger" />
             )}
             <span>{t.text}</span>
           </div>

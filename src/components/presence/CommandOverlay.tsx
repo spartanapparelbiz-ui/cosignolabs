@@ -64,7 +64,7 @@ export function CommandOverlay({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-xl animate-spring-in rounded-card bg-surface p-5 shadow-depth-lift">
+      <div className="w-full max-w-xl animate-spring-in rounded-card bg-surface p-5 shadow-raise">
         <form
           className="flex items-center gap-3"
           onSubmit={(e) => {
@@ -93,7 +93,7 @@ export function CommandOverlay({
         </form>
 
         {state && (
-          <p className="mt-3 text-[11px] font-bold uppercase tracking-widest text-ink-soft">
+          <p className="mt-3 text-[0.75rem] font-bold uppercase tracking-[0.1em] text-ink-soft">
             {state.moving} moving · {state.need_you} need you · {state.watching} watching ·{" "}
             {state.blocked} blocked
           </p>
@@ -111,7 +111,7 @@ export function CommandOverlay({
           ))}
         </div>
 
-        <p className="mt-3 text-[10px] font-semibold text-ink-soft/70">
+        <p className="mt-3 text-[0.6875rem] font-semibold text-ink-soft/70">
           Anything else becomes a delegation — cosigno shows you its plan before it starts.
         </p>
       </div>

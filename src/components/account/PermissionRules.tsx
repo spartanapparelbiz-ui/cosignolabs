@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ShieldCheck, Trash2, X } from "lucide-react";
+import { ArrowRight, Trash2 } from "lucide-react";
 import { describeRule, parsePermissionRule } from "@/lib/rules";
 import type { PermissionRuleRecord, RuleRequirement } from "@/lib/types";
+import { badge, btn, dot, field, type BadgeTone } from "@/components/ui/styles";
 
 /**
  * Custom permission rules — write a standing policy in plain language ("never
@@ -14,11 +15,11 @@ import type { PermissionRuleRecord, RuleRequirement } from "@/lib/types";
  * parser the server does, so what you see is exactly what gets stored + enforced.
  */
 
-const REQ_META: Record<RuleRequirement, { label: string; cls: string }> = {
-  auto: { label: "auto", cls: "bg-cream-deep text-ink-soft" },
-  approve: { label: "approve", cls: "ring-1 ring-inset ring-signal/50 text-signal" },
-  sign: { label: "sign", cls: "bg-signal text-cream" },
-  never: { label: "never", cls: "bg-ink text-cream" },
+const REQ_META: Record<RuleRequirement, { label: string; tone: BadgeTone }> = {
+  auto: { label: "auto", tone: "neutral" },
+  approve: { label: "approve", tone: "signal" },
+  sign: { label: "sign", tone: "signal" },
+  never: { label: "never", tone: "danger" },
 };
 
 async function api(url: string, init?: RequestInit) {
@@ -34,7 +35,8 @@ async function api(url: string, init?: RequestInit) {
 function RequirementBadge({ requirement }: { requirement: RuleRequirement }) {
   const m = REQ_META[requirement];
   return (
-    <span className={`rounded-pill px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${m.cls}`}>
+    <span className={badge(m.tone)}>
+      <span className={dot(m.tone)} aria-hidden="true" />
       {m.label}
     </span>
   );
@@ -105,101 +107,120 @@ export function PermissionRules() {
   if (unavailable) return null;
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-5">
       <div>
-        <h4 className="flex items-center gap-1.5 text-xs font-bold lowercase tracking-wide text-ink-soft">
-          <ShieldCheck size={13} /> permission rules
-        </h4>
-        <p className="mt-1 text-[11px] text-ink-soft">
-          your standing policy across every tool, in plain language — cosigno turns it
-          into a visible rule. rules only ever <span className="font-bold">tighten</span> what
-          cosigno may do (require approval or a signature, or forbid it), never loosen it.
+        <p className="t-body max-w-[42rem]">
+          Write a standing limit in plain language and cosigno turns it into a visible
+          rule. A rule can only ever tighten what cosigno may do — never loosen it.
         </p>
         {/* Writing a rule straight into the box is fine, but the safer path is
             to see what it would have done first. Offer it right here. */}
         <Link
           href="/app/settings/rules"
-          className="mt-1.5 inline-block text-[11px] font-bold text-ink underline decoration-signal underline-offset-2 hover:text-signal"
+          className="group mt-2 inline-flex items-center gap-1.5 text-[0.8125rem] text-ink-soft transition-colors duration-fast hover:text-ink"
         >
-          not sure about a rule? test it against your past work first →
+          Test a rule against your past work
+          <ArrowRight
+            size={13}
+            strokeWidth={2}
+            aria-hidden="true"
+            className="transition-transform duration-base ease-brand-out group-hover:translate-x-0.5"
+          />
         </Link>
       </div>
 
-      <div className="rounded-card bg-surface/60 p-3 shadow-soft">
+      <div>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={2}
           placeholder='e.g. "never refund more than $200 without my signature"'
-          className="w-full resize-none rounded-btn bg-cream-deep px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
+          className={`${field("md")} resize-none`}
         />
         {preview && (
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 rounded-btn bg-cream-deep/60 px-3 py-2">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">reads as</span>
+          <div className="mt-2.5 flex animate-fade-through flex-wrap items-center gap-2">
+            <span className="t-eyebrow">Reads as</span>
             <RequirementBadge requirement={preview.parsed.requirement} />
-            <span className="min-w-0 flex-1 text-[11px] text-ink-soft">{preview.description}</span>
+            <span className="t-caption min-w-0 flex-1">{preview.description}</span>
             {preview.parsed.confidence === "low" && (
-              <span className="rounded-pill bg-signal/15 px-2 py-0.5 text-[9px] font-bold uppercase text-signal">
-                unclear — add a tool or action
-              </span>
+              <span className={badge("signal")}>name a tool or action</span>
             )}
           </div>
         )}
-        {error && <p className="mt-2 text-[11px] font-semibold text-signal">{error}</p>}
+        {error && (
+          <p className="t-body mt-2.5 border-l-2 border-danger pl-3.5 text-danger">{error}</p>
+        )}
         <button
           onClick={add}
           disabled={busy || text.trim().length < 3}
-          className="mt-2 self-start rounded-btn bg-ink px-4 py-2 text-sm font-extrabold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+          className={btn("secondary", "md", "mt-3")}
         >
-          {busy ? "adding…" : "add rule"}
+          {busy ? "Adding…" : "Add rule"}
         </button>
       </div>
 
       {rules && rules.length === 0 && (
-        <p className="rounded-card bg-surface/40 px-4 py-4 text-xs text-ink-soft shadow-soft">
-          no rules yet. add one above — cosigno reads every enabled rule before it acts,
-          and enforces the strictest matching rule at the boundary.
+        <p className="t-caption">
+          No rules yet. cosigno reads every enabled rule before it acts, and enforces the
+          strictest one that matches.
         </p>
       )}
 
-      <div className="flex flex-col gap-2">
+      <div className="-mx-3 flex flex-col">
         {(rules ?? []).map((r) => (
           <div
             key={r.id}
-            className={`rounded-card bg-surface/60 p-3 shadow-soft ${r.enabled ? "" : "opacity-55"}`}
+            className={`rounded-btn px-3 py-3 transition-colors duration-fast hover:bg-ink/[0.03] ${
+              r.enabled ? "" : "opacity-50"
+            }`}
           >
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-3">
               <RequirementBadge requirement={r.requirement} />
-              <p className="min-w-0 flex-1 text-sm font-semibold">{r.text}</p>
+              <p className="min-w-0 flex-1 text-[0.9375rem]">{r.text}</p>
               <button
                 onClick={() => toggle(r)}
                 aria-pressed={r.enabled}
-                className={`shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ${
-                  r.enabled ? "bg-signal text-cream" : "ring-1 ring-inset ring-ink text-ink"
-                }`}
+                className={btn("ghost", "sm", "shrink-0")}
               >
-                {r.enabled ? "on" : "off"}
+                {r.enabled ? "On" : "Off"}
               </button>
               <button
                 onClick={() => remove(r.id)}
-                className="shrink-0 rounded-btn p-1.5 text-ink-soft hover:bg-cream-deep hover:text-ink"
+                className={btn("ghost", "sm", "shrink-0")}
                 aria-label="delete rule"
               >
-                <Trash2 size={13} />
+                <Trash2 size={13} strokeWidth={1.9} />
               </button>
             </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-ink-soft">
-              <Chip label={r.target === "any" ? "any tool" : r.target} />
-              <Chip label={r.verb === "any" ? "any action" : r.verb} />
+            <div className="t-caption mt-1 flex flex-wrap items-center gap-x-2">
+              <span>{r.target === "any" ? "any tool" : r.target}</span>
+              <span aria-hidden="true">·</span>
+              <span>{r.verb === "any" ? "any action" : r.verb}</span>
               {r.condition.kind === "amount" && (
-                <Chip label={`amount ${r.condition.op} $${r.condition.value}`} />
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>
+                    amount {r.condition.op} ${r.condition.value}
+                  </span>
+                </>
               )}
-              {r.condition.kind === "channel" && <Chip label={String(r.condition.match)} />}
-              {r.condition.kind === "label" && <Chip label={`label "${r.condition.match}"`} />}
+              {r.condition.kind === "channel" && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{String(r.condition.match)}</span>
+                </>
+              )}
+              {r.condition.kind === "label" && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>label “{r.condition.match}”</span>
+                </>
+              )}
               {r.confidence === "low" && (
-                <span className="inline-flex items-center gap-1 rounded-pill bg-signal/15 px-2 py-0.5 font-bold text-signal">
-                  <X size={9} /> low confidence
-                </span>
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="text-signal">low confidence</span>
+                </>
               )}
             </div>
           </div>
@@ -209,10 +230,3 @@ export function PermissionRules() {
   );
 }
 
-function Chip({ label }: { label: string }) {
-  return (
-    <span className="rounded-pill bg-cream-deep px-2 py-0.5 font-mono font-bold text-ink-soft">
-      {label}
-    </span>
-  );
-}

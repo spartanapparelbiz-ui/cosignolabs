@@ -105,29 +105,29 @@ console.log("== onboarding ==");
 }
 
 console.log("== now / home ==");
-await goto(page, "/app", "Now");
+await goto(page, "/app", "What should cosigno handle?");
 await shot(page, "03-now", "now-home-desktop.png", "NOW / home — current state, delegation box");
 // briefing (fresh — clear the seen flag then reload)
 await page.evaluate(() => localStorage.removeItem("cosigno_briefing_seen"));
-await goto(page, "/app", "Now");
+await goto(page, "/app", "What should cosigno handle?");
 await shot(page, "03-now", "now-briefing-desktop.png", "NOW with morning briefing card");
 await page.evaluate(() => localStorage.setItem("cosigno_briefing_seen", String(Date.now())));
 // capabilities card expanded
-await goto(page, "/app", "Now");
+await goto(page, "/app", "What should cosigno handle?");
 await page.getByText(/What can you do right now/i).click().catch(() => {});
 await page.waitForTimeout(600);
 await page.locator("section", { hasText: "What cosigno can do" }).scrollIntoViewIfNeeded().catch(() => {});
 await shot(page, "03-now", "now-capabilities-desktop.png", "What can you do right now — capability report");
 
 console.log("== presence / command overlay ==");
-await goto(page, "/app", "Now");
+await goto(page, "/app", "What should cosigno handle?");
 await page.keyboard.press("Control+k");
 await page.waitForTimeout(600);
 await shot(page, "03-now", "presence-command-overlay-desktop.png", "Cosigno Presence — command overlay (Cmd/Ctrl-K)", { full: false });
 await page.keyboard.press("Escape");
 
 console.log("== delegations ==");
-await goto(page, "/app/missions", "delegations");
+await goto(page, "/app/missions", "What is cosigno working on?");
 await shot(page, "04-delegations", "delegations-list-desktop.png", "Delegations list — states, contextual actions");
 // brief modal
 await page.getByRole("button", { name: /brief me/i }).first().click().catch(() => {});
@@ -142,7 +142,7 @@ await shot(page, "04-delegations", "delegation-replay-desktop.png", "Delegation 
 await page.keyboard.press("Escape");
 
 console.log("== objectives ==");
-await goto(page, "/app/objectives", "objectives");
+await goto(page, "/app/objectives", "What are you trying to reach?");
 await shot(page, "05-objectives", "objectives-list-desktop.png", "Objectives list with progress");
 await page.getByText("Launch the company by August 1").first().click().catch(() => {});
 await page.getByText(/^Progress$/).waitFor({ timeout: 12_000 }).catch(() => {});
@@ -168,7 +168,7 @@ await page.waitForTimeout(900);
 await shot(page, "06-boundary", "continue-from-here-desktop.png", "Continue From Here — handed back", { full: false });
 // sign dialog
 await page.getByText(/I need your decision/i).waitFor({ timeout: 15_000 }).catch(() => {});
-await page.getByRole("button", { name: /Sign →/i }).first().click().catch(() => {});
+await page.getByRole("button", { name: /^Sign$/i }).first().click().catch(() => {});
 await page.waitForTimeout(600);
 await shot(page, "06-boundary", "sign-dialog-desktop.png", "Cosigno Sign — signature surface", { full: false });
 // draw signature
@@ -189,9 +189,9 @@ if (await canvas.isVisible().catch(() => false)) {
 }
 
 console.log("== receipts / seal ==");
-await goto(page, "/app/activity", "activity");
+await goto(page, "/app/activity", "What changed?");
 await shot(page, "08-activity", "activity-ledger-desktop.png", "Activity ledger — filters, search, today");
-await page.getByRole("button", { name: /view receipt/i }).first().click().catch(() => {});
+await page.getByRole("button", { name: /^Receipt$/i }).first().click().catch(() => {});
 await page.getByText(/Permission used/i).waitFor({ timeout: 10_000 }).catch(() => {});
 await page.waitForTimeout(400);
 await shot(page, "08-activity", "trust-receipt-desktop.png", "Trust Receipt with Cosigno Seal", { full: false });
@@ -201,7 +201,7 @@ await shot(page, "08-activity", "trust-receipt-trace-desktop.png", "Trust Receip
 await page.keyboard.press("Escape");
 
 console.log("== watch / standing orders ==");
-await goto(page, "/app/watch", "watch");
+await goto(page, "/app/watch", "What is cosigno watching?");
 await shot(page, "07-watch", "watch-standing-orders-desktop.png", "Watch & standing orders");
 await page.getByRole("button", { name: /new standing order/i }).click().catch(() => {});
 await page.waitForTimeout(500);
@@ -219,11 +219,11 @@ await page.waitForTimeout(600);
 await shot(page, "10-settings", "account-desktop.png", "Account center");
 // try the permission board panel
 for (const [name, file, note] of [
-  ["permissions", "account-permissions-desktop.png", "Permission tiers board (auto/approve/sign)"],
+  ["trust center", "account-permissions-desktop.png", "Trust panel — what cosigno may do"],
   ["profile", "account-profile-desktop.png", "Profile panel"],
   ["security", "account-security-desktop.png", "Security panel"],
-  ["usage", "account-usage-desktop.png", "Usage / plan panel"],
-  ["integrations", "account-integrations-desktop.png", "Integrations panel"],
+  ["plan & usage", "account-usage-desktop.png", "Plan & usage panel"],
+  ["connections", "account-integrations-desktop.png", "Connections panel"],
 ]) {
   const btn = page.getByRole("button", { name: new RegExp(`^${name}$`, "i") }).first();
   if (await btn.isVisible().catch(() => false)) {
@@ -252,7 +252,7 @@ for (const [path, folder, file, note, wait] of [
 
 console.log("== hold (authority brake) ==");
 await page.request.post(`${BASE}/api/hold`, { data: { scope: "external" } }).catch(() => {});
-await goto(page, "/app", "Now");
+await goto(page, "/app", "What should cosigno handle?");
 await shot(page, "03-now", "cosigno-hold-active-desktop.png", "Cosigno Hold active — banner + control");
 await page.request.post(`${BASE}/api/hold`, { data: { scope: "none" } }).catch(() => {});
 

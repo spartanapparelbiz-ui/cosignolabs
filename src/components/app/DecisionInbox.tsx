@@ -7,6 +7,8 @@ import { SkeletonCard } from "@/components/Skeleton";
 import { EmptyIllustration } from "@/components/EmptyIllustration";
 import { useToast } from "@/components/Toast";
 import { useDisplayName } from "@/lib/theme";
+import { EmptyState } from "@/components/ui/Page";
+import { btn } from "@/components/ui/styles";
 
 /**
  * The Decision Inbox — ONLY items that need human judgment: every proposed
@@ -140,15 +142,15 @@ export function DecisionInbox({
 
   if (error) {
     return (
-      <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
-        <p className="text-sm font-semibold text-ink-soft">{error}</p>
-        <button
-          onClick={load}
-          className="mt-3 rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep"
-        >
-          try again
-        </button>
-      </div>
+      <EmptyState
+        title="That didn't load"
+        description={error}
+        action={
+          <button onClick={load} className={btn("secondary", "md")}>
+            Try again
+          </button>
+        }
+      />
     );
   }
 
@@ -169,23 +171,19 @@ export function DecisionInbox({
   if (visible.length === 0) {
     if (emptyFallback !== undefined) return <>{emptyFallback}</>;
     return (
-      <div className="flex flex-col items-center gap-3 rounded-card bg-surface/40 px-6 py-12 text-center shadow-soft">
-        <EmptyIllustration kind="workspace" />
-        <p className="text-sm font-extrabold lowercase">nothing needs your decision.</p>
-        <p className="max-w-sm text-xs text-ink-soft">
-          when the operator prepares an action that needs your sign-off, it
-          lands here — and nothing moves until you decide.
-        </p>
-      </div>
+      <EmptyState
+        illustration={<EmptyIllustration kind="workspace" />}
+        title="Nothing needs you"
+        description="When cosigno prepares something that requires your signature, it lands here. Nothing moves until you decide."
+      />
     );
   }
 
   return (
     <div className="flex flex-col gap-3">
       {!compact && (
-        <p className="text-xs font-bold lowercase tracking-wide text-ink-soft" role="status">
-          {visible.length} decision{visible.length === 1 ? "" : "s"} waiting — nothing
-          has been taken without you.
+        <p className="t-caption" role="status">
+          {visible.length} waiting. Nothing has been done without you.
         </p>
       )}
       {visible.map((a, i) => (

@@ -105,7 +105,7 @@ export function ConnectionInsight({
       {data.ok && data.facts.length > 0 ? (
         <div>
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
+            <p className="t-eyebrow">
               in your account{data.account ? ` · ${data.account}` : ""}
             </p>
             <button
@@ -120,19 +120,19 @@ export function ConnectionInsight({
           <ul className="mt-1.5 grid gap-1.5 sm:grid-cols-2">
             {data.facts.map((f) => (
               <li key={f.label} className="flex items-baseline gap-1.5 rounded-btn bg-cream-deep/50 px-2.5 py-1.5">
-                <span className="font-display text-base font-bold tabular-nums">
+                <span className="font-display text-base font-semibold tabular-nums">
                   {/* A capped total renders as "100+" — never as an exact
                       number it isn't. */}
                   {f.value.toLocaleString()}
                   {f.atLeast ? "+" : ""}
                 </span>
-                <span className="text-[11px] leading-tight text-ink-soft">{f.label}</span>
+                <span className="text-[0.75rem] leading-tight text-ink-soft">{f.label}</span>
               </li>
             ))}
           </ul>
         </div>
       ) : (
-        <p className="text-[11px] font-semibold text-ink-soft">
+        <p className="text-[0.75rem] font-semibold text-ink-soft">
           {data.error ?? `cosigno can't inventory ${providerName} yet.`}
         </p>
       )}
@@ -142,7 +142,7 @@ export function ConnectionInsight({
       {data.limitations.length > 0 && (
         <ul className="flex flex-col gap-0.5">
           {data.limitations.map((l) => (
-            <li key={l} className="flex items-start gap-1.5 text-[11px] text-ink-soft">
+            <li key={l} className="flex items-start gap-1.5 text-[0.75rem] text-ink-soft">
               <AlertTriangle size={11} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
               {l}
             </li>
@@ -153,12 +153,12 @@ export function ConnectionInsight({
       {/* ---------------- what the AI may do ---------------- */}
       {data.capabilities.length > 0 && (
         <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
-            what cosigno may do
+          <p className="t-eyebrow">
+            What cosigno may do
           </p>
           <ul className="mt-1.5 flex flex-col gap-1">
             {data.capabilities.map((c) => (
-              <li key={c.id} className="flex items-start gap-2 text-[11px]">
+              <li key={c.id} className="flex items-start gap-2 text-[0.75rem]">
                 {c.available === false ? (
                   <Lock size={12} className="mt-0.5 shrink-0 text-ink-soft" aria-hidden="true" />
                 ) : c.risk === "read" ? (
@@ -171,9 +171,9 @@ export function ConnectionInsight({
                 <span className="min-w-0 flex-1">
                   {/* Business language leads. The endpoint is context, not
                       the thing being read before approving. */}
-                  <span className="font-bold">{c.label ?? c.id}</span>
+                  <span className="font-semibold">{c.label ?? c.id}</span>
                   {c.technical && c.technical !== c.label && (
-                    <span className="ml-1.5 font-mono text-[10px] text-ink-soft/70">
+                    <span className="ml-1.5 font-mono text-[0.6875rem] text-ink-soft/70">
                       {c.technical}
                     </span>
                   )}
@@ -185,7 +185,7 @@ export function ConnectionInsight({
                   )}
                 </span>
                 <span
-                  className={`shrink-0 rounded-pill px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                  className={`shrink-0 rounded-pill px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider ${
                     c.available === false ? "bg-cream-deep text-ink-soft" : REQUIRES_TONE[c.tier]
                   }`}
                 >

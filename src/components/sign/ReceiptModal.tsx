@@ -167,7 +167,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
           label: "Status",
           value:
             action.status === "executed" ? (
-              <span className="font-extrabold text-signal">Completed</span>
+              <span className="font-semibold text-signal">Completed</span>
             ) : (
               action.status
             ),
@@ -188,11 +188,11 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-md animate-spring-in rounded-card bg-surface p-6 shadow-depth-lift">
+      <div className="w-full max-w-md animate-spring-in rounded-card bg-surface p-6 shadow-raise">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <CosignoMark size={18} />
-            <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
+            <p className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-ink-soft">
               Cosigno receipt
             </p>
           </div>
@@ -217,12 +217,12 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
 
         {action && (
           <>
-            <h2 className="mt-3 text-base font-extrabold leading-snug">{action.summary}</h2>
+            <h2 className="mt-3 text-base font-semibold leading-snug">{action.summary}</h2>
             {auth?.method === "signed" && (
               /* The Cosigno Seal — the user and cosigno co-sign important
                  work: cosigno prepared and executed, the user authorized. */
               <div className="relative mt-3 rounded-btn border border-ink/20 bg-cream px-6 pb-3 pt-3 shadow-well">
-                <p className="text-center text-[9px] font-black uppercase tracking-[0.22em] text-ink-soft">
+                <p className="text-center text-[0.6875rem] font-semibold uppercase tracking-[0.22em] text-ink-soft">
                   Signed by {auth.signed_name ?? "you"}
                 </p>
                 {auth.signature_image && (
@@ -230,7 +230,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
                   <img src={auth.signature_image} alt="authorizing signature" className="mx-auto h-14 object-contain" />
                 )}
                 <div className="mx-2 border-b border-ink/30" aria-hidden="true" />
-                <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-ink-soft">
+                <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-ink-soft">
                   <CosignoMark size={11} /> Authorized through Cosigno · {fmtTime(auth.authorized_at)}
                 </p>
               </div>
@@ -241,7 +241,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
                   key={r.label}
                   className="flex items-baseline justify-between gap-4 border-b border-line/50 py-2 last:border-0"
                 >
-                  <dt className="shrink-0 text-xs font-extrabold uppercase tracking-wide text-ink-soft">
+                  <dt className="shrink-0 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                     {r.label}
                   </dt>
                   <dd className="text-right text-sm font-semibold">{r.value}</dd>
@@ -253,7 +253,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
             <button
               onClick={() => setTraceOpen((v) => !v)}
               aria-expanded={traceOpen}
-              className="mt-3 inline-flex items-center gap-1 text-xs font-bold lowercase text-ink-soft underline underline-offset-2 hover:text-ink"
+              className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-ink-soft underline underline-offset-2 hover:text-ink"
             >
               <ChevronDown size={12} className={`transition-transform ${traceOpen ? "rotate-180" : ""}`} />
               {traceOpen ? "hide trace" : "trace"}
@@ -264,7 +264,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
                   <li key={i} className="flex gap-2.5">
                     <span className="mt-1 h-[6px] w-[6px] shrink-0 rounded-pill bg-ink/40" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">{t.time}</p>
+                      <p className="t-eyebrow">{t.time}</p>
                       <p className="text-xs font-semibold leading-snug">{t.text}</p>
                     </div>
                   </li>
@@ -273,7 +273,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
             )}
 
             {auth?.record_hash && (
-              <p className="mt-3 break-all font-mono text-[10px] leading-relaxed text-ink-soft">
+              <p className="mt-3 break-all font-mono text-[0.6875rem] leading-relaxed text-ink-soft">
                 record {auth.record_hash.slice(0, 32)}… — tamper-evident hash of exactly what you
                 authorized, sealed at approval.
               </p>

@@ -1,6 +1,9 @@
 import { AccountCenter } from "@/components/account/AccountCenter";
+import { Page, PageHeader } from "@/components/ui/Page";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = { title: "plan" };
 
 export default async function PlanPage({
   searchParams,
@@ -9,18 +12,14 @@ export default async function PlanPage({
 }) {
   const { status } = await searchParams;
   return (
-    <div className="mx-auto w-full max-w-none flex-1 px-6 lg:px-10 py-6">
-      <h1 className="text-xl font-extrabold lowercase">account</h1>
-      <p className="mt-1 text-sm text-ink-soft">
-        your plan, usage, and billing.
-      </p>
+    <Page width="wide">
+      <PageHeader title="Your plan" description="What you're on, what you've used, and your billing." />
       {status === "success" && (
-        <div className="mt-4 rounded-card bg-signal px-4 py-3 text-sm font-bold text-ink shadow-soft">
-          you&apos;re all set — your plan is active. it may take a moment to
-          reflect here.
-        </div>
+        <p className="t-body mt-8 animate-fade-through border-l-2 border-positive pl-3.5">
+          You&apos;re all set — your plan is active. It may take a moment to show here.
+        </p>
       )}
       <AccountCenter initialTab="usage" />
-    </div>
+    </Page>
   );
 }

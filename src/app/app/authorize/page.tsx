@@ -45,10 +45,10 @@ export default async function AuthorizeConsole() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
       <header>
-        <p className="text-xs font-black uppercase tracking-[0.28em] text-signal">
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-signal">
           authorization layer
         </p>
-        <h1 className="mt-2 font-display text-3xl font-bold lowercase tracking-tight sm:text-4xl">
+        <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
           every AI action, decided and on the record.
         </h1>
         <p className="mt-2 max-w-2xl text-sm font-semibold text-ink-soft">
@@ -66,11 +66,11 @@ export default async function AuthorizeConsole() {
           { label: "held for a human", value: heldForHuman, note: "policy required it" },
           { label: "tokens spent", value: executed, note: "verified at the boundary" },
         ].map((m) => (
-          <div key={m.label} className="rounded-card border border-line bg-surface p-4 shadow-soft">
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ink-soft">
+          <div key={m.label} className="rounded-card border border-line bg-surface p-4 shadow-rest">
+            <p className="text-[0.75rem] font-semibold uppercase tracking-[0.16em] text-ink-soft">
               {m.label}
             </p>
-            <p className="mt-1.5 font-display text-3xl font-bold tabular-nums">{m.value}</p>
+            <p className="mt-1.5 font-display text-3xl font-semibold tabular-nums">{m.value}</p>
             <p className="mt-0.5 text-xs text-ink-soft">{m.note}</p>
           </div>
         ))}
@@ -79,7 +79,7 @@ export default async function AuthorizeConsole() {
       {/* ledger */}
       <section className="mt-10">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-xl font-bold lowercase">the ledger</h2>
+          <h2 className="font-display text-xl font-semibold">the ledger</h2>
           <span className="text-xs font-semibold text-ink-soft">append-only · never editable</span>
         </div>
 
@@ -92,7 +92,7 @@ export default async function AuthorizeConsole() {
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[860px] border-separate border-spacing-y-2 text-sm">
               <thead>
-                <tr className="text-left text-[11px] font-black uppercase tracking-[0.14em] text-ink-soft">
+                <tr className="text-left text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-ink-soft">
                   <th className="px-3">actor / action</th>
                   <th className="px-3">blast radius</th>
                   <th className="px-3">authority</th>
@@ -105,46 +105,46 @@ export default async function AuthorizeConsole() {
                   const bar = LEVEL_BAR[d.blast_level] ?? LEVEL_BAR.minimal;
                   const why = d.policy_trace.find((s) => s.effect === d.authority) ?? d.policy_trace[0];
                   return (
-                    <tr key={d.id} className="bg-surface shadow-soft">
+                    <tr key={d.id} className="bg-surface shadow-rest">
                       <td className="rounded-l-card border-y border-l border-line px-3 py-3">
                         <p className="font-mono text-xs text-ink-soft">{d.actor}</p>
-                        <p className="font-bold">{d.action}</p>
-                        <p className="font-mono text-[11px] text-ink-soft">{d.resource}</p>
+                        <p className="font-semibold">{d.action}</p>
+                        <p className="font-mono text-[0.75rem] text-ink-soft">{d.resource}</p>
                       </td>
                       <td className="border-y border-line px-3 py-3">
                         <div className="h-1.5 w-28 overflow-hidden rounded-pill bg-cream-deep">
                           <div className={`h-full ${bar.cls}`} style={{ width: bar.w }} />
                         </div>
-                        <p className="mt-1 text-xs font-bold lowercase">{d.blast_level}</p>
+                        <p className="mt-1 text-xs font-semibold">{d.blast_level}</p>
                       </td>
                       <td className="border-y border-line px-3 py-3">
                         <span
-                          className={`inline-flex rounded-pill px-2.5 py-1 text-[11px] font-black uppercase tracking-wider ${
+                          className={`inline-flex rounded-pill px-2.5 py-1 text-[0.75rem] font-semibold uppercase tracking-wider ${
                             AUTHORITY_STYLE[d.authority] ?? ""
                           }`}
                         >
                           {d.authority}
                         </span>
-                        <p className="mt-1 text-[11px] text-ink-soft">tier {d.tier}</p>
+                        <p className="mt-1 text-[0.75rem] text-ink-soft">tier {d.tier}</p>
                       </td>
                       <td className="max-w-sm border-y border-line px-3 py-3">
                         <p className="text-xs leading-relaxed text-ink-soft">
-                          <span className="font-mono text-[11px] font-bold text-ink">{why?.rule}</span>
+                          <span className="font-mono text-[0.75rem] font-semibold text-ink">{why?.rule}</span>
                           {" — "}
                           {why?.detail}
                         </p>
                       </td>
                       <td className="rounded-r-card border-y border-r border-line px-3 py-3 text-right">
                         {d.executed_at ? (
-                          <span className="text-xs font-bold text-signal">executed</span>
+                          <span className="text-xs font-semibold text-signal">executed</span>
                         ) : d.status === "approved" ? (
-                          <span className="text-xs font-bold text-ink-soft">token issued</span>
+                          <span className="text-xs font-semibold text-ink-soft">token issued</span>
                         ) : d.status === "denied" ? (
-                          <span className="text-xs font-bold text-ink">denied</span>
+                          <span className="text-xs font-semibold text-ink">denied</span>
                         ) : (
-                          <span className="text-xs font-bold text-ink">awaiting signature</span>
+                          <span className="text-xs font-semibold text-ink">awaiting signature</span>
                         )}
-                        <p className="font-mono text-[10px] text-ink-soft">{d.id}</p>
+                        <p className="font-mono text-[0.6875rem] text-ink-soft">{d.id}</p>
                       </td>
                     </tr>
                   );
@@ -157,7 +157,7 @@ export default async function AuthorizeConsole() {
 
       {/* registry */}
       <section className="mt-12">
-        <h2 className="font-display text-xl font-bold lowercase">action registry</h2>
+        <h2 className="font-display text-xl font-semibold">action registry</h2>
         <p className="mt-1 text-sm text-ink-soft">
           Every action type maps to a server-assigned floor. Unregistered actions never
           auto-clear.
@@ -171,11 +171,11 @@ export default async function AuthorizeConsole() {
                 className="flex items-center justify-between rounded-btn border border-line bg-surface px-3 py-2.5"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-mono text-xs font-bold">{t.id}</p>
-                  <p className="truncate text-[11px] text-ink-soft">{t.label}</p>
+                  <p className="truncate font-mono text-xs font-semibold">{t.id}</p>
+                  <p className="truncate text-[0.75rem] text-ink-soft">{t.label}</p>
                 </div>
                 <span
-                  className={`ml-2 shrink-0 rounded-pill px-2 py-0.5 text-[10px] font-black ${
+                  className={`ml-2 shrink-0 rounded-pill px-2 py-0.5 text-[0.6875rem] font-semibold ${
                     meta?.pinned ? "bg-ink text-cream" : "bg-cream-deep text-ink-soft"
                   }`}
                 >

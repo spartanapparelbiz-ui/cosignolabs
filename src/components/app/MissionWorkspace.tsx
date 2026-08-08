@@ -6,21 +6,14 @@ import {
   CheckCircle2,
   ChevronDown,
   Circle,
-  CircleDot,
   FileText,
   Globe,
-  HelpCircle,
   ExternalLink,
   Link2,
   Loader2,
-  MinusCircle,
-  OctagonX,
   Pause,
-  PauseCircle,
   Play,
-  ShieldQuestion,
   Square,
-  XCircle,
 } from "lucide-react";
 import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/lib/types";
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
@@ -29,6 +22,7 @@ import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { narrateMission, type StepPhase, type WorkApp } from "@/lib/missions/narrate";
 import { heroResult } from "@/lib/missions/today";
 import { missionStatus, STATUS_TONE } from "@/lib/status";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
 import { INCREASE_STEPS, type BudgetState } from "@/lib/missions/budget";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 
@@ -164,9 +158,9 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
 
   if (error) {
     return (
-      <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
-        <p className="text-sm font-semibold text-ink-soft">{error}</p>
-        <Link href="/app/missions" className="mt-3 inline-block rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep">
+      <div className="px-6 py-16 text-center">
+        <p className="t-body">{error}</p>
+        <Link href="/app/missions" className="mt-3 inline-block rounded-btn px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep">
           all missions
         </Link>
       </div>
@@ -202,18 +196,20 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
   return (
     <div className="flex flex-col gap-5">
       {/* ------------------------------ header ------------------------------ */}
-      <div className="flex flex-wrap items-start gap-3">
+      <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold text-ink-soft">
-            <Link href="/app/missions" className="hover:text-ink">missions</Link> / this mission
-          </p>
-          <h1 className="mt-1 font-display text-xl font-bold sm:text-2xl">{mission.goal}</h1>
-          <p className="mt-1 text-xs font-semibold text-ink-soft">
-            started {elapsed(mission.created_at)} ago
-          </p>
+          <Link href="/app/missions" className="t-caption inline-flex items-center gap-1.5 transition-colors duration-fast hover:text-ink">
+            <ChevronDown size={13} strokeWidth={2} className="rotate-90" aria-hidden="true" />
+            Missions
+          </Link>
+          <h1 className="t-display mt-2 text-[1.5rem] sm:text-[1.875rem]">{mission.goal}</h1>
+          <p className="t-caption mt-1.5">Started {elapsed(mission.created_at)} ago</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span className={`rounded-pill px-3 py-1 text-xs font-bold ${STATUS_TONE[label]}`}>{label}</span>
+          <span className={badge(STATUS_TONE[label])}>
+            <span className={dot(STATUS_TONE[label])} aria-hidden="true" />
+            {label}
+          </span>
           {!TERMINAL.has(mission.state) &&
             (mission.state === "paused" ? (
               // Resume can't move a mission that stopped for running out of
@@ -222,27 +218,27 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               <button
                 onClick={() => (budget?.exhausted ? addBudget(INCREASE_STEPS[0]) : control("resume"))}
                 disabled={busy !== null}
-                className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                className={btn("primary", "sm")}
               >
-                <Play size={12} />
+                <Play size={12} strokeWidth={1.9} />
                 {budget?.exhausted ? `Allow ${INCREASE_STEPS[0]} more` : "Resume"}
               </button>
             ) : (
               <button
                 onClick={() => control("pause")}
                 disabled={busy !== null}
-                className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                className={btn("ghost", "sm")}
               >
-                <Pause size={12} /> Pause
+                <Pause size={12} strokeWidth={1.9} /> Pause
               </button>
             ))}
           {!TERMINAL.has(mission.state) && (
             <button
               onClick={() => control("stop")}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+              className={btn("ghost", "sm")}
             >
-              <Square size={12} /> Stop
+              <Square size={12} strokeWidth={1.9} /> Stop
             </button>
           )}
         </div>
@@ -251,9 +247,9 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
       {usesBrowser && (
         <Link
           href={`/app/browser/${mission.id}`}
-          className="inline-flex w-fit items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
+          className={btn("secondary", "sm", "w-fit")}
         >
-          <Globe size={13} aria-hidden="true" /> open the browser view
+          <Globe size={13} strokeWidth={1.9} aria-hidden="true" /> Watch the browser
         </Link>
       )}
 
@@ -262,25 +258,18 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           things a person actually wants here: a bit more, a lot more, or
           that's enough. */}
       {budget?.exhausted && mission.state === "paused" && (
-        <div className="rounded-card bg-signal/10 p-4 ring-1 ring-inset ring-signal/30">
-          <p className="text-sm font-extrabold">
-            this mission reached its execution limit — {budget.used} of {budget.limit} action
-            {budget.limit === 1 ? "" : "s"} used.
+        <div className="border-l-2 border-signal pl-3.5">
+          <p className="t-body">
+            This mission reached its limit — {budget.used} of {budget.limit} action
+            {budget.limit === 1 ? "" : "s"} used. It hasn&apos;t started anything else.
           </p>
-          <p className="mt-0.5 text-xs text-ink-soft">
-            it hasn&apos;t started anything else. how much further should it go?
-          </p>
-          <div className="mt-2.5 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {INCREASE_STEPS.map((n) => (
               <button
                 key={n}
                 onClick={() => addBudget(n)}
                 disabled={busy !== null}
-                className={`rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
-                  n === INCREASE_STEPS[0]
-                    ? "bg-signal text-ink"
-                    : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
-                }`}
+                className={btn(n === INCREASE_STEPS[0] ? "primary" : "ghost", "sm")}
               >
                 +{n} actions
               </button>
@@ -288,7 +277,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
             <button
               onClick={() => control("stop")}
               disabled={busy !== null}
-              className="rounded-btn px-3.5 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-btn px-3.5 py-1.5 text-xs font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
             >
               that&apos;s enough — finish here
             </button>
@@ -298,23 +287,20 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
 
       {/* question needing the user */}
       {mission.pending_question && (
-        <div className="rounded-card bg-signal/10 p-4 ring-1 ring-inset ring-signal/30">
-          <p className="text-sm font-extrabold">{mission.pending_question.question}</p>
-          <p className="mt-0.5 text-xs text-ink-soft">
-            why: {mission.pending_question.why} · effect: {mission.pending_question.effect}
+        <div className={`${card()} animate-card-in p-5`}>
+          <p className="t-title">{mission.pending_question.question}</p>
+          <p className="t-caption mt-1">
+            {mission.pending_question.why} · {mission.pending_question.effect}
           </p>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-1.5">
             {mission.pending_question.options.map((o) => (
               <button
                 key={o}
                 onClick={() => answer(o)}
                 disabled={busy === "answer"}
-                className={`rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
-                  o === mission.pending_question?.recommended ? "bg-signal text-ink" : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
-                }`}
+                className={btn(o === mission.pending_question?.recommended ? "primary" : "ghost", "sm")}
               >
                 {o}
-                {o === mission.pending_question?.recommended && " (recommended)"}
               </button>
             ))}
           </div>
@@ -322,9 +308,9 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
       )}
 
       {mission.state === "awaiting_approval" && (
-        <p className="rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold">
-          a consequential step is waiting for your signature. the mission resumes
-          automatically after you decide.
+        <p className="t-caption">
+          One step is waiting for your signature. The mission carries on the moment you
+          decide.
         </p>
       )}
 
@@ -344,27 +330,18 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               Only shown when the work has settled: a receipt for something
               still running would be a claim about an unfinished outcome. */}
           {narration.finished && (
-            <div className="rounded-card border border-signal/40 bg-surface p-4 shadow-soft">
-              <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
-                {mission.state === "completed" ? "Done" : "Result"}
-              </p>
-              <p className="mt-1 font-display text-lg font-bold leading-snug">
+            <div className={`${card()} animate-card-in p-5`}>
+              <p className="t-eyebrow">{mission.state === "completed" ? "Done" : "Result"}</p>
+              <p className="mt-2 font-display text-[1.25rem] font-semibold leading-snug">
                 {hero ?? narration.status}
               </p>
-              {hero && (
-                <p className="mt-0.5 text-[11px] font-semibold text-ink-soft">
-                  {narration.status}
-                </p>
-              )}
+              {hero && <p className="t-caption mt-1">{narration.status}</p>}
               {appsUsed.length > 0 && (
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                   {appsUsed.map((a) => (
-                    <span
-                      key={a.name}
-                      className="inline-flex items-center gap-1.5 rounded-pill bg-cream-deep px-2 py-1 text-[11px] font-bold"
-                    >
+                    <span key={a.name} className={badge("neutral")}>
                       {a.providerKey && (
-                        <ConnectorLogo kind="app" providerKey={a.providerKey} displayName={a.name ?? ""} size={14} />
+                        <ConnectorLogo kind="app" providerKey={a.providerKey} displayName={a.name ?? ""} size={12} />
                       )}
                       {a.name}
                     </span>
@@ -376,19 +353,17 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
 
           {/* NOW WORKING — always pinned, never empty. When nothing is running
               it says so plainly rather than showing a blank panel. */}
-          <div className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
-              Now working
-            </p>
+          <div className={`${card()} p-5`}>
+            <p className="t-eyebrow">Now working</p>
             {narration.nowWorking ? (
               <div className="mt-2 flex items-start gap-3">
                 <WorkAppMark app={narration.nowWorking.app} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-extrabold leading-snug">
+                  <p className="text-[0.9375rem] leading-snug">
                     {narration.nowWorking.headline}
                   </p>
                   {(narration.nowWorking.app.department ?? narration.nowWorking.app.name) && (
-                    <p className="text-[11px] font-bold text-ink-soft">
+                    <p className="t-caption">
                       {narration.nowWorking.app.department ?? narration.nowWorking.app.name}
                       {narration.nowWorking.app.department && narration.nowWorking.app.name
                         ? ` · ${narration.nowWorking.app.name}`
@@ -396,9 +371,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                     </p>
                   )}
                   {narration.nowWorking.at && (
-                    <p className="mt-0.5 text-[11px] text-ink-soft">
-                      started {elapsed(narration.nowWorking.at)} ago
-                    </p>
+                    <p className="t-caption mt-0.5">started {elapsed(narration.nowWorking.at)} ago</p>
                   )}
                 </div>
                 {narration.nowWorking.phase === "current" && (
@@ -406,15 +379,14 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                 )}
               </div>
             ) : (
-              <p className="mt-2 text-sm font-bold">
+              <p className="t-body mt-2">
                 {narration.finished ? "Everything finished." : "Nothing running right now."}
               </p>
             )}
 
             {/* Why it stopped, in the words a person would use. */}
             {narration.pausedBecause && (
-              <p className="mt-3 flex items-start gap-2 rounded-btn bg-signal/10 px-3 py-2 text-xs font-semibold ring-1 ring-inset ring-signal/30">
-                <PauseCircle size={14} className="mt-px shrink-0 text-signal" aria-hidden="true" />
+              <p className="t-body mt-4 flex items-start gap-2 border-l-2 border-signal pl-3">
                 <span>{narration.pausedBecause}</span>
               </p>
             )}
@@ -422,15 +394,15 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
             {/* Exactly one next thing. Five future items is a plan, and nobody
                 reads a plan — they want to know what follows this. */}
             {!narration.finished && narration.upNext && (
-              <p className="mt-3 border-t border-line/60 pt-2 text-[11px] text-ink-soft">
-                <span className="font-bold text-ink">Next:</span> {narration.upNext.headline}
+              <p className="t-caption mt-4 border-t border-line/40 pt-3">
+                <span className="text-ink">Next</span> — {narration.upNext.headline}
                 {narration.upNext.app.name ? ` in ${narration.upNext.app.name}` : ""}
               </p>
             )}
           </div>
 
           {/* THE FEED — accomplishments, oldest first, grouped by who did them. */}
-          <div className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
+          <div className={`${card()} p-5`}>
             <ol className="flex flex-col">
               {narration.groups.map((g, gi) => {
                 const lastGroup = gi === narration.groups.length - 1;
@@ -445,41 +417,39 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                     <div className={`min-w-0 flex-1 ${lastGroup ? "pb-0" : "pb-4"}`}>
                       {/* Who did it — the department leads, the app stays
                           visible so nothing is hidden behind a friendly name. */}
-                      <p className={`text-[11px] font-extrabold ${pending ? "text-ink-soft" : ""}`}>
+                      <p className={`t-eyebrow ${pending ? "opacity-60" : ""}`}>
                         {g.app.department ?? g.app.name ?? "cosigno"}
-                        {g.app.name && g.app.department && (
-                          <span className="ml-1.5 font-semibold text-ink-soft">· {g.app.name}</span>
-                        )}
+                        {g.app.name && g.app.department && <span className="ml-1.5">· {g.app.name}</span>}
                       </p>
 
                       <ul className="mt-1 flex flex-col gap-2">
                         {g.entries.map((e) => (
-                          <li key={e.id} className="animate-rise-in">
+                          <li key={e.id} className="animate-fade-through">
                             <div className="flex items-baseline gap-2">
                               {/* The outcome first. Metadata never precedes
                                   the result. */}
                               <p
-                                className={`min-w-0 flex-1 text-xs ${
+                                className={`min-w-0 flex-1 text-[0.875rem] ${
                                   e.phase === "upcoming"
-                                    ? "font-semibold text-ink-soft"
+                                    ? "text-ink-soft"
                                     : e.phase === "skipped"
-                                      ? "font-semibold text-ink-soft line-through"
-                                      : "font-bold"
+                                      ? "text-ink-soft line-through"
+                                      : ""
                                 }`}
                               >
                                 {e.headline}
                               </p>
                               {e.at && (
-                                <span className="shrink-0 text-[10px] tabular-nums text-ink-soft">
+                                <span className="shrink-0 text-[0.6875rem] tabular-nums text-ink-soft">
                                   {clockTime(e.at)}
                                 </span>
                               )}
                             </div>
                             {e.detail && (
-                              <p className="mt-0.5 text-[11px] text-ink-soft">{e.detail}</p>
+                              <p className="mt-0.5 text-[0.75rem] text-ink-soft">{e.detail}</p>
                             )}
                             {e.blockedReason && (
-                              <p className="mt-0.5 text-[11px] font-semibold">{e.blockedReason}</p>
+                              <p className="mt-0.5 text-[0.75rem] font-semibold">{e.blockedReason}</p>
                             )}
                             {e.proof &&
                               (e.proof.external ? (
@@ -487,14 +457,14 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                                   href={e.proof.href}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="mt-1 inline-flex items-center gap-1 rounded-btn bg-cream-deep px-2 py-1 text-[11px] font-bold transition-colors hover:bg-cream-deep/70"
+                                  className={btn("ghost", "sm", "mt-1.5")}
                                 >
                                   {e.proof.label} <ExternalLink size={10} aria-hidden="true" />
                                 </a>
                               ) : (
                                 <Link
                                   href={e.proof.href}
-                                  className="mt-1 inline-flex items-center gap-1 rounded-btn bg-cream-deep px-2 py-1 text-[11px] font-bold transition-colors hover:bg-cream-deep/70"
+                                  className={btn("ghost", "sm", "mt-1.5")}
                                 >
                                   {e.proof.label}
                                 </Link>
@@ -512,29 +482,29 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
 
         {/* right panel: plan, sources, results, usage */}
         <div className="flex flex-col gap-4">
-          <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
-            <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Progress</h2>
-            <p className="mt-1.5 text-sm font-bold">{narration.status}</p>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-pill bg-cream-deep">
+          <section className={`${card()} p-5`}>
+            <h2 className="t-eyebrow">Progress</h2>
+            <p className="t-body mt-2">{narration.status}</p>
+            <div className="mt-3 h-1 overflow-hidden rounded-pill bg-ink/[0.08]">
               <div
-                className="h-full rounded-pill bg-signal transition-[width]"
+                className="h-full rounded-pill bg-ink transition-[width] duration-slow ease-brand-out"
                 style={{ width: `${steps.length ? Math.round((done / steps.length) * 100) : 0}%` }}
               />
             </div>
           </section>
 
           {sources.length > 0 && (
-            <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
-              <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Sources you provided</h2>
+            <section className={`${card()} p-5`}>
+              <h2 className="t-eyebrow">Sources you gave</h2>
               <ul className="mt-2 flex flex-col gap-1.5">
                 {sources.map((src) => (
-                  <li key={src.id} className="flex items-start gap-2 text-xs">
-                    <span className="mt-0.5 shrink-0 text-ink-soft">
-                      {src.kind === "link" ? <Link2 size={12} /> : <FileText size={12} />}
+                  <li key={src.id} className="flex items-start gap-2.5">
+                    <span className="mt-1 shrink-0 text-ink-soft">
+                      {src.kind === "link" ? <Link2 size={12} strokeWidth={1.9} /> : <FileText size={12} strokeWidth={1.9} />}
                     </span>
                     <span className="min-w-0">
-                      <span className="font-bold">{src.name}</span>
-                      <span className="block text-[11px] text-ink-soft">
+                      <span className="block text-[0.875rem]">{src.name}</span>
+                      <span className="t-caption block">
                         {src.status === "ready" ? "read as context" : "couldn't be read — not used"}
                       </span>
                     </span>
@@ -545,12 +515,12 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           )}
 
           {deliverables.length > 0 && (
-            <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
-              <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Results</h2>
+            <section className={`${card()} p-5`}>
+              <h2 className="t-eyebrow">Results</h2>
               <ul className="mt-2 flex flex-col gap-1.5">
                 {deliverables.map((s) => (
-                  <li key={s.id} className="text-xs font-semibold">
-                    <Link href="/app/files" className="underline underline-offset-2">
+                  <li key={s.id} className="text-[0.875rem]">
+                    <Link href="/app/files" className="underline underline-offset-2 hover:text-signal">
                       {String(s.output?.file_name ?? "deliverable")}
                     </Link>
                   </li>
@@ -564,31 +534,26 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               counter that ticked up while cosigno was reading would be
               measuring effort, and effort isn't the thing anyone worries
               about. */}
-          <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
-            <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
-              Execution budget
-            </h2>
+          <section className={`${card()} p-5`}>
+            <h2 className="t-eyebrow">Actions</h2>
             {budget === null ? (
-              <p className="mt-1.5 text-xs text-ink-soft">counting…</p>
+              <p className="t-caption mt-2">counting…</p>
             ) : budget.unlimited ? (
               <>
-                <p className="mt-1.5 text-2xl font-extrabold tabular-nums">{budget.used}</p>
-                <p className="mt-0.5 text-xs font-bold text-ink-soft">
-                  action{budget.used === 1 ? "" : "s"} used · unlimited
+                <p className="mt-2 font-display text-[1.75rem] leading-none tabular-nums">{budget.used}</p>
+                <p className="t-caption mt-2">
+                  action{budget.used === 1 ? "" : "s"} used · no limit
                 </p>
-                <p className="mt-2 text-[11px] leading-snug text-ink-soft">
-                  no action limit. every action still follows your permissions.
-                </p>
+                <p className="t-caption mt-2">Every action still follows your permissions.</p>
               </>
             ) : (
               <>
-                <p className="mt-1.5 text-2xl font-extrabold tabular-nums">
+                <p className="mt-2 font-display text-[1.75rem] leading-none tabular-nums">
                   {budget.used}
-                  <span className="text-base font-bold text-ink-soft"> / {budget.limit}</span>
+                  <span className="text-[1rem] text-ink-soft"> / {budget.limit}</span>
                 </p>
-                <p className="mt-0.5 text-xs font-bold text-ink-soft">actions used</p>
                 <div
-                  className="mt-2 h-1.5 overflow-hidden rounded-pill bg-cream-deep"
+                  className="mt-3 h-1 overflow-hidden rounded-pill bg-ink/[0.08]"
                   role="progressbar"
                   aria-valuenow={budget.used}
                   aria-valuemin={0}
@@ -596,21 +561,21 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                   aria-label="actions used against this mission's execution budget"
                 >
                   <div
-                    className="h-full rounded-pill bg-ink transition-all duration-base ease-brand-out"
+                    className="h-full rounded-pill bg-ink transition-all duration-slow ease-brand-out"
                     style={{ width: `${Math.min(100, (budget.used / Math.max(1, budget.limit)) * 100)}%` }}
                   />
                 </div>
                 {budget.committed > budget.used && (
-                  <p className="mt-2 text-[11px] text-ink-soft">
+                  <p className="t-caption mt-2">
                     {budget.committed - budget.used} waiting on you, already counted.
                   </p>
                 )}
               </>
             )}
-            <p className="mt-2 text-[11px] leading-snug text-ink-soft">
+            <p className="t-caption mt-3">
               {budget && budget.kinds.length > 0
                 ? budget.kinds.join(" · ").toLowerCase()
-                : "reading, searching and drafting don't count."}
+                : "Reading, searching and drafting don't count."}
             </p>
           </section>
 
@@ -619,10 +584,8 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               provider costs: the question a receipt answers is "what did this
               do", not "what did this cost us to run". */}
           {receipt !== null && (
-            <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
-              <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
-                Execution summary
-              </h2>
+            <section className={`${card()} p-5`}>
+              <h2 className="t-eyebrow">What it did</h2>
               <dl className="mt-2.5 flex flex-col gap-1.5">
                 {[
                   {
@@ -644,13 +607,13 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                   },
                 ].map((r) => (
                   <div key={r.k} className="flex items-baseline justify-between gap-3">
-                    <dt className="text-xs text-ink-soft">{r.k}</dt>
-                    <dd className="text-sm font-extrabold tabular-nums">{r.v}</dd>
+                    <dt className="t-caption">{r.k}</dt>
+                    <dd className="text-[0.875rem] tabular-nums">{r.v}</dd>
                   </div>
                 ))}
               </dl>
               {Array.isArray(receipt.apps) && (receipt.apps as string[]).length > 0 && (
-                <p className="mt-2 border-t border-line/60 pt-2 text-[11px] text-ink-soft">
+                <p className="t-caption mt-3 border-t border-line/40 pt-3">
                   {(receipt.apps as string[]).join(" · ")}
                 </p>
               )}

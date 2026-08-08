@@ -83,7 +83,7 @@ export function Presence() {
       >
         <CosignoMark size={20} />
         {needYou > 0 ? (
-          <span className="flex h-4 min-w-4 items-center justify-center rounded-pill bg-signal px-1 text-[10px] font-black text-ink">
+          <span className="flex h-4 min-w-4 items-center justify-center rounded-pill bg-signal px-1 text-[0.6875rem] font-semibold text-ink">
             {needYou > 9 ? "9+" : needYou}
           </span>
         ) : working ? (

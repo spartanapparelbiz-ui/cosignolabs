@@ -7,6 +7,7 @@ import { ArrowLeft, Check, Plus, Trash2, X } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import type { ObjectiveProgress } from "@/lib/objectives";
 import type { ObjectiveRecord, SessionRecord } from "@/lib/types";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
 
 /**
  * One objective: its rolled-up progress, the delegations linked to it (each
@@ -136,10 +137,10 @@ export function ObjectiveDetail({ id }: { id: string }) {
 
   if (error) {
     return (
-      <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
-        <p className="text-sm font-semibold text-ink-soft">{error}</p>
-        <Link href="/app/objectives" className="mt-3 inline-block text-xs font-bold underline underline-offset-2">
-          back to objectives
+      <div className="px-6 py-16 text-center">
+        <p className="t-body">{error}</p>
+        <Link href="/app/objectives" className="mt-3 inline-block text-xs font-semibold underline underline-offset-2">
+          Back to objectives
         </Link>
       </div>
     );
@@ -154,17 +155,17 @@ export function ObjectiveDetail({ id }: { id: string }) {
 
   return (
     <div>
-      <Link href="/app/objectives" className="inline-flex items-center gap-1 text-xs font-bold text-ink-soft hover:text-ink">
-        <ArrowLeft size={13} /> objectives
+      <Link href="/app/objectives" className="inline-flex items-center gap-1 text-xs font-semibold text-ink-soft hover:text-ink">
+        <ArrowLeft size={13} /> Objectives
       </Link>
 
-      <h1 className="mt-3 font-display text-2xl font-bold">{objective.title}</h1>
+      <h1 className="mt-3 font-display text-2xl font-semibold">{objective.title}</h1>
 
       {/* progress */}
-      <div className="mt-4 rounded-card border border-line/70 bg-surface p-5 shadow-soft">
+      <div className="mt-4 rounded-card border border-line/70 bg-surface p-5 shadow-rest">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">Progress</p>
-          <span className="text-sm font-extrabold">
+          <p className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-ink-soft">Progress</p>
+          <span className="text-sm font-semibold">
             {progress.complete} / {progress.total} complete
           </span>
         </div>
@@ -176,7 +177,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
         </div>
         <p className="mt-2 text-sm font-semibold">{progress.next}</p>
         {(progress.needs_you > 0 || progress.blocked > 0) && (
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-bold text-ink-soft">
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[0.75rem] font-semibold text-ink-soft">
             {progress.needs_you > 0 && (
               <Link href="/app/focus" className="text-signal hover:underline">
                 {progress.needs_you} at your boundary →
@@ -190,27 +191,27 @@ export function ObjectiveDetail({ id }: { id: string }) {
 
       {/* linked delegations */}
       <div className="mt-6 flex items-center justify-between">
-        <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.1em] text-ink-soft">
           Delegations ({delegations.length})
         </h2>
         <button
           onClick={openLink}
-          className="inline-flex items-center gap-1 rounded-btn px-3 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
+          className="inline-flex items-center gap-1 rounded-btn px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep"
         >
-          <Plus size={12} /> link a delegation
+          <Plus size={12} /> Link a delegation
         </button>
       </div>
 
       {linkOpen && (
-        <div className="mt-3 rounded-card bg-surface/60 p-4 shadow-soft">
+        <div className="mt-3 rounded-card bg-surface p-4 shadow-rest">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-bold lowercase text-ink-soft">pick a delegation to link</p>
+            <p className="text-xs font-semibold text-ink-soft">Pick a delegation to link</p>
             <button onClick={() => setLinkOpen(false)} className="rounded-btn p-1 text-ink-soft hover:bg-cream-deep">
               <X size={14} />
             </button>
           </div>
           {linkable.length === 0 ? (
-            <p className="text-xs text-ink-soft">no other delegations to link. delegate something first.</p>
+            <p className="text-xs text-ink-soft">No other delegations to link. delegate something first.</p>
           ) : (
             <ul className="flex max-h-64 flex-col gap-1 overflow-auto">
               {linkable.slice(0, 40).map((s) => (
@@ -232,17 +233,17 @@ export function ObjectiveDetail({ id }: { id: string }) {
 
       <div className="mt-3 flex flex-col gap-2">
         {delegations.length === 0 ? (
-          <div className="rounded-card bg-surface/40 px-6 py-8 text-center shadow-soft">
+          <div className="rounded-card bg-surface px-6 py-8 text-center shadow-rest">
             <p className="text-sm text-ink-soft">
               No delegations linked yet. Link the ones that move this outcome forward.
             </p>
           </div>
         ) : (
           delegations.map((d) => (
-            <div key={d.session.id} className="flex items-center gap-3 rounded-card bg-surface/60 p-3.5 shadow-soft">
+            <div key={d.session.id} className="flex items-center gap-3 rounded-card bg-surface p-3.5 shadow-rest">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-extrabold">{d.session.title}</p>
-                <p className="text-[11px] font-bold text-ink-soft">{MOMENTUM_LABEL[d.momentum] ?? d.momentum}</p>
+                <p className="truncate text-sm font-semibold">{d.session.title}</p>
+                <p className="text-[0.75rem] font-semibold text-ink-soft">{MOMENTUM_LABEL[d.momentum] ?? d.momentum}</p>
               </div>
               <button
                 onClick={() => unlink(d.session.id)}
@@ -264,7 +265,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
           <button
             onClick={() => setStatus("achieved")}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-ink shadow-rest disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             <Check size={14} strokeWidth={3} /> Mark achieved
           </button>
@@ -272,7 +273,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
           <button
             onClick={() => setStatus("active")}
             disabled={busy}
-            className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-btn px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Reopen
           </button>
@@ -280,9 +281,9 @@ export function ObjectiveDetail({ id }: { id: string }) {
         <button
           onClick={remove}
           disabled={busy}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-btn px-3 py-2 text-sm font-bold text-ink-soft ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-btn px-3 py-2 text-sm font-semibold text-ink-soft ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Trash2 size={13} /> delete
+          <Trash2 size={13} /> Delete
         </button>
       </div>
     </div>

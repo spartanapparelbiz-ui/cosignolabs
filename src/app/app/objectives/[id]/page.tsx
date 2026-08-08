@@ -1,4 +1,5 @@
 import { ObjectiveDetail } from "@/components/app/ObjectiveDetail";
+import { Page } from "@/components/ui/Page";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +10,8 @@ export default async function ObjectiveDetailPage({
 }) {
   const { id } = await params;
   return (
-    <div className="mx-auto w-full max-w-none flex-1 px-6 lg:px-10 py-8">
+    <Page width="work">
       <ObjectiveDetail id={id} />
-    </div>
+    </Page>
   );
 }

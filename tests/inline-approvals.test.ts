@@ -69,7 +69,7 @@ describe("the embedded inbox stays honest about the shared queue", () => {
     const src = read(INBOX);
     // A count taken from `actions` would tell a mission it has decisions
     // waiting that belong to something else entirely.
-    expect(src).toMatch(/\{visible\.length\} decision/);
+    expect(src).toMatch(/\{visible\.length\} waiting/);
     expect(src).toMatch(/if \(visible\.length === 0\)/);
     expect(src).toMatch(/\{visible\.map\(/);
   });

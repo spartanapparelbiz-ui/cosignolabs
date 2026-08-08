@@ -6,6 +6,7 @@ import { Download, FileText, Plus, Trash2 } from "lucide-react";
 import type { FileRecord } from "@/lib/types";
 import { CosignoMark } from "@/components/brand/Logo";
 import { useToast } from "@/components/Toast";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
 
 /**
  * Files — text deliverables and documents that live inside cosigno. Create,
@@ -127,10 +128,10 @@ export function FilesPanel() {
 
   if (error) {
     return (
-      <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
-        <p className="text-sm font-semibold text-ink-soft">{error}</p>
-        <button onClick={load} className="mt-3 rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep">
-          try again
+      <div className="px-6 py-16 text-center">
+        <p className="t-body">{error}</p>
+        <button onClick={load} className="mt-3 rounded-btn px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep">
+          Try again
         </button>
       </div>
     );
@@ -146,14 +147,13 @@ export function FilesPanel() {
     );
   }
 
-  const inputCls =
-    "w-full rounded-btn bg-surface px-3 py-2.5 text-sm shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal";
+  const inputCls = field("md");
 
   return (
     <div className="flex flex-col gap-4">
       {/* create */}
       {creating ? (
-        <div className="flex flex-col gap-2 rounded-card bg-surface/60 p-4 shadow-soft">
+        <div className="flex flex-col gap-2 rounded-card bg-surface p-4 shadow-rest">
           <input
             value={draftName}
             onChange={(e) => setDraftName(e.target.value)}
@@ -170,7 +170,7 @@ export function FilesPanel() {
                 key={m}
                 onClick={() => setDraftMime(m)}
                 aria-pressed={draftMime === m}
-                className={`min-h-[32px] rounded-pill px-3 py-1 text-[11px] font-bold lowercase ring-1 ring-inset ${
+                className={`min-h-[32px] rounded-pill px-3 py-1 text-[0.75rem] font-semibold ring-1 ring-inset ${
                   draftMime === m ? "bg-ink text-cream ring-ink" : "ring-ink/30 hover:bg-cream-deep"
                 }`}
               >
@@ -181,12 +181,12 @@ export function FilesPanel() {
               <button
                 onClick={create}
                 disabled={busy === "create" || !draftName.trim()}
-                className="rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                className={btn("primary", "sm")}
               >
-                create
+                Create
               </button>
-              <button onClick={() => setCreating(false)} className="rounded-btn px-4 py-1.5 text-xs font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep">
-                cancel
+              <button onClick={() => setCreating(false)} className="rounded-btn px-4 py-1.5 text-xs font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep">
+                Cancel
               </button>
             </div>
           </div>
@@ -194,15 +194,15 @@ export function FilesPanel() {
       ) : (
         <button
           onClick={() => setCreating(true)}
-          className="inline-flex w-fit items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream"
+          className="inline-flex w-fit items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-semibold text-cream"
         >
-          <Plus size={13} /> new file
+          <Plus size={13} /> New file
         </button>
       )}
 
       {files.length === 0 && !creating && (
-        <div className="flex flex-col items-center gap-2 rounded-card bg-surface/40 px-6 py-10 text-center shadow-soft">
-          <p className="text-sm font-extrabold lowercase">no files yet.</p>
+        <div className="flex flex-col items-center gap-2 rounded-card bg-surface px-6 py-10 text-center shadow-rest">
+          <p className="text-sm font-semibold">No files yet.</p>
           <p className="max-w-sm text-xs text-ink-soft">
             files hold the documents your missions produce — notes, drafts,
             checklists, csv exports. text files only for now.
@@ -211,12 +211,12 @@ export function FilesPanel() {
       )}
 
       {files.map((f) => (
-        <div key={f.id} className="rounded-card bg-surface/60 p-4 shadow-soft">
+        <div key={f.id} className="rounded-card bg-surface p-4 shadow-rest">
           <div className="flex items-start gap-3">
             <FileText size={16} className="mt-0.5 shrink-0 text-ink-soft" />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-extrabold">{f.name}</p>
-              <p className="text-[11px] text-ink-soft">
+              <p className="truncate text-sm font-semibold">{f.name}</p>
+              <p className="text-[0.75rem] text-ink-soft">
                 {MIME_LABEL[f.mime]} · v{f.version} · {f.content.length.toLocaleString()} chars ·{" "}
                 {new Date(f.updated_at).toLocaleDateString()}
               </p>
@@ -232,16 +232,16 @@ export function FilesPanel() {
                   )}`
                 )
               }
-              className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink"
+              className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-pill px-3 py-1 text-[0.75rem] font-semibold text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink"
               title="give cosigno responsibility for this file"
             >
-              <CosignoMark size={11} /> take this
+              <CosignoMark size={11} /> Take this
             </button>
             <button
               onClick={() => download(f)}
-              className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep"
+              className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-pill px-3 py-1 text-[0.75rem] font-semibold text-ink-soft hover:bg-cream-deep"
             >
-              <Download size={11} /> download
+              <Download size={11} /> Download
             </button>
           </div>
 
@@ -259,11 +259,11 @@ export function FilesPanel() {
                 <button
                   onClick={() => save(f)}
                   disabled={busy === f.id}
-                  className="rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                  className={btn("primary", "sm")}
                 >
                   save (v{f.version + 1})
                 </button>
-                <button onClick={() => setOpen(null)} className="rounded-btn px-4 py-1.5 text-xs font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep">
+                <button onClick={() => setOpen(null)} className="rounded-btn px-4 py-1.5 text-xs font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep">
                   close
                 </button>
               </div>
@@ -275,16 +275,16 @@ export function FilesPanel() {
                   setOpen(f.id);
                   setEditText(f.content);
                 }}
-                className="min-h-[32px] rounded-pill px-3 py-1 text-[11px] font-bold lowercase ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
+                className="min-h-[32px] rounded-pill px-3 py-1 text-[0.75rem] font-semibold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
               >
                 open
               </button>
               <button
                 onClick={() => remove(f)}
                 disabled={busy === f.id}
-                className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep"
+                className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-pill px-3 py-1 text-[0.75rem] font-semibold text-ink-soft hover:bg-cream-deep"
               >
-                <Trash2 size={11} /> delete
+                <Trash2 size={11} /> Delete
               </button>
             </div>
           )}

@@ -43,7 +43,7 @@ export function OfferBanner() {
     body = (
       <>
         you&apos;ve used all {PLANS.free.actionLimit} free actions this month — keep going with{" "}
-        <span className="font-extrabold">{PLANS.pro.name} for ${INTRO_FIRST_MONTH_PRICE} your first month</span>.
+        <span className="font-semibold">{PLANS.pro.name} for ${INTRO_FIRST_MONTH_PRICE} your first month</span>.
       </>
     );
   } else if (offers.annualNudge) {
@@ -51,9 +51,9 @@ export function OfferBanner() {
     event = "offer_annual";
     body = (
       <>
-        you ran <span className="font-extrabold">{offers.annualNudge.monthActions} actions</span> last
+        you ran <span className="font-semibold">{offers.annualNudge.monthActions} actions</span> last
         month — switching to annual saves{" "}
-        <span className="font-extrabold">${offers.annualNudge.savings}/yr</span>.
+        <span className="font-semibold">${offers.annualNudge.savings}/yr</span>.
       </>
     );
   } else {
@@ -61,13 +61,13 @@ export function OfferBanner() {
   }
 
   return (
-    <div className="animate-rise-in mx-auto mb-4 flex w-full max-w-none items-center gap-3 rounded-card bg-ink px-4 py-3 text-cream shadow-lift">
+    <div className="animate-rise-in mx-auto mb-4 flex w-full max-w-none items-center gap-3 rounded-card bg-ink px-4 py-3 text-cream shadow-raise">
       <p className="min-w-0 flex-1 text-sm font-semibold">{body}</p>
       <Link
         href={href}
         prefetch
         onClick={() => track(event)}
-        className="shrink-0 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink transition-transform duration-fast hover:-translate-y-px active:scale-95"
+        className="shrink-0 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-ink transition-transform duration-fast hover:-translate-y-px active:scale-95"
       >
         see the offer
       </Link>

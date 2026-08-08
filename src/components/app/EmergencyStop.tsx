@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { OctagonX, Play } from "lucide-react";
+import { btn } from "@/components/ui/styles";
 
 /**
  * Global emergency stop — reachable from every page in the workspace.
@@ -106,16 +107,19 @@ export function EmergencyStop() {
 
   const stopped = scope === "all";
 
+  /* At rest this is a ghost control: a kill switch that shouts while nothing
+     is wrong trains people to stop seeing it. It grows teeth only once armed,
+     and stays loud for as long as the workspace is actually held. */
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="relative flex items-center">
       {stopped ? (
         <button
           onClick={resume}
           disabled={busy}
-          className="inline-flex min-h-[36px] items-center gap-1.5 rounded-btn bg-ink px-3 py-1.5 text-xs font-extrabold text-cream shadow-soft transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+          className={btn("primary", "sm")}
         >
-          <Play size={13} aria-hidden="true" />
-          {busy ? "Resuming…" : "Resume cosigno"}
+          <Play size={13} strokeWidth={2} aria-hidden="true" />
+          {busy ? "Resuming…" : "Resume"}
         </button>
       ) : armed ? (
         <button
@@ -123,9 +127,9 @@ export function EmergencyStop() {
           disabled={busy}
           autoFocus
           aria-label="confirm: stop all AI activity"
-          className="inline-flex min-h-[36px] animate-chip-pulse items-center gap-1.5 rounded-btn bg-signal px-3 py-1.5 text-xs font-extrabold text-ink shadow-lift transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+          className={btn("sign", "sm", "animate-chip-pulse")}
         >
-          <OctagonX size={13} aria-hidden="true" />
+          <OctagonX size={13} strokeWidth={2} aria-hidden="true" />
           {busy ? "Stopping…" : "Confirm — stop everything"}
         </button>
       ) : (
@@ -133,15 +137,18 @@ export function EmergencyStop() {
           onClick={() => setArmed(true)}
           aria-label="emergency stop"
           title="Pause every AI action immediately"
-          className="inline-flex min-h-[36px] items-center gap-1.5 rounded-btn border border-line bg-surface px-3 py-1.5 text-xs font-bold text-ink transition-colors duration-fast hover:border-signal hover:text-signal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+          className={btn("ghost", "sm")}
         >
-          <OctagonX size={13} aria-hidden="true" />
-          Stop
+          <OctagonX size={14} strokeWidth={1.9} aria-hidden="true" />
+          <span className="hidden sm:inline">Stop</span>
         </button>
       )}
 
       {receipt && (
-        <p role="status" className="max-w-[260px] text-right text-[10px] leading-snug text-ink-soft">
+        <p
+          role="status"
+          className="t-caption absolute right-0 top-full mt-1.5 w-[17rem] animate-fade-through text-right"
+        >
           {receipt}
         </p>
       )}

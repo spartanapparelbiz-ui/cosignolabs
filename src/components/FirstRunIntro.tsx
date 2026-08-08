@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Inbox, PenLine, Reply, ShieldCheck, Sunrise } from "lucide-react";
+import { Inbox, PenLine, Reply, Sunrise } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import { btn } from "@/components/ui/styles";
 
 /**
  * First-run onboarding — one question, one recommendation, one real mission.
@@ -121,82 +122,67 @@ export function FirstRunIntro() {
       onClick={dismiss}
     >
       <div
-        className="w-full max-w-md animate-modal-in rounded-card bg-cream p-6 shadow-lift"
+        className="w-full max-w-md animate-modal-in rounded-card bg-surface p-7 shadow-overlay"
         onClick={(e) => e.stopPropagation()}
       >
         {!picked ? (
           <>
-            <h2 className="font-display text-xl font-bold lowercase">what steals the most time?</h2>
-            <p className="mt-1.5 text-sm font-semibold text-ink-soft">
-              pick one and cosigno recommends a real starter job — you&apos;ll
-              see exactly what runs on its own and what waits for your
-              signature.
+            <h2 className="t-display text-[1.375rem] sm:text-[1.5rem]">
+              What steals the most time?
+            </h2>
+            <p className="t-caption mt-2">
+              Pick one and cosigno suggests a real starter job — you&apos;ll see exactly
+              what runs on its own and what waits for your signature.
             </p>
-            <div className="mt-4 flex flex-col gap-2">
+            <div className="-mx-3 mt-6 flex flex-col">
               {CHOICES.map((c) => (
                 <button
                   key={c.key}
                   onClick={() => setPicked(c)}
-                  className="flex items-center gap-3 rounded-btn bg-cream-deep px-4 py-3 text-left text-sm font-bold lowercase transition-colors hover:bg-signal/15"
+                  className="flex items-center gap-3 rounded-btn px-3 py-2.5 text-left text-[0.9375rem] transition-colors duration-fast hover:bg-ink/[0.04]"
                 >
-                  <c.icon size={16} className="shrink-0 text-ink-soft" aria-hidden="true" />
+                  <c.icon size={15} strokeWidth={1.9} className="shrink-0 text-ink-soft" aria-hidden="true" />
                   {c.label}
                 </button>
               ))}
               <button
                 onClick={somethingElse}
-                className="flex items-center gap-3 rounded-btn bg-cream-deep px-4 py-3 text-left text-sm font-bold lowercase transition-colors hover:bg-signal/15"
+                className="flex items-center gap-3 rounded-btn px-3 py-2.5 text-left text-[0.9375rem] transition-colors duration-fast hover:bg-ink/[0.04]"
               >
-                <PenLine size={16} className="shrink-0 text-ink-soft" aria-hidden="true" />
-                something else — I&apos;ll type it
+                <PenLine size={15} strokeWidth={1.9} className="shrink-0 text-ink-soft" aria-hidden="true" />
+                Something else — I&apos;ll type it
               </button>
             </div>
-            <button
-              onClick={dismiss}
-              className="mt-4 text-sm font-bold lowercase text-ink-soft underline underline-offset-2"
-            >
-              skip — just show me the dashboard
+            <button onClick={dismiss} className={btn("ghost", "sm", "-ml-3 mt-5")}>
+              Skip
             </button>
           </>
         ) : (
           <>
-            <h2 className="font-display text-xl font-bold lowercase">start “{picked.job}”</h2>
-            <dl className="mt-3 flex flex-col gap-2.5 text-sm">
+            <h2 className="t-display text-[1.375rem] sm:text-[1.5rem]">{picked.job}</h2>
+            <dl className="mt-6 flex flex-col gap-5">
               <div>
-                <dt className="text-xs font-extrabold lowercase text-ink-soft">runs automatically</dt>
-                <dd className="mt-0.5 font-semibold">{picked.auto}</dd>
+                <dt className="t-eyebrow">Runs automatically</dt>
+                <dd className="t-body mt-1">{picked.auto}</dd>
               </div>
               <div>
-                <dt className="text-xs font-extrabold lowercase text-ink-soft">needs your signature</dt>
-                <dd className="mt-0.5 font-semibold">{picked.signature}</dd>
+                <dt className="t-eyebrow">Needs your signature</dt>
+                <dd className="t-body mt-1">{picked.signature}</dd>
               </div>
             </dl>
-            <p className="mt-3 flex items-start gap-2 rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold text-ink-soft">
-              <ShieldCheck size={14} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
-              before your apps are connected, this runs in a clearly-labeled
-              sandbox — you&apos;ll see the whole flow with nothing at stake.
+            <p className="t-caption mt-6">
+              Until your apps are connected this runs in a clearly-labeled sandbox — the
+              whole flow, with nothing at stake.
             </p>
-            <div className="mt-5 flex items-center gap-3">
-              <button
-                onClick={() => start(picked)}
-                disabled={busy}
-                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-              >
-                {busy ? "starting…" : "start this job"}
+            <div className="mt-8 flex items-center gap-1.5">
+              <button onClick={() => start(picked)} disabled={busy} className={btn("primary", "md")}>
+                {busy ? "Starting…" : "Start this job"}
               </button>
-              <button
-                onClick={() => setPicked(null)}
-                disabled={busy}
-                className="text-sm font-bold lowercase text-ink-soft underline underline-offset-2"
-              >
-                back
+              <button onClick={() => setPicked(null)} disabled={busy} className={btn("ghost", "md")}>
+                Back
               </button>
-              <button
-                onClick={dismiss}
-                disabled={busy}
-                className="ml-auto text-sm font-bold lowercase text-ink-soft underline underline-offset-2"
-              >
-                not now
+              <button onClick={dismiss} disabled={busy} className={btn("ghost", "md", "ml-auto")}>
+                Not now
               </button>
             </div>
           </>

@@ -78,7 +78,7 @@ export function ResultCard({ result, details }: { result: ResultView; details?: 
   const ago = when(result.finishedAt);
 
   return (
-    <article className="rounded-card border border-line bg-surface p-4 shadow-soft">
+    <article className="rounded-card border border-line bg-surface p-4 shadow-rest">
       {/* ---------- what happened ---------- */}
       <header className="flex items-start gap-3">
         <span
@@ -88,10 +88,10 @@ export function ResultCard({ result, details }: { result: ResultView; details?: 
           <s.Icon size={13} className={result.status === "running" ? "animate-spin" : ""} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold leading-snug">{result.headline}</p>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-ink-soft">
+          <p className="text-sm font-semibold leading-snug">{result.headline}</p>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.75rem] text-ink-soft">
             {/* The word is the status. The colour only reinforces it. */}
-            <span className="font-bold">{s.label}</span>
+            <span className="font-semibold">{s.label}</span>
             {ago && <span>· {ago}</span>}
             {result.approvedBy && <span>· approved by {result.approvedBy}</span>}
           </p>
@@ -100,8 +100,8 @@ export function ResultCard({ result, details }: { result: ResultView; details?: 
 
       {/* ---------- where it happened ---------- */}
       {(result.app || result.objectName) && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-btn bg-cream-deep/50 px-2.5 py-1.5 text-[11px]">
-          {result.app && <span className="font-bold">{result.app}</span>}
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-btn bg-cream-deep/50 px-2.5 py-1.5 text-[0.75rem]">
+          {result.app && <span className="font-semibold">{result.app}</span>}
           {result.objectType && (
             <>
               <ArrowRight size={10} className="text-ink-soft" aria-hidden="true" />
@@ -126,16 +126,16 @@ export function ResultCard({ result, details }: { result: ResultView; details?: 
               <li key={i} className="flex items-start gap-2 text-xs">
                 <Icon size={13} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
-                  <span className="font-bold">{KIND_WORD[c.kind]}</span>{" "}
+                  <span className="font-semibold">{KIND_WORD[c.kind]}</span>{" "}
                   <span className="text-ink-soft">{c.label}</span>
                   {/* A comparison appears only when both sides were recorded. */}
                   {c.before !== undefined && c.after !== undefined && (
                     <span className="mt-1 flex items-center gap-2">
-                      <span className="rounded-btn bg-cream-deep px-2 py-0.5 font-mono text-[11px] text-ink-soft line-through">
+                      <span className="rounded-btn bg-cream-deep px-2 py-0.5 font-mono text-[0.75rem] text-ink-soft line-through">
                         {c.before}
                       </span>
                       <ArrowRight size={11} className="text-ink-soft" aria-hidden="true" />
-                      <span className="rounded-btn bg-signal/15 px-2 py-0.5 font-mono text-[11px] font-bold">
+                      <span className="rounded-btn bg-signal/15 px-2 py-0.5 font-mono text-[0.75rem] font-semibold">
                         {c.after}
                       </span>
                     </span>
@@ -146,7 +146,7 @@ export function ResultCard({ result, details }: { result: ResultView; details?: 
                     href={c.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex shrink-0 items-center gap-1 rounded-btn px-2 py-0.5 text-[11px] font-bold underline underline-offset-2 hover:bg-cream-deep"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-btn px-2 py-0.5 text-[0.75rem] font-semibold underline underline-offset-2 hover:bg-cream-deep"
                   >
                     View <ExternalLink size={10} aria-hidden="true" />
                   </a>
@@ -160,14 +160,14 @@ export function ResultCard({ result, details }: { result: ResultView; details?: 
       {/* Say plainly when nothing was done, so a failed card can't be skimmed
           as a successful one. */}
       {result.nothingHappened && (
-        <p className="mt-3 rounded-btn bg-cream-deep/60 px-2.5 py-1.5 text-[11px] font-semibold">
+        <p className="mt-3 rounded-btn bg-cream-deep/60 px-2.5 py-1.5 text-[0.75rem] font-semibold">
           Nothing was changed outside cosigno.
         </p>
       )}
 
       {/* ---------- can I undo it? ---------- */}
       {result.howToUndo && (
-        <p className="mt-2 text-[11px] text-ink-soft">{result.howToUndo}</p>
+        <p className="mt-2 text-[0.75rem] text-ink-soft">{result.howToUndo}</p>
       )}
 
       {/* ---------- details, hidden by default ---------- */}
@@ -176,7 +176,7 @@ export function ResultCard({ result, details }: { result: ResultView; details?: 
           <button
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
-            className="inline-flex items-center gap-1 rounded-btn px-1 py-0.5 text-[11px] font-bold text-ink-soft hover:text-ink"
+            className="inline-flex items-center gap-1 rounded-btn px-1 py-0.5 text-[0.75rem] font-semibold text-ink-soft hover:text-ink"
           >
             <ChevronDown
               size={12}

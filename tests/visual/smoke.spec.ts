@@ -215,14 +215,12 @@ for (const vp of VIEWPORTS) {
 
     test("home dashboard: the four-question layout", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "What should Cosigno handle?" })).toBeVisible();
-      // The ask box + the four honest section headings (stable regardless of
-      // how much data exists in the shared demo store).
-      await expect(page.getByPlaceholder(/Ask cosigno to handle something/)).toBeVisible();
-      await expect(page.getByRole("button", { name: /Start Mission/ })).toBeVisible();
-      await expect(page.getByText("In progress").first()).toBeVisible();
-      await expect(page.getByText("Needs your approval").first()).toBeVisible();
-      await expect(page.getByText("Connected apps").first()).toBeVisible();
+      await expect(page.getByRole("heading", { name: "What should cosigno handle?" })).toBeVisible();
+      // The ask box and its one primary action. The state bands below it
+      // (Working now / Needs you / Done today) render only when there is real
+      // work to put in them, so they are not asserted here.
+      await expect(page.getByPlaceholder(/Describe the outcome you want/)).toBeVisible();
+      await expect(page.getByRole("button", { name: "Delegate" })).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `dashboard-${vp.name}.png`), fullPage: true });
     });
@@ -230,12 +228,12 @@ for (const vp of VIEWPORTS) {
     test("ask box: file + link controls, and the paste-a-link field fits", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
       // The four honest controls sit under the ask box (no voice).
-      await expect(page.getByRole("button", { name: "Add file" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Add link" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Choose apps" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "File" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Link" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Apps" })).toBeVisible();
       // Add link opens a compact field with Add + Cancel, and never overflows.
-      await page.getByRole("button", { name: "Add link" }).click();
-      await expect(page.getByPlaceholder(/Paste a link/)).toBeVisible();
+      await page.getByRole("button", { name: "Link" }).click();
+      await expect(page.getByPlaceholder("https://…")).toBeVisible();
       await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `ask-sources-${vp.name}.png`) });
@@ -275,7 +273,7 @@ for (const vp of VIEWPORTS) {
     test("app shell + templates + isolated mission workspace", async ({ page }) => {
       // Templates: only REAL installable jobs, each with the auto/signature split.
       await page.goto("/app/templates", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "templates" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "What can cosigno do for you?" })).toBeVisible();
       await expect(page.getByText("build tomorrow's meeting brief")).toBeVisible();
       await expect(page.getByText("compare three laptops under $1,000")).toBeVisible();
       await expect(page.getByText("clean up my inbox")).toBeVisible();
@@ -365,7 +363,7 @@ for (const vp of VIEWPORTS) {
 
     test("activity", async ({ page }) => {
       await page.goto("/app/activity");
-      await expect(page.getByRole("heading", { name: "activity" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "What changed?" })).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `activity-${vp.name}.png`), fullPage: true });
     });
@@ -375,10 +373,10 @@ for (const vp of VIEWPORTS) {
       const box = page.getByPlaceholder(/compare the best laptops/i);
       await expect(box).toBeVisible();
       await box.fill("compare the best laptops under $1,000");
-      await page.getByRole("button", { name: "plan it" }).click();
+      await page.getByRole("button", { name: "Plan it" }).click();
       // The goal-understanding preview appears, built only from real tools.
-      await expect(page.getByText("i understood the goal")).toBeVisible();
-      await expect(page.getByText(/created this plan from your goal/i)).toBeVisible();
+      await expect(page.getByText("Here's what I understood")).toBeVisible();
+      await expect(page.getByText(/only the tools cosigno actually has/i)).toBeVisible();
       await expect(page.getByText(/no supported payment connection|payment/i).first()).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `compiler-preview-${vp.name}.png`), fullPage: true });
@@ -413,38 +411,38 @@ for (const vp of VIEWPORTS) {
 
     test("account center — all five panels", async ({ page }) => {
       await page.goto("/app/account", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "account", exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "What controls your workspace?" })).toBeVisible();
 
       // profile (default panel)
-      await expect(page.getByRole("heading", { name: "profile" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
       await page.waitForTimeout(250); // let the fade-through transition settle
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-profile-${vp.name}.png`), fullPage: true });
 
       // permissions — the three-column tier board
-      await page.getByRole("button", { name: "permissions" }).click();
-      await expect(page.getByRole("heading", { name: "permissions" })).toBeVisible();
+      await page.getByRole("button", { name: "trust center" }).click();
+      await expect(page.getByRole("heading", { name: "Trust", exact: true })).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-permissions-${vp.name}.png`), fullPage: true });
 
       // plan & usage — the usage ring + sparkline + plan card
       await page.getByRole("button", { name: "plan & usage" }).click();
-      await expect(page.getByText(/actions used this cycle/)).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Plan & usage" })).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-usage-${vp.name}.png`), fullPage: true });
 
       // connections — third-party apps + custom MCP servers
       await page.getByRole("button", { name: "connections" }).click();
-      await expect(page.getByRole("heading", { name: "connections" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Connections" })).toBeVisible();
       await page.waitForTimeout(400);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-integrations-${vp.name}.png`), fullPage: true });
 
       // security — audit trail + injection tiles
       await page.getByRole("button", { name: "security" }).click();
-      await expect(page.getByRole("heading", { name: "security" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Security" })).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-security-${vp.name}.png`), fullPage: true });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { UNLIMITED } from "@/lib/missions/budget";
+import { SectionLabel } from "@/components/ui/Page";
 
 /**
  * The workspace execution budget — how much work a mission may complete before
@@ -52,44 +53,39 @@ export function BudgetPanel() {
 
   return (
     <section>
-      <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
-        Execution budget
-      </h2>
-      <div className="mt-3 rounded-card bg-surface/60 p-5 shadow-soft">
-        <p className="text-lg font-extrabold">How much work before it checks in</p>
-        <p className="mt-1 max-w-2xl text-sm text-ink-soft">
-          a mission stops after this many actions and asks whether to keep going. an action
-          is a real change — a message sent, a page published, a record updated. thinking,
-          reading, searching and drafting never count.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {choices.map((n) => (
-            <button
-              key={n}
-              onClick={() => choose(n)}
-              disabled={busy || budget === null}
-              aria-pressed={budget === n}
-              className={`rounded-pill px-4 py-2 text-sm font-bold transition-all duration-fast disabled:cursor-not-allowed ${
-                budget === n
-                  ? "bg-ink text-cream shadow-soft"
-                  : "bg-cream-deep text-ink-soft hover:text-ink"
-              }`}
-            >
-              {n === UNLIMITED ? "unlimited" : `${n} actions`}
-            </button>
-          ))}
-        </div>
-        {error && (
-          <p className="mt-2.5 text-xs font-semibold" role="alert">
-            {error}
-          </p>
-        )}
-        <p className="mt-3 text-xs text-ink-soft">
-          {budget === UNLIMITED
-            ? "missions run to completion. every action still follows the permissions above — unlimited means no count, not no approval."
-            : "any mission you've given its own limit keeps it. everything else follows this."}
-        </p>
+      <SectionLabel className="mb-3">How much before it checks in</SectionLabel>
+      <p className="t-body max-w-[42rem]">
+        A mission stops after this many actions and asks whether to keep going. An action
+        is a real change — a message sent, a page published, a record updated. Thinking,
+        reading, searching and drafting never count.
+      </p>
+      <div className="mt-5 flex flex-wrap gap-0.5 self-start rounded-pill bg-ink/[0.05] p-1">
+        {choices.map((n) => (
+          <button
+            key={n}
+            onClick={() => choose(n)}
+            disabled={busy || budget === null}
+            aria-pressed={budget === n}
+            className={`rounded-pill px-3.5 py-1.5 text-[0.8125rem] transition-all duration-fast ease-brand-out disabled:cursor-not-allowed ${
+              budget === n
+                ? "bg-surface font-semibold text-ink shadow-rest"
+                : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            {n === UNLIMITED ? "Unlimited" : `${n} actions`}
+          </button>
+        ))}
       </div>
+      {error && (
+        <p className="t-body mt-3 border-l-2 border-danger pl-3.5 text-danger" role="alert">
+          {error}
+        </p>
+      )}
+      <p className="t-caption mt-3">
+        {budget === UNLIMITED
+          ? "Missions run to completion. Every action still follows the permissions above — unlimited means no count, not no approval."
+          : "A mission you've given its own limit keeps it. Everything else follows this."}
+      </p>
     </section>
   );
 }

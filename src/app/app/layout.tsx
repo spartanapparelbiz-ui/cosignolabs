@@ -6,10 +6,20 @@ import { ToastProvider } from "@/components/Toast";
 import { LogoHome } from "@/components/brand/LivingLogo";
 import { EmergencyStop } from "@/components/app/EmergencyStop";
 import { HoldBanner } from "@/components/app/HoldBanner";
-import { CommandBar } from "@/components/app/CommandBar";
+import { CommandBar, CommandBarTrigger } from "@/components/app/CommandBar";
 import { AccountChip } from "@/components/app/AccountChip";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * The workspace shell.
+ *
+ * One room, not a set of admin pages: a quiet rail on the left, a header thin
+ * enough to forget, and the page itself carrying all the weight. There is no
+ * footer — copyright and legal links are marketing furniture, and repeating
+ * them under every screen of a tool someone uses all day is noise. They live
+ * in the account menu instead.
+ */
 
 /**
  * Honest, calm strip shown only to a public-sandbox guest. It tells the truth:
@@ -17,10 +27,10 @@ export const dynamic = "force-dynamic";
  */
 function SandboxBanner() {
   return (
-    <div className="bg-signal/12 text-ink">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-x-2 gap-y-0.5 px-4 py-1.5 text-center text-[12px] font-semibold">
-        <span>You&apos;re trying cosigno in a temporary sandbox — nothing is saved and no real emails, files, or payments are touched.</span>
-        <Link href="/" className="underline underline-offset-2 hover:text-signal">
+    <div className="bg-signal/[0.09]">
+      <div className="mx-auto flex w-full max-w-[82rem] flex-wrap items-center justify-center gap-x-2 px-5 py-2 text-center text-[0.8125rem] sm:px-8">
+        <span>This is a sandbox — nothing is saved, and nothing real is touched.</span>
+        <Link href="/" className="font-semibold underline underline-offset-2 hover:text-signal">
           Join the waitlist
         </Link>
       </div>
@@ -51,34 +61,21 @@ function Chrome({
           <HoldBanner />
           {/* ⌘K from anywhere in the workspace. Renders nothing until opened. */}
           <CommandBar />
-          <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
-            <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
+          <header className="sticky top-0 z-20 border-b border-line/40 bg-cream/85 backdrop-blur-md">
+            <div className="flex h-14 items-center gap-3 px-5 sm:px-8">
               {/* mobile shows the logo up top; desktop's logo lives in the rail */}
               <div className="lg:hidden">
-                <LogoHome href="/app" label="cosigno workspace" size={26} textClass="text-xl" />
+                <LogoHome href="/app" label="cosigno workspace" size={24} textClass="text-lg" />
               </div>
-              <div className="ml-auto flex items-center gap-3">
+              <CommandBarTrigger />
+              <div className="ml-auto flex items-center gap-2">
                 <EmergencyStop />
                 {userSlot}
               </div>
             </div>
           </header>
           {/* bottom padding keeps content clear of the mobile bottom bar */}
-          <main className="flex flex-1 flex-col pb-20 lg:pb-0">{children}</main>
-          <footer className="border-t border-line/60">
-            <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-4 text-[11px] font-semibold lowercase tracking-wide text-ink-soft">
-              <span>© {new Date().getFullYear()} aethric llc</span>
-              <Link href="/privacy" className="hover:text-ink">
-                privacy
-              </Link>
-              <Link href="/terms" className="hover:text-ink">
-                terms
-              </Link>
-              <a href="mailto:hello@aethric.llc" className="hover:text-ink">
-                hello@aethric.llc
-              </a>
-            </div>
-          </footer>
+          <main className="flex flex-1 flex-col pb-24 lg:pb-0">{children}</main>
         </div>
         {/* mobile: bottom navigation bar */}
         <AppBottomNav />

@@ -19,7 +19,7 @@ export function ThemeToggle() {
     <div
       role="radiogroup"
       aria-label="color theme"
-      className="inline-flex gap-1 rounded-btn bg-cream-deep p-1"
+      className="inline-flex gap-0.5 rounded-pill bg-ink/[0.05] p-1"
     >
       {OPTIONS.map((o) => {
         const Icon = o.icon;
@@ -30,13 +30,11 @@ export function ThemeToggle() {
             role="radio"
             aria-checked={active}
             onClick={() => set(o.id)}
-            className={`inline-flex items-center gap-1.5 rounded-[7px] px-3 py-1.5 text-xs font-bold lowercase transition-all duration-fast ease-brand-out ${
-              active
-                ? "bg-surface text-ink shadow-soft"
-                : "text-ink-soft hover:text-ink"
+            className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-[0.8125rem] transition-all duration-fast ease-brand-out ${
+              active ? "bg-surface font-semibold text-ink shadow-rest" : "text-ink-soft hover:text-ink"
             }`}
           >
-            <Icon size={14} strokeWidth={2.4} aria-hidden="true" />
+            <Icon size={14} strokeWidth={1.9} aria-hidden="true" />
             {o.label}
           </button>
         );

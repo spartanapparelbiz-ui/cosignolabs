@@ -1,31 +1,24 @@
-import { Lock } from "lucide-react";
 import type { Tier } from "@/lib/types";
+import { badge, dot, type BadgeTone } from "@/components/ui/styles";
 
 // The three authorization levels, presented as cosigno speaks about them:
 // AUTO runs pre-authorized low-risk work, APPROVE is one click, SIGN is the
 // deliberate signature interaction (all tier-3, plus outward-facing tier-2).
-const TIER_STYLES: Record<Tier, { label: string; className: string }> = {
-  1: {
-    label: "auto",
-    className: "bg-cream-deep text-ink-soft",
-  },
-  2: {
-    label: "approve",
-    className: "bg-ink/5 text-ink ring-1 ring-inset ring-ink/20",
-  },
-  3: {
-    label: "sign",
-    className: "bg-ink text-cream",
-  },
+//
+// The badge states which one applies. It does not fill with color to do it:
+// a card that needs a signature is already the loudest thing on the page, and
+// a solid orange block beside it just competes with the button that matters.
+const TIER: Record<Tier, { label: string; tone: BadgeTone }> = {
+  1: { label: "auto", tone: "neutral" },
+  2: { label: "approve", tone: "neutral" },
+  3: { label: "sign", tone: "signal" },
 };
 
 export function TierBadge({ tier }: { tier: Tier }) {
-  const t = TIER_STYLES[tier] ?? TIER_STYLES[2];
+  const t = TIER[tier] ?? TIER[2];
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide ${t.className}`}
-    >
-      {tier === 3 && <Lock size={10} strokeWidth={2.5} aria-hidden="true" />}
+    <span className={badge(t.tone)}>
+      <span className={dot(t.tone)} aria-hidden="true" />
       {t.label}
     </span>
   );

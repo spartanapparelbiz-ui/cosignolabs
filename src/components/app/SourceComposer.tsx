@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
+  ArrowRight,
   FileText,
   Image as ImageIcon,
   Link2,
@@ -11,13 +12,13 @@ import {
   Lock,
   Paperclip,
   Plug,
-  Sparkles,
   X,
 } from "lucide-react";
 import type { MissionSourceRecord, MissionSourceStatus } from "@/lib/types";
 import { classifyDelegation, returnCondition } from "@/lib/delegate";
 import { useToast } from "@/components/Toast";
 import { useBackgroundExecution } from "./useBackgroundExecution";
+import { badge, btn, card, field } from "@/components/ui/styles";
 
 /**
  * The ask-box body: a place to type a request and, without leaving the
@@ -28,10 +29,10 @@ import { useBackgroundExecution } from "./useBackgroundExecution";
  */
 
 const EXAMPLES = [
-  "prepare tomorrow's meeting",
-  "review my unread emails",
-  "watch for emails from investors",
-  "research the best option",
+  "Prepare tomorrow's meeting",
+  "Review my unread email",
+  "Watch for emails from investors",
+  "Research the best option",
 ];
 
 const ACCEPT = ".pdf,.docx,.txt,.md,.markdown,.csv,.png,.jpg,.jpeg,.webp";
@@ -110,28 +111,30 @@ function SourceRow({ source, onRemove }: { source: MissionSourceRecord; onRemove
   const reason = reasonOf(source);
   const isImage = source.kind === "file" && source.subtype.startsWith("image/");
   const Icon = source.kind === "link" ? Link2 : isImage ? ImageIcon : FileText;
-  const toneCls =
-    sv.tone === "ok"
-      ? "bg-signal/15 text-ink"
-      : sv.tone === "warn"
-        ? "text-ink ring-1 ring-inset ring-ink/30"
-        : "bg-cream-deep text-ink-soft";
   return (
-    <div className="flex items-start gap-2.5 rounded-btn border border-line/70 bg-cream/40 px-3 py-2">
-      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface text-ink-soft">
-        {source.status === "login_required" ? <Lock size={13} /> : sv.tone === "warn" ? <AlertTriangle size={13} /> : <Icon size={13} />}
+    <div className="flex animate-fade-through items-start gap-3 rounded-btn px-3 py-2.5 shadow-hairline">
+      <span className="mt-px flex h-6 w-6 shrink-0 items-center justify-center text-ink-soft">
+        {source.status === "login_required" ? (
+          <Lock size={14} strokeWidth={1.9} />
+        ) : sv.tone === "warn" ? (
+          <AlertTriangle size={14} strokeWidth={1.9} />
+        ) : (
+          <Icon size={14} strokeWidth={1.9} />
+        )}
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="min-w-0 flex-1 truncate text-sm font-bold" title={source.name}>
+          <p className="min-w-0 flex-1 truncate text-[0.875rem] font-semibold" title={source.name}>
             {source.name}
           </p>
-          <span className={`inline-flex shrink-0 items-center gap-1 rounded-pill px-2 py-0.5 text-[10px] font-bold ${toneCls}`}>
-            {IN_PROGRESS.includes(source.status) && <Loader2 size={10} className="animate-spin" aria-hidden="true" />}
+          <span className={badge(sv.tone === "ok" ? "positive" : sv.tone === "warn" ? "danger" : "neutral")}>
+            {IN_PROGRESS.includes(source.status) && (
+              <Loader2 size={10} className="animate-spin" aria-hidden="true" />
+            )}
             {sv.label}
           </span>
         </div>
-        <p className="truncate text-[11px] text-ink-soft">
+        <p className="t-caption truncate">
           {source.kind === "link"
             ? source.subtype || "link"
             : [source.subtype.replace(/^application\/|^text\//, "").replace("vnd.openxmlformats-officedocument.wordprocessingml.document", "docx"), fmtBytes(source.size_bytes)]
@@ -139,14 +142,14 @@ function SourceRow({ source, onRemove }: { source: MissionSourceRecord; onRemove
                 .join(" · ")}
           {source.injection_flag && " · flagged content (kept as data only)"}
         </p>
-        {reason && <p className="mt-0.5 text-[11px] font-semibold text-ink-soft">{reason}</p>}
+        {reason && <p className="t-caption mt-0.5">{reason}</p>}
       </div>
       <button
         onClick={() => onRemove(source.id)}
         aria-label={`remove ${source.name}`}
-        className="mt-0.5 shrink-0 rounded-md p-1 text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink"
+        className="mt-0.5 shrink-0 rounded-md p-1 text-ink-soft transition-colors duration-fast hover:bg-ink/[0.05] hover:text-ink"
       >
-        <X size={14} />
+        <X size={14} strokeWidth={2} />
       </button>
     </div>
   );
@@ -157,10 +160,16 @@ function SourceRow({ source, onRemove }: { source: MissionSourceRecord; onRemove
 export function SourceComposer({
   onStarted,
   suggestions,
+  showSuggestions = true,
 }: {
   onStarted: () => void;
   /** Contextual delegation prompts (from real connected apps); defaults to the generic set. */
   suggestions?: string[];
+  /**
+   * Starting points are for a blank page. Once there is real work on screen
+   * they are four more things competing with it, so the page turns them off.
+   */
+  showSuggestions?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -391,90 +400,63 @@ export function SourceComposer({
     const p = preview.plan;
     const returns = returnCondition(goal);
     return (
-      <div className="mt-5 flex flex-col gap-4 rounded-card border border-line/70 bg-cream/40 p-5">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
-            I&apos;ll handle this.
-          </p>
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft/70">Objective</p>
-          <p className="mt-1 text-base font-extrabold">{preview.understood.normalizedGoal}</p>
-        </div>
+      <div className={`${card()} mt-8 animate-card-in p-7 sm:p-8`}>
+        <p className="t-eyebrow">Here&apos;s what I understood</p>
+        <p className="t-title mt-2 text-[1.0625rem]">{preview.understood.normalizedGoal}</p>
 
-        {preview.understood.willDo.length > 0 && (
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">I&apos;ll handle</p>
-            <ul className="mt-1.5 flex flex-col gap-1 text-sm">
+        <dl className="mt-7 flex flex-col gap-6">
+          {preview.understood.willDo.length > 0 && (
+            <Clause term="I'll handle">
               {preview.understood.willDo.map((w, i) => (
-                <li key={i} className="flex gap-2 font-semibold">
-                  <span className="text-ink-soft">•</span>
-                  {w}
-                </li>
+                <li key={i}>{w}</li>
               ))}
-            </ul>
+            </Clause>
+          )}
+
+          <Clause term="I'll ask first">
+            {p.approvalCheckpoints.length > 0 ? (
+              p.approvalCheckpoints.map((c, i) => <li key={i}>{c}</li>)
+            ) : (
+              <li>{preview.understood.boundary}</li>
+            )}
+          </Clause>
+
+          {returns && <Clause term="I'll return">{<li>when {returns}.</li>}</Clause>}
+
+          {p.expectedDeliverables.length > 0 && (
+            <Clause term="You'll get">
+              <li>{p.expectedDeliverables.join(", ")}</li>
+            </Clause>
+          )}
+        </dl>
+
+        {p.unsupported.length > 0 && (
+          <div className="mt-6 flex flex-col gap-1 border-l-2 border-signal pl-3.5">
+            {p.unsupported.map((u, i) => (
+              <p key={i} className="t-body">
+                {u}
+              </p>
+            ))}
           </div>
         )}
 
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">I&apos;ll ask before</p>
-          {p.approvalCheckpoints.length > 0 ? (
-            <ul className="mt-1.5 flex flex-col gap-1 text-sm">
-              {p.approvalCheckpoints.map((c, i) => (
-                <li key={i} className="flex gap-2 font-semibold">
-                  <span className="text-ink-soft">•</span>
-                  {c}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-1.5 text-sm font-semibold">{preview.understood.boundary}</p>
-          )}
-          {p.unsupported.length > 0 && (
-            <div className="mt-2 flex flex-col gap-1 rounded-btn bg-signal/10 px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-signal/30">
-              {p.unsupported.map((u, i) => (
-                <p key={i}>• {u}</p>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {returns && (
-          <p className="text-sm font-semibold">
-            <span className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
-              I&apos;ll return{" "}
-            </span>
-            when {returns}.
-          </p>
-        )}
-
         {preview.understood.informationProvided.length > 0 && (
-          <p className="text-xs text-ink-soft">
-            Working from: {preview.understood.informationProvided.join(" · ")}
+          <p className="t-caption mt-6">
+            Working from {preview.understood.informationProvided.join(" · ")}
           </p>
         )}
 
-        {p.expectedDeliverables.length > 0 && (
-          <p className="text-sm text-ink-soft">
-            <span className="font-bold text-ink">You&apos;ll get:</span> {p.expectedDeliverables.join(", ")}
-          </p>
-        )}
-
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-8 flex flex-wrap items-center gap-2">
           {preview.blocked ? (
-            <p className="text-sm font-bold text-ink-soft">This can&apos;t run as-is — see the boundaries above.</p>
+            <p className="t-body">This can&apos;t run as written — see the boundary above.</p>
           ) : (
-            <button
-              onClick={start}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-            >
-              <Sparkles size={15} /> {busy ? "Delegating…" : "Delegate →"}
+            <button onClick={start} disabled={busy} className={btn("primary", "md")}>
+              {busy ? "Starting…" : "Start"}
+              {!busy && <ArrowRight size={15} strokeWidth={2} aria-hidden="true" />}
             </button>
           )}
-          <button
-            onClick={() => setPreview(null)}
-            className="rounded-btn px-4 py-2.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
-          >
-            Edit request
+          <button onClick={() => setPreview(null)} className={btn("ghost", "md")}>
+            Edit
           </button>
         </div>
       </div>
@@ -482,8 +464,7 @@ export function SourceComposer({
   }
 
   /* ---------------- ask box ---------------- */
-  const controlBtn =
-    "inline-flex items-center gap-1.5 rounded-pill border border-line/70 bg-cream/40 px-3.5 py-1.5 text-sm font-bold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink";
+  const controlBtn = btn("ghost", "sm");
 
   /* ---- drop zone: give cosigno context by dropping it anywhere here ---- */
   function onDrop(e: React.DragEvent) {
@@ -512,70 +493,66 @@ export function SourceComposer({
       }}
       onDragLeave={() => setDragOver(false)}
       onDrop={onDrop}
-      className={dragOver ? "rounded-card ring-2 ring-signal/60" : undefined}
+      className={`mt-8 rounded-card transition-shadow duration-base ${
+        dragOver ? "shadow-[0_0_0_2px_rgb(var(--c-signal)/0.5)]" : ""
+      }`}
     >
       {dragOver && (
-        <p className="mt-3 rounded-btn bg-signal/10 px-3 py-2 text-center text-xs font-extrabold text-ink">
-          Drop it — cosigno will take it from here.
-        </p>
+        <p className="t-caption mb-3 text-center">Drop it — cosigno will read it.</p>
       )}
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-col gap-2.5 sm:flex-row">
         <input
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && review()}
           maxLength={500}
           id="cosigno-ask"
-          placeholder="Ask cosigno anything…"
+          placeholder="Describe the outcome you want…"
           aria-label="what do you need handled"
-          className="w-full rounded-btn border border-line/70 bg-cream/40 px-4 py-3.5 text-base font-semibold shadow-well placeholder:font-medium placeholder:text-ink-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
+          className={field("lg")}
         />
         <button
           onClick={review}
           disabled={busy || !goal.trim()}
-          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-btn bg-signal px-6 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+          className={btn("primary", "lg", "shrink-0")}
         >
-          <Sparkles size={16} /> {busy ? "Reading…" : "Delegate"}
+          {busy ? "Reading…" : "Delegate"}
         </button>
       </div>
 
       {/* control row */}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="-ml-3 mt-2.5 flex flex-wrap items-center gap-1">
         <input ref={fileRef} type="file" accept={ACCEPT} multiple hidden onChange={(e) => onFiles(e.target.files)} />
         <button onClick={() => fileRef.current?.click()} className={controlBtn}>
-          <Paperclip size={14} /> Add file
+          <Paperclip size={14} strokeWidth={1.9} /> File
         </button>
         <button onClick={() => setLinkOpen((v) => !v)} className={controlBtn} aria-expanded={linkOpen}>
-          <Link2 size={14} /> Add link
+          <Link2 size={14} strokeWidth={1.9} /> Link
         </button>
         <button onClick={() => router.push("/app/connections")} className={controlBtn}>
-          <Plug size={14} /> Choose apps
+          <Plug size={14} strokeWidth={1.9} /> Apps
         </button>
         {anyWorking && (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft">
-            <Loader2 size={11} className="animate-spin" aria-hidden="true" /> finishing your files…
+          <span className="t-caption ml-2 inline-flex items-center gap-1.5">
+            <Loader2 size={11} className="animate-spin" aria-hidden="true" /> reading your files…
           </span>
         )}
       </div>
 
       {/* compact link field */}
       {linkOpen && (
-        <div className="mt-3 flex flex-col gap-2 rounded-btn border border-line/70 bg-cream/40 p-3 sm:flex-row sm:items-center">
+        <div className="mt-3 flex animate-fade-through flex-col gap-2 sm:flex-row sm:items-center">
           <input
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addLink()}
             maxLength={2048}
-            placeholder="Paste a link (https://…)"
+            placeholder="https://…"
             aria-label="paste a link"
-            className="w-full min-w-0 rounded-btn border border-line/70 bg-surface px-3 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
+            className={field("md")}
           />
-          <div className="flex shrink-0 gap-2">
-            <button
-              onClick={addLink}
-              disabled={addingLink || !linkUrl.trim()}
-              className="rounded-btn bg-ink px-4 py-2 text-sm font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-            >
+          <div className="flex shrink-0 gap-1.5">
+            <button onClick={addLink} disabled={addingLink || !linkUrl.trim()} className={btn("secondary", "md")}>
               {addingLink ? "Adding…" : "Add"}
             </button>
             <button
@@ -583,7 +560,7 @@ export function SourceComposer({
                 setLinkOpen(false);
                 setLinkUrl("");
               }}
-              className="rounded-btn px-4 py-2 text-sm font-bold text-ink-soft ring-1 ring-inset ring-ink/20 hover:bg-cream-deep hover:text-ink"
+              className={btn("ghost", "md")}
             >
               Cancel
             </button>
@@ -593,25 +570,55 @@ export function SourceComposer({
 
       {/* staged sources */}
       {all.length > 0 && (
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="mt-3 flex flex-col gap-1.5">
           {all.map((s) => (
             <SourceRow key={s.id} source={s} onRemove={removeSource} />
           ))}
         </div>
       )}
 
-      {/* examples */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {(suggestions ?? EXAMPLES).map((ex) => (
-          <button
-            key={ex}
-            onClick={() => setGoal(ex)}
-            className="rounded-pill border border-line/70 bg-cream/40 px-3.5 py-1.5 text-sm font-semibold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
-          >
-            {ex}
-          </button>
-        ))}
-      </div>
+      {/* Starting points — a blank page is harder than a bad first draft. They
+          disappear the moment there is real work to look at instead. */}
+      {showSuggestions && (
+        <div className="mt-7">
+          <p className="t-eyebrow">Try</p>
+          <div className="-ml-2 mt-1.5 flex flex-col items-start">
+            {(suggestions ?? EXAMPLES).map((ex) => (
+              <button
+                key={ex}
+                onClick={() => setGoal(ex)}
+                className="group flex items-center gap-2 rounded-btn px-2 py-1.5 text-[0.9375rem] text-ink-soft transition-colors duration-fast hover:text-ink"
+              >
+                <ArrowRight
+                  size={13}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                  className="-translate-x-1 opacity-0 transition-all duration-base ease-brand-out group-hover:translate-x-0 group-hover:opacity-100"
+                />
+                <span className="-ml-[21px] transition-transform duration-base ease-brand-out group-hover:translate-x-[21px]">
+                  {ex}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * One line of the agreement: what cosigno commits to, and what it will stop
+ * for. A term and its items, so the promise reads as a sentence rather than as
+ * three bulleted boxes stacked on each other.
+ */
+function Clause({ term, children }: { term: string; children: React.ReactNode }) {
+  return (
+    <div className="sm:flex sm:gap-6">
+      <dt className="t-eyebrow shrink-0 pt-1 sm:w-28">{term}</dt>
+      <dd className="mt-1.5 min-w-0 flex-1 sm:mt-0">
+        <ul className="t-body flex flex-col gap-1.5">{children}</ul>
+      </dd>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import {
   ALL_TEMPLATES,
@@ -11,6 +11,7 @@ import {
   searchTemplates,
   type Template,
 } from "@/lib/templates/catalog";
+import { card, field } from "@/components/ui/styles";
 
 /**
  * The template gallery: what cosigno can actually do for you, browsable.
@@ -114,8 +115,8 @@ export function TemplateGallery() {
       {/* search */}
       <label className="relative block">
         <Search
-          size={17}
-          strokeWidth={2.4}
+          size={16}
+          strokeWidth={1.9}
           aria-hidden="true"
           className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft"
         />
@@ -124,25 +125,25 @@ export function TemplateGallery() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="What would you like help with?"
           aria-label="search templates"
-          className="w-full rounded-card bg-surface/70 py-3.5 pl-11 pr-4 text-base font-semibold shadow-soft outline-none ring-1 ring-inset ring-transparent transition-all duration-fast placeholder:text-ink-soft/60 focus:ring-ink/30"
+          className={`${field("lg")} pl-11`}
         />
       </label>
 
       {searching ? (
         <section>
-          <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
+          <h2 className="t-eyebrow">
             {matches.length === 0
               ? "Nothing matches"
               : `${matches.length} match${matches.length === 1 ? "" : "es"}`}
           </h2>
           {matches.length === 0 ? (
-            <p className="mt-3 max-w-xl text-sm text-ink-soft">
-              no template covers that yet — but the ask box does. describe it in your own
+            <p className="t-body mt-3 max-w-[38rem]">
+              No template covers that yet, but the ask box does. Describe it in your own
               words on{" "}
-              <a href="/app" className="font-bold underline underline-offset-2">
+              <a href="/app" className="underline underline-offset-2">
                 home
-              </a>{" "}
-              and cosigno compiles a plan and shows it to you before anything runs.
+              </a>
+              , and cosigno turns it into a plan you see before anything runs.
             </p>
           ) : (
             <Grid templates={matches} busy={busy} onRun={run} />
@@ -153,37 +154,30 @@ export function TemplateGallery() {
           {/* featured — real signal only */}
           {recent.length > 0 && (
             <section>
-              <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
-                Recently used
-              </h2>
+              <h2 className="t-eyebrow">Recently used</h2>
               <Grid templates={recent} busy={busy} onRun={run} />
             </section>
           )}
           {recommended.length > 0 && (
             <section>
-              <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
-                Recommended — works with your connected apps
-              </h2>
+              <h2 className="t-eyebrow">Works with your connected apps</h2>
               <Grid templates={recommended} busy={busy} onRun={run} />
             </section>
           )}
 
           {TEMPLATE_CATEGORIES.map((cat) => (
             <section key={cat.id}>
-              <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
-                {cat.title}
-              </h2>
+              <h2 className="t-eyebrow">{cat.title}</h2>
               <Grid templates={cat.templates} busy={busy} onRun={run} />
             </section>
           ))}
 
-          <p className="text-sm text-ink-soft">
-            anything else? describe it in your own words on{" "}
-            <a href="/app" className="font-bold underline underline-offset-2">
+          <p className="t-caption">
+            Anything else, describe in your own words on{" "}
+            <a href="/app" className="text-ink underline underline-offset-2">
               home
-            </a>{" "}
-            — cosigno compiles open-ended goals into a plan and shows it to you before
-            anything runs.
+            </a>
+            . cosigno turns an open-ended goal into a plan and shows it to you first.
           </p>
         </>
       )}
@@ -201,7 +195,7 @@ function Grid({
   onRun: (t: Template) => void;
 }) {
   return (
-    <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
       {templates.map((t) => (
         <Card key={t.key} template={t} busy={busy} onRun={onRun} />
       ))}
@@ -210,9 +204,14 @@ function Grid({
 }
 
 /**
- * The card: icon, title, one sentence, apps, the approval fact, run. No
- * estimated minutes — a duration we'd be inventing — and no badges. What a
- * card promises is exactly what pressing run does.
+ * The card: title, one sentence, the apps it touches, and what it does about
+ * approval. No emoji tile — twenty-five of those on one page is a sticker
+ * album, and none of them said anything the title didn't. No estimated
+ * minutes either: that would be a duration we invented. What the card promises
+ * is exactly what pressing the button does.
+ *
+ * The whole card is the button. One target, one obvious gesture, and the page
+ * stops being a wall of black slabs.
  */
 function Card({
   template: t,
@@ -225,24 +224,24 @@ function Card({
 }) {
   const needsSubject = t.run.kind === "compose";
   return (
-    <article className="group flex flex-col rounded-card bg-surface/60 p-5 shadow-soft transition-all duration-base ease-brand-out hover:-translate-y-0.5 hover:shadow-lift">
-      <span
-        className="flex h-12 w-12 items-center justify-center rounded-btn bg-cream-deep text-2xl"
-        aria-hidden="true"
-      >
-        {t.icon}
+    <button
+      onClick={() => onRun(t)}
+      disabled={busy !== null}
+      className={`${card(true)} group flex flex-col p-5 text-left disabled:opacity-50 focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_rgb(var(--c-signal))]`}
+    >
+      <h3 className="t-title">{t.title}</h3>
+      <p className="t-caption mt-1.5 flex-1">{t.outcome}</p>
+      <p className="t-caption mt-4">{t.apps.join(" · ")}</p>
+      <p className="t-caption">{t.approval}</p>
+      <span className="mt-4 inline-flex items-center gap-1.5 text-[0.8125rem] font-semibold">
+        {busy === t.key ? "Starting…" : needsSubject ? "Add your subject" : "Run"}
+        <ArrowRight
+          size={13}
+          strokeWidth={2}
+          aria-hidden="true"
+          className="transition-transform duration-base ease-brand-out group-hover:translate-x-0.5"
+        />
       </span>
-      <h3 className="mt-3 text-base font-extrabold leading-snug">{t.title}</h3>
-      <p className="mt-1.5 flex-1 text-sm leading-snug text-ink-soft">{t.outcome}</p>
-      <p className="mt-3 text-xs font-semibold text-ink-soft">{t.apps.join(" · ")}</p>
-      <p className="mt-1 text-xs text-ink-soft">{t.approval}</p>
-      <button
-        onClick={() => onRun(t)}
-        disabled={busy !== null}
-        className="mt-4 w-full rounded-btn bg-ink py-2.5 text-sm font-extrabold lowercase text-cream transition-all duration-fast active:scale-[0.98] group-hover:bg-signal group-hover:text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
-      >
-        {busy === t.key ? "starting…" : needsSubject ? "start — add your subject" : "run"}
-      </button>
-    </article>
+    </button>
   );
 }

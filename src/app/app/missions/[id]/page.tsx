@@ -1,4 +1,5 @@
 import { MissionWorkspace } from "@/components/app/MissionWorkspace";
+import { Page } from "@/components/ui/Page";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,8 @@ export default async function MissionPage({
 }) {
   const { id } = await params;
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8">
+    <Page width="work">
       <MissionWorkspace missionId={id} />
-    </div>
+    </Page>
   );
 }

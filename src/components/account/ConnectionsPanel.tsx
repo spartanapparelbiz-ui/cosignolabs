@@ -16,6 +16,10 @@ import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { ConnectionInsight } from "@/components/account/ConnectionInsight";
 import { humanizeActionId, humanizeEndpoint } from "@/lib/integrations/engine/humanize";
 import { ruleAppliesToApp } from "@/lib/rules";
+import { badge, btn, card, field, type BadgeTone } from "@/components/ui/styles";
+import { EmptyState } from "@/components/ui/Page";
+import { EmptyIllustration } from "@/components/EmptyIllustration";
+import { SkeletonBlock } from "@/components/Skeleton";
 
 /**
  * The Connections screen: available third-party apps, the user's connected
@@ -61,23 +65,16 @@ interface PreviewResult {
   error?: string;
 }
 
-const TIER_META: Record<number, { label: string; cls: string }> = {
-  1: { label: "auto", cls: "bg-cream-deep text-ink-soft" },
-  2: { label: "approve", cls: "ring-1 ring-inset ring-signal/50 text-signal" },
-  3: { label: "confirm", cls: "bg-signal text-cream" },
+const TIER_META: Record<number, { label: string; tone: BadgeTone }> = {
+  1: { label: "auto", tone: "neutral" },
+  2: { label: "approve", tone: "signal" },
+  3: { label: "confirm", tone: "signal" },
 };
 
-/** A small badge showing the tier a capability would be proposed at. */
+/** A small badge showing the level a capability would be proposed at. */
 function TierBadge({ tier }: { tier: number }) {
   const t = TIER_META[tier] ?? TIER_META[2];
-  return (
-    <span
-      className={`rounded-pill px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${t.cls}`}
-      title={`tier ${tier} — ${t.label}`}
-    >
-      t{tier} · {t.label}
-    </span>
-  );
+  return <span className={badge(t.tone)}>{t.label}</span>;
 }
 interface ConnectionView {
   id: string;
@@ -118,11 +115,11 @@ interface Data {
   vaultReady: boolean;
 }
 
-const STATUS_STYLE: Record<ConnectionView["status"], { label: string; cls: string }> = {
-  connected: { label: "connected", cls: "bg-signal text-cream" },
-  needs_reauth: { label: "needs re-auth", cls: "ring-1 ring-inset ring-signal text-signal" },
-  error: { label: "error", cls: "ring-1 ring-inset ring-ink/40 text-ink-soft" },
-  revoked: { label: "disconnected", cls: "ring-1 ring-inset ring-ink/30 text-ink-soft" },
+const STATUS_STYLE: Record<ConnectionView["status"], { label: string; tone: BadgeTone }> = {
+  connected: { label: "connected", tone: "positive" },
+  needs_reauth: { label: "needs re-auth", tone: "signal" },
+  error: { label: "error", tone: "danger" },
+  revoked: { label: "disconnected", tone: "neutral" },
 };
 
 /**
@@ -401,162 +398,153 @@ export function ConnectionsPanel() {
       {/* No heading here: the page above already says "connections" and what
           it is. Saying it twice is the page apologising for itself. */}
       {notice && (
-        <p className="rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold" role="status">
+        <p className="t-body border-l-2 border-line pl-3.5" role="status">
           {notice}
         </p>
       )}
       {error && (
-        <p className="rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold text-signal" role="alert">
+        <p className="t-body border-l-2 border-danger pl-3.5 text-danger" role="alert">
           {error}
         </p>
       )}
       {data && !data.vaultReady && (
-        <p className="flex items-start gap-2 rounded-btn bg-signal/10 px-3 py-2 text-xs font-semibold text-signal ring-1 ring-inset ring-signal/30">
-          <ShieldAlert size={14} className="mt-px shrink-0" />
-          connecting apps isn&apos;t switched on for this workspace yet — an
-          administrator can enable it.
+        <p className="t-body border-l-2 border-signal pl-3.5">
+          Connecting apps isn&apos;t switched on for this workspace yet. An administrator
+          can enable it.
         </p>
       )}
 
       {/* ---- third-party apps ---- */}
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">apps</h4>
+      <section className="flex flex-col gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="t-eyebrow">Apps</h2>
           {(data?.providers.length ?? 0) > 3 && (
-            <label className="relative w-full sm:w-64">
+            <label className="relative w-full sm:w-56">
               <Search
                 size={14}
+                strokeWidth={1.9}
                 aria-hidden="true"
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
               />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="search apps"
+                placeholder="Search apps"
                 aria-label="search apps"
-                className="w-full rounded-pill bg-cream-deep py-2 pl-8 pr-3 text-xs font-semibold outline-none ring-1 ring-inset ring-transparent transition-all duration-fast placeholder:text-ink-soft/60 focus:ring-ink/25"
+                className={`${field("sm")} pl-8`}
               />
             </label>
           )}
         </div>
         {visibleProviders.length === 0 && (
-          <p className="rounded-card bg-surface/40 px-4 py-6 text-center text-xs text-ink-soft">
-            no app matches &ldquo;{query}&rdquo;.
-          </p>
+          <p className="t-caption px-1 py-8 text-center">No app matches “{query}”.</p>
         )}
         {visibleProviders.map((p, i) => {
           const conn = connByProvider.get(p.key);
           return (
             <div
               key={p.key}
-              style={{ animationDelay: `${i * 70}ms` }}
-              className={`rounded-card bg-surface/60 p-5 shadow-soft transition-all duration-base ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth ${
-                justConnected === p.key ? "ring-2 ring-signal animate-pulse-glow" : ""
+              style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
+              className={`${card()} animate-fade-through p-5 ${
+                justConnected === p.key ? "animate-pulse-glow" : ""
               }`}
             >
-              <div className="flex flex-wrap items-center gap-2.5">
-                <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={30} />
-                <span className="text-base font-extrabold">{p.name}</span>
+              <div className="flex flex-wrap items-center gap-3">
+                <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={24} />
+                <span className="t-title">{p.name}</span>
                 {conn && <StatusPill status={conn.status} />}
                 {/* "coming soon" told people to wait for cosigno to build
                     something that already exists — the connector works, this
                     deployment just has no credentials for it. That sends the
                     one person who could fix it away to wait. */}
-                {!p.configured && !conn && (
-                  <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-[10px] font-bold lowercase text-ink-soft">
-                    needs setup
-                  </span>
-                )}
-                <span className="ml-auto flex gap-2">
+                {!p.configured && !conn && <span className={badge("neutral")}>needs setup</span>}
+                <span className="ml-auto flex items-center gap-1">
                   {conn ? (
                     <>
                       {conn.status === "needs_reauth" && (
                         <button
                           onClick={() => connect(p.key)}
                           disabled={busy === p.key}
-                          className="rounded-btn bg-signal px-3 py-1.5 text-xs font-bold text-ink disabled:opacity-60"
+                          className={btn("sign", "sm")}
                         >
-                          {busy === p.key ? "reconnecting…" : "reconnect"}
+                          {busy === p.key ? "Reconnecting…" : "Reconnect"}
                         </button>
                       )}
                       <button
                         onClick={() => recheck(conn.id)}
                         disabled={busy === conn.id}
-                        className="rounded-btn px-2 py-1.5 text-xs font-bold text-ink-soft hover:bg-cream-deep"
+                        className={btn("ghost", "sm")}
                         title="re-check status"
+                        aria-label={`re-check ${p.name}`}
                       >
-                        <RefreshCw size={12} className={busy === conn.id ? "animate-spin" : ""} />
+                        <RefreshCw
+                          size={13}
+                          strokeWidth={1.9}
+                          className={busy === conn.id ? "animate-spin" : ""}
+                        />
                       </button>
                       {p.homeUrl && (
                         <a
                           href={p.homeUrl}
                           target="_blank"
                           rel="noreferrer noopener"
-                          className="inline-flex items-center gap-1 rounded-btn px-3 py-1.5 text-xs font-bold text-ink-soft hover:bg-cream-deep hover:text-ink"
+                          className={btn("ghost", "sm")}
                         >
-                          open {p.name} <ExternalLink size={11} aria-hidden="true" />
+                          Open <ExternalLink size={12} strokeWidth={1.9} aria-hidden="true" />
                         </a>
                       )}
                       <button
                         onClick={() => disconnect(conn.id)}
                         disabled={busy === conn.id}
-                        className="rounded-btn px-3 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
+                        className={btn("ghost", "sm")}
                       >
-                        disconnect
+                        Disconnect
                       </button>
                     </>
                   ) : (
                     <button
                       onClick={() => connect(p.key)}
                       disabled={busy === p.key}
-                      className="rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                      className={btn("primary", "sm")}
                     >
-                      {busy === p.key ? "…" : "connect"}
+                      {busy === p.key ? "…" : "Connect"}
                     </button>
                   )}
                 </span>
               </div>
-              <p className="mt-1.5 text-xs text-ink-soft">{p.detail}</p>
+              <p className="t-caption mt-2">{p.detail}</p>
 
-              {/* An unavailable thing has to say what would make it available,
-                  or the reader is left to guess whether it's broken, unbuilt,
-                  or waiting on them. */}
-              {!p.configured && !conn && (
-                <p className="mt-1 text-[11px] text-ink-soft/80">
-                  {p.name} isn&apos;t switched on for this workspace yet — an
-                  administrator can enable it.
-                </p>
-              )}
+              {/* The banner at the top of the page already says this workspace
+                  can't connect anything yet. Repeating it once per app was the
+                  same sentence seven times down one screen. */}
               {!p.configured && !conn && (
                 <DeveloperDetails provider={p} vaultReady={Boolean(data?.vaultReady)} />
               )}
 
               {/* Not connected: what connecting UNLOCKS — the app's real
-                  abilities as checkmarks, not an empty model. One click away. */}
+                  abilities, read from the connector itself, never examples. */}
               {!conn && p.actions.length > 0 && (
-                <div className="mt-2 rounded-btn bg-cream-deep/50 px-3.5 py-2.5">
-                  <p className="text-[11px] font-bold">connect {p.name} to let cosigno</p>
-                  <ul className="mt-1.5 flex flex-col gap-1">
-                    {p.actions.slice(0, UNLOCK_SHOWN).map((a) => (
-                      <li key={a.id} className="flex items-start gap-1.5 text-[11px]">
-                        <span className="mt-px shrink-0 text-signal" aria-hidden="true">
-                          ✓
-                        </span>
-                        <span>
-                          {a.summary.replace(/\.$/, "")}
-                          {a.tier > 1 && (
-                            <span className="text-ink-soft"> — asks you first</span>
-                          )}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                <ul className="mt-4 flex flex-col gap-1.5">
+                  {p.actions.slice(0, UNLOCK_SHOWN).map((a) => (
+                    <li key={a.id} className="t-caption flex items-start gap-2">
+                      <Check
+                        size={12}
+                        strokeWidth={2.4}
+                        className="mt-1 shrink-0 text-positive"
+                        aria-hidden="true"
+                      />
+                      <span>
+                        {a.summary.replace(/\.$/, "")}
+                        {a.tier > 1 && " — asks you first"}
+                      </span>
+                    </li>
+                  ))}
                   {p.actions.length > UNLOCK_SHOWN && (
-                    <p className="mt-1.5 text-[11px] text-ink-soft">
+                    <li className="t-caption pl-5">
                       and {p.actions.length - UNLOCK_SHOWN} more
-                    </p>
+                    </li>
                   )}
-                </div>
+                </ul>
               )}
 
               {/* Once connected, show what's really in the account and exactly
@@ -577,45 +565,38 @@ export function ConnectionsPanel() {
                   />
                 </>
               )}
-              <p className="mt-0.5 text-[11px] text-ink-soft/80">
-                {conn?.metadata?.account
-                  ? `${String(conn.metadata.account)} · `
-                  : ""}
+              <p className="t-caption mt-2">
+                {conn?.metadata?.account ? `${String(conn.metadata.account)} · ` : ""}
                 {p.scopeSummary}
               </p>
 
               {/* What it can do + the tier each capability is proposed at. */}
               {conn && p.actions.length > 0 && (
-                <details className="group mt-2">
-                  <summary className="cursor-pointer list-none text-xs font-bold lowercase text-ink-soft underline underline-offset-2 marker:content-['']">
-                    <span className="group-open:hidden">what it can do ({p.actions.length})</span>
-                    <span className="hidden group-open:inline">hide capabilities</span>
+                <details className="group mt-4">
+                  <summary className="t-caption cursor-pointer list-none transition-colors duration-fast marker:content-[''] hover:text-ink">
+                    <span className="group-open:hidden">What it can do ({p.actions.length})</span>
+                    <span className="hidden group-open:inline">Hide</span>
                   </summary>
-                  <div className="mt-2 flex flex-col gap-1.5">
+                  <div className="mt-3 flex flex-col">
                     {p.actions.map((a) => (
-                      <div key={a.id} className="flex items-center gap-2 rounded-btn bg-cream-deep/60 px-3 py-1.5">
+                      <div
+                        key={a.id}
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-btn px-3 py-2 transition-colors duration-fast hover:bg-ink/[0.03]"
+                      >
                         {/* This is the consent surface — what someone reads
                             before granting access to their account. "create_issue"
                             and a tier number are the engine's words; what a person
                             needs to know is what it does and whether it can happen
                             without them. */}
-                        <span className="text-[11px] font-bold">{humanizeActionId(a.id)}</span>
-                        <span
-                          className={`shrink-0 rounded-pill px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
-                            a.tier === 1
-                              ? "bg-cream-deep text-ink-soft"
-                              : a.tier === 3
-                                ? "bg-ink text-cream"
-                                : "bg-signal/20 text-ink"
-                          }`}
-                        >
+                        <span className="text-[0.8125rem]">{humanizeActionId(a.id)}</span>
+                        <span className={badge(a.tier === 1 ? "neutral" : "signal")}>
                           {a.tier === 1
                             ? "no approval"
                             : a.tier === 3
                               ? "typed confirmation"
                               : "your approval"}
                         </span>
-                        <span className="min-w-0 flex-1 truncate text-[11px] text-ink-soft" title={a.summary}>
+                        <span className="t-caption min-w-0 flex-1 truncate" title={a.summary}>
                           {a.summary}
                         </span>
                         {conn && conn.status === "connected" && (
@@ -623,42 +604,45 @@ export function ConnectionsPanel() {
                             <button
                               onClick={() => runPreview(conn.id, a.id)}
                               disabled={busy === `preview:${conn.id}:${a.id}`}
-                              className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                              className={btn("ghost", "sm")}
                               title="dry-run: see what this would do, without doing it"
                             >
-                              {busy === `preview:${conn.id}:${a.id}` ? "…" : "dry run"}
+                              {busy === `preview:${conn.id}:${a.id}` ? "…" : "Dry run"}
                             </button>
                             <button
                               onClick={() => propose(conn.id, a.id)}
                               disabled={busy === `${conn.id}:${a.id}`}
-                              className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                              className={btn("secondary", "sm")}
                               title="propose this action to your workspace"
                             >
-                              {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
+                              {busy === `${conn.id}:${a.id}` ? "…" : "Propose"}
                             </button>
                           </>
                         )}
                       </div>
                     ))}
-                    <p className="mt-0.5 text-[10px] text-ink-soft/70">
-                      tiers are set by cosigno, not the app — t1 runs automatically, t2 waits for
-                      your signature, t3 needs typed confirmation.
+                    <p className="t-caption mt-2 px-3">
+                      cosigno sets these levels, not the app.
                     </p>
                     {p.boundary && (
-                      <div className="mt-2 grid gap-1.5 rounded-btn bg-cream-deep/40 p-2.5 sm:grid-cols-2">
+                      <div className="mt-4 grid gap-x-8 gap-y-4 px-3 sm:grid-cols-2">
                         <div>
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-ink-soft">can access</p>
-                          <ul className="mt-0.5 space-y-0.5">
+                          <p className="t-eyebrow">Can access</p>
+                          <ul className="mt-1.5 flex flex-col gap-1">
                             {p.boundary.data.canAccess.map((s, k) => (
-                              <li key={k} className="text-[10px] text-ink-soft">• {s}</li>
+                              <li key={k} className="t-caption">
+                                {s}
+                              </li>
                             ))}
                           </ul>
                         </div>
                         <div>
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-ink-soft">cannot</p>
-                          <ul className="mt-0.5 space-y-0.5">
+                          <p className="t-eyebrow">Cannot</p>
+                          <ul className="mt-1.5 flex flex-col gap-1">
                             {p.boundary.data.cannotAccess.map((s, k) => (
-                              <li key={k} className="text-[10px] text-ink-soft">• {s}</li>
+                              <li key={k} className="t-caption">
+                                {s}
+                              </li>
                             ))}
                           </ul>
                         </div>
@@ -673,26 +657,24 @@ export function ConnectionsPanel() {
       </section>
 
       {/* ---- custom MCP servers ---- */}
-      <section className="flex flex-col gap-2.5">
-        <div className="flex items-center justify-between">
-          <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">
-            custom MCP servers
-          </h4>
+      <section className="mt-6 flex flex-col gap-2">
+        <div className="mb-1 flex items-center justify-between gap-4">
+          <h2 className="t-eyebrow">MCP servers</h2>
           <button
             onClick={() => requireVault() && setAddOpen((v) => !v)}
-            className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+            className={btn("ghost", "sm")}
           >
-            {addOpen ? <X size={12} /> : <Plus size={12} />}
-            {addOpen ? "cancel" : "add server"}
+            {addOpen ? <X size={13} strokeWidth={1.9} /> : <Plus size={13} strokeWidth={1.9} />}
+            {addOpen ? "Cancel" : "Add server"}
           </button>
         </div>
 
         {addOpen && <AddMcpForm onAdded={async () => { setAddOpen(false); await load(); }} />}
 
         {mcps.length === 0 && !addOpen && (
-          <p className="rounded-card bg-surface/40 px-4 py-5 text-xs text-ink-soft shadow-soft">
-            no custom servers yet. add a remote MCP endpoint to expose its tools
-            to your operator — each tool stays off until you enable it.
+          <p className="t-caption">
+            None yet. Add a remote MCP endpoint to expose its tools — each one stays
+            off until you enable it.
           </p>
         )}
 
@@ -719,25 +701,21 @@ export function ConnectionsPanel() {
       </section>
 
       {/* ---- custom API-key tools ---- */}
-      <section className="flex flex-col gap-2.5">
-        <div className="flex items-center justify-between">
-          <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">
-            custom API tools
-          </h4>
+      <section className="mt-6 flex flex-col gap-2">
+        <div className="mb-1 flex items-center justify-between gap-4">
+          <h2 className="t-eyebrow">API tools</h2>
           <button
             onClick={() => requireVault() && setAddApiOpen((v) => !v)}
-            className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+            className={btn("ghost", "sm")}
           >
-            {addApiOpen ? <X size={12} /> : <Plus size={12} />}
-            {addApiOpen ? "cancel" : "add API tool"}
+            {addApiOpen ? <X size={13} strokeWidth={1.9} /> : <Plus size={13} strokeWidth={1.9} />}
+            {addApiOpen ? "Cancel" : "Add tool"}
           </button>
         </div>
 
-        <p className="flex items-start gap-2 rounded-btn bg-cream-deep/60 px-3 py-2 text-[11px] text-ink-soft">
-          <ShieldAlert size={13} className="mt-px shrink-0" />
-          you&apos;re responsible for custom tools you add. cosigno still requires
-          your approval for every action, tiers each one by risk, and treats all
-          responses as untrusted.
+        <p className="t-caption">
+          A tool you add is yours to vouch for. cosigno still asks before every
+          action, rates each one by risk, and treats every response as untrusted.
         </p>
 
         {addApiOpen && (
@@ -748,10 +726,9 @@ export function ConnectionsPanel() {
         )}
 
         {customs.length === 0 && !addApiOpen && (
-          <p className="rounded-card bg-surface/40 px-4 py-5 text-xs text-ink-soft shadow-soft">
-            no custom API tools yet. connect any tool with a base URL + API key,
-            map its actions, and each one is tiered by risk and waits for your
-            signature.
+          <p className="t-caption">
+            None yet. Connect anything with a base URL and an API key, map its
+            actions, and each one waits for your signature.
           </p>
         )}
 
@@ -797,13 +774,10 @@ function AppValue({
   ].filter((c): c is { n: number; label: string } => Boolean(c));
   if (cells.length === 0) return null;
   return (
-    <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5">
+    <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
       {cells.map((c) => (
-        <span key={c.label} className="text-[11px]">
-          <span className="font-display text-sm font-extrabold tabular-nums">
-            {c.n.toLocaleString()}
-          </span>{" "}
-          <span className="text-ink-soft">{c.label}</span>
+        <span key={c.label} className="t-caption">
+          <span className="tabular-nums text-ink">{c.n.toLocaleString()}</span> {c.label}
         </span>
       ))}
     </div>
@@ -835,25 +809,19 @@ function AppRecentWork({
   work: { id: string; summary: string; created_at: string }[];
 }) {
   return (
-    <div className="mt-2 rounded-btn bg-cream-deep/40 px-3.5 py-2.5">
-      <p className="flex items-baseline justify-between gap-2 text-[11px] font-bold">
-        <span>recently, in {name}</span>
-        {lastCheckedAt && (
-          <span className="font-semibold text-ink-soft">
-            last checked {checkedAgo(lastCheckedAt)}
-          </span>
-        )}
+    <div className="mt-4">
+      <p className="t-eyebrow flex items-baseline justify-between gap-3">
+        <span>Recently</span>
+        {lastCheckedAt && <span>checked {checkedAgo(lastCheckedAt)}</span>}
       </p>
       {work.length === 0 ? (
-        <p className="mt-1 text-[11px] text-ink-soft">
-          nothing yet — when cosigno works in {name}, what it did shows up here.
-        </p>
+        <p className="t-caption mt-1.5">Nothing yet. What cosigno does in {name} shows up here.</p>
       ) : (
-        <ul className="mt-1 flex flex-col gap-0.5">
+        <ul className="mt-1.5 flex flex-col gap-1">
           {work.map((a) => (
-            <li key={a.id} className="flex items-baseline justify-between gap-2 text-[11px]">
+            <li key={a.id} className="t-caption flex items-baseline justify-between gap-3">
               <span className="min-w-0 truncate">{a.summary.slice(name.length + 1).trim()}</span>
-              <span className="shrink-0 text-ink-soft">{checkedAgo(a.created_at)}</span>
+              <span className="shrink-0">{checkedAgo(a.created_at)}</span>
             </li>
           ))}
         </ul>
@@ -878,14 +846,12 @@ function AppPolicies({
   const applicable = rules.filter((r) => ruleAppliesToApp(r, providerKey, providerName));
   if (applicable.length === 0) return null;
   return (
-    <div className="mt-2 rounded-btn bg-cream-deep/40 px-3.5 py-2.5">
-      <p className="text-[11px] font-bold">
-        rules protecting {providerName} ({applicable.length})
-      </p>
-      <ul className="mt-1 flex flex-col gap-0.5">
+    <div className="mt-4">
+      <p className="t-eyebrow">Rules protecting {providerName}</p>
+      <ul className="mt-1.5 flex flex-col gap-1">
         {applicable.slice(0, 4).map((r) => (
-          <li key={r.id} className="text-[11px] text-ink-soft">
-            • {r.text}
+          <li key={r.id} className="t-caption">
+            {r.text}
           </li>
         ))}
       </ul>
@@ -905,9 +871,9 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-md animate-spring-in rounded-card bg-surface p-6 shadow-depth-lift">
+      <div className="w-full max-w-md animate-modal-in rounded-card bg-surface p-7 shadow-overlay">
         <div className="flex items-start justify-between gap-3">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">cosigno would</p>
+          <p className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-ink-soft">cosigno would</p>
           <button onClick={onClose} className="rounded-btn p-1 text-ink-soft hover:bg-cream-deep hover:text-ink" aria-label="close preview">
             <X size={16} />
           </button>
@@ -919,26 +885,26 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
             {req && (
               <div className="mt-3 rounded-btn bg-cream-deep/60 p-3">
                 {req.method && req.url ? (
-                  <p className="break-all font-mono text-xs font-bold">
+                  <p className="break-all font-mono text-xs font-semibold">
                     <span className="text-signal">{req.method}</span> {req.url}
                   </p>
                 ) : (
-                  <p className="text-sm font-bold">{req.description}</p>
+                  <p className="text-sm font-semibold">{req.description}</p>
                 )}
                 {req.keyPlacement && (
-                  <p className="mt-1 font-mono text-[10px] text-ink-soft">{req.keyPlacement}</p>
+                  <p className="mt-1 font-mono text-[0.6875rem] text-ink-soft">{req.keyPlacement}</p>
                 )}
                 {Object.keys(req.args).length > 0 && (
-                  <pre className="mt-1.5 overflow-x-auto rounded bg-surface/70 p-2 font-mono text-[10px] text-ink-soft">
+                  <pre className="mt-1.5 overflow-x-auto rounded bg-surface p-2 font-mono text-[0.6875rem] text-ink-soft">
                     {JSON.stringify(req.args, null, 2)}
                   </pre>
                 )}
               </div>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              <span className="font-bold">then it would require:</span>
+              <span className="font-semibold">then it would require:</span>
               <span
-                className={`rounded-pill px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                className={`rounded-pill px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide ${
                   preview.wouldRequire === "blocked"
                     ? "bg-ink text-cream"
                     : preview.wouldRequire === "auto"
@@ -953,17 +919,17 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
             {preview.rules.length > 0 && (
               <div className="mt-2 flex flex-col gap-1">
                 {preview.rules.map((r, i) => (
-                  <p key={i} className="text-[11px] text-ink-soft">
-                    <span className="font-bold">rule:</span> “{r.text}” — {r.effect}
+                  <p key={i} className="text-[0.75rem] text-ink-soft">
+                    <span className="font-semibold">rule:</span> “{r.text}” — {r.effect}
                   </p>
                 ))}
               </div>
             )}
-            <p className="mt-3 text-[10px] text-ink-soft/80">
+            <p className="mt-3 text-[0.6875rem] text-ink-soft/80">
               computed with no arguments — rules that depend on a specific amount or recipient
               are evaluated when the real action runs, and can only tighten this further.
             </p>
-            <p className="mt-2 rounded-btn bg-signal/10 px-3 py-2 text-[11px] font-semibold text-signal ring-1 ring-inset ring-signal/30">
+            <p className="mt-2 rounded-btn bg-signal/10 px-3 py-2 text-[0.75rem] font-semibold text-signal ring-1 ring-inset ring-signal/30">
               {preview.note}
             </p>
           </>
@@ -980,43 +946,11 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
  */
 function ConnectionsComingSoon() {
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      {/* No heading — the page above already carries it. */}
-      <div className="group flex flex-1 flex-col items-center justify-center rounded-card bg-surface/60 px-8 py-16 text-center shadow-soft transition-all duration-slow ease-brand-out animate-spring-in hover:-translate-y-0.5 hover:shadow-depth">
-        {/* Icon badge: radiating signal rings behind a gently floating plug. */}
-        <div
-          className="relative mb-6 animate-rise-in"
-          style={{ animationDelay: "80ms" }}
-        >
-          <span
-            aria-hidden="true"
-            className="absolute inset-0 rounded-card ring-2 ring-signal/40 animate-orb-ring"
-          />
-          <span
-            aria-hidden="true"
-            className="absolute inset-0 rounded-card ring-2 ring-signal/30 animate-orb-ring [animation-delay:900ms]"
-          />
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-card bg-cream-deep shadow-soft transition-transform duration-slow ease-brand-out group-hover:scale-105">
-            <Plug size={28} className="text-ink animate-float" />
-          </div>
-        </div>
-        <p
-          className="text-lg font-extrabold animate-rise-in"
-          style={{ animationDelay: "160ms" }}
-        >
-          connections are coming soon
-        </p>
-        <p
-          className="mx-auto mt-2 max-w-md text-sm text-ink-soft animate-rise-in"
-          style={{ animationDelay: "240ms" }}
-        >
-          this is where you&apos;ll link the apps cosigno can act across — like
-          GitHub, Google, and Slack — each one off until you connect it, and every
-          action still waiting for your signature. we&apos;re putting the final
-          pieces in place. check back shortly.
-        </p>
-      </div>
-    </div>
+    <EmptyState
+      illustration={<EmptyIllustration kind="integrations" />}
+      title="Connections aren't switched on yet"
+      description="This is where you link the apps cosigno can act across. Each one stays off until you connect it, and every action still waits for your signature."
+    />
   );
 }
 
@@ -1028,30 +962,19 @@ function ConnectionsComingSoon() {
  */
 function ConnectionsSkeleton() {
   return (
-    <div className="flex flex-col gap-6" aria-busy="true" aria-label="loading connections">
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="h-3 w-10 rounded-pill bg-cream-deep/70" />
-          <div className="h-8 w-full max-w-[16rem] rounded-pill bg-cream-deep/60" />
-        </div>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-card bg-surface/60 p-5 shadow-soft">
-            <div className="flex items-center gap-2.5">
-              <span className="h-[30px] w-[30px] shrink-0 rounded-btn bg-cream-deep" />
-              <span className="h-3.5 w-24 rounded-pill bg-cream-deep" />
-              <span className="ml-auto h-7 w-20 rounded-btn bg-cream-deep" />
-            </div>
-            <div className="mt-2.5 h-2.5 w-2/3 rounded-pill bg-cream-deep/70" />
-            <div className="mt-1.5 h-2.5 w-1/3 rounded-pill bg-cream-deep/50" />
+    <div className="flex flex-col gap-2" aria-busy="true" aria-label="loading connections">
+      <SkeletonBlock className="mb-2 h-3 w-12" />
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="rounded-card bg-surface p-5 shadow-rest">
+          <div className="flex items-center gap-3">
+            <SkeletonBlock className="h-6 w-6 shrink-0 rounded-pill" />
+            <SkeletonBlock className="h-3.5 w-24" />
+            <SkeletonBlock className="ml-auto h-8 w-20" />
           </div>
-        ))}
-      </section>
-      <section className="flex flex-col gap-2.5">
-        <div className="h-3 w-32 rounded-pill bg-cream-deep/70" />
-        <div className="rounded-card bg-surface/40 px-4 py-5 shadow-soft">
-          <div className="h-2.5 w-4/5 rounded-pill bg-cream-deep/60" />
+          <SkeletonBlock className="mt-4 h-2.5 w-2/3" />
+          <SkeletonBlock className="mt-2 h-2.5 w-1/3" />
         </div>
-      </section>
+      ))}
     </div>
   );
 }
@@ -1059,9 +982,9 @@ function ConnectionsSkeleton() {
 function StatusPill({ status }: { status: ConnectionView["status"] }) {
   const s = STATUS_STYLE[status];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-pill px-2.5 py-0.5 text-[10px] font-bold lowercase tracking-wide ${s.cls}`}>
-      {status === "connected" && <Check size={10} strokeWidth={3} />}
-      {status === "needs_reauth" && <AlertTriangle size={10} />}
+    <span className={badge(s.tone)}>
+      {status === "connected" && <Check size={11} strokeWidth={2.6} aria-hidden="true" />}
+      {status === "needs_reauth" && <AlertTriangle size={11} strokeWidth={2} aria-hidden="true" />}
       {s.label}
     </span>
   );
@@ -1086,7 +1009,7 @@ function McpCard({
   const url = String(conn.metadata?.url ?? "");
 
   return (
-    <div className="rounded-card bg-surface/60 p-4 shadow-soft">
+    <div className="rounded-card bg-surface p-4 shadow-rest">
       <div className="flex flex-wrap items-center gap-2">
         <ConnectorLogo
           kind="mcp"
@@ -1095,25 +1018,25 @@ function McpCard({
           customIcon={conn.metadata?.icon}
           size={26}
         />
-        <span className="text-sm font-extrabold">{conn.display_name}</span>
+        <span className="text-sm font-semibold">{conn.display_name}</span>
         <StatusPill status={conn.status} />
-        <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-[10px] font-bold lowercase text-ink-soft">
+        <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-[0.6875rem] font-semibold text-ink-soft">
           {tools.length} tools
         </span>
         <span className="ml-auto flex gap-2">
-          <button onClick={onTest} disabled={busy === conn.id} className="rounded-btn px-2 py-1.5 text-xs font-bold text-ink-soft hover:bg-cream-deep" title="test connection">
+          <button onClick={onTest} disabled={busy === conn.id} className="rounded-btn px-2 py-1.5 text-xs font-semibold text-ink-soft hover:bg-cream-deep" title="test connection">
             <RefreshCw size={12} className={busy === conn.id ? "animate-spin" : ""} />
           </button>
-          <button onClick={onDisconnect} disabled={busy === conn.id} className="rounded-btn px-3 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep">
+          <button onClick={onDisconnect} disabled={busy === conn.id} className="rounded-btn px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep">
             disconnect
           </button>
         </span>
       </div>
-      <p className="mt-1 truncate text-[11px] text-ink-soft" title={url}>{url}</p>
+      <p className="mt-1 truncate text-[0.75rem] text-ink-soft" title={url}>{url}</p>
 
       <button
         onClick={() => setOpen((v) => !v)}
-        className="mt-2 text-xs font-bold lowercase text-ink-soft underline underline-offset-2"
+        className="mt-2 text-xs font-semibold text-ink-soft underline underline-offset-2"
       >
         {open ? "hide tools" : "manage tools"}
       </button>
@@ -1174,11 +1097,11 @@ function ToolRow({
         {/* An MCP tool name is a developer identifier from a third-party
             server. Lead with what it does; keep the raw name for whoever
             needs to match it against the server's own docs. */}
-        <span className="text-[12px] font-bold">{humanizeActionId(tool.name)}</span>
-        <span className="font-mono text-[10px] text-ink-soft/70">{tool.name}</span>
+        <span className="text-[12px] font-semibold">{humanizeActionId(tool.name)}</span>
+        <span className="font-mono text-[0.6875rem] text-ink-soft/70">{tool.name}</span>
         {tool.tier && <TierBadge tier={tool.tier} />}
         {tool.sensitive && (
-          <span className="inline-flex items-center gap-1 rounded-pill bg-signal/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-signal">
+          <span className="inline-flex items-center gap-1 rounded-pill bg-signal/15 px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-signal">
             <ShieldAlert size={9} /> sensitive
           </span>
         )}
@@ -1186,30 +1109,30 @@ function ToolRow({
           onClick={toggle}
           disabled={busy}
           aria-pressed={tool.enabled}
-          className={`ml-auto rounded-pill px-3 py-1 text-[11px] font-bold lowercase ${
+          className={`ml-auto rounded-pill px-3 py-1 text-[0.75rem] font-semibold ${
             tool.enabled ? "bg-signal text-cream" : "ring-1 ring-inset ring-ink text-ink"
           }`}
         >
           {busy ? "…" : tool.enabled ? "enabled" : "enable"}
         </button>
       </div>
-      <p className="mt-0.5 text-[11px] text-ink-soft">{tool.description || "(no description)"}</p>
+      <p className="mt-0.5 text-[0.75rem] text-ink-soft">{tool.description || "(no description)"}</p>
       {confirming && (
         <div className="mt-2 rounded-btn bg-cream p-2 ring-1 ring-inset ring-signal/40">
-          <p className="text-[11px] font-semibold text-ink">
+          <p className="text-[0.75rem] font-semibold text-ink">
             this tool can read or change data. enable it for your operator to use?
           </p>
           <div className="mt-1.5 flex gap-2">
-            <button onClick={() => set(true, true)} disabled={busy} className="rounded-btn bg-signal px-3 py-1 text-[11px] font-bold text-ink">
+            <button onClick={() => set(true, true)} disabled={busy} className="rounded-btn bg-signal px-3 py-1 text-[0.75rem] font-semibold text-ink">
               yes, enable
             </button>
-            <button onClick={() => setConfirming(false)} className="rounded-btn px-3 py-1 text-[11px] font-bold text-ink-soft hover:bg-cream-deep">
+            <button onClick={() => setConfirming(false)} className="rounded-btn px-3 py-1 text-[0.75rem] font-semibold text-ink-soft hover:bg-cream-deep">
               cancel
             </button>
           </div>
         </div>
       )}
-      {error && <p className="mt-1 text-[11px] font-semibold text-signal">{error}</p>}
+      {error && <p className="mt-1 text-[0.75rem] font-semibold text-signal">{error}</p>}
     </div>
   );
 }
@@ -1253,8 +1176,8 @@ function AddMcpForm({ onAdded }: { onAdded: () => Promise<void> }) {
   }
 
   return (
-    <div className="rounded-card bg-surface/70 p-4 shadow-depth">
-      <p className="text-xs font-bold lowercase tracking-wide text-ink-soft">add a remote MCP server</p>
+    <div className="rounded-card bg-surface p-4 shadow-rest">
+      <p className="t-eyebrow">add a remote MCP server</p>
       <div className="mt-3 flex flex-col gap-3">
         <Labeled label="name">
           <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="my knowledge server" className="w-full rounded-btn bg-cream-deep px-3 py-2 text-sm" />
@@ -1275,7 +1198,7 @@ function AddMcpForm({ onAdded }: { onAdded: () => Promise<void> }) {
         </div>
         {error && <p className="text-xs font-semibold text-signal">{error}</p>}
         {result && <p className="text-xs font-semibold text-ink">{result}</p>}
-        <button onClick={submit} disabled={!ready} className="self-start rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
+        <button onClick={submit} disabled={!ready} className="self-start rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
           {busy ? "testing connection…" : "test & add"}
         </button>
       </div>
@@ -1296,9 +1219,9 @@ function Labeled({
 }) {
   return (
     <label className={`flex flex-col gap-1 ${className}`}>
-      <span className="text-[11px] font-bold lowercase tracking-wide text-ink-soft">{label}</span>
+      <span className="t-eyebrow">{label}</span>
       {children}
-      {hint && <span className="text-[11px] font-semibold text-signal">{hint}</span>}
+      {hint && <span className="text-[0.75rem] font-semibold text-signal">{hint}</span>}
     </label>
   );
 }
@@ -1324,23 +1247,23 @@ function CustomApiCard({
   const meta = conn.metadata as { base_url?: string; actions?: CustomApiActionView[] };
   const actions = meta.actions ?? [];
   return (
-    <div className="rounded-card bg-surface/60 p-4 shadow-soft">
+    <div className="rounded-card bg-surface p-4 shadow-rest">
       <div className="flex flex-wrap items-center gap-2">
         <Plug size={18} className="text-ink-soft" />
-        <span className="text-sm font-extrabold">{conn.display_name}</span>
+        <span className="text-sm font-semibold">{conn.display_name}</span>
         <StatusPill status={conn.status} />
         <button
           onClick={() => {
             if (confirm(`disconnect "${conn.display_name}"? this stops all its actions immediately.`)) onDisconnect();
           }}
           disabled={busy === conn.id}
-          className="ml-auto rounded-btn px-3 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
+          className="ml-auto rounded-btn px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep"
         >
           disconnect
         </button>
       </div>
       {meta.base_url && (
-        <p className="mt-1 font-mono text-[11px] text-ink-soft/80">{meta.base_url}</p>
+        <p className="mt-1 font-mono text-[0.75rem] text-ink-soft/80">{meta.base_url}</p>
       )}
       <div className="mt-2 flex flex-col gap-1.5">
         {actions.map((a) => (
@@ -1348,12 +1271,12 @@ function CustomApiCard({
             {/* Business language leads; the endpoint stays as context. The
                 thing read immediately before approving should say what the
                 action DOES, not which verb and path implement it. */}
-            <span className="text-[11px] font-bold">{humanizeEndpoint(a.method, a.path)}</span>
-            <span className="font-mono text-[10px] text-ink-soft/70">
+            <span className="text-[0.75rem] font-semibold">{humanizeEndpoint(a.method, a.path)}</span>
+            <span className="font-mono text-[0.6875rem] text-ink-soft/70">
               {a.method} {a.path}
             </span>
             <TierBadge tier={RISK_TIER_UI[a.risk] ?? 2} />
-            <span className="min-w-0 flex-1 truncate text-[11px] text-ink-soft" title={a.summary}>
+            <span className="min-w-0 flex-1 truncate text-[0.75rem] text-ink-soft" title={a.summary}>
               {a.summary}
             </span>
             {conn.status === "connected" && (
@@ -1361,7 +1284,7 @@ function CustomApiCard({
                 <button
                   onClick={() => onPreview(a.id)}
                   disabled={busy === `preview:${conn.id}:${a.id}`}
-                  className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 rounded-pill px-2.5 py-1 text-[0.6875rem] font-semibold text-ink-soft hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                   title="dry-run: see what this would do, without doing it"
                 >
                   {busy === `preview:${conn.id}:${a.id}` ? "…" : "dry run"}
@@ -1369,7 +1292,7 @@ function CustomApiCard({
                 <button
                   onClick={() => onPropose(a.id)}
                   disabled={busy === `${conn.id}:${a.id}`}
-                  className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 rounded-pill px-2.5 py-1 text-[0.6875rem] font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
                 </button>
@@ -1462,16 +1385,16 @@ function AddApiToolForm({
     }
   }
 
-  const inputCls = "w-full rounded-btn bg-surface px-3 py-2 text-sm shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal";
+  const inputCls = "w-full rounded-btn bg-surface px-3 py-2 text-sm shadow-rest focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal";
 
   return (
-    <div className="flex flex-col gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
+    <div className="flex flex-col gap-3 rounded-card bg-surface p-4 shadow-rest">
       {/* Import from an OpenAPI / Swagger spec — detects actions + risk tiers. */}
       <div className="rounded-btn bg-cream-deep/50 p-3">
         <button
           type="button"
           onClick={() => setImportOpen((v) => !v)}
-          className="text-xs font-bold lowercase text-ink underline underline-offset-2"
+          className="text-xs font-semibold text-ink underline underline-offset-2"
         >
           {importOpen ? "hide OpenAPI import" : "import from an OpenAPI spec"}
         </button>
@@ -1482,19 +1405,19 @@ function AddApiToolForm({
               onChange={(e) => setSpec(e.target.value)}
               rows={4}
               placeholder='paste the OpenAPI/Swagger JSON — cosigno detects each operation and its risk tier. nothing is fetched or stored; you review and add your key below.'
-              className="w-full resize-y rounded-btn bg-surface px-3 py-2 font-mono text-[11px] shadow-soft"
+              className="w-full resize-y rounded-btn bg-surface px-3 py-2 font-mono text-[0.75rem] shadow-rest"
             />
             <button
               type="button"
               onClick={importSpec}
               disabled={importing || spec.trim().length < 2}
-              className="self-start rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+              className="self-start rounded-btn bg-ink px-3 py-1.5 text-xs font-semibold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             >
               {importing ? "detecting…" : "detect actions"}
             </button>
           </div>
         )}
-        {importMsg && <p className="mt-2 text-[11px] font-semibold text-ink">{importMsg}</p>}
+        {importMsg && <p className="mt-2 text-[0.75rem] font-semibold text-ink">{importMsg}</p>}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -1524,7 +1447,7 @@ function AddApiToolForm({
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-[11px] font-bold lowercase tracking-wide text-ink-soft">actions</span>
+        <span className="t-eyebrow">actions</span>
         {actions.map((a, i) => (
           <div key={i} className="grid gap-2 sm:grid-cols-[5rem_1fr_1fr]">
             <select value={a.method} onChange={(e) => setAction(i, { method: e.target.value })} className={inputCls}>
@@ -1537,13 +1460,13 @@ function AddApiToolForm({
         ))}
         <button
           onClick={() => setActions((p) => [...p, { id: "", summary: "", method: "GET", path: "" }])}
-          className="self-start rounded-btn px-3 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
+          className="self-start rounded-btn px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep"
         >
           + another action
         </button>
       </div>
 
-      <p className="flex items-start gap-1.5 text-[11px] text-ink-soft">
+      <p className="flex items-start gap-1.5 text-[0.75rem] text-ink-soft">
         <AlertTriangle size={12} className="mt-px shrink-0" />
         cosigno tiers each action by risk automatically — writes wait for approval,
         deletes/payments need typed confirmation. it never runs auto unless it&apos;s
@@ -1553,7 +1476,7 @@ function AddApiToolForm({
       <button
         onClick={submit}
         disabled={busy || !name.trim() || !baseUrl.trim() || !apiKey.trim()}
-        className="inline-flex items-center justify-center gap-1.5 rounded-btn bg-ink px-4 py-2.5 text-sm font-extrabold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+        className="inline-flex items-center justify-center gap-1.5 rounded-btn bg-ink px-4 py-2.5 text-sm font-semibold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
       >
         {busy ? "adding…" : <><Check size={14} /> add tool</>}
       </button>
@@ -1574,13 +1497,13 @@ function DeveloperDetails({ provider, vaultReady }: { provider: ProviderMeta; va
   const names = [...(vaultReady ? [] : ["INTEGRATIONS_ENCRYPTION_KEY"]), ...(provider.setupEnv ?? [])];
   if (names.length === 0) return null;
   return (
-    <details className="mt-2">
-      <summary className="cursor-pointer list-none text-[11px] font-bold text-ink-soft underline decoration-dotted underline-offset-4">
-        Developer details (shown in development only)
+    <details className="mt-3">
+      <summary className="t-caption cursor-pointer list-none decoration-dotted underline-offset-4 marker:content-[''] hover:underline">
+        Developer details (development only)
       </summary>
       <ul className="mt-1.5 flex flex-col gap-0.5">
         {names.map((n) => (
-          <li key={n} className="font-mono text-[11px] text-ink-soft">
+          <li key={n} className="t-caption font-mono">
             {n} — not set
           </li>
         ))}

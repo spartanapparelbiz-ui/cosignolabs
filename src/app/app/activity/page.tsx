@@ -1,4 +1,5 @@
 import { ActivityStream } from "@/components/app/ActivityStream";
+import { Page, PageHeader } from "@/components/ui/Page";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +11,14 @@ export const metadata = { title: "activity" };
  */
 export default function ActivityPage() {
   return (
-    <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
-      <h1 className="font-display text-2xl font-bold lowercase">activity</h1>
-      <p className="mt-1 text-sm font-semibold text-ink-soft">
-        everything that has happened in your workspace, newest first. anything
-        still waiting on you stays at the top.
-      </p>
-      <ActivityStream />
-    </div>
+    <Page>
+      <PageHeader
+        title="What changed?"
+        description="Everything that has happened here, newest first. Anything still waiting on you stays at the top."
+      />
+      <div className="mt-12">
+        <ActivityStream />
+      </div>
+    </Page>
   );
 }

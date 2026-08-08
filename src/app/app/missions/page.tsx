@@ -1,20 +1,23 @@
-import Link from "next/link";
 import { MissionList } from "@/components/app/MissionList";
 import { MissionRunner } from "@/components/app/MissionRunner";
 import { getUserId } from "@/lib/auth";
 import { servingAllowed } from "@/lib/env";
 import { getStore } from "@/lib/store";
 import type { MissionRecord } from "@/lib/types";
+import { Page, PageHeader, Section } from "@/components/ui/Page";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "missions" };
 
 /**
- * Delegations — every outcome handed to cosigno, active until it's done.
- * The mission list is loaded server-side so it's on screen at first paint;
- * MissionRunner then revalidates client-side (prefetch failures fall back
- * to the client loader unchanged).
+ * Missions — every outcome handed to cosigno, and what each one is doing right
+ * now. The list is loaded server-side so it's on screen at first paint;
+ * MissionRunner then revalidates client-side (prefetch failures fall back to
+ * the client loader unchanged).
+ *
+ * The page used to call these "delegations" while the navigation called them
+ * "missions". One thing, one name.
  */
 export default async function MissionsPage() {
   let initial: MissionRecord[] | undefined;
@@ -29,33 +32,20 @@ export default async function MissionsPage() {
     // fall through — MissionRunner fetches client-side exactly as before
   }
   return (
-    <div className="mx-auto flex w-full max-w-none flex-1 flex-col px-6 lg:px-10 py-8">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="font-display text-2xl font-bold lowercase">delegations</h1>
-          <p className="mt-1 text-sm font-semibold text-ink-soft">
-            every outcome you&apos;ve handed to cosigno — with its real momentum,
-            derived from what actually executed, what you vetoed, and what
-            still needs you. delegate outcomes, not steps.
-          </p>
-        </div>
-        <Link
-          href="/app"
-          prefetch
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform duration-fast hover:-translate-y-px active:scale-95"
-        >
-          new delegation
-        </Link>
-      </div>
-      <div className="mt-6">
+    <Page width="work">
+      {/* No action in the header: the composer below starts a mission, and a
+          second button that navigates elsewhere to do the same job is the kind
+          of duplicate that makes a product feel assembled rather than made. */}
+      <PageHeader
+        title="What is cosigno working on?"
+        description="Every outcome you've handed over, with what actually ran and what still needs you."
+      />
+      <div className="mt-12">
         <MissionRunner initial={initial} />
       </div>
-      <h2 className="mt-8 text-sm font-extrabold lowercase tracking-widest text-ink-soft">
-        command threads
-      </h2>
-      <div className="mt-3 flex-1">
+      <Section label="Threads">
         <MissionList />
-      </div>
-    </div>
+      </Section>
+    </Page>
   );
 }

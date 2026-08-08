@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Check, Info, Loader2, ShieldCheck, TriangleAlert } from "lucide-react";
 import { GALLERY } from "./galleryRules";
+import { Page, PageHeader } from "@/components/ui/Page";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
 
 /**
  * Safety rules — "test an AI rule before turning it on."
@@ -198,18 +200,11 @@ export function SafetyRules() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8">
-      <header>
-        <p className="text-xs font-black uppercase tracking-[0.28em] text-signal">safety rules</p>
-        {/* No `lowercase` class here: it would render the acronym as "ai".
-            The sentence is written in the app's lowercase voice by hand. */}
-        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          test an AI rule before turning it on.
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm font-semibold text-ink-soft">
-          cosigno safely checks your previous work to show exactly what would change.
-        </p>
-      </header>
+    <Page width="work">
+      <PageHeader
+        title="What happens if you turn this on?"
+        description="Write a rule and cosigno replays your past work against it, so you see exactly what would have changed before anything binds."
+      />
 
       {enabled ? (
         <RuleEnabled result={enabled} onAddAnother={() => setEnabled(null)} />
@@ -240,7 +235,7 @@ export function SafetyRules() {
           )}
         </>
       )}
-    </div>
+    </Page>
   );
 }
 
@@ -258,7 +253,7 @@ function Editor({
   onCheck: () => void;
 }) {
   return (
-    <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+    <div className="mt-12 flex flex-col gap-2 sm:flex-row">
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -269,21 +264,15 @@ function Editor({
         }}
         placeholder="e.g. always ask before deleting files"
         aria-label="the rule you want to test"
-        className="min-h-[52px] flex-1 rounded-btn border border-line bg-surface px-4 text-sm outline-none transition focus:ring-2 focus:ring-signal"
+        className={field("lg")}
       />
-      <button
-        onClick={onCheck}
-        disabled={busy || !text.trim()}
-        className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-btn bg-signal px-6 text-sm font-extrabold lowercase text-ink shadow-soft transition-transform active:scale-95 disabled:cursor-not-allowed disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none"
-      >
+      <button onClick={onCheck} disabled={busy || !text.trim()} className={btn("primary", "lg", "shrink-0")}>
         {busy ? (
           <>
-            <Loader2 size={16} className="animate-spin" aria-hidden="true" /> checking your work…
+            <Loader2 size={15} className="animate-spin" aria-hidden="true" /> Checking…
           </>
         ) : (
-          <>
-            <ShieldCheck size={16} aria-hidden="true" /> test this rule
-          </>
+          "Test this rule"
         )}
       </button>
     </div>
@@ -301,36 +290,35 @@ function Gallery({
 }) {
   const on = (saved ?? []).filter((r) => r.enabled);
   return (
-    <div className="mt-8">
-      <h2 className="font-display text-xl font-bold lowercase">rules people usually start with</h2>
-      <p className="mt-1 text-sm text-ink-soft">
-        pick one to see what it would have done to your work. nothing turns on until you say so.
+    <div className="mt-14">
+      <h2 className="t-eyebrow">Rules people usually start with</h2>
+      <p className="t-caption mt-1.5">
+        Pick one to see what it would have done. Nothing turns on until you say so.
       </p>
 
-      <div className="mt-5 grid gap-5 sm:grid-cols-2">
+      <div className="mt-7 grid gap-x-10 gap-y-8 sm:grid-cols-2">
         {GALLERY.map((section) => (
           <div key={section.group}>
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ink-soft">
-              {section.group}
-            </p>
-            <div className="mt-2 flex flex-col gap-2">
+            <p className="t-eyebrow">{section.group}</p>
+            <div className="-mx-3 mt-1.5 flex flex-col">
               {section.rules.map((rule) => {
                 const active = isAlreadyOn(saved, rule);
                 return (
                   <button
                     key={rule}
                     onClick={() => onPick(rule)}
-                    className="group flex items-center justify-between gap-3 rounded-card border border-line bg-surface px-4 py-3 text-left text-sm font-semibold shadow-soft transition-all duration-fast hover:-translate-y-0.5 hover:border-signal hover:shadow-depth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+                    className="group flex items-center justify-between gap-3 rounded-btn px-3 py-2.5 text-left text-[0.9375rem] transition-colors duration-fast hover:bg-ink/[0.035] focus-visible:outline-none focus-visible:bg-ink/[0.05]"
                   >
                     <span className={active ? "text-ink-soft" : undefined}>{rule}</span>
                     {active ? (
-                      <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold text-signal">
-                        <Check size={13} aria-hidden="true" /> on
+                      <span className="t-caption flex shrink-0 items-center gap-1 text-positive">
+                        <Check size={13} strokeWidth={2.2} aria-hidden="true" /> on
                       </span>
                     ) : (
                       <ArrowRight
-                        size={15}
-                        className="shrink-0 text-ink-soft transition-transform duration-fast group-hover:translate-x-0.5 group-hover:text-signal"
+                        size={14}
+                        strokeWidth={2}
+                        className="shrink-0 -translate-x-1 text-ink-soft opacity-0 transition-all duration-base ease-brand-out group-hover:translate-x-0 group-hover:opacity-100"
                         aria-hidden="true"
                       />
                     )}
@@ -343,18 +331,13 @@ function Gallery({
       </div>
 
       {on.length > 0 && (
-        <div className="mt-10">
-          <h2 className="font-display text-xl font-bold lowercase">already on</h2>
-          <p className="mt-1 text-sm text-ink-soft">
-            cosigno is checking these before every action it takes.
-          </p>
+        <div className="mt-14">
+          <h2 className="t-eyebrow">Already on</h2>
+          <p className="t-caption mt-1.5">cosigno checks these before every action it takes.</p>
           <ul className="mt-3 flex flex-col gap-2">
             {on.map((r) => (
-              <li
-                key={r.id}
-                className="flex items-center gap-2.5 rounded-card border border-line bg-surface px-4 py-3 text-sm font-semibold shadow-soft"
-              >
-                <Check size={15} className="shrink-0 text-signal" aria-hidden="true" />
+              <li key={r.id} className="flex items-center gap-2.5 text-[0.9375rem]">
+                <Check size={14} strokeWidth={2.2} className="shrink-0 text-positive" aria-hidden="true" />
                 {r.text}
               </li>
             ))}
@@ -397,7 +380,7 @@ function Report({
       <Understood rule={result.rule} />
       <CoverageNotice coverage={result.coverage} reading={result.rule.reading} />
 
-      <h2 className="mt-8 font-display text-xl font-bold lowercase">over your previous work</h2>
+      <h2 className="mt-8 font-display text-xl font-semibold">Over your previous work</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <Stat
           value={result.missions_affected}
@@ -423,12 +406,12 @@ function Report({
 
       {affected.length > 0 && (
         <section className="mt-8">
-          <h2 className="font-display text-xl font-bold lowercase">what would have changed</h2>
+          <h2 className="font-display text-xl font-semibold">What would have changed</h2>
           <ul className="mt-3 flex flex-col gap-2">
             {affected.map((a) => (
               <li
                 key={a.id}
-                className="rounded-card border border-line bg-surface p-4 shadow-soft"
+                className="rounded-card border border-line bg-surface p-4 shadow-rest"
               >
                 <p className="text-sm font-semibold">{a.summary}</p>
                 <div className="mt-2.5 flex flex-wrap items-center gap-2">
@@ -443,20 +426,20 @@ function Report({
       )}
 
       {alreadyOn ? (
-        <p className="mt-8 flex items-center gap-2.5 rounded-card border border-line bg-surface p-4 text-sm font-semibold shadow-soft">
+        <p className="mt-8 flex items-center gap-2.5 rounded-card border border-line bg-surface p-4 text-sm font-semibold shadow-rest">
           <Check size={16} className="shrink-0 text-signal" aria-hidden="true" />
-          you already have this rule on — nothing to do.
+          You already have this rule on — nothing to do.
         </p>
       ) : (
         <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
           <button
             onClick={onTurnOn}
             disabled={saving}
-            className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-btn bg-ink px-6 text-sm font-extrabold lowercase text-cream shadow-soft transition-transform active:scale-95 disabled:opacity-60"
+            className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-btn bg-ink px-6 text-sm font-semibold text-cream shadow-rest transition-transform active:scale-95 disabled:opacity-60"
           >
             {saving ? (
               <>
-                <Loader2 size={16} className="animate-spin" aria-hidden="true" /> turning it on…
+                <Loader2 size={16} className="animate-spin" aria-hidden="true" /> Turning it on…
               </>
             ) : (
               <>
@@ -488,13 +471,13 @@ function Understood({ rule }: { rule: CheckResult["rule"] }) {
   const r = rule.reading;
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <div className="rounded-card border border-line bg-surface p-5 shadow-soft">
-        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ink-soft">you wrote</p>
-        <p className="mt-1.5 font-display text-lg font-bold">{rule.text}</p>
+      <div className="rounded-card border border-line bg-surface p-5 shadow-rest">
+        <p className="t-eyebrow">You wrote</p>
+        <p className="mt-1.5 font-display text-lg font-semibold">{rule.text}</p>
       </div>
 
-      <div className="rounded-card border border-line bg-surface p-5 shadow-soft">
-        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ink-soft">
+      <div className="rounded-card border border-line bg-surface p-5 shadow-rest">
+        <p className="t-eyebrow">
           cosigno understood
         </p>
         <dl className="mt-2.5 flex flex-col gap-2">
@@ -506,11 +489,11 @@ function Understood({ rule }: { rule: CheckResult["rule"] }) {
       </div>
 
       {r.broad && (
-        <p className="flex items-start gap-2.5 rounded-card border border-ink bg-surface p-4 text-sm shadow-soft sm:col-span-2">
+        <p className="flex items-start gap-2.5 rounded-card border border-ink bg-surface p-4 text-sm shadow-rest sm:col-span-2">
           <TriangleAlert size={16} className="mt-0.5 shrink-0 text-ink" aria-hidden="true" />
           <span>
-            <b>this rule doesn&apos;t name one action.</b> as written it governs{" "}
-            <b>everything</b> cosigno does in {r.scope.toLowerCase()} — including reading. name the
+            <b>This rule doesn&apos;t name one action.</b> as written it governs{" "}
+            <b>Everything</b> cosigno does in {r.scope.toLowerCase()} — including reading. name the
             action you mean (send, delete, post…) and it will only ever catch that.
           </span>
         </p>
@@ -540,10 +523,10 @@ function CoverageNotice({ coverage, reading }: { coverage: Coverage; reading: Ru
           ? `cosigno can't ${reading.action.toLowerCase()} in ${listNames(noSuchCapability)} — that isn't something it can do there`
           : "cosigno can't perform this action anywhere yet";
     return (
-      <p className="mt-3 flex items-start gap-2.5 rounded-card border border-ink bg-surface p-4 text-sm shadow-soft">
+      <p className="mt-3 flex items-start gap-2.5 rounded-card border border-ink bg-surface p-4 text-sm shadow-rest">
         <TriangleAlert size={16} className="mt-0.5 shrink-0 text-ink" aria-hidden="true" />
         <span>
-          <b>this rule is valid, but nothing can trigger it today.</b> {why}, so turning it on
+          <b>This rule is valid, but nothing can trigger it today.</b> {why}, so turning it on
           protects nothing right now. it will be stored, and it starts protecting the moment that
           support exists — but do not count on it until then.
         </span>
@@ -557,7 +540,7 @@ function CoverageNotice({ coverage, reading }: { coverage: Coverage; reading: Ru
   if (gaps.length === 0) return null;
 
   return (
-    <p className="mt-3 flex items-start gap-2.5 rounded-card border border-line bg-surface p-4 text-sm text-ink-soft shadow-soft">
+    <p className="mt-3 flex items-start gap-2.5 rounded-card border border-line bg-surface p-4 text-sm text-ink-soft shadow-rest">
       <Info size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
       <span>
         this covers{" "}
@@ -568,13 +551,13 @@ function CoverageNotice({ coverage, reading }: { coverage: Coverage; reading: Ru
         .{" "}
         {noConnector.length > 0 && (
           <>
-            it does <b className="text-ink">not</b> cover {listNames(noConnector)} — there is no
+            It does <b className="text-ink">not</b> cover {listNames(noConnector)} — there is no
             connector for {noConnector.length === 1 ? "it" : "those"} yet.{" "}
           </>
         )}
         {noSuchCapability.length > 0 && (
           <>
-            it also does <b className="text-ink">not</b> cover {listNames(noSuchCapability)}, where{" "}
+            It also does <b className="text-ink">not</b> cover {listNames(noSuchCapability)}, where{" "}
             cosigno has no {reading.action.toLowerCase()} capability.
           </>
         )}
@@ -586,8 +569,8 @@ function CoverageNotice({ coverage, reading }: { coverage: Coverage; reading: Ru
 function Term({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline gap-2">
-      <dt className="w-24 shrink-0 text-[11px] font-bold lowercase text-ink-soft">{label}</dt>
-      <dd className="text-sm font-bold">{value}</dd>
+      <dt className="w-24 shrink-0 text-[0.75rem] font-semibold text-ink-soft">{label}</dt>
+      <dd className="text-sm font-semibold">{value}</dd>
     </div>
   );
 }
@@ -600,7 +583,7 @@ function Verdict({ verdict }: { verdict: (typeof VERDICT)[keyof typeof VERDICT] 
         ? "border-ink"
         : "border-line";
   return (
-    <div className={`mt-5 flex items-start gap-3 rounded-card border ${ring} bg-surface p-4 shadow-soft`}>
+    <div className={`mt-5 flex items-start gap-3 rounded-card border ${ring} bg-surface p-4 shadow-rest`}>
       {verdict.tone === "good" ? (
         <ShieldCheck size={18} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
       ) : verdict.tone === "warn" ? (
@@ -609,7 +592,7 @@ function Verdict({ verdict }: { verdict: (typeof VERDICT)[keyof typeof VERDICT] 
         <Check size={18} className="mt-0.5 shrink-0 text-ink-soft" aria-hidden="true" />
       )}
       <div>
-        <p className="text-sm font-bold">{verdict.title}</p>
+        <p className="text-sm font-semibold">{verdict.title}</p>
         <p className="mt-0.5 text-sm text-ink-soft">{verdict.body}</p>
       </div>
     </div>
@@ -619,11 +602,11 @@ function Verdict({ verdict }: { verdict: (typeof VERDICT)[keyof typeof VERDICT] 
 function Stat({ value, label, emphasis }: { value: number; label: string; emphasis?: boolean }) {
   return (
     <div
-      className={`rounded-card border bg-surface p-4 shadow-soft ${
+      className={`rounded-card border bg-surface p-4 shadow-rest ${
         emphasis && value > 0 ? "border-signal" : "border-line"
       }`}
     >
-      <p className="font-display text-3xl font-bold tabular-nums">{value}</p>
+      <p className="font-display text-3xl font-semibold tabular-nums">{value}</p>
       <p className="mt-0.5 text-sm font-semibold text-ink-soft">{label}</p>
     </div>
   );
@@ -637,7 +620,7 @@ function Pill({ label, tone }: { label: string; tone: "before" | "after" | "bloc
     blocked: "bg-ink text-cream",
   } as const;
   return (
-    <span className={`rounded-pill px-2.5 py-1 text-xs font-bold ${TONE[tone]}`}>{label}</span>
+    <span className={`rounded-pill px-2.5 py-1 text-xs font-semibold ${TONE[tone]}`}>{label}</span>
   );
 }
 
@@ -645,41 +628,48 @@ function Pill({ label, tone }: { label: string; tone: "before" | "after" | "bloc
 
 function RuleEnabled({ result, onAddAnother }: { result: CheckResult; onAddAnother: () => void }) {
   return (
-    <div className="mt-8 animate-spring-in rounded-card border border-signal bg-surface p-8 text-center shadow-depth">
-      <span className={`mx-auto flex h-12 w-12 items-center justify-center rounded-pill ${result.coverage.unreachable ? "bg-cream-deep" : "bg-signal"}`}>
-        <Check size={26} strokeWidth={3} className="text-ink" aria-hidden="true" />
+    <div className="mt-12 flex animate-card-in flex-col items-center px-6 py-16 text-center">
+      {/* The quiet celebration: the mark pops once and the tick draws itself.
+          Half a second, then it is over — turning on a rule is a decision, not
+          an achievement to be applauded. */}
+      <span
+        className={`flex h-11 w-11 animate-check-pop items-center justify-center rounded-pill ${
+          result.coverage.unreachable ? "bg-ink/[0.07]" : "bg-positive"
+        }`}
+      >
+        <Check
+          size={22}
+          strokeWidth={2.6}
+          className={result.coverage.unreachable ? "text-ink-soft" : "text-cream"}
+          aria-hidden="true"
+        />
       </span>
-      <p className="mt-4 font-display text-2xl font-bold lowercase">
-        {result.coverage.unreachable ? "rule saved" : "rule is on"}
+      <p className="t-display mt-6 text-[1.5rem]">
+        {result.coverage.unreachable ? "Rule saved" : "Rule is on"}
       </p>
       {/* The person's own sentence back, and what cosigno now promises about
           it — not the parser's structured reading, which belongs in the report
           where it is being checked, not in the confirmation. */}
-      <p className="mx-auto mt-2 max-w-md font-display text-lg font-bold">
-        {result.rule.text}
-      </p>
+      <p className="t-title mx-auto mt-3 max-w-[28rem]">{result.rule.text}</p>
       {result.coverage.unreachable ? (
         /* Confirming a save is honest; celebrating protection that does not
            exist is not. The wording changes because the truth changed. */
-        <p className="mx-auto mt-2 max-w-md text-sm font-semibold">
-          it is not protecting anything yet — cosigno cannot perform this action today. it will
-          start the moment that support exists.
+        <p className="t-caption mx-auto mt-3 max-w-[28rem]">
+          It isn&apos;t protecting anything yet — cosigno can&apos;t do this action today. It
+          starts the moment that changes.
         </p>
       ) : (
         <>
-          <p className="mx-auto mt-2 max-w-md text-sm font-semibold">
-            from now on, {PROMISE[result.rule.requirement] ?? "cosigno checks with you first"}.
+          <p className="t-body mx-auto mt-3 max-w-[28rem]">
+            From now on, {PROMISE[result.rule.requirement] ?? "cosigno checks with you first"}.
           </p>
-          <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
-            nothing else changes, and work that already happened is untouched.
+          <p className="t-caption mx-auto mt-2 max-w-[28rem]">
+            Nothing else changes, and work that already happened is untouched.
           </p>
         </>
       )}
-      <button
-        onClick={onAddAnother}
-        className="mt-6 rounded-btn px-5 py-2.5 text-sm font-bold lowercase ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep"
-      >
-        test another rule
+      <button onClick={onAddAnother} className={btn("secondary", "md", "mt-8")}>
+        Test another rule
       </button>
     </div>
   );

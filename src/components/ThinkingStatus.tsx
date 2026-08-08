@@ -84,7 +84,7 @@ export function ThinkingStatus({
   return (
     <p
       role="status"
-      className="mt-2 flex items-center gap-2 text-xs font-bold lowercase tracking-wide text-ink-soft"
+      className="mt-2 flex items-center gap-2 text-xs font-semibold tracking-wide text-ink-soft"
     >
       {live ? (
         <span

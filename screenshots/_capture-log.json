@@ -65,14 +65,14 @@
   {
     "folder": "02-auth",
     "file": "sign-in-desktop.png",
-    "note": "Sign in (Clerk unconfigured in demo)",
+    "note": "Sign in (live auth unconfigured in demo)",
     "ok": true,
     "errors": []
   },
   {
     "folder": "02-auth",
     "file": "sign-up-desktop.png",
-    "note": "Sign up (Clerk unconfigured in demo)",
+    "note": "Sign up (live auth unconfigured in demo)",
     "ok": true,
     "errors": []
   },
@@ -196,20 +196,6 @@
     "errors": []
   },
   {
-    "folder": "06-boundary",
-    "file": "signature-drawn-desktop.png",
-    "note": "Signature drawn, ready to authorize",
-    "ok": true,
-    "errors": []
-  },
-  {
-    "folder": "06-boundary",
-    "file": "signature-sealed-desktop.png",
-    "note": "Signature sealing — Signed by Nicholas",
-    "ok": true,
-    "errors": []
-  },
-  {
     "folder": "08-activity",
     "file": "activity-ledger-desktop.png",
     "note": "Activity ledger — filters, search, today",
@@ -268,7 +254,7 @@
   {
     "folder": "10-settings",
     "file": "account-permissions-desktop.png",
-    "note": "Permission tiers board (auto/approve/sign)",
+    "note": "Trust panel — what cosigno may do",
     "ok": true,
     "errors": []
   },
@@ -289,14 +275,16 @@
   {
     "folder": "10-settings",
     "file": "account-usage-desktop.png",
-    "note": "Plan & usage panel (tab labeled \"plan & usage\", deep-linked)",
-    "ok": true
+    "note": "Usage / plan panel",
+    "ok": false,
+    "reason": "panel tab \"usage\" not found on /app/account"
   },
   {
     "folder": "10-settings",
     "file": "account-integrations-desktop.png",
-    "note": "Connections/integrations panel (tab labeled \"connections\", deep-linked)",
-    "ok": true
+    "note": "Integrations panel",
+    "ok": false,
+    "reason": "panel tab \"integrations\" not found on /app/account"
   },
   {
     "folder": "12-misc",

@@ -1,4 +1,5 @@
 import { BrowserOperatorView } from "@/components/app/BrowserOperatorView";
+import { Page } from "@/components/ui/Page";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +15,8 @@ export default async function BrowserMissionPage({
 }) {
   const { missionId } = await params;
   return (
-    <div className="mx-auto flex w-full max-w-none flex-1 flex-col px-6 lg:px-10 py-8">
+    <Page width="wide">
       <BrowserOperatorView missionId={missionId} />
-    </div>
+    </Page>
   );
 }

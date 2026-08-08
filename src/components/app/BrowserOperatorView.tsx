@@ -118,8 +118,8 @@ function factLines(p: BrowserProductRecord): string[] {
   return lines;
 }
 
-const CARD = "rounded-card border border-line/70 bg-surface p-5 shadow-soft";
-const LABEL = "text-xs font-extrabold uppercase tracking-widest text-ink-soft";
+const CARD = "rounded-card border border-line/70 bg-surface p-5 shadow-rest";
+const LABEL = "text-xs font-semibold uppercase tracking-[0.1em] text-ink-soft";
 
 export function BrowserOperatorView({ missionId }: { missionId: string }) {
   const toast = useToast();
@@ -194,8 +194,8 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
     return (
       <div className={`${CARD} text-center`}>
         <p className="text-sm font-semibold text-ink-soft">{error}</p>
-        <button onClick={load} className="mt-3 rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep">
-          try again
+        <button onClick={load} className="mt-3 rounded-btn px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep">
+          Try again
         </button>
       </div>
     );
@@ -226,7 +226,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
           <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-pill bg-signal/15">
             <Check size={20} className="text-signal" strokeWidth={3} />
           </span>
-          <h1 className="mt-2 font-display text-2xl font-bold">Mission complete</h1>
+          <h1 className="mt-2 font-display text-2xl font-semibold">Mission complete</h1>
           <p className="mt-1 text-sm font-semibold text-ink-soft">
             {products.length} laptop{products.length === 1 ? " was" : "s were"} compared{rec ? " and one recommendation was selected." : ". No recommendation was made — no product had a confirmed price."}
           </p>
@@ -235,7 +235,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
         {rec && (
           <section className={CARD}>
             <h2 className={LABEL}>Recommended option</h2>
-            <p className="mt-2 text-lg font-extrabold">{rec.name}</p>
+            <p className="mt-2 text-lg font-semibold">{rec.name}</p>
             <p className="mt-1 text-sm font-semibold text-ink-soft">
               {rec.price !== null ? `$${rec.price.toFixed(2)}` : "price not confirmed"} · {rec.retailer}
             </p>
@@ -246,7 +246,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
               href={rec.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-semibold text-ink shadow-rest transition-transform active:scale-95"
             >
               Open recommended product <ArrowUpRight size={15} />
             </a>
@@ -260,12 +260,12 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
               {others.map((p) => (
                 <div key={p.id} className="flex items-start justify-between gap-3 rounded-btn bg-cream/40 px-3 py-2.5">
                   <div className="min-w-0">
-                    <p className="text-sm font-bold">{p.name}</p>
+                    <p className="text-sm font-semibold">{p.name}</p>
                     <p className="text-xs text-ink-soft">
                       {p.current_price !== null ? `$${p.current_price.toFixed(2)}` : "price not shown"} · {p.retailer}
                     </p>
                   </div>
-                  <a href={p.product_url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-xs font-bold underline underline-offset-2">
+                  <a href={p.product_url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-xs font-semibold underline underline-offset-2">
                     view
                   </a>
                 </div>
@@ -279,7 +279,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
             <h2 className={LABEL}>Final report</h2>
             <p className="mt-1 text-sm font-semibold">{String(reportStep.output?.file_name ?? "Laptop comparison")}</p>
           </div>
-          <Link href="/app/files" className="rounded-btn bg-ink px-4 py-2.5 text-sm font-bold text-cream">
+          <Link href="/app/files" className="rounded-btn bg-ink px-4 py-2.5 text-sm font-semibold text-cream">
             Open comparison
           </Link>
         </section>
@@ -288,10 +288,10 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
           Prices and availability may change after this Mission was completed.
         </p>
         <div className="flex flex-wrap justify-center gap-2">
-          <Link href="/app" className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep">
+          <Link href="/app" className="rounded-btn px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep">
             Research more options
           </Link>
-          <Link href="/app" className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep">
+          <Link href="/app" className="rounded-btn px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep">
             Start another Mission
           </Link>
         </div>
@@ -304,20 +304,20 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="truncate font-display text-xl font-bold sm:text-2xl">{mission.goal}</h1>
+          <h1 className="truncate font-display text-xl font-semibold sm:text-2xl">{mission.goal}</h1>
           <p className="mt-0.5 text-sm font-semibold text-ink-soft">
             {done} of {steps.length} steps complete
           </p>
         </div>
-        <Link href="/app/missions" className="shrink-0 text-sm font-bold text-ink-soft hover:text-ink">
-          all missions
+        <Link href="/app/missions" className="shrink-0 text-sm font-semibold text-ink-soft hover:text-ink">
+          All missions
         </Link>
       </div>
 
       {/* mission question (e.g. which country) */}
       {mission.pending_question && (
         <div className="rounded-card bg-signal/10 p-4 ring-1 ring-inset ring-signal/30">
-          <p className="text-sm font-extrabold">{mission.pending_question.question}</p>
+          <p className="text-sm font-semibold">{mission.pending_question.question}</p>
           <p className="mt-0.5 text-xs text-ink-soft">{mission.pending_question.why}</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {mission.pending_question.options.map((o) => (
@@ -325,7 +325,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
                 key={o}
                 onClick={() => answer(o)}
                 disabled={busy === "answer"}
-                className={`rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
+                className={`rounded-btn px-3.5 py-1.5 text-xs font-semibold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
                   o === mission.pending_question?.recommended ? "bg-signal text-ink" : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                 }`}
               >
@@ -341,15 +341,15 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
         <section className={CARD}>
           <div className="flex flex-wrap items-center gap-2">
             <Globe size={15} className="shrink-0 text-ink-soft" aria-hidden="true" />
-            <p className="min-w-0 flex-1 truncate text-sm font-extrabold">
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold">
               {hostOf(session?.current_url ?? null) || "no page open yet"}
             </p>
-            <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-bold ${SESSION_TONE[statusLabel] ?? "bg-cream-deep text-ink-soft"}`}>
+            <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[0.75rem] font-semibold ${SESSION_TONE[statusLabel] ?? "bg-cream-deep text-ink-soft"}`}>
               {statusLabel}
             </span>
           </div>
           {session?.current_url && (
-            <p className="mt-1 truncate text-[11px] text-ink-soft" title={session.current_url}>
+            <p className="mt-1 truncate text-[0.75rem] text-ink-soft" title={session.current_url}>
               {session.current_url}
             </p>
           )}
@@ -366,8 +366,8 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
             )}
           </div>
           {!live && session && (
-            <p className="mt-2 text-[11px] font-semibold text-ink-soft">
-              sandbox session — labeled example pages, not the live web. connect a browser provider for real pages.
+            <p className="mt-2 text-[0.75rem] font-semibold text-ink-soft">
+              Sandbox session — labeled example pages, not the live web. connect a browser provider for real pages.
             </p>
           )}
 
@@ -376,7 +376,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
               <button
                 onClick={() => control("resume")}
                 disabled={busy !== null}
-                className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-semibold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
                 <Play size={12} /> Resume
               </button>
@@ -384,7 +384,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
               <button
                 onClick={() => control("pause")}
                 disabled={busy !== null || sessionEnded}
-                className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-semibold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Pause size={12} /> Pause
               </button>
@@ -392,7 +392,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
             <button
               onClick={() => control("stop")}
               disabled={busy !== null || sessionEnded}
-              className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Square size={12} /> Stop
             </button>
@@ -400,7 +400,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
               onClick={() => control("refresh")}
               disabled={busy !== null || !session?.current_url || !live}
               title={live ? "re-capture the current page" : "previews refresh automatically in the sandbox"}
-              className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-semibold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw size={12} className={busy === "refresh" ? "animate-spin" : ""} /> Refresh preview
             </button>
@@ -412,14 +412,14 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
         <div className="flex flex-col gap-5">
           <section className={CARD}>
             <h2 className={LABEL}>What cosigno is doing</h2>
-            <p className="mt-1.5 text-sm font-bold">{doing}</p>
+            <p className="mt-1.5 text-sm font-semibold">{doing}</p>
           </section>
 
           <section className={CARD}>
             <h2 className={LABEL}>What it found</h2>
             {latest ? (
               <div className="mt-1.5">
-                <p className="text-sm font-bold">{latest.name}</p>
+                <p className="text-sm font-semibold">{latest.name}</p>
                 <ul className="mt-1 flex flex-col gap-0.5 text-sm">
                   {factLines(latest).map((l) => (
                     <li key={l}>• {l}</li>

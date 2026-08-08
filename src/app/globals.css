@@ -16,6 +16,21 @@
   --c-signal: 251 76 32;
   --c-surface: 255 255 255;
 
+  /* The only two colors besides the signal orange, and each one means exactly
+     one thing: positive = connected, done, healthy. danger = destructive or
+     failed. Neither is ever used as a fill, a gradient, or decoration — a dot,
+     a word, or a hairline, and nothing larger. Everything else is ink. */
+  --c-positive: 22 116 78;
+  --c-danger: 178 38 28;
+
+  /* Elevation. A card is a surface, not a box: no border, a hairline of the
+     page's own ink, and a shadow small enough that you notice the card only
+     when it moves. Two steps — resting and hovered — and nothing else. */
+  --elev-hairline: 0 0 0 1px rgba(20, 20, 20, 0.05);
+  --elev-rest: 0 1px 2px rgba(20, 20, 20, 0.04), 0 2px 8px rgba(20, 20, 20, 0.03);
+  --elev-hover: 0 2px 4px rgba(20, 20, 20, 0.05), 0 12px 28px rgba(20, 20, 20, 0.07);
+  --elev-overlay: 0 0 0 1px rgba(20, 20, 20, 0.06), 0 24px 60px rgba(20, 20, 20, 0.16);
+
   /* Logo identity tokens — exact brand values, independent of the product
      palette so the mark renders identically everywhere and flips with the
      theme without a flash (data-theme is set before paint). Light: orange C,
@@ -35,6 +50,15 @@
   --c-line: 58 52 43; /* hairline borders */
   --c-signal: 255 99 64; /* the orange lifts a touch so it pops on dark */
   --c-surface: 34 30 24; /* raised cards, one step above the page */
+  --c-positive: 90 199 148; /* both lift on dark so they stay legible as text */
+  --c-danger: 255 130 112;
+
+  /* Shadows barely read on a dark page, so elevation there is carried by the
+     hairline and the surface step instead. Same names, same two steps. */
+  --elev-hairline: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --elev-rest: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --elev-hover: 0 0 0 1px rgba(255, 255, 255, 0.09), 0 12px 28px rgba(0, 0, 0, 0.42);
+  --elev-overlay: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 24px 60px rgba(0, 0, 0, 0.62);
 
   /* Dark: orange C, CREAM check + wordmark, orange i-dot. */
   --logo-check: #f7f0e5;
@@ -85,6 +109,88 @@ body {
   outline: 2px solid #fb4c20;
   outline-offset: 2px;
   border-radius: 6px;
+}
+
+/* Scrollbars are chrome. Make them the thinnest thing that still works, and
+   let them take the page's own ink rather than the operating system's grey. */
+@supports selector(::-webkit-scrollbar) {
+  .surface-scroll::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .surface-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .surface-scroll::-webkit-scrollbar-thumb {
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-color: rgb(var(--c-ink) / 0.16);
+  }
+  .surface-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--c-ink) / 0.28);
+  }
+}
+.surface-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--c-ink) / 0.18) transparent;
+}
+
+/* ------------------------------------------------------------------------
+   The type scale. Four roles, and a page may not invent a fifth:
+
+     .t-display   the one question a page answers
+     .t-title     the name of a thing inside the page
+     .t-body      everything a person reads
+     .t-caption   what a person only reads when they need it
+
+   Two weights carry all of it — 400 for reading, 600 for naming. Anything
+   heavier reads as shouting, and a page where everything shouts has no
+   hierarchy at all.
+   ------------------------------------------------------------------------ */
+@layer components {
+  .t-display {
+    font-family: var(--font-display), Georgia, serif;
+    font-weight: 600;
+    font-size: 1.75rem;
+    line-height: 1.14;
+    letter-spacing: -0.02em;
+  }
+  @media (min-width: 640px) {
+    .t-display {
+      font-size: 2.25rem;
+    }
+  }
+  .t-title {
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.35;
+    letter-spacing: -0.012em;
+  }
+  .t-body {
+    font-weight: 400;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+  .t-caption {
+    font-weight: 400;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: rgb(var(--c-ink-soft));
+  }
+  /* A caption doing the job of a heading: the quiet label above a group. */
+  .t-eyebrow {
+    font-weight: 600;
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgb(var(--c-ink-soft));
+  }
+  /* Numbers, ids, and payloads line up when they're tabular. */
+  .t-num {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* Signature check motif — shared surface language across the app. */

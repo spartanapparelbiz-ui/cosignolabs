@@ -17,7 +17,7 @@ const CONNECTIONS = readFileSync("src/components/account/ConnectionsPanel.tsx", 
 
 describe("mission control: what is cosigno doing right now?", () => {
   it("asks and answers the question in the header", () => {
-    expect(CONTROL).toMatch(/What cosigno is doing right now/);
+    expect(CONTROL).toMatch(/What is in motion\?/);
   });
 
   it("shows only active work — finished missions are archived, not displayed", () => {
@@ -44,9 +44,9 @@ describe("mission control: what is cosigno doing right now?", () => {
   });
 
   it("quiet is a designed state: start a mission, templates, and where finished work went", () => {
-    expect(CONTROL).toMatch(/No work running/);
-    expect(CONTROL).toMatch(/start a mission/);
-    expect(CONTROL).toMatch(/browse templates/);
+    expect(CONTROL).toMatch(/Nothing is running/);
+    expect(CONTROL).toMatch(/Start a mission/);
+    expect(CONTROL).toMatch(/Browse templates/);
   });
 
   it("the workspace summary shows only real, non-zero numbers", () => {
@@ -83,7 +83,7 @@ describe("policy simulator: what would happen if I added this rule?", () => {
     // The saved rule is what the permissions engine will hold — its parse is
     // shown before the button, so what you approve is what runs.
     expect(SIM).toMatch(/\/api\/rules\?preview=1/);
-    expect(SIM).toMatch(/enabling saves it as:/);
+    expect(SIM).toMatch(/Enabling saves it as:/);
     expect(SIM).toMatch(/fetch\("\/api\/rules", \{\s*method: "POST"/);
   });
 
@@ -120,7 +120,7 @@ describe("policy simulator: what would happen if I added this rule?", () => {
   });
 
   it("explains who is affected, from the replayed decisions", () => {
-    expect(SIM).toMatch(/who&apos;s affected:/);
+    expect(SIM).toMatch(/Who&apos;s affected:/);
     expect(SIM).toMatch(/rule\{activeRules === 1 \? "" : "s"\} currently protecting your workspace/);
   });
 });
@@ -140,8 +140,8 @@ describe("the twin concept is gone; connections is the complete app experience",
     // anything, and listing it as work done would be a claim, not a record.
     expect(CONNECTIONS).toMatch(/mine\.filter\(\(a\) => a\.status === "executed"\)/);
     expect(CONNECTIONS).toMatch(/recent: done\.slice\(0, 3\)/);
-    expect(CONNECTIONS).toMatch(/recently, in \{name\}/);
-    expect(CONNECTIONS).toMatch(/last checked \{checkedAgo\(lastCheckedAt\)\}/);
+    expect(CONNECTIONS).toMatch(/What cosigno does in \{name\} shows up here|<span>Recently<\/span>/);
+    expect(CONNECTIONS).toMatch(/checked \{checkedAgo\(lastCheckedAt\)\}/);
   });
 
   it("per-app value counts are real and never render a zero", () => {
@@ -156,7 +156,7 @@ describe("the twin concept is gone; connections is the complete app experience",
   it("apps are searchable, and no match says so rather than showing an empty list", () => {
     expect(CONNECTIONS).toMatch(/aria-label="search apps"/);
     expect(CONNECTIONS).toMatch(/visibleProviders/);
-    expect(CONNECTIONS).toMatch(/no app matches/);
+    expect(CONNECTIONS).toMatch(/No app matches/);
   });
 
   it("open-app links go to the app's real declared home, never a guessed URL", async () => {
@@ -171,7 +171,7 @@ describe("the twin concept is gone; connections is the complete app experience",
 
   it("a connected app lists the standing rules that govern it — via the SAME matcher enforcement uses", () => {
     expect(CONNECTIONS).toMatch(/ruleAppliesToApp\(r, providerKey, providerName\)/);
-    expect(CONNECTIONS).toMatch(/rules protecting \{providerName\}/);
+    expect(CONNECTIONS).toMatch(/Rules protecting \{providerName\}/);
     const rulesLib = readFileSync("src/lib/rules.ts", "utf8");
     expect(rulesLib).toMatch(/export function ruleAppliesToApp/);
     /* Enforcement stopped reading prose: it resolves both sides to a closed
@@ -183,7 +183,10 @@ describe("the twin concept is gone; connections is the complete app experience",
   });
 
   it("a disconnected app sells what connecting unlocks — its real abilities, one click away", () => {
-    expect(CONNECTIONS).toMatch(/connect \{p\.name\} to let cosigno/);
+    // The unlock list itself, drawn from the provider's real declared
+    // abilities. The list used to carry a "connect X to let cosigno" heading;
+    // the list is the pitch, so the heading went and this pins the list.
+    expect(CONNECTIONS).toMatch(/p\.actions\.slice\(0, UNLOCK_SHOWN\)/);
     // The provider's OWN plain-English summary, not the action id: "whoami"
     // is the engine's word, "read your GitHub profile" is the outcome.
     expect(CONNECTIONS).toMatch(/\{a\.summary\.replace/);

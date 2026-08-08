@@ -14,6 +14,7 @@ import { useKeyboardHints } from "@/lib/useKeyboardHints";
 import { useFaviconStatus } from "@/lib/useFaviconStatus";
 import { sessionCounts, sessionCountsLine } from "@/lib/actionPresentation";
 import { MissionGuide, MissionStatus } from "./MissionGuide";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
 
 /** Static keyword set for inline command autocomplete. */
 const COMMAND_KEYWORDS = [
@@ -373,19 +374,16 @@ export function Workspace() {
   );
 
   return (
-    <div className="flex flex-1 flex-col px-4 py-6">
+    <div className="flex flex-1 flex-col px-5 py-8 sm:px-8">
     <OfferBanner />
     {/* flex-1 + stretched row: both panels fill the viewport below the nav
         instead of sitting content-height with a dead zone beneath. */}
     <div className="mx-auto grid w-full max-w-none flex-1 grid-rows-[auto_minmax(0,1fr)] gap-6 lg:min-h-0 lg:grid-cols-[minmax(320px,5fr)_minmax(380px,7fr)] lg:grid-rows-[minmax(0,1fr)]">
       {/* Left: command input + session thread */}
       <section className="flex min-w-0 flex-col gap-4">
-        <div className={`rounded-card bg-surface/70 p-4 shadow-lift ${thinking ? "animate-ring-flash" : ""}`}>
-          <label
-            htmlFor="command"
-            className="text-xs font-extrabold lowercase tracking-widest text-ink-soft"
-          >
-            command the operator
+        <div className={`${card()} p-5 ${thinking ? "animate-ring-flash" : ""}`}>
+          <label htmlFor="command" className="t-eyebrow">
+            What should cosigno handle?
           </label>
           <textarea
             id="command"
@@ -418,59 +416,57 @@ export function Workspace() {
                 e.currentTarget.blur();
               }
             }}
-            placeholder={'what do you want cosigno to handle?  (press "/" to focus, ↑ recalls)'}
+            placeholder="Describe the outcome you want…"
             rows={3}
-            className="mt-2 w-full resize-none rounded-btn bg-transparent text-lg font-semibold placeholder:text-ink-soft/60 focus:outline-none"
+            className="mt-2.5 w-full resize-none rounded-btn bg-transparent text-[1.0625rem] placeholder:text-ink-soft/60 focus:outline-none"
           />
 
           {suggestions.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] font-bold lowercase text-ink-soft">
+              <span className="text-[0.6875rem] font-semibold text-ink-soft">
                 ↹ complete:
               </span>
               {suggestions.map((s, i) => (
                 <button
                   key={s}
                   onClick={() => acceptSuggestion(s)}
-                  className="rounded-pill bg-cream-deep px-2.5 py-1 text-xs font-semibold transition-colors hover:bg-ink hover:text-cream"
+                  className={btn("ghost", "sm")}
                 >
                   {s}
-                  {i === 0 && <span className="ml-1 text-[9px] text-ink-soft">tab</span>}
+                  {i === 0 && <span className="t-caption ml-1">tab</span>}
                 </button>
               ))}
             </div>
           )}
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-[11px] text-ink-soft">
-              enter (or ⌘/ctrl+enter) to send · shift+enter for a new line · esc to clear
-            </span>
+            <span className="t-caption">Enter to send · shift+enter for a new line</span>
             <button
               onClick={() => submit(command)}
               disabled={thinking || !command.trim()}
-              className="rounded-btn bg-ink px-5 py-2 text-sm font-extrabold text-cream transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+              className={btn("primary", "md")}
             >
-              {thinking ? "planning…" : "send"}
+              {thinking ? "Planning…" : "Send"}
             </button>
           </div>
           <ThinkingStatus thinking={thinking} resolution={resolution} />
         </div>
 
         {error && (
-          <p className="rounded-card bg-cream-deep px-4 py-3 text-sm font-semibold shadow-soft" role="alert">
+          <p className="t-body border-l-2 border-danger pl-3.5 text-danger" role="alert">
             {error}
           </p>
         )}
 
         <div className="flex flex-col gap-2">
           {messages.length === 0 && !thinking && (
-            <div className="rounded-card bg-surface/40 p-5 shadow-soft">
-              <p className="text-sm font-bold text-ink-soft">try one of these:</p>
-              <div className="mt-3 flex flex-wrap gap-2">
+            <div>
+              <p className="t-eyebrow">Try</p>
+              <div className="-ml-2 mt-1.5 flex flex-col items-start">
                 {EXAMPLES.map((ex) => (
                   <button
                     key={ex}
                     onClick={() => submit(ex)}
-                    className="rounded-btn bg-cream-deep px-4 py-2 text-sm font-semibold transition-colors hover:bg-ink hover:text-cream"
+                    className="rounded-btn px-2 py-1.5 text-left text-[0.9375rem] text-ink-soft transition-colors duration-fast hover:text-ink"
                   >
                     {ex}
                   </button>
@@ -483,7 +479,7 @@ export function Workspace() {
             m.role === "user" ? (
               <p
                 key={m.id}
-                className="self-end rounded-card rounded-br-md bg-ink px-4 py-2.5 text-sm font-semibold text-cream"
+                className="self-end rounded-card rounded-br-md bg-ink px-4 py-2.5 text-[0.875rem] text-cream"
               >
                 {m.content}
               </p>
@@ -493,13 +489,13 @@ export function Workspace() {
                   onClick={() =>
                     setReasoningOpen((s) => ({ ...s, [m.id]: !s[m.id] }))
                   }
-                  className="text-xs font-bold lowercase text-ink-soft underline underline-offset-2"
+                  className="text-xs font-semibold text-ink-soft underline underline-offset-2"
                   aria-expanded={Boolean(reasoningOpen[m.id])}
                 >
                   {reasoningOpen[m.id] ? "hide reasoning" : "operator reasoning"}
                 </button>
                 {reasoningOpen[m.id] && (
-                  <p className="mt-1 max-w-md rounded-card rounded-bl-md bg-surface/60 px-4 py-2.5 text-sm text-ink-soft shadow-soft">
+                  <p className="t-body mt-1.5 max-w-md rounded-card rounded-bl-md bg-surface px-4 py-2.5 text-ink-soft shadow-rest">
                     {m.content}
                   </p>
                 )}
@@ -516,9 +512,7 @@ export function Workspace() {
         aria-live="polite"
       >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h2 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
-            action cards
-          </h2>
+          <h2 className="t-eyebrow">Waiting on you</h2>
           <MissionStatus actions={displayActions} planning={thinking} />
           {/* the living logo is the status light — the one live indicator */}
           <span className="ml-auto min-w-0">
@@ -526,9 +520,7 @@ export function Workspace() {
           </span>
         </div>
         {sessionCountsLine(counts) && (
-          <p className="-mt-1.5 text-[11px] font-semibold lowercase text-ink-soft/80">
-            {sessionCountsLine(counts)}
-          </p>
+          <p className="t-caption -mt-1.5">{sessionCountsLine(counts)}</p>
         )}
 
         <MissionGuide actions={displayActions} planning={thinking} onStop={stopMission} />
@@ -538,11 +530,11 @@ export function Workspace() {
         {actions.length === 0 && !thinking && (
           /* my-auto: the empty state sits centered in the panel's height,
              not crammed at the top with a dead zone under it. */
-          <div className="my-auto flex flex-col items-center rounded-card bg-surface/40 p-8 text-center shadow-soft">
-            <EmptyIllustration kind="workspace" className="mb-3" />
-            <p className="max-w-sm text-sm font-semibold text-ink-soft">
-              nothing proposed yet. give the operator a command — every
-              consequential step lands here as a card for your signature.
+          <div className="my-auto flex flex-col items-center px-6 text-center">
+            <EmptyIllustration kind="workspace" className="mb-5 opacity-70" />
+            <p className="t-caption max-w-[24rem]">
+              Nothing proposed yet. Give cosigno a command — every consequential step
+              lands here as a card for your signature.
             </p>
           </div>
         )}
@@ -562,7 +554,7 @@ export function Workspace() {
 
         {settledActions.length > 0 && (
           <details className="mt-2" open={pendingActions.length === 0}>
-            <summary className="cursor-pointer text-xs font-bold lowercase tracking-widest text-ink-soft">
+            <summary className="cursor-pointer text-xs font-semibold tracking-[0.1em] text-ink-soft">
               resolved ({settledActions.length})
             </summary>
             <div className="mt-3 flex flex-col gap-2">

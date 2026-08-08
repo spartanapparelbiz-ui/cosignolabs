@@ -138,7 +138,7 @@ export function LogoStatus({
       </span>
 
       <span
-        className={`min-w-0 truncate text-xs font-bold lowercase tracking-widest ${
+        className={`min-w-0 truncate text-xs font-semibold tracking-[0.1em] ${
           state === "awaiting" ? "text-signal" : "text-ink-soft"
         }`}
       >

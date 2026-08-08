@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Eye, Repeat } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
 
 /**
  * The skill catalog. Every card is honest about what installing does: it
@@ -79,13 +80,13 @@ export function SkillsPanel() {
 
   if (error) {
     return (
-      <div className="mt-5 rounded-card bg-surface/60 p-6 text-center shadow-soft">
+      <div className="mt-5 rounded-card bg-surface p-6 text-center shadow-rest">
         <p className="text-sm font-semibold text-ink-soft">{error}</p>
         <button
           onClick={load}
-          className="mt-3 rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep"
+          className={btn("secondary", "md", "mt-5")}
         >
-          try again
+          Try again
         </button>
       </div>
     );
@@ -104,12 +105,12 @@ export function SkillsPanel() {
   return (
     <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
       {skills.map((s) => (
-        <div key={s.key} className="flex flex-col rounded-card border border-line/70 bg-surface p-5 shadow-soft">
+        <div key={s.key} className="flex flex-col rounded-card border border-line/70 bg-surface p-5 shadow-rest">
           <div className="flex items-start justify-between gap-2">
-            <h2 className="text-base font-extrabold">{s.name}</h2>
+            <h2 className="text-base font-semibold">{s.name}</h2>
             {s.installed && (
-              <span className="inline-flex items-center gap-1 rounded-pill bg-signal/15 px-2.5 py-0.5 text-[11px] font-bold text-ink">
-                <Check size={11} strokeWidth={3} /> installed
+              <span className={badge("positive")}>
+                <Check size={11} strokeWidth={3} /> Installed
               </span>
             )}
           </div>
@@ -123,7 +124,7 @@ export function SkillsPanel() {
                   <Repeat size={13} className="shrink-0" />
                 )}
                 <span className="min-w-0 flex-1 truncate">{i.name}</span>
-                <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide">
+                <span className="shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide">
                   {i.mode === "monitor" ? "watch" : "prepare"} · {cadence(i.interval_hours)}
                 </span>
               </li>
@@ -132,7 +133,7 @@ export function SkillsPanel() {
           <button
             onClick={() => toggle(s)}
             disabled={busy === s.key}
-            className={`mt-4 rounded-btn px-4 py-2 text-sm font-extrabold transition-transform active:scale-[0.98] disabled:opacity-50 ${
+            className={`mt-4 rounded-btn px-4 py-2 text-sm font-semibold transition-transform active:scale-[0.98] disabled:opacity-50 ${
               s.installed
                 ? "text-ink-soft ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                 : "bg-ink text-cream"

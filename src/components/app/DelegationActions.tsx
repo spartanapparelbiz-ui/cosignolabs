@@ -101,15 +101,15 @@ export function DelegationActions({
     <>
       <button
         onClick={openBrief}
-        className="rounded-btn px-3 py-1.5 text-xs font-bold lowercase text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink"
+        className="rounded-btn px-3 py-1.5 text-xs font-semibold text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink"
       >
-        brief me
+        Brief me
       </button>
       {showFinish && (
         <button
           onClick={(e) => continueWork("finish", e)}
           disabled={busy !== null}
-          className="inline-flex items-center gap-1 rounded-btn px-3 py-1.5 text-xs font-bold lowercase text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1 rounded-btn px-3 py-1.5 text-xs font-semibold text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Sparkles size={11} /> {busy === "finish" ? "…" : "finish this"}
         </button>
@@ -118,7 +118,7 @@ export function DelegationActions({
         <button
           onClick={(e) => continueWork("rescue", e)}
           disabled={busy !== null}
-          className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold lowercase text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-semibold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
         >
           <LifeBuoy size={11} /> {busy === "rescue" ? "rescuing…" : "rescue this"}
         </button>
@@ -135,11 +135,11 @@ export function DelegationActions({
               if (e.target === e.currentTarget) setBriefOpen(false);
             }}
           >
-            <div className="w-full max-w-md animate-spring-in rounded-card bg-surface p-6 shadow-depth-lift">
+            <div className="w-full max-w-md animate-modal-in rounded-card bg-surface p-7 shadow-overlay">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <CosignoMark size={18} />
-                  <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">Brief</p>
+                  <p className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-ink-soft">Brief</p>
                 </div>
                 <button
                   onClick={() => setBriefOpen(false)}
@@ -153,24 +153,24 @@ export function DelegationActions({
                 <div className="mt-4 h-28 animate-pulse rounded-btn bg-cream-deep" aria-hidden="true" />
               ) : (
                 <>
-                  <h2 className="mt-3 text-base font-extrabold leading-snug">{brief.goal}</h2>
+                  <h2 className="mt-3 text-base font-semibold leading-snug">{brief.goal}</h2>
                   {brief.objective && (
-                    <p className="mt-0.5 text-xs font-bold text-ink-soft">
+                    <p className="mt-0.5 text-xs font-semibold text-ink-soft">
                       Toward: {brief.objective}
                     </p>
                   )}
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-bold text-ink-soft">
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[0.75rem] font-semibold text-ink-soft">
                     <span>{MOMENTUM_LABEL[brief.momentum] ?? brief.momentum}</span>
                     <span>{brief.complete} complete</span>
                     {brief.waiting > 0 && <span className="text-signal">{brief.waiting} at the boundary</span>}
                     {brief.failed > 0 && <span>{brief.failed} failed</span>}
                   </div>
                   <p className="mt-3 text-sm">
-                    <span className="font-extrabold">Why: </span>
+                    <span className="font-semibold">Why: </span>
                     <span className="text-ink-soft">{brief.why}</span>
                   </p>
                   <p className="mt-1.5 text-sm">
-                    <span className="font-extrabold">Next: </span>
+                    <span className="font-semibold">Next: </span>
                     <span className="text-ink-soft">{brief.next}</span>
                   </p>
                   {brief.can_move_forward && (
@@ -179,7 +179,7 @@ export function DelegationActions({
                         setBriefOpen(false);
                         continueWork(brief.failed > 0 ? "rescue" : "finish", e);
                       }}
-                      className="mt-4 inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft"
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-ink shadow-rest"
                     >
                       {brief.failed > 0 ? (
                         <>

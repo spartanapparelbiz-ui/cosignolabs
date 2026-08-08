@@ -25,6 +25,41 @@ import { useToast } from "@/components/Toast";
 import { useBackgroundExecution } from "./useBackgroundExecution";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { missionStatus, STATUS_TONE } from "@/lib/status";
+import { SkeletonRows } from "@/components/Skeleton";
+import { EmptyState } from "@/components/ui/Page";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
+
+/**
+ * A mission worth trying, offered rather than sold. The whole row is not the
+ * button: the description is there to be read, and the one control sits at the
+ * end where every other control in the product sits.
+ */
+function StarterRow({
+  icon,
+  title,
+  detail,
+  busy,
+  onStart,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  detail: string;
+  busy: boolean;
+  onStart: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-btn px-3 py-3.5 transition-colors duration-fast hover:bg-ink/[0.025]">
+      <span className="mt-0.5 shrink-0 self-start text-ink-soft">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[0.9375rem]">{title}</p>
+        <p className="t-caption mt-0.5">{detail}</p>
+      </div>
+      <button onClick={onStart} disabled={busy} className={btn("secondary", "sm")}>
+        {busy ? "Starting…" : "Start"}
+      </button>
+    </div>
+  );
+}
 
 /**
  * Durable missions — work that continues server-side after this tab closes.
@@ -129,62 +164,58 @@ function GoalComposer({ onStarted }: { onStarted: (id: string) => void }) {
     }
   }
 
-  const inputCls =
-    "w-full rounded-btn bg-surface px-3 py-2.5 text-sm shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal";
-
   if (preview) {
     const p = preview.plan;
     return (
-      <div className="flex flex-col gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
-        <div>
-          <p className="text-[10px] font-extrabold lowercase tracking-widest text-ink-soft">i understood the goal</p>
-          <p className="mt-0.5 text-sm font-extrabold">{preview.understood.normalizedGoal}</p>
-        </div>
-        <p className="rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold">
-          cosigno created this plan from your goal using its currently available tools.
+      <div className={`${card()} animate-card-in p-6`}>
+        <p className="t-eyebrow">Here&apos;s what I understood</p>
+        <p className="t-title mt-2">{preview.understood.normalizedGoal}</p>
+        <p className="t-caption mt-1.5">
+          Planned from your goal using only the tools cosigno actually has.
         </p>
+
         {preview.understood.willDo.length > 0 && (
-          <div>
-            <p className="text-[10px] font-extrabold lowercase tracking-widest text-ink-soft">i will help by</p>
-            <ol className="mt-1 flex flex-col gap-1 text-xs">
-              {preview.understood.willDo.map((w, i) => (
-                <li key={i} className="font-semibold">{i + 1}. {w}</li>
-              ))}
-            </ol>
-          </div>
+          <ol className="t-body mt-6 flex flex-col gap-2">
+            {preview.understood.willDo.map((w, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="t-caption w-4 shrink-0 tabular-nums">{i + 1}</span>
+                {w}
+              </li>
+            ))}
+          </ol>
         )}
+
         {p.approvalCheckpoints.length > 0 && (
-          <p className="text-xs font-bold text-ink">boundary: {preview.understood.boundary}</p>
+          <p className="t-body mt-5">
+            <span className="t-eyebrow mr-2">Boundary</span>
+            {preview.understood.boundary}
+          </p>
         )}
+
         {p.unsupported.length > 0 && (
-          <div className="rounded-btn bg-signal/10 px-3 py-2 text-xs font-semibold ring-1 ring-inset ring-signal/30">
+          <div className="mt-5 flex flex-col gap-1 border-l-2 border-signal pl-3.5">
             {p.unsupported.map((u, i) => (
-              <p key={i}>• {u}</p>
+              <p key={i} className="t-body">
+                {u}
+              </p>
             ))}
           </div>
         )}
+
         {p.expectedDeliverables.length > 0 && (
-          <p className="text-xs text-ink-soft">
-            <span className="font-bold">you&apos;ll get:</span> {p.expectedDeliverables.join(", ")}
-          </p>
+          <p className="t-caption mt-5">You&apos;ll get {p.expectedDeliverables.join(", ")}</p>
         )}
-        <div className="flex flex-wrap gap-2">
+
+        <div className="mt-7 flex flex-wrap items-center gap-1.5">
           {preview.blocked ? (
-            <p className="text-xs font-bold text-ink-soft">this goal can&apos;t run as-is — see the note above.</p>
+            <p className="t-body">This can&apos;t run as written — see the note above.</p>
           ) : (
-            <button
-              onClick={start}
-              disabled={busy}
-              className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-            >
-              {busy ? "starting…" : "confirm & start"}
+            <button onClick={start} disabled={busy} className={btn("primary", "md")}>
+              {busy ? "Starting…" : "Start"}
             </button>
           )}
-          <button
-            onClick={() => setPreview(null)}
-            className="rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep"
-          >
-            edit goal
+          <button onClick={() => setPreview(null)} className={btn("ghost", "md")}>
+            Edit
           </button>
         </div>
       </div>
@@ -192,30 +223,25 @@ function GoalComposer({ onStarted }: { onStarted: (id: string) => void }) {
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-card bg-surface/60 p-4 shadow-soft">
-      <p className="text-sm font-extrabold lowercase">give cosigno any goal</p>
-      <p className="text-xs text-ink-soft">
-        cosigno turns it into a real, validated plan using only the tools it
-        actually has — then shows you before anything runs.
-      </p>
-      <div className="flex gap-2">
+    <div>
+      <div className="flex flex-col gap-2 sm:flex-row">
         <input
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && compile()}
           maxLength={500}
           placeholder="e.g. compare the best laptops under $1,000"
-          className={inputCls}
+          className={field("md")}
           aria-label="mission goal"
         />
-        <button
-          onClick={compile}
-          disabled={busy || !goal.trim()}
-          className="shrink-0 rounded-btn bg-ink px-4 py-2 text-sm font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-        >
-          {busy ? "reading…" : "plan it"}
+        <button onClick={compile} disabled={busy || !goal.trim()} className={btn("secondary", "md", "shrink-0")}>
+          {busy ? "Reading…" : "Plan it"}
         </button>
       </div>
+      <p className="t-caption mt-2">
+        cosigno turns a goal into a real plan using only the tools it has, and shows
+        you before anything runs.
+      </p>
     </div>
   );
 }
@@ -361,31 +387,31 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
 
   if (error) {
     return (
-      <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
-        <p className="text-sm font-semibold text-ink-soft">{error}</p>
-        <button onClick={load} className="mt-3 rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep">
-          try again
-        </button>
-      </div>
+      <EmptyState
+        title="That didn't load"
+        description={error}
+        action={
+          <button onClick={load} className={btn("secondary", "md")}>
+            Try again
+          </button>
+        }
+      />
     );
   }
 
   return (
     <div className="flex flex-col gap-4">
       {bgActive === false && (
-        <div className="flex items-start gap-2 rounded-card bg-signal/10 p-3 text-xs font-semibold ring-1 ring-inset ring-signal/30">
-          <Square size={13} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
-          <span>
-            {/* What happens to them, not what we failed to set up. */}
-            {/* Advancement is driven by the interval above, which only runs
-                while an ACTIVE mission is OPEN — not merely while this page is.
-                Saying "reopen the page" would be a promise the code does not
-                keep. */}
-            a mission moves forward only while you have it open. background running
-            isn&apos;t available for this workspace yet, so closing it pauses the work
-            rather than losing it — open the mission again to carry on.
-          </span>
-        </div>
+        <p className="t-body border-l-2 border-signal pl-3.5">
+          {/* What happens to them, not what we failed to set up. */}
+          {/* Advancement is driven by the interval above, which only runs
+              while an ACTIVE mission is OPEN — not merely while this page is.
+              Saying "reopen the page" would be a promise the code does not
+              keep. */}
+          A mission moves forward only while you have it open. Background running
+          isn&apos;t switched on for this workspace yet, so closing it pauses the
+          work rather than losing it.
+        </p>
       )}
 
       {/* open-ended goal → compiled mission */}
@@ -397,60 +423,30 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
         }}
       />
 
-      {/* start the reference (suggested) mission */}
-      <div className="flex flex-wrap items-center gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
-        <Rocket size={18} className="shrink-0 text-ink-soft" aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold lowercase">prepare everything for tomorrow&apos;s meeting</p>
-          <p className="text-xs text-ink-soft">
-            finds the event, reviews related mail and files, builds a brief +
-            agenda, and drafts the follow-up.{" "}
-            {bgActive === true
-              ? "keeps going even if you close this tab."
-              : bgActive === false
-                ? "keep it open while it runs — it pauses when closed."
-                : "keep it open while it runs until background running is confirmed."}{" "}
-            uses your connected apps — or a clearly-marked sandbox until you
-            connect them.
-          </p>
-        </div>
-        <button
-          onClick={start}
-          disabled={busy === "start"}
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-        >
-          {busy === "start" ? "starting…" : "start mission"}
-        </button>
+      {/* Two missions worth trying, offered as suggestions rather than as two
+          more orange buttons competing with the box above. */}
+      <div className="mt-2 flex flex-col">
+        <StarterRow
+          icon={<Rocket size={15} strokeWidth={1.9} aria-hidden="true" />}
+          title="Prepare everything for tomorrow's meeting"
+          detail={
+            bgActive === false
+              ? "Finds the event, reads related mail and files, builds a brief and drafts the follow-up. Keep it open while it runs."
+              : "Finds the event, reads related mail and files, builds a brief and drafts the follow-up."
+          }
+          busy={busy === "start"}
+          onStart={start}
+        />
+        <StarterRow
+          icon={<Globe size={15} strokeWidth={1.9} aria-hidden="true" />}
+          title="Compare three laptops under $1,000"
+          detail="Opens real product pages, records what they show, and stops at the one it recommends. Read-only — nothing is ever bought."
+          busy={busy === "laptop"}
+          onStart={startLaptop}
+        />
       </div>
 
-      {/* the browser-operator reference mission */}
-      <div className="flex flex-wrap items-center gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
-        <Globe size={18} className="shrink-0 text-ink-soft" aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold lowercase">compare three laptops under $1,000</p>
-          <p className="text-xs text-ink-soft">
-            cosigno opens real product pages, records what they actually show,
-            compares three options, and stops at the recommended product page —
-            watch every page it reads. entirely read-only: no purchase is ever
-            attempted.
-          </p>
-        </div>
-        <button
-          onClick={startLaptop}
-          disabled={busy === "laptop"}
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-        >
-          {busy === "laptop" ? "starting…" : "start mission"}
-        </button>
-      </div>
-
-      {missions === null && (
-        <div className="flex flex-col gap-3" aria-busy="true" aria-label="loading missions">
-          {[0, 1].map((i) => (
-            <div key={i} className="h-14 animate-pulse rounded-card bg-cream-deep" />
-          ))}
-        </div>
-      )}
+      {missions === null && <SkeletonRows rows={2} />}
 
       {(missions ?? []).map((m) => {
         const open = openId === m.id;
@@ -458,43 +454,49 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
         const done = mySteps.filter((s) => s.state === "completed").length;
         const usesBrowser = mySteps.some((s) => s.tool.startsWith("laptop.") || s.tool.startsWith("browser."));
         return (
-          <div key={m.id} className="rounded-card bg-surface/60 shadow-soft">
+          <div key={m.id} className={card()}>
             <button
               onClick={async () => {
                 setOpenId(open ? null : m.id);
                 if (!open) await loadSteps(m.id);
               }}
               aria-expanded={open}
-              className="flex w-full items-center gap-2 px-4 py-3 text-left"
+              className="flex w-full items-center gap-3 rounded-card px-5 py-4 text-left transition-colors duration-fast hover:bg-ink/[0.02]"
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-extrabold">{m.goal}</span>
-                <span className="mt-0.5 block text-[11px] text-ink-soft">
-                  started {new Date(m.created_at).toLocaleString()} · plan v{m.plan_version}
-                  {mySteps.length > 0 && ` · ${done} of ${mySteps.length} steps completed`}
+                <span className="t-title block truncate">{m.goal}</span>
+                <span className="t-caption mt-0.5 block">
+                  Started {new Date(m.created_at).toLocaleString()}
+                  {mySteps.length > 0 && ` · ${done} of ${mySteps.length} steps done`}
                 </span>
               </span>
-              <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-bold ${STATUS_TONE[missionStatus(m.state)]}`}>
+              <span className={badge(STATUS_TONE[missionStatus(m.state)])}>
+                <span className={dot(STATUS_TONE[missionStatus(m.state)])} aria-hidden="true" />
                 {missionStatus(m.state)}
               </span>
-              <ChevronDown size={15} className={`shrink-0 text-ink-soft transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+              <ChevronDown
+                size={15}
+                strokeWidth={2}
+                className={`shrink-0 text-ink-soft transition-transform duration-base ease-brand-out ${open ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
             </button>
 
             {open && (
-              <div className="flex flex-col gap-3 border-t border-line/60 px-4 py-3">
+              <div className="flex animate-fade-through flex-col gap-4 border-t border-line/40 px-5 py-4">
                 <div className="flex flex-wrap gap-2">
                   <Link
                     href={`/app/missions/${m.id}`}
-                    className="inline-flex w-fit items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
+                    className="inline-flex w-fit items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-semibold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                   >
-                    open the mission workspace
+                    Open the mission workspace
                   </Link>
                   {usesBrowser && (
                     <Link
                       href={`/app/browser/${m.id}`}
-                      className="inline-flex w-fit items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
+                      className="inline-flex w-fit items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-semibold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                     >
-                      <Globe size={13} aria-hidden="true" /> open the browser view
+                      <Globe size={13} aria-hidden="true" /> Open the browser view
                     </Link>
                   )}
                 </div>
@@ -502,7 +504,7 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                 {/* pending question */}
                 {m.pending_question && (
                   <div className="rounded-btn bg-signal/10 p-3 ring-1 ring-inset ring-signal/30">
-                    <p className="text-sm font-extrabold">{m.pending_question.question}</p>
+                    <p className="text-sm font-semibold">{m.pending_question.question}</p>
                     <p className="mt-0.5 text-xs text-ink-soft">
                       why: {m.pending_question.why} · effect: {m.pending_question.effect}
                     </p>
@@ -512,7 +514,7 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                           key={o}
                           onClick={() => answer(m.id, o)}
                           disabled={busy === m.id}
-                          className={`min-h-[32px] rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
+                          className={`min-h-[32px] rounded-btn px-3.5 py-1.5 text-xs font-semibold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
                             o === m.pending_question?.recommended
                               ? "bg-signal text-ink"
                               : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
@@ -549,8 +551,8 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                 {/* sources the user provided (files + links), as real inputs */}
                 {(sources[m.id] ?? []).length > 0 && (
                   <div className="rounded-btn bg-cream-deep/60 px-3 py-2.5">
-                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
-                      sources you provided
+                    <p className="t-eyebrow">
+                      Sources you provided
                     </p>
                     <ul className="mt-1.5 flex flex-col gap-1.5">
                       {(sources[m.id] ?? []).map((src) => {
@@ -564,15 +566,15 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                               {src.kind === "link" ? <Link2 size={13} /> : src.status === "login_required" ? <Lock size={13} /> : <FileText size={13} />}
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="font-bold">{src.name}</span>
-                              <span className="block text-[11px] text-ink-soft">
+                              <span className="font-semibold">{src.name}</span>
+                              <span className="block text-[0.75rem] text-ink-soft">
                                 {src.kind === "link" ? src.subtype || "link" : src.subtype}
                                 {" · "}
                                 {usable ? (src.kind === "link" ? "read" : "read as context") : "not used — couldn't be read"}
                                 {src.injection_flag && " · flagged content (data only)"}
                               </span>
                               {usable && usedBy.length > 0 && (
-                                <span className="block text-[11px] text-ink-soft/80">
+                                <span className="block text-[0.75rem] text-ink-soft/80">
                                   used in: {usedBy.map((st) => `step ${st.idx + 1}`).join(", ")}
                                 </span>
                               )}
@@ -608,28 +610,28 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                           <span className={`font-semibold ${["vetoed", "canceled"].includes(s.state) ? "text-ink-soft line-through" : ""}`}>
                             {s.idx + 1}. {s.purpose}
                           </span>
-                          <span className="block text-[11px] text-ink-soft">
+                          <span className="block text-[0.75rem] text-ink-soft">
                             {OPERATOR_PROFILES[s.operator]?.name ?? s.operator} ·{" "}
                             {summary ?? s.error ?? STEP_NOTE[s.state]}
                           </span>
                           {s.sources.length > 0 && (
-                            <span className="block text-[11px] text-ink-soft/80">
+                            <span className="block text-[0.75rem] text-ink-soft/80">
                               sources: {s.sources.map((src) => `${src.name}${src.simulated ? " (sandbox)" : ""}`).join(" · ")}
                             </span>
                           )}
                           {verif && (
-                            <span className={`block text-[11px] font-bold ${verif.ok ? "text-signal" : "text-ink"}`}>
+                            <span className={`block text-[0.75rem] font-semibold ${verif.ok ? "text-signal" : "text-ink"}`}>
                               {verif.ok ? "verified" : "verification failed"}: {verif.detail}
                             </span>
                           )}
                           {planNote && (
-                            <span className="block text-[11px] font-semibold text-ink-soft">
+                            <span className="block text-[0.75rem] font-semibold text-ink-soft">
                               plan updated: {planNote}
                             </span>
                           )}
                           {typeof s.output?.file_id === "string" && (
-                            <Link href="/app/files" className="text-[11px] font-bold underline underline-offset-2">
-                              open deliverable in files
+                            <Link href="/app/files" className="text-[0.75rem] font-semibold underline underline-offset-2">
+                              Open deliverable in files
                             </Link>
                           )}
                         </span>
@@ -641,7 +643,7 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                 {/* receipt */}
                 {m.receipt !== null && (
                   <div className="rounded-btn bg-cream-deep px-3 py-2 text-xs">
-                    <p className="font-extrabold lowercase">mission receipt</p>
+                    <p className="font-semibold">Mission receipt</p>
                     <p className="mt-0.5 text-ink-soft">
                       {(m.receipt.completed_steps as unknown[])?.length ?? 0} steps completed ·{" "}
                       {(m.receipt.deliverables as unknown[])?.length ?? 0} deliverables ·{" "}
@@ -659,15 +661,15 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                         <button
                           onClick={() => control(m.id, "resume")}
                           disabled={busy === m.id}
-                          className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                          className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-semibold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                         >
-                          <Play size={12} aria-hidden="true" /> resume
+                          <Play size={12} aria-hidden="true" /> Resume
                         </button>
                       ) : (
                         <button
                           onClick={() => control(m.id, "pause")}
                           disabled={busy === m.id}
-                          className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold lowercase ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-semibold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Pause size={12} aria-hidden="true" /> pause
                         </button>
@@ -675,9 +677,9 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                       <button
                         onClick={() => control(m.id, "stop")}
                         disabled={busy === m.id}
-                        className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Square size={12} aria-hidden="true" /> stop mission
+                        <Square size={12} aria-hidden="true" /> Stop mission
                       </button>
                     </>
                   )}

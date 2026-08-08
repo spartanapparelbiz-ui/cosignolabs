@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Activity, AlertTriangle, Plug, Search, ShieldCheck } from "lucide-react";
+import { Search } from "lucide-react";
+import { Page, PageHeader, SectionLabel } from "@/components/ui/Page";
+import { badge, btn, card, dot, field, type BadgeTone } from "@/components/ui/styles";
+import { SkeletonRows } from "@/components/Skeleton";
 
 /**
  * Live Monitoring — the operations view.
@@ -41,50 +44,48 @@ function ago(ms: number | null): string {
   return h < 48 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
 }
 
-const SERVICE_TONE: Record<string, string> = {
-  connected: "bg-signal/15 text-ink",
-  needs_reauth: "text-ink ring-1 ring-inset ring-ink/30",
-  error: "bg-ink text-cream",
-  revoked: "text-ink-soft ring-1 ring-inset ring-line",
+const SERVICE_TONE: Record<string, BadgeTone> = {
+  connected: "positive",
+  needs_reauth: "signal",
+  error: "danger",
+  revoked: "neutral",
 };
 
+/**
+ * A counted fact. Four of these used to be four bordered cards with 30px
+ * figures — a scoreboard for numbers that are usually zero. Now they are one
+ * row of plain readings, which is what they are.
+ */
 function Stat({ label, value, note }: { label: string; value: number | string; note?: string }) {
   return (
-    <div className="rounded-card border border-line bg-surface p-4 shadow-soft">
-      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ink-soft">{label}</p>
-      <p className="mt-1.5 font-display text-3xl font-bold tabular-nums">{value}</p>
-      {note && <p className="mt-0.5 text-xs text-ink-soft">{note}</p>}
+    <div>
+      <p className="t-eyebrow">{label}</p>
+      <p className="mt-1.5 font-display text-[1.75rem] leading-none tabular-nums">{value}</p>
+      {note && <p className="t-caption mt-2">{note}</p>}
     </div>
   );
 }
 
 function Section({
-  title, icon: Icon, count, children,
+  title, count, children,
 }: {
-  title: string; icon: typeof Activity; count?: number; children: React.ReactNode;
+  title: string; count?: number; children: React.ReactNode;
 }) {
   return (
-    <section className="mt-8">
-      <h2 className="flex items-center gap-2 font-display text-xl font-bold lowercase">
-        <Icon size={17} className="text-ink-soft" aria-hidden="true" />
+    <section className="mt-14">
+      <SectionLabel className="mb-4">
         {title}
-        {typeof count === "number" && (
-          <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-xs font-bold tabular-nums text-ink-soft">
-            {count}
-          </span>
+        {typeof count === "number" && count > 0 && (
+          <span className="ml-2 tabular-nums opacity-60">{count}</span>
         )}
-      </h2>
-      <div className="mt-3">{children}</div>
+      </SectionLabel>
+      {children}
     </section>
   );
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="rounded-card border border-dashed border-line bg-surface/60 p-6 text-center text-sm text-ink-soft">
-      {children}
-    </p>
-  );
+  return <p className="t-caption py-6">{children}</p>;
 }
 
 export function LiveMonitoring() {
@@ -139,128 +140,107 @@ export function LiveMonitoring() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.28em] text-signal">
-            live monitoring
-          </p>
-          <h1 className="mt-2 font-display text-3xl font-bold lowercase tracking-tight sm:text-4xl">
-            what cosigno is doing, right now.
-          </h1>
-          {/* "Monitoring" implies something watches while you are away. This
-              page polls from the browser: it shows the current state every few
-              seconds WHILE OPEN, and observes nothing once it is closed. */}
-          <p className="mt-2 max-w-2xl text-sm font-semibold text-ink-soft">
-            counted from live state, re-read every {POLL_MS / 1000} seconds while this page
-            is open. closing it stops the updates — it does not stop the work.
-          </p>
-        </div>
-        <button
-          onClick={() => setLive((v) => !v)}
-          aria-pressed={live}
-          className="inline-flex min-h-[40px] items-center gap-2 rounded-btn border border-line bg-surface px-3.5 py-2 text-sm font-bold transition-colors duration-fast hover:bg-cream-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
-        >
-          <span
-            className={`h-2 w-2 rounded-pill ${live ? "animate-orb-pulse bg-signal" : "bg-ink-soft"}`}
-            aria-hidden="true"
-          />
-          {live ? "live" : "paused"}
-        </button>
-      </header>
+    <Page width="wide">
+      {/* "Monitoring" implies something watches while you are away. This page
+          polls from the browser: it shows the current state every few seconds
+          WHILE OPEN, and observes nothing once it is closed. */}
+      <PageHeader
+        title="What is happening right now?"
+        description={`Read from live state every ${POLL_MS / 1000} seconds while this page is open. Closing it stops the updates, not the work.`}
+        action={
+          <button onClick={() => setLive((v) => !v)} aria-pressed={live} className={btn("ghost", "sm")}>
+            <span
+              className={`h-[5px] w-[5px] rounded-pill ${live ? "animate-orb-pulse bg-signal" : "bg-ink-soft"}`}
+              aria-hidden="true"
+            />
+            {live ? "Live" : "Paused"}
+          </button>
+        }
+      />
 
-      <label className="mt-6 flex items-center gap-2 rounded-btn border border-line bg-surface px-3 py-2.5 focus-within:ring-2 focus-within:ring-signal">
-        <Search size={15} className="shrink-0 text-ink-soft" aria-hidden="true" />
+      <label className="relative mt-12 block">
+        <Search
+          size={15}
+          strokeWidth={1.9}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
+          aria-hidden="true"
+        />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Filter services, approvals, and events"
-          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-soft"
+          placeholder="Filter services, approvals and events"
+          className={`${field("md")} pl-9`}
         />
         <span className="sr-only">Filter live monitoring</span>
       </label>
 
       {error && (
-        <p className="mt-4 rounded-card border border-line bg-surface p-4 text-sm font-semibold text-ink">
+        <p className="t-body mt-6 border-l-2 border-danger pl-3.5 text-danger">
           {error}{" "}
-          <button onClick={load} className="underline decoration-signal underline-offset-2">
-            retry
+          <button onClick={load} className="underline underline-offset-2">
+            Retry
           </button>
         </p>
       )}
 
       {!snap && !error ? (
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-[104px] animate-pulse rounded-card border border-line bg-surface" />
-          ))}
+        <div className="mt-10">
+          <SkeletonRows rows={4} />
         </div>
       ) : (
         <>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat label="running" value={a.missions_active ?? 0} note={`${a.missions_total ?? 0} total missions`} />
-            <Stat label="awaiting you" value={a.approvals_pending ?? 0} note="need your signature" />
-            <Stat label="executed" value={a.actions_executed ?? 0} note={`${a.actions_vetoed ?? 0} vetoed`} />
-            <Stat label="automations" value={a.automations_enabled ?? 0} note={`${a.automations_total ?? 0} set up`} />
+          <div className="mt-10 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat label="Running" value={a.missions_active ?? 0} note={`${a.missions_total ?? 0} missions in all`} />
+            <Stat label="Awaiting you" value={a.approvals_pending ?? 0} note="Need your signature" />
+            <Stat label="Executed" value={a.actions_executed ?? 0} note={`${a.actions_vetoed ?? 0} vetoed`} />
+            <Stat label="Watching" value={a.automations_enabled ?? 0} note={`${a.automations_total ?? 0} set up`} />
           </div>
 
           {(snap?.alerts.length ?? 0) > 0 && (
-            <Section title="alerts" icon={AlertTriangle} count={snap?.alerts.length}>
-              <ul className="flex flex-col gap-2">
+            <Section title="Alerts" count={snap?.alerts.length}>
+              <ul className="flex flex-col gap-4">
                 {snap?.alerts.map((al, i) => (
                   <li
                     key={i}
-                    className={`rounded-card border bg-surface p-3.5 shadow-soft ${
-                      al.level === "critical" ? "border-signal" : "border-line"
-                    }`}
+                    className={`border-l-2 pl-3.5 ${al.level === "critical" ? "border-danger" : "border-signal"}`}
                   >
-                    <p className="text-sm font-bold">{al.title}</p>
-                    <p className="mt-0.5 text-xs text-ink-soft">{al.detail}</p>
+                    <p className="text-[0.9375rem] font-semibold">{al.title}</p>
+                    <p className="t-caption mt-0.5">{al.detail}</p>
                   </li>
                 ))}
               </ul>
             </Section>
           )}
 
-          <Section title="connected services" icon={Plug} count={services.length}>
+          <Section title="Connected services" count={services.length}>
             {services.length === 0 ? (
               <Empty>
                 No connections yet. Connect a tool and its live status, last heartbeat, and auth
                 state appear here.
               </Empty>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[620px] border-separate border-spacing-y-2 text-sm">
+              <div className="surface-scroll overflow-x-auto">
+                <table className="w-full min-w-[560px] text-[0.875rem]">
                   <thead>
-                    <tr className="text-left text-[11px] font-black uppercase tracking-[0.14em] text-ink-soft">
-                      <th className="px-3">service</th>
-                      <th className="px-3">status</th>
-                      <th className="px-3">auth</th>
-                      <th className="px-3 text-right">last heartbeat</th>
+                    <tr className="border-b border-line/50 text-left">
+                      <th className="t-eyebrow px-3 pb-2 font-semibold">Service</th>
+                      <th className="t-eyebrow px-3 pb-2 font-semibold">Status</th>
+                      <th className="t-eyebrow px-3 pb-2 font-semibold">Auth</th>
+                      <th className="t-eyebrow px-3 pb-2 text-right font-semibold">Last heartbeat</th>
                     </tr>
                   </thead>
                   <tbody>
                     {services.map((s) => (
-                      <tr key={s.key + s.name} className="bg-surface shadow-soft">
-                        <td className="rounded-l-card border-y border-l border-line px-3 py-3 font-bold">
-                          {s.name}
-                          <span className="ml-2 font-mono text-[11px] font-normal text-ink-soft">
-                            {s.kind}
-                          </span>
-                        </td>
-                        <td className="border-y border-line px-3 py-3">
-                          <span
-                            className={`inline-flex rounded-pill px-2.5 py-1 text-[11px] font-black uppercase tracking-wider ${
-                              SERVICE_TONE[s.status] ?? "bg-cream-deep text-ink-soft"
-                            }`}
-                          >
+                      <tr key={s.key + s.name} className="border-b border-line/30 last:border-0">
+                        <td className="px-3 py-3">{s.name}</td>
+                        <td className="px-3 py-3">
+                          <span className={badge(SERVICE_TONE[s.status] ?? "neutral")}>
+                            <span className={dot(SERVICE_TONE[s.status] ?? "neutral")} aria-hidden="true" />
                             {s.status.replace(/_/g, " ")}
                           </span>
                         </td>
-                        <td className="border-y border-line px-3 py-3 font-mono text-xs text-ink-soft">
-                          {s.auth_type}
-                        </td>
-                        <td className="rounded-r-card border-y border-r border-line px-3 py-3 text-right text-xs text-ink-soft">
+                        <td className="t-caption px-3 py-3">{s.auth_type}</td>
+                        <td className="t-caption px-3 py-3 text-right tabular-nums">
                           {ago(s.heartbeat_age_ms)}
                         </td>
                       </tr>
@@ -271,32 +251,28 @@ export function LiveMonitoring() {
             )}
           </Section>
 
-          <Section title="approval queue" icon={ShieldCheck} count={approvals.length}>
+          <Section title="Approval queue" count={approvals.length}>
             {approvals.length === 0 ? (
               <Empty>Nothing is waiting on you. Approvals appear here the moment one is raised.</Empty>
             ) : (
-              <ul className="flex flex-col gap-2">
+              <ul className="-mx-3 flex flex-col">
                 {approvals.map((p) => (
                   <li
                     key={p.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-surface p-3.5 shadow-soft"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-btn px-3 py-3 transition-colors duration-fast hover:bg-ink/[0.035]"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-bold">{p.summary}</p>
-                      <p className="mt-0.5 font-mono text-[11px] text-ink-soft">
-                        {p.category} · tier {p.tier}
-                      </p>
+                      <p className="truncate text-[0.9375rem]">{p.summary}</p>
+                      <p className="t-caption mt-0.5">{p.category}</p>
                     </div>
-                    <span className="shrink-0 rounded-pill bg-cream-deep px-2.5 py-1 text-[11px] font-bold tabular-nums text-ink-soft">
-                      waiting {ago(p.waiting_ms)}
-                    </span>
+                    <span className="t-caption shrink-0 tabular-nums">waiting {ago(p.waiting_ms)}</span>
                   </li>
                 ))}
               </ul>
             )}
           </Section>
 
-          <Section title="event stream" icon={Activity} count={events.length}>
+          <Section title="Event stream" count={events.length}>
             {events.length === 0 ? (
               <Empty>
                 {/* These events come from the in-memory authorization registry,
@@ -312,23 +288,21 @@ export function LiveMonitoring() {
                 .
               </Empty>
             ) : (
-              <ol className="relative flex flex-col gap-0 border-l border-line pl-4">
+              <ol className="relative flex flex-col border-l border-line/60 pl-5">
                 {events.map((e) => (
-                  <li key={e.id} className="relative py-2.5">
+                  <li key={e.id} className="relative py-3">
                     <span
-                      className={`absolute -left-[21px] top-4 h-2 w-2 rounded-pill ${
-                        e.executed ? "bg-signal" : "bg-line"
+                      className={`absolute -left-[23px] top-4 h-[5px] w-[5px] rounded-pill ${
+                        e.executed ? "bg-positive" : "bg-ink/25"
                       }`}
                       aria-hidden="true"
                     />
-                    <p className="text-sm">
-                      <span className="font-mono text-xs text-ink-soft">{e.actor}</span>{" "}
-                      <span className="font-bold">{e.action}</span>{" "}
+                    <p className="text-[0.875rem]">
+                      <span className="t-caption">{e.actor}</span> {e.action}{" "}
                       <span className="text-ink-soft">on {e.resource}</span>
                     </p>
-                    <p className="mt-0.5 text-[11px] text-ink-soft">
-                      {e.executed ? "executed" : e.status} · {e.authority} · {e.blast_level} blast
-                      radius
+                    <p className="t-caption mt-0.5">
+                      {e.executed ? "executed" : e.status} · {e.authority} · {e.blast_level} blast radius
                     </p>
                   </li>
                 ))}
@@ -336,12 +310,12 @@ export function LiveMonitoring() {
             )}
           </Section>
 
-          <p className="mt-10 text-center text-[11px] text-ink-soft">
-            Process-level metrics (CPU, memory, network latency) are not instrumented, so they are
-            not shown — cosigno never displays a number it hasn&apos;t measured.
+          <p className="t-caption mt-16">
+            CPU, memory and latency are not instrumented, so they are not shown. cosigno
+            never displays a number it hasn&apos;t measured.
           </p>
         </>
       )}
-    </div>
+    </Page>
   );
 }

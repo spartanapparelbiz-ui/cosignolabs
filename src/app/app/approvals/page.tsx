@@ -1,4 +1,5 @@
 import { DecisionInbox } from "@/components/app/DecisionInbox";
+import { Page, PageHeader } from "@/components/ui/Page";
 import { getUserId } from "@/lib/auth";
 import { servingAllowed } from "@/lib/env";
 import { getStore } from "@/lib/store";
@@ -27,15 +28,14 @@ export default async function ApprovalsPage() {
     // fall through — DecisionInbox fetches client-side exactly as before
   }
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8">
-      <h1 className="font-display text-2xl font-bold lowercase">approvals</h1>
-      <p className="mt-1 text-sm font-semibold text-ink-soft">
-        every action waiting for your signature, across all your missions.
-        approving executes it; vetoing kills it. nothing runs on its own.
-      </p>
-      <div className="mt-6 flex-1">
+    <Page>
+      <PageHeader
+        title="What needs your decision?"
+        description="Approving runs it. Vetoing ends it. Nothing here runs on its own."
+      />
+      <div className="mt-12 flex-1">
         <DecisionInbox initial={initial} />
       </div>
-    </div>
+    </Page>
   );
 }

@@ -2,7 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ChevronDown, Lock, ShieldCheck } from "lucide-react";
+import {
+  BookOpen,
+  Check,
+  ChevronDown,
+  CreditCard,
+  Link2,
+  Lock,
+  PenLine,
+  Send,
+  Rocket,
+  SquarePen,
+  Trash2,
+  type LucideIcon,
+} from "lucide-react";
 import {
   PRESETS,
   activePreset,
@@ -12,6 +25,8 @@ import {
 } from "@/lib/trust/capabilities";
 import { SkeletonRows } from "@/components/Skeleton";
 import { BudgetPanel } from "@/components/trust/BudgetPanel";
+import { EmptyState, SectionLabel } from "@/components/ui/Page";
+import { btn, card, dot } from "@/components/ui/styles";
 
 /**
  * The Trust Center.
@@ -39,16 +54,34 @@ interface Row {
 }
 
 const LABEL: Record<TrustSetting, string> = {
-  always: "always",
-  ask: "ask me",
-  never: "never",
+  always: "Always",
+  ask: "Ask me",
+  never: "Never",
+};
+
+/**
+ * One line-drawn glyph per capability, in the same family and at the same
+ * weight as every other icon in the product. This page used to wear a grid of
+ * full-color emoji in 56px tiles, which is the single loudest thing a settings
+ * screen can do and told the reader nothing a word wasn't already saying.
+ */
+const CAPABILITY_ICON: Record<string, LucideIcon> = {
+  read: BookOpen,
+  create: PenLine,
+  send: Send,
+  edit: SquarePen,
+  publish: Rocket,
+  connect: Link2,
+  money: CreditCard,
+  delete: Trash2,
+  security: Lock,
 };
 
 /** The three groups the summary reads out, in order of how much they protect. */
-const GROUPS: { setting: TrustSetting; mark: string; title: string }[] = [
-  { setting: "always", mark: "✓", title: "Cosigno does these on its own" },
-  { setting: "ask", mark: "🟡", title: "Cosigno asks you first" },
-  { setting: "never", mark: "🔴", title: "Cosigno will not do these" },
+const GROUPS: { setting: TrustSetting; title: string; tone: "positive" | "signal" | "danger" }[] = [
+  { setting: "always", title: "On its own", tone: "positive" },
+  { setting: "ask", title: "Asks you first", tone: "signal" },
+  { setting: "never", title: "Never", tone: "danger" },
 ];
 
 export function TrustCenter() {
@@ -138,26 +171,24 @@ export function TrustCenter() {
 
   if (error && rows === null) {
     return (
-      <div className="rounded-card bg-surface/60 p-8 text-center shadow-soft">
-        <p className="text-sm font-semibold text-ink-soft">{error}</p>
-        <button
-          onClick={load}
-          className="mt-4 rounded-btn bg-ink px-5 py-2 text-sm font-bold lowercase text-cream"
-        >
-          try again
-        </button>
-      </div>
+      <EmptyState
+        title="That didn't load"
+        description={error}
+        action={
+          <button onClick={load} className={btn("secondary", "md")}>
+            Try again
+          </button>
+        }
+      />
     );
   }
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-14">
       {/* ONE decision, at the top. Most people will never open a single row. */}
       <section>
-        <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
-          Current trust level
-        </h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <SectionLabel className="mb-4">Trust level</SectionLabel>
+        <div className="grid gap-3 sm:grid-cols-3">
           {PRESETS.map((p) => {
             const active = preset === p.id;
             return (
@@ -168,38 +199,29 @@ export function TrustCenter() {
                 aria-pressed={active}
                 className={`rounded-card p-5 text-left transition-all duration-base ease-brand-out disabled:cursor-not-allowed ${
                   active
-                    ? "bg-ink text-cream shadow-lift"
-                    : "bg-surface/60 shadow-soft hover:-translate-y-0.5 hover:shadow-lift"
+                    ? "bg-ink text-cream shadow-rest"
+                    : "bg-surface shadow-rest hover:-translate-y-px hover:shadow-raise"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span aria-hidden="true" className="text-base">
-                    {p.dot}
-                  </span>
-                  <span className="text-lg font-extrabold">{p.title}</span>
+                  <span className="t-title">{p.title}</span>
                   {active && (
-                    <span className="ml-auto text-[10px] font-extrabold uppercase tracking-[0.16em] opacity-70">
-                      on
-                    </span>
+                    <Check size={14} strokeWidth={2.4} className="ml-auto" aria-hidden="true" />
+                  )}
+                  {p.recommended && !active && (
+                    <span className="t-caption ml-auto">suggested</span>
                   )}
                 </div>
-                <p
-                  className={`mt-2 text-sm leading-snug ${active ? "text-cream/75" : "text-ink-soft"}`}
-                >
+                <p className={`mt-2 text-[0.8125rem] leading-relaxed ${active ? "text-cream/70" : "text-ink-soft"}`}>
                   {p.detail}
                 </p>
-                {p.recommended && !active && (
-                  <span className="mt-3 inline-block rounded-pill bg-signal/15 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-signal">
-                    recommended
-                  </span>
-                )}
               </button>
             );
           })}
         </div>
         {rows !== null && preset === null && (
-          <p className="mt-2.5 text-xs text-ink-soft">
-            your settings are your own — they don&apos;t match any of the three above.
+          <p className="t-caption mt-3">
+            Your settings are your own — they don&apos;t match any of the three above.
           </p>
         )}
       </section>
@@ -208,74 +230,73 @@ export function TrustCenter() {
       <ProtectionSummary rows={rows} />
 
       {error && rows !== null && (
-        <p className="rounded-btn bg-cream-deep px-4 py-3 text-sm font-semibold" role="alert">
+        <p className="t-body border-l-2 border-danger pl-3.5 text-danger" role="alert">
           {error}
         </p>
       )}
 
-      {/* One row per capability. */}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
-          What cosigno may do
-        </h2>
+      {/* One row per capability. Rows, not cards: nine cards down a page is a
+          gallery, and this is a list of nine questions with the same shape. */}
+      <section>
+        <SectionLabel className="mb-2">What cosigno may do</SectionLabel>
         {rows === null ? (
           <SkeletonRows rows={5} />
         ) : (
-          rows.map((row) => (
-            <div key={row.id} className="rounded-card bg-surface/60 p-5 shadow-soft">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <span
-                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-btn bg-cream-deep text-2xl"
-                  aria-hidden="true"
+          <div className="flex flex-col">
+            {rows.map((row, i) => {
+              const Icon = CAPABILITY_ICON[row.id] ?? Lock;
+              return (
+                <div
+                  key={row.id}
+                  className={`py-5 ${i > 0 ? "border-t border-line/40" : ""}`}
                 >
-                  {row.icon}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-lg font-extrabold">{row.title}</p>
-                  <p className="mt-0.5 text-sm leading-snug text-ink-soft">{row.detail}</p>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <span className="mt-0.5 shrink-0 self-start text-ink-soft sm:mt-0 sm:self-center" aria-hidden="true">
+                      <Icon size={17} strokeWidth={1.9} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="t-title">{row.title}</p>
+                      <p className="t-caption mt-0.5">{row.detail}</p>
+                    </div>
+                    <Segmented row={row} busy={busy === row.id} onChoose={(s) => choose(row, s)} />
+                  </div>
+                  {justSet?.id === row.id && (
+                    <p className="t-caption mt-3 animate-fade-through pl-0 sm:pl-[29px]">
+                      {explain(justSet.setting)}
+                    </p>
+                  )}
+                  {row.options.length === 1 && (
+                    <p className="t-caption mt-3 sm:pl-[29px]">
+                      cosigno has no way to do this at all. It isn&apos;t a setting you can
+                      turn on.
+                    </p>
+                  )}
+                  {row.pinned && row.options.length > 1 && (
+                    <p className="t-caption mt-3 sm:pl-[29px]">
+                      cosigno can never do this on its own. That isn&apos;t a setting you can
+                      turn off.
+                    </p>
+                  )}
                 </div>
-                <Segmented row={row} busy={busy === row.id} onChoose={(s) => choose(row, s)} />
-              </div>
-              {justSet?.id === row.id && (
-                <p className="mt-3 animate-fade-through rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold">
-                  {explain(justSet.setting)}
-                </p>
-              )}
-              {row.options.length === 1 && (
-                <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-ink-soft">
-                  <Lock size={11} strokeWidth={2.6} aria-hidden="true" />
-                  cosigno has no way to do this at all. it isn&apos;t a setting you can turn on.
-                </p>
-              )}
-              {row.pinned && row.options.length > 1 && (
-                <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-ink-soft">
-                  <Lock size={11} strokeWidth={2.6} aria-hidden="true" />
-                  cosigno can never do this on its own — that isn&apos;t a setting you can turn
-                  off.
-                </p>
-              )}
-            </div>
-          ))
+              );
+            })}
+          </div>
         )}
       </section>
 
       <BudgetPanel />
 
       {/* What holds regardless of anything set above. */}
-      <section className="rounded-card bg-surface/60 p-5 shadow-soft">
-        <div className="flex items-center gap-2">
-          <ShieldCheck size={16} strokeWidth={2.4} className="text-signal" aria-hidden="true" />
-          <h2 className="text-sm font-extrabold">True no matter what you choose</h2>
-        </div>
-        <ul className="mt-3 flex flex-col gap-2 text-sm text-ink-soft">
-          <li>payments and deletion always stop and wait for you, and always will.</li>
-          <li>
-            every action cosigno takes is recorded — what it was, when, and whether you
-            approved it.
+      <section>
+        <SectionLabel className="mb-3">True whatever you choose</SectionLabel>
+        <ul className="flex flex-col gap-2">
+          <li className="t-body">Payments and deletion always stop and wait for you.</li>
+          <li className="t-body">
+            Every action is recorded — what it was, when, and whether you approved it.
           </li>
-          <li>cosigno can never give itself more permission than you set here.</li>
-          <li>
-            emergency stop halts everything at once, including work already approved and
+          <li className="t-body">cosigno can never give itself more permission than you set here.</li>
+          <li className="t-body">
+            Emergency stop halts everything at once, including work already approved and
             running.
           </li>
         </ul>
@@ -317,18 +338,14 @@ function ProtectionSummary({ rows }: { rows: Row[] | null }) {
   })).filter((g) => g.items.length > 0);
 
   return (
-    <section className="grid gap-3 sm:grid-cols-3">
+    <section className="grid gap-x-8 gap-y-7 sm:grid-cols-3">
       {groups.map((g) => (
-        <div key={g.setting} className="rounded-card bg-surface/60 p-4 shadow-soft">
-          <h3 className="text-xs font-extrabold uppercase tracking-[0.14em] text-ink-soft">
-            {g.title}
-          </h3>
+        <div key={g.setting}>
+          <h3 className="t-eyebrow">{g.title}</h3>
           <ul className="mt-2.5 flex flex-col gap-1.5">
             {g.items.map((r) => (
-              <li key={r.id} className="flex items-start gap-2 text-sm font-semibold">
-                <span aria-hidden="true" className="mt-px text-xs">
-                  {g.mark}
-                </span>
+              <li key={r.id} className="flex items-center gap-2.5 text-[0.875rem]">
+                <span className={dot(g.tone)} aria-hidden="true" />
                 {r.title}
               </li>
             ))}
@@ -351,25 +368,25 @@ function ProtectionSummary({ rows }: { rows: Row[] | null }) {
 function AdvancedControls() {
   const [open, setOpen] = useState(false);
   return (
-    <section className="rounded-card bg-surface/40 p-4">
+    <section>
       <button
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        className="flex w-full items-center gap-2 text-left text-sm font-bold text-ink-soft transition-colors hover:text-ink"
+        className="flex w-full items-center gap-2 text-left text-[0.875rem] text-ink-soft transition-colors duration-fast hover:text-ink"
       >
         <ChevronDown
           size={15}
-          strokeWidth={2.6}
+          strokeWidth={2}
           aria-hidden="true"
-          className={`transition-transform duration-fast ${open ? "rotate-180" : ""}`}
+          className={`transition-transform duration-base ease-brand-out ${open ? "rotate-180" : ""}`}
         />
         Advanced controls
       </button>
       {open && (
-        <div className="mt-3 flex flex-col gap-2 animate-fade-through">
-          <p className="text-xs text-ink-soft">
-            per-app and per-tool controls. the settings above already cover everything
-            cosigno can do — these narrow it further for one app or one rule.
+        <div className="mt-4 flex animate-fade-through flex-col">
+          <p className="t-caption mb-3">
+            Per-app and per-tool limits. The settings above already cover everything
+            cosigno can do; these narrow it further for one app or one rule.
           </p>
           {[
             {
@@ -392,10 +409,10 @@ function AdvancedControls() {
             <Link
               key={l.title}
               href={l.href}
-              className="rounded-btn bg-surface/70 px-4 py-3 transition-all duration-fast hover:-translate-y-px hover:shadow-soft"
+              className="rounded-btn px-3 py-2.5 transition-colors duration-fast hover:bg-ink/[0.035]"
             >
-              <p className="text-sm font-bold">{l.title}</p>
-              <p className="mt-0.5 text-xs text-ink-soft">{l.detail}</p>
+              <p className="text-[0.875rem]">{l.title}</p>
+              <p className="t-caption mt-0.5">{l.detail}</p>
             </Link>
           ))}
         </div>
@@ -423,7 +440,7 @@ function Segmented({
     <div
       role="radiogroup"
       aria-label={`${row.title} — how cosigno should handle this`}
-      className="flex shrink-0 gap-1 rounded-pill bg-cream-deep p-1"
+      className="flex shrink-0 gap-0.5 rounded-pill bg-ink/[0.05] p-1"
     >
       {row.options.map((value) => {
         const active = row.setting === value;
@@ -434,11 +451,9 @@ function Segmented({
             aria-checked={active}
             disabled={busy || row.options.length === 1}
             onClick={() => onChoose(value)}
-            className={`rounded-pill px-4 py-2 text-sm font-bold lowercase transition-all duration-fast ease-brand-out disabled:cursor-default ${
+            className={`rounded-pill px-3.5 py-1.5 text-[0.8125rem] transition-all duration-fast ease-brand-out disabled:cursor-default ${
               active
-                ? value === "never"
-                  ? "bg-signal text-ink shadow-soft"
-                  : "bg-ink text-cream shadow-soft"
+                ? "bg-surface font-semibold text-ink shadow-rest"
                 : "text-ink-soft hover:text-ink"
             }`}
           >
@@ -486,27 +501,16 @@ function LoosenModal({
       aria-modal="true"
       aria-label={`change ${title}`}
     >
-      <div className="w-full max-w-sm origin-center animate-modal-in rounded-card bg-cream p-6 shadow-lift">
-        <div className="flex items-center gap-2">
-          <AlertTriangle size={17} strokeWidth={2.5} className="text-signal" aria-hidden="true" />
-          <h3 className="text-base font-extrabold">{title}</h3>
-        </div>
-        <p className="mt-3 text-sm text-ink-soft">{consequence}</p>
-        <p className="mt-2 text-sm text-ink-soft">you can change it back at any time.</p>
-        <div className="mt-5 flex gap-2">
-          <button
-            onClick={onConfirm}
-            disabled={busy}
-            className="rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold lowercase text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
-          >
-            {busy ? "saving…" : `yes, ${to === "always" ? "do it automatically" : "allow it"}`}
+      <div className="w-full max-w-md origin-center animate-modal-in rounded-card bg-surface p-7 shadow-overlay">
+        <h3 className="t-title">{title}</h3>
+        <p className="t-body mt-3">{consequence}</p>
+        <p className="t-caption mt-2">You can change it back at any time.</p>
+        <div className="mt-7 flex gap-1.5">
+          <button onClick={onConfirm} disabled={busy} className={btn("primary", "md")}>
+            {busy ? "Saving…" : to === "always" ? "Do it automatically" : "Allow it"}
           </button>
-          <button
-            onClick={onCancel}
-            disabled={busy}
-            className="rounded-btn px-5 py-2.5 text-sm font-bold lowercase text-ink-soft hover:bg-cream-deep"
-          >
-            keep it as it is
+          <button onClick={onCancel} disabled={busy} className={btn("ghost", "md")}>
+            Keep as it is
           </button>
         </div>
       </div>

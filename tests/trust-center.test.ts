@@ -352,15 +352,15 @@ describe("the page asks the question in the reader's language", () => {
   });
 
   it("labels all three answers in plain words", () => {
-    expect(PAGE).toMatch(/always: "always"/);
-    expect(PAGE).toMatch(/ask: "ask me"/);
-    expect(PAGE).toMatch(/never: "never"/);
+    expect(PAGE).toMatch(/always: "Always"/);
+    expect(PAGE).toMatch(/ask: "Ask me"/);
+    expect(PAGE).toMatch(/never: "Never"/);
   });
 
   it("reads the protection level back in three lists, before any control", () => {
-    expect(PAGE).toMatch(/Cosigno does these on its own/);
-    expect(PAGE).toMatch(/Cosigno asks you first/);
-    expect(PAGE).toMatch(/Cosigno will not do these/);
+    expect(PAGE).toMatch(/title: "On its own"/);
+    expect(PAGE).toMatch(/title: "Asks you first"/);
+    expect(PAGE).toMatch(/title: "Never"/);
   });
 
   it("keeps advanced capabilities reachable, behind a disclosure — never removed", () => {

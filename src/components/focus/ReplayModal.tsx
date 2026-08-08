@@ -64,11 +64,11 @@ export function ReplayModal({ sessionId, onClose }: { sessionId: string; onClose
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="flex max-h-[80vh] w-full max-w-md animate-spring-in flex-col rounded-card bg-surface p-6 shadow-depth-lift">
+      <div className="flex max-h-[80vh] w-full max-w-md animate-spring-in flex-col rounded-card bg-surface p-6 shadow-raise">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <CosignoMark size={18} />
-            <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
+            <p className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-ink-soft">
               Delegation replay
             </p>
           </div>
@@ -81,7 +81,7 @@ export function ReplayModal({ sessionId, onClose }: { sessionId: string; onClose
           </button>
         </div>
 
-        {goal && <h2 className="mt-2 text-base font-extrabold leading-snug">{goal}</h2>}
+        {goal && <h2 className="mt-2 text-base font-semibold leading-snug">{goal}</h2>}
 
         {error && (
           <p className="mt-4 rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold" role="alert">
@@ -105,7 +105,7 @@ export function ReplayModal({ sessionId, onClose }: { sessionId: string; onClose
                   aria-hidden="true"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">
+                  <p className="t-eyebrow">
                     {fmtTime(l.at)}
                   </p>
                   <p className="text-sm font-semibold leading-snug">{l.text}</p>

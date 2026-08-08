@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ActionRecord, SessionRecord } from "@/lib/types";
 import { EmptyIllustration } from "@/components/EmptyIllustration";
+import { SkeletonRows } from "@/components/Skeleton";
+import { EmptyState } from "@/components/ui/Page";
+import { badge, btn, dot, type BadgeTone } from "@/components/ui/styles";
 
 /**
  * Missions — every goal you've delegated, as a persistent unit of work (one
@@ -29,14 +32,11 @@ interface MissionRow {
   total: number;
 }
 
-function statusOf(m: MissionRow): { label: string; cls: string } {
-  if (m.proposed > 0)
-    return { label: `needs you · ${m.proposed}`, cls: "bg-signal text-cream" };
-  if (m.total === 0)
-    return { label: "planning", cls: "bg-cream-deep text-ink-soft" };
-  if (m.failed > 0)
-    return { label: "blocked", cls: "ring-1 ring-inset ring-ink/40 text-ink" };
-  return { label: "complete", cls: "ring-1 ring-inset ring-signal/50 text-signal" };
+function statusOf(m: MissionRow): { label: string; tone: BadgeTone } {
+  if (m.proposed > 0) return { label: `needs you · ${m.proposed}`, tone: "signal" };
+  if (m.total === 0) return { label: "planning", tone: "neutral" };
+  if (m.failed > 0) return { label: "blocked", tone: "danger" };
+  return { label: "complete", tone: "positive" };
 }
 
 export function MissionList() {
@@ -85,77 +85,58 @@ export function MissionList() {
 
   if (error) {
     return (
-      <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
-        <p className="text-sm font-semibold text-ink-soft">{error}</p>
-        <button
-          onClick={load}
-          className="mt-3 rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep"
-        >
-          try again
-        </button>
-      </div>
+      <EmptyState
+        title="That didn't load"
+        description={error}
+        action={
+          <button onClick={load} className={btn("secondary", "md")}>
+            Try again
+          </button>
+        }
+      />
     );
   }
 
   if (missions === null) {
-    return (
-      <div className="flex flex-col gap-3" aria-busy="true" aria-label="loading missions">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="h-20 animate-pulse rounded-card bg-cream-deep" />
-        ))}
-      </div>
-    );
+    return <SkeletonRows rows={3} />;
   }
 
   if (missions.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-card bg-surface/40 px-6 py-12 text-center shadow-soft">
-        <EmptyIllustration kind="workspace" />
-        <p className="text-sm font-extrabold lowercase">no missions yet.</p>
-        <p className="max-w-sm text-xs text-ink-soft">
-          give the operator a goal in the workspace — each one becomes a
-          mission you can track here, decision by decision.
-        </p>
-        <Link
-          href="/app"
-          prefetch
-          className="mt-1 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft"
-        >
-          start a mission
-        </Link>
-      </div>
+      <EmptyState
+        illustration={<EmptyIllustration kind="workspace" />}
+        title="No threads yet"
+        description="Every goal you hand over becomes a thread here, decision by decision."
+      />
     );
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="-mx-3 flex flex-col">
       {missions.map((m, i) => {
         const s = statusOf(m);
         return (
           <div
             key={m.session.id}
-            style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
-            className="animate-rise-in rounded-card bg-surface/60 p-4 shadow-soft"
+            style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
+            className="group flex animate-fade-through flex-wrap items-center gap-x-4 gap-y-1.5 rounded-btn px-3 py-3 transition-colors duration-fast hover:bg-ink/[0.035]"
           >
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="min-w-0 flex-1 truncate text-sm font-extrabold" title={m.session.title}>
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-[0.9375rem]" title={m.session.title}>
                 {m.session.title}
-              </h2>
-              <span className={`rounded-pill px-2.5 py-0.5 text-[10px] font-bold lowercase tracking-wide ${s.cls}`}>
-                {s.label}
-              </span>
+              </h3>
+              <p className="t-caption tabular-nums">
+                {m.executed} executed · {m.vetoed} vetoed · {m.failed} failed ·{" "}
+                {new Date(m.session.created_at).toLocaleDateString()}
+              </p>
             </div>
-            <p className="mt-1.5 font-mono text-[11px] text-ink-soft">
-              {m.executed} executed · {m.vetoed} vetoed · {m.failed} failed ·{" "}
-              {new Date(m.session.created_at).toLocaleDateString()}
-            </p>
+            <span className={badge(s.tone)}>
+              <span className={dot(s.tone)} aria-hidden="true" />
+              {s.label}
+            </span>
             {m.proposed > 0 && (
-              <Link
-                href="/app/approvals"
-                prefetch
-                className="mt-2 inline-block rounded-btn bg-ink px-3.5 py-1.5 text-xs font-bold text-cream transition-transform duration-fast hover:-translate-y-px"
-              >
-                review {m.proposed} decision{m.proposed === 1 ? "" : "s"}
+              <Link href="/app/approvals" prefetch className={btn("secondary", "sm")}>
+                Review
               </Link>
             )}
           </div>

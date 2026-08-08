@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
 
 /**
  * The home command center's "today" strip: what cosigno is working on, what
@@ -69,27 +70,24 @@ export function TodayStrip() {
     : null;
 
   return (
-    <div className="mx-auto w-full max-w-none px-4 pt-3" aria-label="today">
+    <div className="mx-auto w-full max-w-none px-5 pt-5 sm:px-8" aria-label="today">
       {tiles ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="-ml-2 flex flex-wrap items-center gap-x-1">
           {tiles.map((t) => (
             <Link
               key={t.label}
               href={t.href}
               prefetch
-              className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-pill px-3.5 py-1.5 text-xs font-bold lowercase tracking-wide transition-transform duration-fast hover:-translate-y-px ${
-                t.accent
-                  ? "bg-signal text-cream shadow-soft"
-                  : "bg-surface/70 text-ink-soft ring-1 ring-inset ring-ink/10"
-              }`}
+              className="inline-flex items-center gap-1.5 rounded-btn px-2 py-1 text-[0.8125rem] text-ink-soft transition-colors duration-fast hover:bg-ink/[0.04] hover:text-ink"
             >
-              <span className="font-mono text-sm font-extrabold">{t.value}</span>
+              {t.accent && <span className={dot("signal")} aria-hidden="true" />}
+              <span className={`tabular-nums ${t.accent ? "text-ink" : ""}`}>{t.value}</span>
               {t.label}
             </Link>
           ))}
         </div>
       ) : (
-        <div className="h-9 w-64 animate-pulse rounded-pill bg-cream-deep" aria-hidden="true" />
+        <div className="h-6 w-64 animate-shimmer rounded-pill bg-ink/[0.055]" aria-hidden="true" />
       )}
     </div>
   );

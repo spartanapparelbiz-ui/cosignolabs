@@ -153,7 +153,7 @@ export function Simulation() {
   return (
     <div className="mx-auto w-full max-w-4xl px-6 py-10 lg:px-10">
       <header>
-        <h1 className="font-display text-3xl font-extrabold sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold sm:text-4xl">
           What would happen if I added this rule?
         </h1>
         <p className="mt-2 max-w-2xl text-base text-ink-soft">
@@ -161,7 +161,7 @@ export function Simulation() {
           happened and shows exactly what it would have stopped — before anything is enabled.
         </p>
         {activeRules > 0 && (
-          <p className="mt-3 inline-flex items-center gap-2 rounded-pill bg-surface/70 px-3.5 py-1.5 text-xs font-bold shadow-soft">
+          <p className="mt-3 inline-flex items-center gap-2 rounded-pill bg-surface px-3.5 py-1.5 text-xs font-semibold shadow-rest">
             <ShieldCheck size={13} className="text-signal" aria-hidden="true" />
             {activeRules} rule{activeRules === 1 ? "" : "s"} currently protecting your workspace
           </p>
@@ -175,12 +175,12 @@ export function Simulation() {
           onKeyDown={(e) => e.key === "Enter" && run()}
           placeholder="e.g. Require a signature for refunds over $500"
           aria-label="draft rule"
-          className="min-h-[52px] flex-1 rounded-card bg-surface/70 px-4 text-base font-semibold shadow-soft outline-none ring-1 ring-inset ring-transparent transition-all duration-fast placeholder:text-ink-soft/60 focus:ring-ink/30"
+          className="min-h-[52px] flex-1 rounded-card bg-surface px-4 text-base font-semibold shadow-rest outline-none ring-1 ring-inset ring-transparent transition-all duration-fast placeholder:text-ink-soft/60 focus:ring-ink/30"
         />
         <button
           onClick={() => run()}
           disabled={busy || !text.trim()}
-          className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-card bg-ink px-6 text-sm font-extrabold lowercase text-cream transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
+          className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-card bg-ink px-6 text-sm font-semibold text-cream transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
         >
           <FlaskConical size={16} aria-hidden="true" /> {busy ? "trying it…" : "try it"}
         </button>
@@ -188,7 +188,7 @@ export function Simulation() {
 
       {/* popular rules — most people won't know what to type, so they don't have to */}
       <section className="mt-6">
-        <h2 className="text-xs font-extrabold uppercase tracking-[0.16em] text-ink-soft">
+        <h2 className="t-eyebrow">
           Popular rules — try one with a click
         </h2>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -200,7 +200,7 @@ export function Simulation() {
                 run(e);
               }}
               disabled={busy}
-              className="rounded-card bg-surface/60 px-4 py-3 text-left text-sm font-semibold shadow-soft transition-all duration-fast ease-brand-out hover:-translate-y-0.5 hover:shadow-lift disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+              className="rounded-card bg-surface px-4 py-3 text-left text-sm font-semibold shadow-rest transition-all duration-fast ease-brand-out hover:-translate-y-0.5 hover:shadow-raise disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
             >
               {e}
             </button>
@@ -209,7 +209,7 @@ export function Simulation() {
       </section>
 
       {error && (
-        <p className="mt-5 rounded-card bg-surface/70 p-4 text-sm font-semibold shadow-soft" role="alert">
+        <p className="mt-5 rounded-card bg-surface p-4 text-sm font-semibold shadow-rest" role="alert">
           {error}
         </p>
       )}
@@ -220,16 +220,16 @@ export function Simulation() {
 
           {/* the two numbers someone actually asked for */}
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-card bg-surface/70 p-5 shadow-soft">
-              <p className="font-display text-4xl font-extrabold tabular-nums">{res.tightened}</p>
-              <p className="mt-1 text-sm font-bold">would have been stopped</p>
+            <div className="rounded-card bg-surface p-5 shadow-rest">
+              <p className="font-display text-4xl font-semibold tabular-nums">{res.tightened}</p>
+              <p className="mt-1 text-sm font-semibold">Would have been stopped</p>
               <p className="mt-0.5 text-xs text-ink-soft">
                 {res.newly_blocked} refused outright · {res.newly_held} paused for you
               </p>
             </div>
-            <div className="rounded-card bg-surface/70 p-5 shadow-soft">
-              <p className="font-display text-4xl font-extrabold tabular-nums">{stillPass}</p>
-              <p className="mt-1 text-sm font-bold">would still pass</p>
+            <div className="rounded-card bg-surface p-5 shadow-rest">
+              <p className="font-display text-4xl font-semibold tabular-nums">{stillPass}</p>
+              <p className="mt-1 text-sm font-semibold">Would still pass</p>
               <p className="mt-0.5 text-xs text-ink-soft">
                 of {res.evaluated} past action{res.evaluated === 1 ? "" : "s"} replayed
               </p>
@@ -241,14 +241,14 @@ export function Simulation() {
 
           {/* examples affected */}
           {res.would_have_stopped.length > 0 && (
-            <div className="rounded-card bg-surface/70 p-5 shadow-soft">
-              <p className="text-sm font-extrabold">what this rule would have caught</p>
+            <div className="rounded-card bg-surface p-5 shadow-rest">
+              <p className="text-sm font-semibold">What this rule would have caught</p>
               <ul className="mt-2.5 flex flex-col gap-2">
                 {res.would_have_stopped.slice(0, 5).map((d) => (
                   <li key={d.decision_id} className="flex items-start gap-2 text-sm">
                     <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-pill bg-signal" aria-hidden="true" />
                     <span>
-                      <span className="font-bold">{d.action}</span>
+                      <span className="font-semibold">{d.action}</span>
                       <span className="text-ink-soft"> on {d.resource} — {d.reason}</span>
                     </span>
                   </li>
@@ -258,11 +258,11 @@ export function Simulation() {
           )}
 
           {/* enable — with the enforced interpretation shown first */}
-          <div className="rounded-card bg-surface/70 p-5 shadow-soft">
+          <div className="rounded-card bg-surface p-5 shadow-rest">
             {enforced ? (
               <p className="text-sm">
-                <span className="font-bold lowercase text-ink-soft">enabling saves it as: </span>
-                <span className="font-extrabold">{enforced.description}</span>
+                <span className="font-semibold text-ink-soft">Enabling saves it as: </span>
+                <span className="font-semibold">{enforced.description}</span>
               </p>
             ) : (
               <p className="text-sm text-ink-soft">
@@ -274,7 +274,7 @@ export function Simulation() {
               <button
                 onClick={enable}
                 disabled={!enforced || enabling || enabled}
-                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold lowercase text-ink transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
+                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-semibold text-ink transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
               >
                 {enabled ? "enabled ✓" : enabling ? "enabling…" : "enable this rule"}
               </button>
@@ -296,7 +296,7 @@ function AffectedLine({ res }: { res: SimResult }) {
   if (actors.length === 0) return null;
   return (
     <p className="text-sm text-ink-soft">
-      <span className="font-bold lowercase text-ink">who&apos;s affected: </span>
+      <span className="font-semibold text-ink">Who&apos;s affected: </span>
       {actors.slice(0, 4).join(", ")}
       {actors.length > 4 ? ` and ${actors.length - 4} more` : ""} — everyone else&apos;s work is
       untouched.
@@ -315,7 +315,7 @@ function Verdict({ res }: { res: SimResult }) {
       <div className="flex items-start gap-3 rounded-card bg-signal/10 p-4 ring-1 ring-inset ring-signal/30">
         <AlertTriangle size={18} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
         <p className="text-sm">
-          <span className="font-extrabold">Read this one before enabling.</span> Part of the rule
+          <span className="font-semibold">Read this one before enabling.</span> Part of the rule
           couldn&apos;t be confidently understood, so cosigno fell back to the stricter reading —
           it never guesses in the permissive direction.
         </p>
@@ -324,10 +324,10 @@ function Verdict({ res }: { res: SimResult }) {
   }
   if (res.evaluated === 0) {
     return (
-      <div className="flex items-start gap-3 rounded-card bg-surface/70 p-4 shadow-soft">
+      <div className="flex items-start gap-3 rounded-card bg-surface p-4 shadow-rest">
         <ShieldCheck size={18} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
         <p className="text-sm">
-          <span className="font-extrabold">Nothing to replay yet.</span> There&apos;s no past work
+          <span className="font-semibold">Nothing to replay yet.</span> There&apos;s no past work
           to test this rule against — it can still be enabled, and it applies from the next
           thing cosigno tries.
         </p>
@@ -340,7 +340,7 @@ function Verdict({ res }: { res: SimResult }) {
       <div className="flex items-start gap-3 rounded-card bg-signal/10 p-4 ring-1 ring-inset ring-signal/30">
         <AlertTriangle size={18} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
         <p className="text-sm">
-          <span className="font-extrabold">This rule is broad.</span> It would have stopped{" "}
+          <span className="font-semibold">This rule is broad.</span> It would have stopped{" "}
           {Math.round(share * 100)}% of your past work — that may be exactly what you want, but
           expect cosigno to pause for you a lot more often.
         </p>
@@ -348,12 +348,12 @@ function Verdict({ res }: { res: SimResult }) {
     );
   }
   return (
-    <div className="flex items-start gap-3 rounded-card bg-surface/70 p-4 shadow-soft">
+    <div className="flex items-start gap-3 rounded-card bg-surface p-4 shadow-rest">
       {res.tightened === 0 ? (
         <>
           <ShieldCheck size={18} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
           <p className="text-sm">
-            <span className="font-extrabold">Safe to enable.</span> Nothing you&apos;ve done so far
+            <span className="font-semibold">Safe to enable.</span> Nothing you&apos;ve done so far
             would have been affected — this rule guards against something that hasn&apos;t
             happened yet.
           </p>
@@ -362,7 +362,7 @@ function Verdict({ res }: { res: SimResult }) {
         <>
           <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
           <p className="text-sm">
-            <span className="font-extrabold">Looks safe to enable.</span> It would have stopped{" "}
+            <span className="font-semibold">Looks safe to enable.</span> It would have stopped{" "}
             {res.tightened} specific action{res.tightened === 1 ? "" : "s"} and left the rest of
             your work untouched.
           </p>

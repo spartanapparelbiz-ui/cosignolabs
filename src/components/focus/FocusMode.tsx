@@ -18,6 +18,7 @@ const SignDialog = dynamic(() =>
 import { CosignoMark } from "@/components/brand/Logo";
 import { useToast } from "@/components/Toast";
 import { useDisplayName } from "@/lib/theme";
+import { badge, btn, card, dot, field } from "@/components/ui/styles";
 
 /**
  * FOCUS — the handoff. When cosigno reaches the boundary of its authority,
@@ -301,7 +302,7 @@ export function FocusMode() {
     return (
       <div className="mx-auto flex w-full max-w-none flex-col items-center px-6 lg:px-10 py-20 text-center">
         <CosignoMark size={30} />
-        <h1 className="mt-4 font-display text-2xl font-bold">
+        <h1 className="mt-4 font-display text-2xl font-semibold">
           {doneCount > 0 ? "All clear." : "Nothing needs you."}
         </h1>
         <p className="mt-2 max-w-sm text-sm text-ink-soft">
@@ -311,7 +312,7 @@ export function FocusMode() {
         </p>
         <Link
           href="/app"
-          className="mt-6 rounded-btn bg-ink px-5 py-2.5 text-sm font-bold text-cream"
+          className="mt-6 rounded-btn bg-ink px-5 py-2.5 text-sm font-semibold text-cream"
         >
           Back to your workspace
         </Link>
@@ -324,7 +325,7 @@ export function FocusMode() {
     <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-10">
       {/* THE BOUNDARY: what cosigno can handle │ what only you can authorize.
           The dot is the work — it crosses to your side, and returns after. */}
-      <div className="flex items-center gap-3 text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
+      <div className="flex items-center gap-3 text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-ink-soft">
         <span className="flex items-center gap-1.5">
           <CosignoMark size={14} /> Cosigno
         </span>
@@ -334,7 +335,7 @@ export function FocusMode() {
             aria-hidden="true"
           />
           <span
-            className="absolute left-1/2 top-2 -translate-x-1/2 text-[8px] font-black tracking-[0.2em] text-ink-soft/70"
+            className="absolute left-1/2 top-2 -translate-x-1/2 text-[8px] font-semibold tracking-[0.2em] text-ink-soft/70"
             aria-hidden="true"
           >
             BOUNDARY
@@ -349,7 +350,7 @@ export function FocusMode() {
         <span>You</span>
       </div>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-extrabold">
+        <p className="text-sm font-semibold">
           {phase === "returning" ? "Back with cosigno — continuing." : "I need your decision."}
           {queue.length > 1 && phase === "review" && (
             <span className="ml-2 font-semibold text-ink-soft">
@@ -360,9 +361,7 @@ export function FocusMode() {
         <div className="flex items-center gap-2">
           {/* who holds the work right now — quiet, but always answered */}
           <span
-            className={`rounded-pill px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${
-              control === "you" ? "bg-signal/15 text-ink" : "bg-cream-deep text-ink-soft"
-            }`}
+            className={badge(control === "you" ? "signal" : "neutral")}
           >
             {phase === "returning"
               ? "Cosigno continues"
@@ -373,9 +372,9 @@ export function FocusMode() {
           {queue.length > 1 && phase === "review" && control === "cosigno" && (
             <button
               onClick={() => setBundleMode((v) => !v)}
-              className="rounded-pill px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-ink-soft ring-1 ring-inset ring-ink/25 hover:bg-cream-deep hover:text-ink"
+              className={btn("ghost", "sm")}
             >
-              {bundleMode ? "One at a time" : `Review all ${queue.length} together`}
+              {bundleMode ? "One at a time" : `Review all ${queue.length}`}
             </button>
           )}
         </div>
@@ -383,12 +382,12 @@ export function FocusMode() {
 
       <div
         key={action.id + phase}
-        className={`mt-4 rounded-card border border-line/70 bg-surface p-6 shadow-depth-lift ${
+        className={`mt-4 rounded-card border border-line/70 bg-surface p-6 shadow-raise ${
           phase === "returning" ? "animate-handoff-return" : "animate-handoff-in"
         }`}
       >
         {action.injection_flag && (
-          <div className="mb-4 flex items-start gap-1.5 rounded-btn bg-signal/10 px-3 py-2 text-[11px] font-bold lowercase leading-snug text-signal ring-1 ring-inset ring-signal/30">
+          <div className="mb-4 flex items-start gap-1.5 rounded-btn bg-signal/10 px-3 py-2 text-[0.75rem] font-semibold leading-snug text-signal ring-1 ring-inset ring-signal/30">
             <ShieldAlert size={13} strokeWidth={2.5} className="mt-px shrink-0" />
             external content tried to direct this — it can&apos;t be executed. re-issue the
             command yourself if you want it done.
@@ -401,7 +400,7 @@ export function FocusMode() {
           <div className={`rounded-btn bg-cream shadow-well ${control === "cosigno" ? "opacity-95" : "ring-1 ring-inset ring-signal/40"}`}>
             <div className="border-b border-line/60 px-4 py-2.5">
               <label className="flex items-baseline gap-2 text-sm">
-                <span className="w-14 shrink-0 text-xs font-extrabold uppercase tracking-wide text-ink-soft">To</span>
+                <span className="w-14 shrink-0 text-xs font-semibold uppercase tracking-wide text-ink-soft">To</span>
                 <input
                   value={draft.to}
                   onChange={(e) => setDraft({ ...draft, to: e.target.value })}
@@ -413,12 +412,12 @@ export function FocusMode() {
             </div>
             <div className="border-b border-line/60 px-4 py-2.5">
               <label className="flex items-baseline gap-2 text-sm">
-                <span className="w-14 shrink-0 text-xs font-extrabold uppercase tracking-wide text-ink-soft">Subject</span>
+                <span className="w-14 shrink-0 text-xs font-semibold uppercase tracking-wide text-ink-soft">Subject</span>
                 <input
                   value={draft.subject}
                   onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
                   readOnly={control === "cosigno"}
-                  className="min-w-0 flex-1 bg-transparent font-extrabold outline-none read-only:cursor-default"
+                  className="min-w-0 flex-1 bg-transparent font-semibold outline-none read-only:cursor-default"
                   aria-label="subject"
                 />
               </label>
@@ -434,12 +433,12 @@ export function FocusMode() {
           </div>
         ) : (
           <div>
-            <h1 className="text-lg font-extrabold leading-snug">{action.summary}</h1>
+            <h1 className="text-lg font-semibold leading-snug">{action.summary}</h1>
             {control === "cosigno" ? (
               <dl className="mt-3 flex flex-col gap-1.5 rounded-btn bg-cream px-4 py-3 shadow-well">
                 {Object.entries(action.payload).slice(0, 8).map(([k, v]) => (
                   <div key={k} className="flex items-baseline gap-3 text-sm">
-                    <dt className="w-28 shrink-0 truncate text-xs font-extrabold text-ink-soft">{k}</dt>
+                    <dt className="w-28 shrink-0 truncate text-xs font-semibold text-ink-soft">{k}</dt>
                     <dd className="min-w-0 flex-1 break-words font-semibold">
                       {typeof v === "string" ? v : JSON.stringify(v)}
                     </dd>
@@ -451,7 +450,7 @@ export function FocusMode() {
                 value={jsonDraft}
                 onChange={(e) => setJsonDraft(e.target.value)}
                 rows={10}
-                className="mt-3 w-full rounded-btn bg-cream p-3 font-mono text-[11px] leading-relaxed shadow-well ring-1 ring-inset ring-signal/40"
+                className="mt-3 w-full rounded-btn bg-cream p-3 font-mono text-[0.75rem] leading-relaxed shadow-well ring-1 ring-inset ring-signal/40"
                 aria-label="edit the exact payload (JSON)"
               />
             )}
@@ -459,21 +458,19 @@ export function FocusMode() {
         )}
 
         {/* ---------- what cosigno recommends, and why ---------- */}
-        <div className="mt-4 rounded-btn bg-cream-deep px-4 py-3">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
-            Cosigno recommends
-          </p>
-          <p className="mt-1 text-sm font-semibold">{effectLine(action)}</p>
-          <p className="mt-1 text-xs text-ink-soft">
+        <div className="mt-6">
+          <p className="t-eyebrow">cosigno recommends</p>
+          <p className="t-body mt-1.5">{effectLine(action)}</p>
+          <p className="t-caption mt-1">
             {beforeApprovalLine(action.category)} {afterApprovalLine(action.category)}
           </p>
           {/* WHY ME? — the boundary, explained in one honest sentence. */}
-          <p className="mt-1.5 text-xs font-semibold text-ink">{whyMe(action)}</p>
-          {notes[0] && <p className="mt-1.5 text-xs text-ink-soft">{notes[0]}</p>}
+          <p className="t-body mt-3 border-l-2 border-signal pl-3.5">{whyMe(action)}</p>
+          {notes[0] && <p className="t-caption mt-2">{notes[0]}</p>}
         </div>
 
         {error && (
-          <p className="mt-3 rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold" role="alert">
+          <p className="t-body mt-4 border-l-2 border-danger pl-3.5 text-danger" role="alert">
             {error}
           </p>
         )}
@@ -483,52 +480,44 @@ export function FocusMode() {
           /* YOU HAVE CONTROL — finish it yourself, or hand it back with
              your changes kept. Cosigno never restarts or overwrites. */
           <div className="mt-5">
-            <p className="text-xs font-bold text-ink-soft">
-              It&apos;s yours — edit anything above. Cosigno is paused on this one.
+            <p className="t-caption">
+              It&apos;s yours — edit anything above. cosigno is paused on this one.
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <button
-                onClick={handBack}
-                disabled={busy}
-                className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.98] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-              >
-                {busy ? "Handing back…" : "Cosigno, continue"}
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <button onClick={handBack} disabled={busy} className={btn("primary", "md")}>
+                {busy ? "Handing back…" : "cosigno, continue"}
               </button>
-              <button
-                onClick={finishMyself}
-                disabled={busy}
-                className="rounded-btn px-4 py-2.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <button onClick={finishMyself} disabled={busy} className={btn("ghost", "md")}>
                 Finish myself
               </button>
             </div>
           </div>
         ) : phase === "review" ? (
           <div className="mt-5">
-            <p className="text-xs font-bold text-ink-soft">Ready when you are.</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p className="t-caption">Ready when you are.</p>
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
               {!action.injection_flag &&
                 (needsSign ? (
                   <button
                     onClick={() => setSignOpen(true)}
                     disabled={busy}
-                    className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-5 py-2.5 text-sm font-extrabold text-cream shadow-soft transition-transform active:scale-[0.98] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                    className={btn("sign", "md")}
                   >
-                    <PenLine size={14} strokeWidth={2.6} /> Sign →
+                    <PenLine size={14} strokeWidth={2} /> Sign
                   </button>
                 ) : (
                   <button
                     onClick={() => approve()}
                     disabled={busy}
-                    className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.98] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                    className={btn("sign", "md")}
                   >
-                    <Check size={14} strokeWidth={3} /> {busy ? "Executing…" : "Approve"}
+                    <Check size={14} strokeWidth={2.4} /> {busy ? "Executing…" : "Approve"}
                   </button>
                 ))}
               <button
                 onClick={takeOver}
                 disabled={busy}
-                className="rounded-btn px-4 py-2.5 text-sm font-bold text-ink-soft transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                className={btn("ghost", "md")}
               >
                 I&apos;ll take it from here
               </button>
@@ -536,7 +525,7 @@ export function FocusMode() {
                 <button
                   onClick={() => setTelling(true)}
                   disabled={busy}
-                  className="rounded-btn px-4 py-2.5 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={btn("ghost", "md")}
                 >
                   Tell cosigno
                 </button>
@@ -552,7 +541,7 @@ export function FocusMode() {
                   <button
                     onClick={tellCosigno}
                     disabled={busy}
-                    className="rounded-btn bg-ink px-4 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                    className="rounded-btn bg-ink px-4 py-2 text-xs font-semibold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                   >
                     send
                   </button>
@@ -572,8 +561,8 @@ export function FocusMode() {
 
       {/* ---------- the approval bundle: everything waiting, together ---------- */}
       {bundleMode && phase === "review" && control === "cosigno" && (
-        <div className="mt-4 rounded-card border border-line/70 bg-surface p-5 shadow-depth">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
+        <div className="mt-4 rounded-card border border-line/70 bg-surface p-5 shadow-rest">
+          <p className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-ink-soft">
             Everything waiting on you
           </p>
           <ul className="mt-2 flex flex-col gap-2">
@@ -596,8 +585,8 @@ export function FocusMode() {
                     aria-label={`include: ${a.summary}`}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-extrabold leading-snug">{a.summary}</p>
-                    <p className="text-[11px] text-ink-soft">
+                    <p className="text-sm font-semibold leading-snug">{a.summary}</p>
+                    <p className="text-[0.75rem] text-ink-soft">
                       {signRequired(a.category, a.tier) ? "requires signature" : "one-click approve"}
                       {disabled && " · held: external content tried to direct it"}
                     </p>
@@ -610,7 +599,7 @@ export function FocusMode() {
             <button
               onClick={() => (bundleNeedsSign ? setBundleSignOpen(true) : authorizeBundle())}
               disabled={busy || bundleActions.length === 0}
-              className={`inline-flex items-center gap-1.5 rounded-btn px-5 py-2.5 text-sm font-extrabold shadow-soft transition-transform active:scale-[0.98] disabled:opacity-50 ${
+              className={`inline-flex items-center gap-1.5 rounded-btn px-5 py-2.5 text-sm font-semibold shadow-rest transition-transform active:scale-[0.98] disabled:opacity-50 ${
                 bundleNeedsSign ? "bg-ink text-cream" : "bg-signal text-ink"
               }`}
             >
@@ -624,7 +613,7 @@ export function FocusMode() {
                 </>
               )}
             </button>
-            <p className="text-[11px] font-semibold text-ink-soft">
+            <p className="text-[0.75rem] font-semibold text-ink-soft">
               Exactly the checked actions run — each gets its own authorization record.
             </p>
           </div>

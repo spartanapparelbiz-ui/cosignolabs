@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { EventStream, type ActivityEvent, type ActivityKind } from "@/components/app/EventCard";
 import { SkeletonRows } from "@/components/Skeleton";
+import { EmptyState } from "@/components/ui/Page";
+import { btn } from "@/components/ui/styles";
 
 // The signed receipt — loaded the first time one is opened, not in this
 // route's initial chunk.
@@ -51,41 +53,51 @@ export function ActivityStream() {
 
   if (error) {
     return (
-      <div className="mt-6 rounded-card border border-line bg-surface p-6">
-        <p className="text-sm font-semibold">{error}</p>
-        <button
-          onClick={load}
-          className="mt-3 rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
-        >
-          Retry
-        </button>
-      </div>
+      <EmptyState
+        title="That didn't load"
+        description={error}
+        action={
+          <button onClick={load} className={btn("secondary", "md")}>
+            Try again
+          </button>
+        }
+      />
     );
   }
 
-  if (events === null) return <SkeletonRows />;
+  if (events === null) return <SkeletonRows rows={6} />;
 
   const kinds = FILTERS[active].kinds;
   const visible = kinds.length === 0 ? events : events.filter((e) => kinds.includes(e.kind));
 
   return (
-    <div className="mt-5">
-      <div className="flex flex-wrap gap-1.5">
+    <div>
+      {/* A segmented control, not five buttons: the selection slides between
+          them, so switching filters reads as one list narrowing rather than a
+          new page arriving. */}
+      <div className="-ml-2.5 flex flex-wrap items-center">
         {FILTERS.map((f, i) => (
           <button
             key={f.label}
             onClick={() => setActive(i)}
             aria-pressed={i === active}
-            className={`rounded-pill px-3 py-1 text-xs font-bold transition-colors ${
-              i === active ? "bg-ink text-cream" : "bg-cream-deep text-ink-soft hover:text-ink"
+            className={`relative rounded-btn px-2.5 py-1.5 text-[0.8125rem] transition-colors duration-fast ${
+              i === active ? "font-semibold text-ink" : "text-ink-soft hover:text-ink"
             }`}
           >
             {f.label}
+            {i === active && (
+              <span
+                className="absolute inset-x-2.5 -bottom-px h-[1.5px] rounded-pill bg-ink"
+                aria-hidden="true"
+              />
+            )}
           </button>
         ))}
       </div>
+      <div className="h-px bg-line/50" aria-hidden="true" />
 
-      <div className="mt-4">
+      <div key={active} className="mt-3 animate-fade-through">
         <EventStream
           events={visible}
           onSelect={(e) => e.actionId && setReceiptFor(e.actionId)}

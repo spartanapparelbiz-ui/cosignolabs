@@ -42,8 +42,8 @@ async function jsonFetch(url: string, init?: RequestInit) {
   return body;
 }
 
-const CARD = "rounded-card border border-line/70 bg-surface p-5 shadow-soft";
-const SECTION_TITLE = "text-xs font-extrabold uppercase tracking-widest text-ink-soft";
+const CARD = "rounded-card border border-line/70 bg-surface p-5 shadow-rest";
+const SECTION_TITLE = "text-xs font-semibold uppercase tracking-[0.1em] text-ink-soft";
 
 /* --------- severity + health presentation (restrained, no rainbow) --------- */
 
@@ -193,7 +193,7 @@ export function AutopilotView() {
     return (
       <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-8">
         <div className={`${CARD} text-center`}>
-          <p className="text-sm font-extrabold">Autopilot couldn&apos;t load</p>
+          <p className="text-sm font-semibold">Autopilot couldn&apos;t load</p>
           <p className="mt-1 text-sm text-ink-soft">{error}</p>
         </div>
       </div>
@@ -221,7 +221,7 @@ export function AutopilotView() {
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Autopilot</h1>
         {o.data_source === "sample" && (
           <span
-            className="rounded-pill bg-cream-deep px-2.5 py-0.5 text-[11px] font-bold text-ink-soft"
+            className="rounded-pill bg-cream-deep px-2.5 py-0.5 text-[0.75rem] font-bold text-ink-soft"
             title="These numbers are the sample business, not your data. Connect your tools to replace them."
           >
             Sample data
@@ -248,10 +248,10 @@ export function AutopilotView() {
         <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
           {o.brief.lines.map((l) => (
             <div key={l.label + l.text} className="flex items-baseline justify-between gap-4 border-b border-line/50 pb-2">
-              <dt className="shrink-0 text-xs font-extrabold uppercase tracking-wide text-ink-soft">
+              <dt className="shrink-0 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                 {l.label}
               </dt>
-              <dd className={`text-right text-sm ${l.kind === "priority" ? "font-extrabold" : "font-semibold"}`}>
+              <dd className={`text-right text-sm ${l.kind === "priority" ? "font-semibold" : "font-semibold"}`}>
                 {l.text}
               </dd>
             </div>
@@ -297,7 +297,7 @@ export function AutopilotView() {
           <div className="mt-3 flex flex-col gap-3">
             {o.attention.length === 0 ? (
               <div className={`${CARD} text-center`}>
-                <p className="text-sm font-extrabold">Nothing needs your attention</p>
+                <p className="text-sm font-semibold">Nothing needs your attention</p>
                 <p className="mt-1 text-sm text-ink-soft">Autopilot will surface it here first.</p>
               </div>
             ) : (
@@ -326,8 +326,8 @@ export function AutopilotView() {
               o.opportunities.map((s) => (
                 <div key={s.key} className={CARD}>
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-extrabold leading-snug">{s.title}</p>
-                    <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-bold ${SEVERITY_CHIP[s.severity].cls}`}>
+                    <p className="text-sm font-semibold leading-snug">{s.title}</p>
+                    <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[0.75rem] font-bold ${SEVERITY_CHIP[s.severity].cls}`}>
                       {SEVERITY_CHIP[s.severity].label}
                     </span>
                   </div>
@@ -362,10 +362,10 @@ export function AutopilotView() {
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Target</p>
-                <p className="text-xl font-extrabold">${o.forecast.target.toLocaleString("en-US")}</p>
+                <p className="text-xl font-semibold">${o.forecast.target.toLocaleString("en-US")}</p>
               </div>
               <span
-                className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold ${
+                className={`rounded-pill px-2.5 py-0.5 text-[0.75rem] font-bold ${
                   o.forecast.on_track ? "bg-cream-deep text-ink" : "bg-signal/15 text-ink"
                 }`}
               >
@@ -377,7 +377,7 @@ export function AutopilotView() {
             <p className="mt-3 text-sm text-ink-soft">{o.forecast.note}</p>
             {o.forecast.causes.length > 0 && (
               <div className="mt-3">
-                <p className="text-xs font-extrabold uppercase tracking-wide text-ink-soft">Main causes</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Main causes</p>
                 <ul className="mt-1.5 flex flex-col gap-1">
                   {o.forecast.causes.map((c) => (
                     <li key={c} className="flex items-start gap-2 text-sm font-semibold">
@@ -388,7 +388,7 @@ export function AutopilotView() {
                 </ul>
               </div>
             )}
-            <p className="mt-3 text-[11px] font-semibold text-ink-soft">
+            <p className="mt-3 text-[0.75rem] font-semibold text-ink-soft">
               {confidenceLabel(o.forecast.confidence)} · estimate, not a guarantee
             </p>
           </div>
@@ -425,20 +425,20 @@ export function AutopilotView() {
               className={`${CARD} py-3.5 ${s.status === "ignored" ? "opacity-55" : ""}`}
             >
               <div className="flex flex-wrap items-center gap-2.5">
-                <span className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold ${SEVERITY_CHIP[s.severity].cls}`}>
+                <span className={`rounded-pill px-2.5 py-0.5 text-[0.75rem] font-bold ${SEVERITY_CHIP[s.severity].cls}`}>
                   {SEVERITY_CHIP[s.severity].label}
                 </span>
-                <p className="min-w-0 flex-1 text-sm font-extrabold">{s.title}</p>
+                <p className="min-w-0 flex-1 text-sm font-semibold">{s.title}</p>
                 {s.status === "new" && (
-                  <span className="rounded-pill bg-signal px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-ink">
+                  <span className="rounded-pill bg-signal px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-ink">
                     New
                   </span>
                 )}
                 {s.status === "ignored" && (
-                  <span className="text-[11px] font-bold text-ink-soft">ignored</span>
+                  <span className="text-[0.75rem] font-bold text-ink-soft">ignored</span>
                 )}
                 {s.status === "actioned" && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-ink-soft">
+                  <span className="inline-flex items-center gap-1 text-[0.75rem] font-bold text-ink-soft">
                     <Check size={12} /> acted on
                   </span>
                 )}
@@ -448,7 +448,7 @@ export function AutopilotView() {
                 <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
                   {s.metrics.map((m) => (
                     <span key={m.label} className="text-xs font-semibold text-ink-soft">
-                      {m.label}: <span className="font-extrabold text-ink">{m.value}</span>
+                      {m.label}: <span className="font-semibold text-ink">{m.value}</span>
                     </span>
                   ))}
                 </div>
@@ -466,10 +466,10 @@ export function AutopilotView() {
             {o.map.funnel.map((f, i) => (
               <div key={f.key} className="flex flex-1 items-center gap-2">
                 <div className="flex-1 rounded-card bg-cream-deep px-3.5 py-3 text-center">
-                  <p className="text-xs font-extrabold uppercase tracking-wide text-ink-soft">{f.label}</p>
-                  <p className="mt-0.5 text-sm font-extrabold">{f.value}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">{f.label}</p>
+                  <p className="mt-0.5 text-sm font-semibold">{f.value}</p>
                   {f.change && (
-                    <p className={`mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold ${f.trend === "down" ? "text-signal" : "text-ink-soft"}`}>
+                    <p className={`mt-0.5 inline-flex items-center gap-1 text-[0.75rem] font-bold ${f.trend === "down" ? "text-signal" : "text-ink-soft"}`}>
                       {f.trend === "up" ? <TrendingUp size={12} /> : f.trend === "down" ? <TrendingDown size={12} /> : null}
                       {f.change}
                     </p>
@@ -485,14 +485,14 @@ export function AutopilotView() {
             {o.map.areas.map((a) => (
               <div key={a.key} className="rounded-card border border-line/60 p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-extrabold">{a.label}</p>
+                  <p className="text-sm font-semibold">{a.label}</p>
                   <span className={`text-xs font-bold ${healthTone(a.status)}`}>
                     {HEALTH_LABEL[a.status]}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-ink-soft">{a.summary}</p>
                 {a.systems.length > 0 && (
-                  <p className="mt-2 text-[11px] font-semibold text-ink-soft">
+                  <p className="mt-2 text-[0.75rem] font-semibold text-ink-soft">
                     {a.systems.join(" · ")}
                   </p>
                 )}
@@ -551,7 +551,7 @@ export function AutopilotView() {
           </div>
           {answer && (
             <div className="mt-4 border-t border-line/60 pt-4">
-              <p className="text-sm font-extrabold leading-relaxed">{answer.answer}</p>
+              <p className="text-sm font-semibold leading-relaxed">{answer.answer}</p>
               {answer.evidence.length > 0 && (
                 <ul className="mt-2.5 flex flex-col gap-1">
                   {answer.evidence.map((e) => (
@@ -566,19 +566,19 @@ export function AutopilotView() {
                 <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1">
                   {answer.metrics.map((m) => (
                     <span key={m.label} className="text-xs font-semibold text-ink-soft">
-                      {m.label}: <span className="font-extrabold text-ink">{m.value}</span>
+                      {m.label}: <span className="font-semibold text-ink">{m.value}</span>
                     </span>
                   ))}
                 </div>
               )}
-              <p className="mt-2.5 text-[11px] font-semibold text-ink-soft">
+              <p className="mt-2.5 text-[0.75rem] font-semibold text-ink-soft">
                 {confidenceLabel(answer.confidence)} · Next step: {answer.next_step}
               </p>
               {answer.action && (
                 <button
                   onClick={() => takeAction(answer.action!.command)}
                   disabled={busyKey === answer.action.command}
-                  className="mt-3 inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                  className="mt-3 inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-ink shadow-rest transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   {answer.action.label} <ChevronRight size={14} />
                 </button>
@@ -602,7 +602,7 @@ function HealthPanel({ health }: { health: AutopilotOverview["health"] }) {
           {health.score === null ? "—" : health.score}
           <span className="text-lg font-bold text-ink-soft"> / 100</span>
         </p>
-        <p className="text-sm font-extrabold">{health.label}</p>
+        <p className="text-sm font-semibold">{health.label}</p>
       </div>
       <div className="mt-4 grid grid-cols-1 gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
         {health.categories.map((c) => {
@@ -614,7 +614,7 @@ function HealthPanel({ health }: { health: AutopilotOverview["health"] }) {
                 aria-expanded={isOpen}
                 className="flex w-full items-center justify-between gap-2 py-2.5 text-left"
               >
-                <span className="text-sm font-extrabold">{c.label}</span>
+                <span className="text-sm font-semibold">{c.label}</span>
                 <span className="flex items-center gap-1.5">
                   <span className={`text-xs font-bold ${healthTone(c.status)}`}>
                     {HEALTH_LABEL[c.status]}
@@ -631,8 +631,8 @@ function HealthPanel({ health }: { health: AutopilotOverview["health"] }) {
                   {c.evidence.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5">
                       {c.evidence.map((e) => (
-                        <span key={e.label} className="text-[11px] font-semibold text-ink-soft">
-                          {e.label}: <span className="font-extrabold text-ink">{e.value}</span>
+                        <span key={e.label} className="text-[0.75rem] font-semibold text-ink-soft">
+                          {e.label}: <span className="font-semibold text-ink">{e.value}</span>
                         </span>
                       ))}
                     </div>
@@ -663,33 +663,33 @@ function AttentionCard({
   return (
     <div className={`${CARD} ${s.severity === "critical" ? "border-ink/40" : "border-signal/40"}`}>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-base font-extrabold leading-snug">{s.title}</p>
-        <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-bold ${SEVERITY_CHIP[s.severity].cls}`}>
+        <p className="text-base font-semibold leading-snug">{s.title}</p>
+        <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[0.75rem] font-bold ${SEVERITY_CHIP[s.severity].cls}`}>
           {SEVERITY_CHIP[s.severity].label}
         </span>
       </div>
       <p className="mt-1.5 text-sm text-ink-soft">{s.body}</p>
       <p className="mt-2 text-sm">
-        <span className="font-extrabold">Why it matters: </span>
+        <span className="font-semibold">Why it matters: </span>
         <span className="text-ink-soft">{s.why}</span>
       </p>
       <p className="mt-1 text-sm">
-        <span className="font-extrabold">Estimated impact: </span>
+        <span className="font-semibold">Estimated impact: </span>
         <span className="text-ink-soft">{s.impact}</span>
       </p>
       {s.action && (
         <p className="mt-1 text-sm">
-          <span className="font-extrabold">Recommended: </span>
+          <span className="font-semibold">Recommended: </span>
           <span className="text-ink-soft">{s.action.label}</span>
         </p>
       )}
-      <p className="mt-2 text-[11px] font-semibold text-ink-soft">{confidenceLabel(s.confidence)}</p>
+      <p className="mt-2 text-[0.75rem] font-semibold text-ink-soft">{confidenceLabel(s.confidence)}</p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {s.action && (
           <button
             onClick={onAct}
             disabled={busy}
-            className="inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-ink shadow-rest transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             {busy ? "Preparing…" : "Review action"} <ChevronRight size={14} />
           </button>
@@ -723,11 +723,11 @@ function RecommendationCard({
 }) {
   return (
     <div className={CARD}>
-      <p className="text-sm font-extrabold">{rec.title}</p>
+      <p className="text-sm font-semibold">{rec.title}</p>
       <p className="mt-1 text-sm text-ink-soft">{rec.reason}</p>
       <p className="mt-1 text-xs font-semibold text-ink-soft">{rec.impact}</p>
       <div className="mt-3 flex items-center justify-between gap-3">
-        <span className="text-[11px] font-semibold text-ink-soft">{confidenceLabel(rec.confidence)}</span>
+        <span className="text-[0.75rem] font-semibold text-ink-soft">{confidenceLabel(rec.confidence)}</span>
         <button
           onClick={onAct}
           disabled={busy}
