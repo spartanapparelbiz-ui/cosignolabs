@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { Dashboard, type DashboardInitial } from "@/components/app/Dashboard";
-import { FirstRunIntro } from "@/components/FirstRunIntro";
+import { FirstRunGate } from "@/components/FirstRunGate";
 import { DashboardSkeleton } from "@/components/Skeleton";
 import { getUserId } from "@/lib/auth";
 import { servingAllowed } from "@/lib/env";
@@ -28,7 +28,7 @@ export const metadata = { title: "home" };
 export default function AppPage() {
   return (
     <>
-      <FirstRunIntro />
+      <FirstRunGate />
       <Suspense fallback={<DashboardSkeleton message={loadingMessageFor("/app")} />}>
         <DashboardWithData />
       </Suspense>

@@ -6,6 +6,7 @@
 // scripts/review-shots.mjs covers static surfaces; this covers the sequences.
 //
 //   node scripts/capture-flows.mjs [outdir]      # default: screenshots/flows
+//   BASE=http://localhost:3500 node scripts/capture-flows.mjs
 //
 // The dev server must already be listening on :3400 (demo mode is fine — it is
 // the only mode where /app renders without live keys).
@@ -22,7 +23,9 @@ const VIDEO = join(OUT, "video");
 mkdirSync(SHOTS, { recursive: true });
 mkdirSync(VIDEO, { recursive: true });
 
-const BASE = "http://localhost:3400";
+// Point at a production server with BASE=http://localhost:3500 — motion
+// captured against `next dev` includes the dev overlay and compile pauses.
+const BASE = process.env.BASE ?? "http://localhost:3400";
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined });
 
 async function fresh(name, opts = {}) {

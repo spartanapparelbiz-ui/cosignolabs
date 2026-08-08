@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Inbox, PenLine, Reply, ShieldCheck, Sunrise } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import { SEEN_KEY } from "@/lib/firstRun";
 
 /**
  * First-run onboarding — one question, one recommendation, one real mission.
@@ -14,7 +15,7 @@ import { useToast } from "@/components/Toast";
  * user. No workspace configuration, no permission matrices, no pricing.
  */
 
-const SEEN_KEY = "cosigno_intro_seen";
+
 
 interface Choice {
   key: string;
@@ -56,19 +57,16 @@ const CHOICES: Choice[] = [
   },
 ];
 
-export function FirstRunIntro() {
+export function FirstRunIntroDialog() {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<Choice | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // The gate below already decided this should render, so it opens directly.
   useEffect(() => {
-    try {
-      if (!window.localStorage.getItem(SEEN_KEY)) setOpen(true);
-    } catch {
-      // storage unavailable → never block the app
-    }
+    setOpen(true);
   }, []);
 
   function markSeen() {
