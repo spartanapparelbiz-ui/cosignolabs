@@ -1,4 +1,6 @@
+import { CATEGORIES } from "./types";
 import type {
+  ActionCategory,
   PermissionRuleRecord,
   RuleCondition,
   RuleRequirement,
@@ -6,6 +8,7 @@ import type {
 } from "./types";
 import {
   isOperation,
+  providerForKey,
   normalizeAction,
   operationCovers,
   scopeCovers,
@@ -28,6 +31,19 @@ import {
  * strengthen it. Parsing is deterministic (no model): the same sentence always
  * yields the same structured rule, offline.
  */
+
+/**
+ * Rules whose target begins with this prefix are CATEGORY rules: they name an
+ * engine action category outright (`category:delete`) rather than a tool or a
+ * word in a summary. The Trust Center writes them when someone chooses "never".
+ *
+ * They are deliberately invisible to the text matcher below — matching
+ * "category:delete" against an action summary would be a coincidence, not an
+ * enforcement. They are enforced at `proposeAction`, where the category is a
+ * known fact rather than a guess, so a forbidden capability cannot be proposed
+ * at all, from any code path.
+ */
+export const CATEGORY_TARGET_PREFIX = "category:";
 
 /** The parsed shape (everything on a rule except the DB/ownership fields). */
 export type ParsedRule = Pick<
@@ -291,6 +307,11 @@ export function readRule(r: ParsedRule): RuleReading {
 
 /** A one-line, plain-English rendering of a structured rule for the UI/audit. */
 export function describeRule(r: ParsedRule): string {
+  if (r.target.startsWith(CATEGORY_TARGET_PREFIX)) {
+    const cat = r.target.slice(CATEGORY_TARGET_PREFIX.length) as ActionCategory;
+    const label = CATEGORIES[cat]?.label.toLowerCase() ?? cat;
+    return `${label} — ${REQUIREMENT_SENTENCE[r.requirement]}.`;
+  }
   const scope =
     r.target === "any" && r.verb === "any"
       ? "any action"
@@ -299,14 +320,15 @@ export function describeRule(r: ParsedRule): string {
   if (r.condition.kind === "amount") cond = ` over $${r.condition.value}`.replace("over", r.condition.op === "<" ? "under" : "over");
   else if (r.condition.kind === "channel") cond = ` in ${r.condition.match}`;
   else if (r.condition.kind === "label") cond = ` labelled "${r.condition.match}"`;
-  const need: Record<RuleRequirement, string> = {
-    auto: "runs automatically",
-    approve: "waits for your approval",
-    sign: "requires your signature",
-    never: "is never allowed",
-  };
-  return `${scope}${cond} — ${need[r.requirement]}.`;
+  return `${scope}${cond} — ${REQUIREMENT_SENTENCE[r.requirement]}.`;
 }
+
+const REQUIREMENT_SENTENCE: Record<RuleRequirement, string> = {
+  auto: "runs automatically",
+  approve: "waits for your approval",
+  sign: "requires your signature",
+  never: "is never allowed",
+};
 
 /* ----------------------------------------------------- enforcement (tighten) */
 
@@ -350,6 +372,29 @@ export function normalizeContext(ctx: RuleContext): NormalizedAction {
     risk: ctx.risk,
     tier: ctx.tier,
   });
+}
+
+/**
+ * Whether a rule governs a given app, for display grouping ("the rules that
+ * affect GitHub").
+ *
+ * Uses the SAME normalized scope test enforcement uses, not a second
+ * substring pass — a display filter that disagreed with enforcement would be
+ * a quiet lie, listing rules under an app they cannot fire on (or hiding ones
+ * that can).
+ */
+export function ruleAppliesToApp(
+  rule: Pick<PermissionRuleRecord, "target" | "enabled">,
+  providerKey: string,
+  providerName: string
+): boolean {
+  if (!rule.enabled) return false;
+  if (rule.target === "any") return true;
+  // Category rules are enforced at the action door on the real category, never
+  // by reading an app name. They belong to no single app.
+  if (rule.target.startsWith(CATEGORY_TARGET_PREFIX)) return false;
+  const provider = providerForKey(providerKey) ?? providerForKey(providerName);
+  return provider ? scopeCovers(rule.target, provider) : false;
 }
 
 function conditionMatches(rule: PermissionRuleRecord, ctx: RuleContext): boolean {
@@ -400,6 +445,12 @@ function conditionMatches(rule: PermissionRuleRecord, ctx: RuleContext): boolean
  * conservative direction is preserved either way.
  */
 export function normalizeStoredRule(rule: PermissionRuleRecord): PermissionRuleRecord {
+  /* A category rule names an engine category outright and is enforced at
+     proposeAction, where the category is a known fact. Its target is
+     deliberately NOT a scope, so the backfill below would "repair" it by
+     re-parsing the text — turning an inert marker into a live text-matched
+     rule that enforces a second time, differently. Leave it alone. */
+  if (rule.target.startsWith(CATEGORY_TARGET_PREFIX)) return rule;
   const scopeKnown = rule.target === "any" || rule.target in SCOPES;
   const verbKnown = rule.verb === "any" || isOperation(rule.verb);
   if (scopeKnown && verbKnown) return rule;

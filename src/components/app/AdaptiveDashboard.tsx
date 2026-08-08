@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Check, Plus } from "lucide-react";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
+import { useCountUp } from "@/lib/useCountUp";
 
 /**
  * The part of home that belongs to this company specifically.
@@ -101,12 +102,7 @@ export function AdaptiveDashboard() {
                 <ul className="mt-2 flex flex-col gap-1">
                   {p.facts.slice(0, 4).map((f) => (
                     <li key={f.label} className="flex items-baseline gap-1.5">
-                      <span className="font-display text-base font-bold tabular-nums">
-                        {/* A capped total renders as "100+", never as an exact
-                            number it isn't. */}
-                        {f.value.toLocaleString()}
-                        {f.atLeast ? "+" : ""}
-                      </span>
+                      <FactNumber value={f.value} atLeast={f.atLeast} />
                       <span className="text-[11px] leading-tight text-ink-soft">{f.label}</span>
                     </li>
                   ))}
@@ -154,5 +150,20 @@ export function AdaptiveDashboard() {
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * A live number counts to its value instead of hard-swapping. The value is
+ * still the exact truth the provider reported — a capped total renders as
+ * "100+", never as an exact number it isn't; only the arrival animates.
+ */
+function FactNumber({ value, atLeast }: { value: number; atLeast?: boolean }) {
+  const shown = useCountUp(value, 500);
+  return (
+    <span className="font-display text-base font-bold tabular-nums">
+      {shown.toLocaleString()}
+      {atLeast ? "+" : ""}
+    </span>
   );
 }

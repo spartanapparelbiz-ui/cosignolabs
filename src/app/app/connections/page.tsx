@@ -23,9 +23,9 @@ export default function ConnectionsPage() {
       </div>
 
       <div className="flex-1">
-        {/* The page's own h1 already says "connections" — the panel's heading
-            would repeat the word and its description directly beneath it. */}
-        <ConnectionsPanel heading={false} />
+        {/* The page's own h1 already says "connections"; this panel renders
+            no heading of its own, so the word appears exactly once. */}
+        <ConnectionsPanel />
       </div>
       <hr className="my-8 border-ink/10" />
       <PermissionRules />

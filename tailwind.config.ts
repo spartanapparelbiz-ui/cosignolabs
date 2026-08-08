@@ -108,8 +108,8 @@ const config: Config = {
           "100%": { opacity: "1", transform: "scale(1)" },
         },
         "fade-through": {
-          "0%": { opacity: "0" },
-          "100%": { opacity: "1" },
+          "0%": { opacity: "0", transform: "translateY(6px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "card-in": {
           "0%": { opacity: "0", transform: "translateY(14px) scale(0.98)" },
@@ -267,7 +267,7 @@ const config: Config = {
         "chip-pulse": "chip-pulse 480ms ease-in-out",
         "shake-x": "shake-x 220ms ease-in-out",
         "modal-in": "modal-in 220ms cubic-bezier(0.34, 1.56, 0.64, 1) both",
-        "fade-through": "fade-through 120ms ease-out both",
+        "fade-through": "fade-through 180ms cubic-bezier(0.22, 1, 0.36, 1) both",
       },
     },
   },

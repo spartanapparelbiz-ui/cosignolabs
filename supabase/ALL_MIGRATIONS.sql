@@ -1223,3 +1223,80 @@ grant select on permission_rules to authenticated;
 create policy permission_rules_self on permission_rules
   for select using (user_id = auth_uid());
 
+
+-- 0021_perf_indexes.sql
+-- Perf indexes for the aggregate/count paths introduced by the speed pass.
+-- Both additive and idempotent; nothing is dropped or rewritten.
+
+-- /api/actions/summary counts executed-since-midnight per user, and any
+-- status-filtered listing sorts by recency: (user_id, status, created_at)
+-- lets Postgres answer both from the index instead of filtering the user's
+-- whole action history.
+create index if not exists actions_status_created_idx
+  on actions (user_id, status, created_at desc);
+
+-- The security cockpit counts injection-flagged actions. Flags are rare, so
+-- a partial index keeps that count O(flagged rows) — effectively instant —
+-- instead of a scan across every action the user ever ran.
+create index if not exists actions_injection_flag_idx
+  on actions (user_id) where injection_flag;
+
+-- 0022_action_budget.sql
+-- cosigno · action budget
+--
+-- A mission's limit, stated in the unit a person actually cares about: how
+-- many things cosigno may CHANGE in the outside world before it stops and
+-- checks in.
+--
+-- The old cap was `budget_cents`, shown in the product as "budget cap $2.00".
+-- That number never meant dollars to the person reading it — the engine
+-- divides it by five to get a tool-call ceiling — so it asked someone to
+-- reason about cosigno's hosting costs in order to answer a question about
+-- their own business. `budget_cents` stays exactly as it is and keeps doing
+-- that job internally; this column is the one the product shows.
+--
+-- Counting is deliberately narrow: reading, searching and drafting are free.
+-- Only actions that leave cosigno — a sent email, a published post, an
+-- updated record, a payment — spend the budget. A limit that ticked down
+-- while cosigno was reading would make people set it high to avoid the
+-- interruption, which is the opposite of a safety control.
+--
+-- Both columns are additive and idempotent; nothing is dropped or rewritten.
+
+-- Per-mission override. NULL means "whatever the workspace default is",
+-- so raising the default lifts every mission that never chose its own.
+alter table missions add column if not exists action_budget int;
+
+-- The workspace default, applied to any mission that doesn't override it.
+-- 0 = unlimited (see UNLIMITED in src/lib/missions/budget.ts).
+alter table user_prefs add column if not exists action_budget int not null default 25;
+
+-- 0023_ai_usage.sql
+-- cosigno · internal AI cost ledger
+--
+-- One row per AI request: model, tokens, estimated cost, who, plan, mission.
+-- INTERNAL ONLY. No RLS select grant to authenticated — users never see
+-- tokens or provider costs; they buy outcomes. Reads happen through the
+-- service role (the admin costs endpoint) exclusively.
+
+create table ai_usage (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  mission_id uuid,
+  session_id uuid,
+  task text not null,
+  model text not null,
+  input_tokens int not null default 0,
+  output_tokens int not null default 0,
+  -- USD; null = model missing from the configured price table (unknown, not zero).
+  est_cost_usd numeric,
+  plan text not null default 'free',
+  created_at timestamptz not null default now()
+);
+create index ai_usage_user_idx on ai_usage (user_id, created_at desc);
+create index ai_usage_mission_idx on ai_usage (mission_id) where mission_id is not null;
+
+alter table ai_usage enable row level security;
+-- Deliberately NO select policy for authenticated: this table is invisible to
+-- clients. Service role bypasses RLS for the internal dashboard.
+revoke all on ai_usage from authenticated, anon;

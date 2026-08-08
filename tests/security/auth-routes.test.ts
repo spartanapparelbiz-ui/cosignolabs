@@ -32,6 +32,9 @@ const PUBLIC_ROUTES = new Set([
   // fail closed (503) when the secret is unset.
   "/api/automations/tick",
   "/api/missions/tick",
+  // Internal cost dashboard — authenticates via COSIGNO_ADMIN_KEY, never a
+  // session; without the key it 404s (fail closed, unadvertised).
+  "/api/internal/costs",
 ]);
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 

@@ -14,16 +14,20 @@ export const dynamic = "force-dynamic";
  * with a status flag. Errors never expose provider detail.
  */
 /**
- * Return to the page people actually start from.
+ * Return to the page people actually start from, and name the app that just
+ * connected.
  *
- * This sent everyone to /app/account?tab=integrations, which was the only
- * connections surface when it was written. Connections has had its own page in
- * the nav for a while, so finishing a connect dropped you on a different
- * screen than the one you left — the connection worked, and it looked like it
- * had not.
+ * Two fixes, one function. It used to send everyone to
+ * /app/account?tab=integrations — the only connections surface when that line
+ * was written — so finishing a connect dropped you on a different screen than
+ * the one you left, and a working connection looked like a failure.
+ *
+ * `key` is our own registry key (validated upstream, never provider-supplied
+ * text), carried back so the panel can celebrate the RIGHT card.
  */
-function back(status: string): NextResponse {
-  return NextResponse.redirect(`${appUrl()}/app/connections?status=${status}`);
+function back(status: string, key?: string): NextResponse {
+  const suffix = key ? `&key=${encodeURIComponent(key)}` : "";
+  return NextResponse.redirect(`${appUrl()}/app/connections?status=${status}${suffix}`);
 }
 
 export async function GET(
@@ -53,7 +57,7 @@ export async function GET(
       logSecurity("invalid_input", { at: "oauth_callback", provider: key, reason: result.reason });
       return back(result.reason === "bad_state" ? "expired" : "failed");
     }
-    return back("connected");
+    return back("connected", key);
   } catch {
     return back("failed");
   }

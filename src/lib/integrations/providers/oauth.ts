@@ -23,6 +23,7 @@ export interface OAuthProviderConfig {
   name: string;
   detail: string;
   scopeSummary: string;
+  homeUrl?: string;
   /** What this connector would show on the dashboard, in business words. */
   tracks?: string[];
   authorizeUrl: string;
@@ -74,6 +75,7 @@ export function makeOAuthProvider(cfg: OAuthProviderConfig): IntegrationProvider
     detail: cfg.detail,
     authType: "oauth2",
     scopeSummary: cfg.scopeSummary,
+    homeUrl: cfg.homeUrl,
     tracks: cfg.tracks,
     // Derived, not restated: the factory already knows these, and a second
     // copy is a second thing to forget when one changes.
@@ -272,6 +274,7 @@ export const slackProvider = makeOAuthProvider({
   name: "Slack",
   detail: "list channels and (with your signature) post messages.",
   scopeSummary: "chat:write · channels:read",
+  homeUrl: "https://slack.com",
   tracks: ["channels", "messages cosigno posted"],
   authorizeUrl: "https://slack.com/oauth/v2/authorize",
   tokenUrl: "https://slack.com/api/oauth.v2.access",
@@ -356,6 +359,7 @@ export const notionProvider = makeOAuthProvider({
   name: "Notion",
   detail: "search pages and (with your signature) create pages or append notes.",
   scopeSummary: "pages you share with cosigno",
+  homeUrl: "https://www.notion.so",
   tracks: ["pages shared with cosigno"],
   authorizeUrl: "https://api.notion.com/v1/oauth/authorize",
   tokenUrl: "https://api.notion.com/v1/oauth/token",

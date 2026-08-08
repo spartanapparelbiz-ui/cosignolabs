@@ -82,7 +82,7 @@ export function UsageRing({
           role="tooltip"
           className="pointer-events-none absolute -top-2 left-1/2 z-10 w-max max-w-[220px] -translate-x-1/2 -translate-y-full rounded-btn bg-ink px-3 py-2 text-center text-[11px] font-semibold leading-snug text-cream shadow-lift animate-fade-through"
         >
-          {remaining.toLocaleString()} of {limit.toLocaleString()} actions left
+          {remaining.toLocaleString()} of {limit.toLocaleString()} AI operations left
           {typeof daysLeft === "number" && (
             <>
               <br />

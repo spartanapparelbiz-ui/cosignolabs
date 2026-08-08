@@ -33,9 +33,14 @@ function PriceNumber({ plan, interval }: { plan: (typeof PLANS)[PlanId]; interva
   const target = plan.price.monthly === 0 ? 0 : interval === "annual" ? plan.price.annual : plan.price.monthly;
   const shown = useCountUp(target, 420);
   const suffix = plan.price.monthly === 0 ? "" : interval === "annual" ? "/yr" : "/mo";
+  /* A cent-bearing price must render its cents. The count-up returns a raw
+     number, which bypassed priceLabel() and printed "$44.4" — a price nobody
+     writes. Whole prices stay whole; only a fractional one grows a second
+     decimal, and it keeps it for every frame of the animation. */
+  const label = Number.isInteger(target) ? shown.toLocaleString() : shown.toFixed(2);
   return (
     <div className="mt-4 flex items-baseline gap-1">
-      <span className="text-4xl font-extrabold tabular-nums">${shown}</span>
+      <span className="text-4xl font-extrabold tabular-nums">${label}</span>
       <span className="text-sm text-ink-soft">{suffix}</span>
     </div>
   );
@@ -101,7 +106,7 @@ export function PricingCards() {
       <div className="mx-auto mt-8 max-w-xl rounded-card bg-surface/60 p-4 shadow-soft">
         <div className="flex items-baseline justify-between">
           <label htmlFor="probe" className="text-xs font-extrabold lowercase tracking-widest text-ink-soft">
-            drag: how many actions a month?
+            drag: how many AI operations a month?
           </label>
           <span className="font-mono text-sm font-bold tabular-nums">
             {probe.toLocaleString()}
@@ -122,8 +127,11 @@ export function PricingCards() {
             "pro covers 300 actions / month" read as pro's limit being 300,
             directly contradicting the 1,000 printed on pro's own card. */}
         <p className="mt-1 text-sm font-semibold">
+          {/* Name the plan's REAL ceiling, not the number under the thumb —
+              "operator covers 300 AI operations / month" read as operator's
+              limit being 300, contradicting the 1,000 on operator's own card. */}
           <span className="font-extrabold">{PLANS[covering].name}</span> covers that
-          — {PLANS[covering].actionLimit.toLocaleString()} actions / month.
+          — {PLANS[covering].actionLimit.toLocaleString()} AI operations / month.
         </p>
       </div>
 
@@ -131,7 +139,7 @@ export function PricingCards() {
         14-day money-back guarantee · full refund, one tap · first month of pro is $9.
       </p>
 
-      <div className="mt-8 grid gap-5 md:grid-cols-3">
+      <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {PLAN_ORDER.map((id) => {
           const plan = PLANS[id];
           const featured = id === "pro";
@@ -169,6 +177,11 @@ export function PricingCards() {
                   </li>
                 ))}
               </ul>
+              {plan.examples && (
+                <p className="mt-4 border-t border-line/60 pt-3 text-xs font-semibold lowercase text-ink-soft">
+                  {plan.examples.join(" · ")}
+                </p>
+              )}
               <button
                 onClick={() => choose(id)}
                 disabled={isLeaving}
@@ -186,13 +199,42 @@ export function PricingCards() {
             </div>
           );
         })}
+
+        {/* Enterprise — a conversation, not a checkout. No invented feature
+            list: custom terms are exactly that. */}
+        <div className="relative flex flex-col rounded-card bg-surface/70 p-6 shadow-soft transition-all duration-base">
+          <h3 className="text-lg font-extrabold lowercase">enterprise</h3>
+          <p className="mt-1 text-sm text-ink-soft">for organizations with their own rules.</p>
+          <div className="mt-4 flex items-baseline gap-1">
+            <span className="text-4xl font-extrabold">custom</span>
+          </div>
+          <ul className="mt-5 flex flex-1 flex-col gap-2.5">
+            {[
+              "everything in command",
+              "your volume, your terms",
+              "security review & procurement support",
+            ].map((f) => (
+              <li key={f} className="flex items-start gap-2 text-sm">
+                <Check size={16} strokeWidth={2.6} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+          <a
+            href="mailto:spartanapparelbiz@gmail.com?subject=cosigno%20enterprise"
+            className="mt-6 flex min-h-[44px] items-center justify-center rounded-btn bg-ink px-5 py-3 text-sm font-extrabold lowercase text-cream transition-transform duration-fast hover:-translate-y-px active:scale-95"
+          >
+            talk to us
+          </a>
+        </div>
       </div>
 
       {/* "actions" translated into normal missions — labeled as an estimate */}
       <p className="mx-auto mt-6 max-w-2xl text-center text-xs font-semibold text-ink-soft">
-        what an action buys, roughly: free ≈ 2 inbox cleanups a month · pro ≈ 80
-        inbox cleanups or 200 drafted follow-ups · max ≈ 10× pro. estimates —
-        actual usage depends on mission size.
+        what an AI operation is: every planning call and every executed action
+        counts as one. roughly — free covers a few missions a month, operator
+        covers daily use, command covers heavy volume. actual usage depends on
+        mission size.
       </p>
     </div>
   );

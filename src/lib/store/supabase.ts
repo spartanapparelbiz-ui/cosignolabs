@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { clampBudget, DEFAULT_ACTION_BUDGET } from "../missions/budget";
 import {
   ActionEventRecord,
   ActionEventType,
@@ -1180,7 +1181,12 @@ export class SupabaseStore implements Store {
       .eq("user_id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return (data as UserPrefs) ?? { user_id: userId, memory_enabled: true };
+    const row = data as UserPrefs | null;
+    return {
+      user_id: userId,
+      memory_enabled: row?.memory_enabled ?? true,
+      action_budget: row?.action_budget ?? DEFAULT_ACTION_BUDGET,
+    };
   }
 
   async setMemoryEnabled(userId: string, enabled: boolean): Promise<void> {
@@ -1188,6 +1194,54 @@ export class SupabaseStore implements Store {
       .from("user_prefs")
       .upsert({ user_id: userId, memory_enabled: enabled, updated_at: new Date().toISOString() });
     if (error) throw new Error(error.message);
+  }
+
+  async setActionBudget(userId: string, budget: number): Promise<void> {
+    const { error } = await this.client
+      .from("user_prefs")
+      .upsert({
+        user_id: userId,
+        action_budget: clampBudget(budget),
+        updated_at: new Date().toISOString(),
+      });
+    if (error) throw new Error(error.message);
+  }
+
+  /* -- internal AI cost ledger (service role only; no client RLS grant) -- */
+  async recordAiUsage(row: import("../ai/costs").AiUsageRow): Promise<void> {
+    const { error } = await this.client.from("ai_usage").insert(row);
+    if (error) throw new Error(error.message);
+  }
+
+  async aiCostForMission(userId: string, missionId: string): Promise<number> {
+    const { data, error } = await this.client
+      .from("ai_usage")
+      .select("est_cost_usd")
+      .eq("user_id", userId)
+      .eq("mission_id", missionId);
+    if (error) throw new Error(error.message);
+    return (data ?? []).reduce((s, r) => s + (Number(r.est_cost_usd) || 0), 0);
+  }
+
+  async aiCostForUserMonth(userId: string): Promise<number> {
+    const { data, error } = await this.client
+      .from("ai_usage")
+      .select("est_cost_usd")
+      .eq("user_id", userId)
+      .gte("created_at", cycleStart());
+    if (error) throw new Error(error.message);
+    return (data ?? []).reduce((s, r) => s + (Number(r.est_cost_usd) || 0), 0);
+  }
+
+  async listAiUsageSince(sinceIso: string): Promise<import("./index").StoredAiUsage[]> {
+    const { data, error } = await this.client
+      .from("ai_usage")
+      .select("*")
+      .gte("created_at", sinceIso)
+      .order("created_at", { ascending: false })
+      .limit(20_000);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as import("./index").StoredAiUsage[];
   }
 
 
@@ -1293,7 +1347,7 @@ export class SupabaseStore implements Store {
     userId: string,
     id: string,
     patch: Partial<
-      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at" | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents">
+      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at" | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents" | "action_budget">
     >
   ): Promise<MissionRecord | null> {
     const { data, error } = await this.client

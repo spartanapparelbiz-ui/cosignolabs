@@ -1,5 +1,5 @@
 import { getStore } from "../store";
-import { proposeAction, vetoAction } from "../actions/engine";
+import { EngineError, proposeAction, vetoAction } from "../actions/engine";
 import { logError, logInfo, newRequestId } from "../log";
 import { CATEGORIES } from "../types";
 import type {
@@ -11,6 +11,8 @@ import type {
 import { OPERATOR_PROFILES, operatorAllows } from "./operators";
 import { TOOLS, type ToolContext, type ToolResult } from "./tools";
 import { contractCutoff, scopeQuestion, scopeVerdict } from "./contract";
+import { pausedReason } from "./budget";
+import { missionBudget } from "./missionBudget";
 
 /**
  * The durable mission engine. All state lives in the store; this module only
@@ -426,8 +428,27 @@ export async function advanceMission(
     if (mission.tool_calls >= maxToolCalls) {
       await store.updateMission(userId, missionId, {
         state: "blocked",
-        error: `this mission reached its operating budget (${maxToolCalls} tool calls). start a new mission or raise its budget to continue.`,
+        // Distinct from the action budget, and worded so the two can't be
+        // confused: this one isn't a setting, and more room won't lift it.
+        error: `this mission ran for as long as a single mission can (${maxToolCalls} steps of work). start a new one to carry on.`,
       });
+      break;
+    }
+
+    // ACTION BUDGET. How many things cosigno may CHANGE in the world before it
+    // stops and checks in — the limit the user actually set, in the unit they
+    // set it in. Checked between steps, which is exact: one step proposes at
+    // most one action, so the mission stops ON the limit rather than past it.
+    //
+    // Reading and drafting don't count, so a mission never stalls mid-research.
+    // It stops at the moment before it would change something new.
+    const budget = await missionBudget(userId, mission);
+    if (budget.exhausted) {
+      await store.updateMission(userId, missionId, {
+        state: "paused",
+        error: pausedReason(budget),
+      });
+      logInfo("mission_budget_reached", { missionId, used: budget.used, limit: budget.limit });
       break;
     }
 
@@ -490,6 +511,13 @@ export async function advanceMission(
       await applyToolResult({ userId, mission, steps: freshSteps, step: fresh }, result);
     } catch (err) {
       const message = err instanceof Error ? err.message : "the step didn't complete.";
+      // A forbidden capability is a decision, not a transient failure. Retrying
+      // it would burn attempts to arrive at the same refusal, and would read in
+      // the log as if cosigno kept trying to do the thing you said never.
+      if (err instanceof EngineError && err.code === "forbidden") {
+        await store.updateMissionStep(userId, step.id, { state: "failed", error: message });
+        continue;
+      }
       const retries = step.retry_count + 1;
       if (retries > step.max_retries) {
         await store.updateMissionStep(userId, step.id, {
@@ -555,7 +583,12 @@ export async function controlMission(
   }
   if (op === "resume") {
     if (mission.state !== "paused") return mission;
-    return store.updateMission(userId, missionId, { state: "queued" });
+    // A mission that stopped because it ran out of changes can't be resumed by
+    // asking again — it would pause on the very next pass. The only thing that
+    // moves it is more budget, so say so rather than looping.
+    const budget = await missionBudget(userId, mission);
+    if (budget.exhausted) return mission;
+    return store.updateMission(userId, missionId, { state: "queued", error: null });
   }
   // stop — terminal. Cancel every non-terminal step and veto waiting cards.
   if (TERMINAL_MISSION.has(mission.state)) return mission;

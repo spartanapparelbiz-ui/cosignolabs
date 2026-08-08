@@ -37,7 +37,9 @@ export type Status =
   | "Needs attention";
 
 export const STATUS_TONE: Record<Status, string> = {
-  Working: "bg-cream-deep text-ink-soft",
+  // Working pulses softly (box-shadow only — no movement, no layout shift):
+  // the one status where "is anything happening?" is the live question.
+  Working: "bg-cream-deep text-ink-soft animate-pulse-glow",
   Waiting: "bg-signal/15 text-ink ring-1 ring-inset ring-signal/40",
   "Needs approval": "bg-signal text-ink",
   Finished: "bg-signal/15 text-ink ring-1 ring-inset ring-signal/40",

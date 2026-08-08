@@ -2,6 +2,7 @@ import { getStore } from "../store";
 import { getProvider } from "../integrations/registry";
 import { heroResult } from "../missions/today";
 import { outcomeSentence } from "../missions/narrate";
+import { CAPABILITIES } from "../trust/capabilities";
 import type {
   AccountAuditRecord,
   ActionEventRecord,
@@ -77,6 +78,15 @@ const AUDIT_SENTENCE: Partial<
     `${String(d.category ?? "An action type")} now needs ${
       d.tier === 3 ? "typed confirmation" : d.tier === 2 ? "your approval" : "no approval"
     }.`,
+  trust_changed: (d) => {
+    const cap = CAPABILITIES.find((c) => c.id === d.capability);
+    const what = cap ? cap.title.toLowerCase() : "a capability";
+    return d.setting === "never"
+      ? `You blocked "${what}" entirely.`
+      : d.setting === "always"
+        ? `"${what}" now happens automatically.`
+        : `"${what}" now waits for your approval.`;
+  },
   rule_created: (d) => `New rule: ${String(d.text ?? "a permission rule was added")}`,
   rule_deleted: () => "A permission rule was removed.",
   emergency_stop: () => "You stopped all AI activity.",
@@ -89,6 +99,7 @@ const AUDIT_SENTENCE: Partial<
 
 const POLICY_TYPES = new Set<AccountAuditRecord["type"]>([
   "tier_changed",
+  "trust_changed",
   "rule_created",
   "rule_deleted",
 ]);

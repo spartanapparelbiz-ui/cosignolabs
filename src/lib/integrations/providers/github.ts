@@ -140,6 +140,7 @@ export const githubProvider: IntegrationProvider = {
   detail: "read your repos and issues; open issues (always with your approval).",
   authType: "oauth2",
   scopeSummary: "read profile · read/write issues · repo",
+  homeUrl: "https://github.com",
   tracks: ["repositories", "open issues", "pull requests"],
   setupEnv: ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"],
   usesPkce: false,

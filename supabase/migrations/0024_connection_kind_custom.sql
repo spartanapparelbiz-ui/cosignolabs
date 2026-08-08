@@ -1,4 +1,5 @@
--- cosigno · allow the third connection kind
+-- cosigno · allow the third connection kind (renumbered 0022 → 0024: 0022/0023
+-- were taken by the action-budget and ai-usage migrations on another branch)
 --
 -- THE BUG: `connections.kind` was constrained to ('app', 'mcp') in
 -- 0007_connections.sql, but a third kind — 'custom', a user-added API tool —

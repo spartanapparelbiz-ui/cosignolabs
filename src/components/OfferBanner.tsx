@@ -43,7 +43,7 @@ export function OfferBanner() {
     body = (
       <>
         you&apos;ve used all {PLANS.free.actionLimit} free actions this month — keep going with{" "}
-        <span className="font-extrabold">pro for ${INTRO_FIRST_MONTH_PRICE} your first month</span>.
+        <span className="font-extrabold">{PLANS.pro.name} for ${INTRO_FIRST_MONTH_PRICE} your first month</span>.
       </>
     );
   } else if (offers.annualNudge) {

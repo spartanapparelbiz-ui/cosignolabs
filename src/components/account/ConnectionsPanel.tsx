@@ -6,17 +6,16 @@ import {
   Check,
   Plug,
   Plus,
-  Loader2,
+  ExternalLink,
   RefreshCw,
   Search,
   ShieldAlert,
   X,
 } from "lucide-react";
-import { providersWithoutConnector } from "@/lib/ruleIntents";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { ConnectionInsight } from "@/components/account/ConnectionInsight";
 import { humanizeActionId, humanizeEndpoint } from "@/lib/integrations/engine/humanize";
-import { outcomesFor } from "@/components/account/providerOutcomes";
+import { ruleAppliesToApp } from "@/lib/rules";
 
 /**
  * The Connections screen: available third-party apps, the user's connected
@@ -42,6 +41,8 @@ interface ProviderMeta {
   detail: string;
   authType: string;
   scopeSummary: string;
+  /** Where the app itself lives — present only when it has a public home. */
+  homeUrl?: string;
   configured: boolean;
   /** Env var NAMES needed to connect it. Names only — never values. */
   setupEnv?: string[];
@@ -86,6 +87,8 @@ interface ConnectionView {
   status: "connected" | "needs_reauth" | "error" | "revoked";
   scopes: string | null;
   metadata: Record<string, unknown>;
+  /** When the connection last passed its real health check. */
+  last_health_at?: string | null;
 }
 
 interface CustomApiActionView {
@@ -96,6 +99,9 @@ interface CustomApiActionView {
   risk: "read" | "write" | "destructive";
 }
 const RISK_TIER_UI: Record<string, 1 | 2 | 3> = { read: 1, write: 2, destructive: 3 };
+
+/** Abilities listed in a not-yet-connected app's "what this unlocks" box. */
+const UNLOCK_SHOWN = 5;
 interface McpTool {
   connection_id: string;
   name: string;
@@ -120,18 +126,17 @@ const STATUS_STYLE: Record<ConnectionView["status"], { label: string; cls: strin
 };
 
 /**
- * An API failure, kept structured rather than flattened to a string.
+ * A failure carries its CODE up to the UI.
  *
- * Flattening was the original sin here: `throw new Error(body.message)` turned
- * every backend failure into text the UI then rendered verbatim, so ANY layer
- * — a provider, the crypto module, a rate limiter — could put its own wording
- * in front of a customer. Keeping the code means the UI decides what a person
- * reads, and the server's own sentence is only ever a fallback.
+ * Rendering the server's own sentence is how "Set GOOGLE_CLIENT_ID and
+ * GOOGLE_CLIENT_SECRET, then redeploy" reached a customer: any layer that
+ * threw got to write the copy someone reads. The panel maps a code to its own
+ * wording instead, so a new error deep in the stack cannot invent new UI text.
  */
 class ApiFailure extends Error {
   constructor(
     public code: string,
-    /** The server's sentence. Only shown when no mapping covers the code. */
+    /** The server's sentence. Never rendered; kept for logs. */
     public serverMessage: string,
     /** Setting names — present in development builds only. */
     public developer?: string[]
@@ -140,14 +145,15 @@ class ApiFailure extends Error {
   }
 }
 
-/** What a person reads, by failure code. The server's wording is not used. */
 const FAILURE_MESSAGE: Record<string, string> = {
   vault_unconfigured:
-    "Connecting apps isn't available right now. Please try again later, or contact support.",
-  not_configured: "That app isn't available to connect right now. Please try again later, or contact support.",
+    "Connecting apps isn't switched on for this workspace yet — an administrator can enable it.",
+  not_configured:
+    "That app isn't switched on for this workspace yet — an administrator can enable it.",
   no_signin_link: "We couldn't start sign-in for that app. Please try again in a moment.",
   unknown_provider: "We don't recognise that app.",
   rate_limited: "That was a lot at once — give it a moment and try again.",
+  upgrade_required: "You've reached the number of connected apps your plan includes.",
   plan_limit: "You've reached the number of connected apps your plan includes.",
   internal: "Something went wrong on our side. Please try again in a moment.",
 };
@@ -175,13 +181,7 @@ async function api(url: string, init?: RequestInit) {
   return body;
 }
 
-/**
- * `heading` renders the panel's own "connections" title. It belongs inside the
- * account center, where the panel is one tab among several — but /app/connections
- * is already titled "connections", so that page turns it off rather than
- * stacking the same word twice with two near-identical descriptions under it.
- */
-export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {}) {
+export function ConnectionsPanel() {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState(false);
@@ -189,12 +189,34 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
   const [addOpen, setAddOpen] = useState(false);
   const [addApiOpen, setAddApiOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // Provider key that JUST completed OAuth — its card pulses once on return.
+  const [justConnected, setJustConnected] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
+  // Real recent work + standing rules, so each app card can show what
+  // happened in it lately and which rules govern it. Both are the actual
+  // ledgers — the same records activity and the rules list read.
+  const [recentWork, setRecentWork] = useState<
+    { id: string; summary: string; created_at: string; status: string; tier: number }[]
+  >([]);
+  /** Instant filter over app names. Empty = show everything. */
+  const [query, setQuery] = useState("");
+  const [rules, setRules] = useState<
+    { id: string; text: string; target: string; enabled: boolean }[]
+  >([]);
 
   async function load() {
     try {
       setData(await api("/api/connections"));
       setUnavailable(false);
+      // Every connector action, any status — executed ones are the work done,
+      // tier>1 ones are the approvals asked for. Both counted from the same
+      // ledger the activity page shows.
+      api("/api/activity?category=connection_call&limit=1000")
+        .then((d) => setRecentWork(Array.isArray(d.actions) ? d.actions : []))
+        .catch(() => undefined);
+      api("/api/rules")
+        .then((d) => setRules(Array.isArray(d.rules) ? d.rules : []))
+        .catch(() => undefined);
     } catch {
       // The connections backend isn't fully provisioned on this deployment
       // yet (login + database + per-app setup). Rather than show a scary
@@ -208,10 +230,17 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
     // Surface the OAuth callback outcome (?status=…) once, then clean the URL.
     const p = new URLSearchParams(window.location.search);
     const s = p.get("status");
+    if (s === "connected") {
+      // The success moment: name the app, celebrate briefly, and pulse its
+      // card (below) so the eye lands on what just became possible.
+      const key = p.get("key");
+      if (key) setJustConnected(key);
+      setTimeout(() => setJustConnected(null), 2600);
+    }
     if (s) {
       setNotice(
         s === "connected"
-          ? "connected."
+          ? "connected — cosigno can work with it now."
           : s === "denied"
             ? "you cancelled that connection."
             : s === "expired"
@@ -219,6 +248,7 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
               : "that connection didn't complete — try again."
       );
       p.delete("status");
+      p.delete("key");
       window.history.replaceState({}, "", `${window.location.pathname}?${p.toString()}`);
     }
   }, []);
@@ -226,6 +256,27 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
   const connByProvider = new Map(
     (data?.connections ?? []).filter((c) => c.kind === "app").map((c) => [c.provider_key, c])
   );
+
+  const q = query.trim().toLowerCase();
+  const visibleProviders = (data?.providers ?? []).filter(
+    (p) => !q || p.name.toLowerCase().includes(q) || p.detail.toLowerCase().includes(q)
+  );
+
+  /**
+   * What cosigno has actually done in one app, from the ledger. Executed =
+   * work completed; tier>1 = an approval it asked you for; tier 1 executed =
+   * work it completed on its own. Nothing here is estimated.
+   */
+  function statsFor(displayName: string) {
+    const mine = recentWork.filter((a) => a.summary.startsWith(`${displayName}:`));
+    const done = mine.filter((a) => a.status === "executed");
+    return {
+      completed: done.length,
+      approvals: mine.filter((a) => a.tier > 1).length,
+      automatic: done.filter((a) => a.tier === 1).length,
+      recent: done.slice(0, 3),
+    };
+  }
   const mcps = (data?.connections ?? []).filter((c) => c.kind === "mcp");
   const customs = (data?.connections ?? []).filter((c) => c.kind === "custom");
 
@@ -245,12 +296,6 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
    */
   function requireVault(): boolean {
     if (data && !data.vaultReady) {
-      /**
-       * What happened, why, and who can fix it — in that order, with no
-       * variable names. The person reading this cannot set an environment
-       * variable from a browser, so naming one only tells them they are not
-       * the audience. The name lives in account → diagnostics, for whoever is.
-       */
       setError(
         "connecting apps isn't switched on for this workspace yet. cosigno won't hold an account's keys until secure storage is turned on, so nothing can be connected until an administrator enables it."
       );
@@ -265,11 +310,12 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
 
     if (!requireVault()) return;
     if (provider && !provider.configured) {
-      /* The exact key names are a setup task for an administrator, and they
-         live in account → diagnostics. Here we say what a person can act on:
-         which app, that it is off, and who can switch it on. */
+      /* Name the app and who can change it — never the settings. The person
+         reading this in a browser cannot set an environment variable, so
+         naming one only tells them they are not the audience. The names ride
+         in DeveloperDetails, for whoever is. */
       setError(
-        `${provider.name} isn't switched on for this workspace yet. an administrator can enable it — there's nothing to fix on your side.`
+        `${provider.name} isn't switched on for this workspace yet — an administrator can enable it. there's nothing to fix on your side.`
       );
       return;
     }
@@ -277,9 +323,6 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
     setBusy(key);
     try {
       const { url } = await api(`/api/connections/${key}/connect`);
-      // An ApiFailure, not a bare Error: `readable()` maps codes, so a plain
-      // Error would silently become the generic fallback and this sentence
-      // would never be seen by anyone.
       if (!url) throw new ApiFailure("no_signin_link", "");
       window.location.href = url;
     } catch (e) {
@@ -347,7 +390,7 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
   }
 
   if (unavailable) {
-    return <ConnectionsComingSoon heading={heading} />;
+    return <ConnectionsComingSoon />;
   }
   if (!data && !error) {
     return <ConnectionsSkeleton />;
@@ -355,8 +398,8 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      {heading && <ConnectionsHeading />}
-
+      {/* No heading here: the page above already says "connections" and what
+          it is. Saying it twice is the page apologising for itself. */}
       {notice && (
         <p className="rounded-btn bg-cream-deep px-3 py-2 text-sm font-semibold" role="status">
           {notice}
@@ -367,24 +410,267 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
           {error}
         </p>
       )}
-      {/* ---- third-party apps ---- */}
-      {/*
-        Connected first, always. Someone opening this page is far more often
-        checking on what already works than shopping for something new, and
-        making them scroll past seven things they cannot use to reach the one
-        they can is the difference between a product and an admin panel.
-      */}
-      <AppsSection
-        providers={data?.providers ?? []}
-        connByProvider={connByProvider}
-        vaultReady={data?.vaultReady !== false}
-        busy={busy}
-        onConnect={connect}
-        onDisconnect={disconnect}
-        onRecheck={recheck}
-      />
+      {data && !data.vaultReady && (
+        <p className="flex items-start gap-2 rounded-btn bg-signal/10 px-3 py-2 text-xs font-semibold text-signal ring-1 ring-inset ring-signal/30">
+          <ShieldAlert size={14} className="mt-px shrink-0" />
+          connecting apps isn&apos;t switched on for this workspace yet — an
+          administrator can enable it.
+        </p>
+      )}
 
-      <NotYetAvailable />
+      {/* ---- third-party apps ---- */}
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">apps</h4>
+          {(data?.providers.length ?? 0) > 3 && (
+            <label className="relative w-full sm:w-64">
+              <Search
+                size={14}
+                aria-hidden="true"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
+              />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="search apps"
+                aria-label="search apps"
+                className="w-full rounded-pill bg-cream-deep py-2 pl-8 pr-3 text-xs font-semibold outline-none ring-1 ring-inset ring-transparent transition-all duration-fast placeholder:text-ink-soft/60 focus:ring-ink/25"
+              />
+            </label>
+          )}
+        </div>
+        {visibleProviders.length === 0 && (
+          <p className="rounded-card bg-surface/40 px-4 py-6 text-center text-xs text-ink-soft">
+            no app matches &ldquo;{query}&rdquo;.
+          </p>
+        )}
+        {visibleProviders.map((p, i) => {
+          const conn = connByProvider.get(p.key);
+          return (
+            <div
+              key={p.key}
+              style={{ animationDelay: `${i * 70}ms` }}
+              className={`rounded-card bg-surface/60 p-5 shadow-soft transition-all duration-base ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth ${
+                justConnected === p.key ? "ring-2 ring-signal animate-pulse-glow" : ""
+              }`}
+            >
+              <div className="flex flex-wrap items-center gap-2.5">
+                <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={30} />
+                <span className="text-base font-extrabold">{p.name}</span>
+                {conn && <StatusPill status={conn.status} />}
+                {/* "coming soon" told people to wait for cosigno to build
+                    something that already exists — the connector works, this
+                    deployment just has no credentials for it. That sends the
+                    one person who could fix it away to wait. */}
+                {!p.configured && !conn && (
+                  <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-[10px] font-bold lowercase text-ink-soft">
+                    needs setup
+                  </span>
+                )}
+                <span className="ml-auto flex gap-2">
+                  {conn ? (
+                    <>
+                      {conn.status === "needs_reauth" && (
+                        <button
+                          onClick={() => connect(p.key)}
+                          disabled={busy === p.key}
+                          className="rounded-btn bg-signal px-3 py-1.5 text-xs font-bold text-ink disabled:opacity-60"
+                        >
+                          {busy === p.key ? "reconnecting…" : "reconnect"}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => recheck(conn.id)}
+                        disabled={busy === conn.id}
+                        className="rounded-btn px-2 py-1.5 text-xs font-bold text-ink-soft hover:bg-cream-deep"
+                        title="re-check status"
+                      >
+                        <RefreshCw size={12} className={busy === conn.id ? "animate-spin" : ""} />
+                      </button>
+                      {p.homeUrl && (
+                        <a
+                          href={p.homeUrl}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="inline-flex items-center gap-1 rounded-btn px-3 py-1.5 text-xs font-bold text-ink-soft hover:bg-cream-deep hover:text-ink"
+                        >
+                          open {p.name} <ExternalLink size={11} aria-hidden="true" />
+                        </a>
+                      )}
+                      <button
+                        onClick={() => disconnect(conn.id)}
+                        disabled={busy === conn.id}
+                        className="rounded-btn px-3 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
+                      >
+                        disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => connect(p.key)}
+                      disabled={busy === p.key}
+                      className="rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                    >
+                      {busy === p.key ? "…" : "connect"}
+                    </button>
+                  )}
+                </span>
+              </div>
+              <p className="mt-1.5 text-xs text-ink-soft">{p.detail}</p>
+
+              {/* An unavailable thing has to say what would make it available,
+                  or the reader is left to guess whether it's broken, unbuilt,
+                  or waiting on them. */}
+              {!p.configured && !conn && (
+                <p className="mt-1 text-[11px] text-ink-soft/80">
+                  {p.name} isn&apos;t switched on for this workspace yet — an
+                  administrator can enable it.
+                </p>
+              )}
+              {!p.configured && !conn && (
+                <DeveloperDetails provider={p} vaultReady={Boolean(data?.vaultReady)} />
+              )}
+
+              {/* Not connected: what connecting UNLOCKS — the app's real
+                  abilities as checkmarks, not an empty model. One click away. */}
+              {!conn && p.actions.length > 0 && (
+                <div className="mt-2 rounded-btn bg-cream-deep/50 px-3.5 py-2.5">
+                  <p className="text-[11px] font-bold">connect {p.name} to let cosigno</p>
+                  <ul className="mt-1.5 flex flex-col gap-1">
+                    {p.actions.slice(0, UNLOCK_SHOWN).map((a) => (
+                      <li key={a.id} className="flex items-start gap-1.5 text-[11px]">
+                        <span className="mt-px shrink-0 text-signal" aria-hidden="true">
+                          ✓
+                        </span>
+                        <span>
+                          {a.summary.replace(/\.$/, "")}
+                          {a.tier > 1 && (
+                            <span className="text-ink-soft"> — asks you first</span>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {p.actions.length > UNLOCK_SHOWN && (
+                    <p className="mt-1.5 text-[11px] text-ink-soft">
+                      and {p.actions.length - UNLOCK_SHOWN} more
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Once connected, show what's really in the account and exactly
+                  what cosigno may do with it — measured live, never examples. */}
+              {conn && conn.status === "connected" && (
+                <>
+                  <ConnectionInsight connectionId={conn.id} providerName={p.name} />
+                  <AppValue stats={statsFor(conn.display_name || p.name)} />
+                  <AppRecentWork
+                    name={conn.display_name || p.name}
+                    lastCheckedAt={conn.last_health_at ?? null}
+                    work={statsFor(conn.display_name || p.name).recent}
+                  />
+                  <AppPolicies
+                    providerKey={p.key}
+                    providerName={p.name}
+                    rules={rules}
+                  />
+                </>
+              )}
+              <p className="mt-0.5 text-[11px] text-ink-soft/80">
+                {conn?.metadata?.account
+                  ? `${String(conn.metadata.account)} · `
+                  : ""}
+                {p.scopeSummary}
+              </p>
+
+              {/* What it can do + the tier each capability is proposed at. */}
+              {conn && p.actions.length > 0 && (
+                <details className="group mt-2">
+                  <summary className="cursor-pointer list-none text-xs font-bold lowercase text-ink-soft underline underline-offset-2 marker:content-['']">
+                    <span className="group-open:hidden">what it can do ({p.actions.length})</span>
+                    <span className="hidden group-open:inline">hide capabilities</span>
+                  </summary>
+                  <div className="mt-2 flex flex-col gap-1.5">
+                    {p.actions.map((a) => (
+                      <div key={a.id} className="flex items-center gap-2 rounded-btn bg-cream-deep/60 px-3 py-1.5">
+                        {/* This is the consent surface — what someone reads
+                            before granting access to their account. "create_issue"
+                            and a tier number are the engine's words; what a person
+                            needs to know is what it does and whether it can happen
+                            without them. */}
+                        <span className="text-[11px] font-bold">{humanizeActionId(a.id)}</span>
+                        <span
+                          className={`shrink-0 rounded-pill px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                            a.tier === 1
+                              ? "bg-cream-deep text-ink-soft"
+                              : a.tier === 3
+                                ? "bg-ink text-cream"
+                                : "bg-signal/20 text-ink"
+                          }`}
+                        >
+                          {a.tier === 1
+                            ? "no approval"
+                            : a.tier === 3
+                              ? "typed confirmation"
+                              : "your approval"}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[11px] text-ink-soft" title={a.summary}>
+                          {a.summary}
+                        </span>
+                        {conn && conn.status === "connected" && (
+                          <>
+                            <button
+                              onClick={() => runPreview(conn.id, a.id)}
+                              disabled={busy === `preview:${conn.id}:${a.id}`}
+                              className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="dry-run: see what this would do, without doing it"
+                            >
+                              {busy === `preview:${conn.id}:${a.id}` ? "…" : "dry run"}
+                            </button>
+                            <button
+                              onClick={() => propose(conn.id, a.id)}
+                              disabled={busy === `${conn.id}:${a.id}`}
+                              className="shrink-0 rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="propose this action to your workspace"
+                            >
+                              {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                    <p className="mt-0.5 text-[10px] text-ink-soft/70">
+                      tiers are set by cosigno, not the app — t1 runs automatically, t2 waits for
+                      your signature, t3 needs typed confirmation.
+                    </p>
+                    {p.boundary && (
+                      <div className="mt-2 grid gap-1.5 rounded-btn bg-cream-deep/40 p-2.5 sm:grid-cols-2">
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-ink-soft">can access</p>
+                          <ul className="mt-0.5 space-y-0.5">
+                            {p.boundary.data.canAccess.map((s, k) => (
+                              <li key={k} className="text-[10px] text-ink-soft">• {s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-ink-soft">cannot</p>
+                          <ul className="mt-0.5 space-y-0.5">
+                            {p.boundary.data.cannotAccess.map((s, k) => (
+                              <li key={k} className="text-[10px] text-ink-soft">• {s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </details>
+              )}
+            </div>
+          );
+        })}
+      </section>
 
       {/* ---- custom MCP servers ---- */}
       <section className="flex flex-col gap-2.5">
@@ -491,6 +777,122 @@ export function ConnectionsPanel({ heading = true }: { heading?: boolean } = {})
  * require, the request (with the key's placement but never its value), and any
  * permission rule that applies — with an unmissable "nothing happened" note.
  */
+
+/**
+ * What this app has been worth, in three real counts from the ledger. A count
+ * at zero is omitted rather than shown — "0 actions completed" reinforces
+ * nothing, and a card of zeros reads as a product that doesn't work. With
+ * nothing yet, the row simply isn't there and the recent-work block below
+ * says so in words.
+ */
+function AppValue({
+  stats,
+}: {
+  stats: { completed: number; approvals: number; automatic: number };
+}) {
+  const cells = [
+    stats.completed > 0 && { n: stats.completed, label: "actions completed" },
+    stats.approvals > 0 && { n: stats.approvals, label: "approvals requested" },
+    stats.automatic > 0 && { n: stats.automatic, label: "completed automatically" },
+  ].filter((c): c is { n: number; label: string } => Boolean(c));
+  if (cells.length === 0) return null;
+  return (
+    <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5">
+      {cells.map((c) => (
+        <span key={c.label} className="text-[11px]">
+          <span className="font-display text-sm font-extrabold tabular-nums">
+            {c.n.toLocaleString()}
+          </span>{" "}
+          <span className="text-ink-soft">{c.label}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Minutes/hours/days ago, for the last real health check. */
+function checkedAgo(iso: string): string {
+  const mins = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+/**
+ * What cosigno actually did in this app lately — executed actions only (a
+ * proposed card hasn't done anything yet), read from the same ledger the
+ * activity page shows. With nothing yet, it says so instead of hiding.
+ */
+function AppRecentWork({
+  name,
+  lastCheckedAt,
+  work,
+}: {
+  name: string;
+  lastCheckedAt: string | null;
+  work: { id: string; summary: string; created_at: string }[];
+}) {
+  return (
+    <div className="mt-2 rounded-btn bg-cream-deep/40 px-3.5 py-2.5">
+      <p className="flex items-baseline justify-between gap-2 text-[11px] font-bold">
+        <span>recently, in {name}</span>
+        {lastCheckedAt && (
+          <span className="font-semibold text-ink-soft">
+            last checked {checkedAgo(lastCheckedAt)}
+          </span>
+        )}
+      </p>
+      {work.length === 0 ? (
+        <p className="mt-1 text-[11px] text-ink-soft">
+          nothing yet — when cosigno works in {name}, what it did shows up here.
+        </p>
+      ) : (
+        <ul className="mt-1 flex flex-col gap-0.5">
+          {work.map((a) => (
+            <li key={a.id} className="flex items-baseline justify-between gap-2 text-[11px]">
+              <span className="min-w-0 truncate">{a.summary.slice(name.length + 1).trim()}</span>
+              <span className="shrink-0 text-ink-soft">{checkedAgo(a.created_at)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The standing rules that govern this app — filtered with the SAME matching
+ * enforcement uses, so this list is exactly the set that can fire here.
+ */
+function AppPolicies({
+  providerKey,
+  providerName,
+  rules,
+}: {
+  providerKey: string;
+  providerName: string;
+  rules: { id: string; text: string; target: string; enabled: boolean }[];
+}) {
+  const applicable = rules.filter((r) => ruleAppliesToApp(r, providerKey, providerName));
+  if (applicable.length === 0) return null;
+  return (
+    <div className="mt-2 rounded-btn bg-cream-deep/40 px-3.5 py-2.5">
+      <p className="text-[11px] font-bold">
+        rules protecting {providerName} ({applicable.length})
+      </p>
+      <ul className="mt-1 flex flex-col gap-0.5">
+        {applicable.slice(0, 4).map((r) => (
+          <li key={r.id} className="text-[11px] text-ink-soft">
+            • {r.text}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: () => void }) {
   const req = preview.request;
   return (
@@ -576,465 +978,10 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
  * provisioned for this deployment yet. Nothing is broken — the feature just
  * isn't switched on — so we say exactly that, warmly, instead of an error.
  */
-/* ================================================================== apps == */
-
-type Filter = "all" | "connected" | "available" | "setup";
-
-/** The four states a provider can be in, as one badge vocabulary. */
-function AppBadge({ state }: { state: "connected" | "attention" | "ready" | "setup" }) {
-  const META = {
-    connected: { label: "Connected", dot: "bg-signal", text: "text-ink" },
-    attention: { label: "Attention", dot: "bg-ink", text: "text-ink" },
-    ready: { label: "Ready", dot: "bg-ink/30", text: "text-ink-soft" },
-    // Distinct from the "not yet available" section below, which is for tools
-    // with no connector at all. This one exists and is simply switched off.
-    setup: { label: "Needs setup", dot: "bg-ink/15", text: "text-ink-soft" },
-  } as const;
-  const m = META[state];
-  return (
-    <span className={`inline-flex shrink-0 items-center gap-1.5 text-[11px] font-bold ${m.text}`}>
-      <span className={`h-1.5 w-1.5 rounded-pill ${m.dot}`} aria-hidden="true" />
-      {m.label}
-    </span>
-  );
-}
-
-/**
- * The apps list: a short summary line, a filter, then connected apps before
- * everything else.
- */
-function AppsSection({
-  providers,
-  connByProvider,
-  vaultReady,
-  busy,
-  onConnect,
-  onDisconnect,
-  onRecheck,
-}: {
-  providers: ProviderMeta[];
-  connByProvider: Map<string, ConnectionView>;
-  vaultReady: boolean;
-  busy: string | null;
-  onConnect: (key: string) => void;
-  onDisconnect: (id: string) => void;
-  onRecheck: (id: string) => void;
-}) {
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
-
-  const stateOf = (p: ProviderMeta): "connected" | "attention" | "ready" | "setup" => {
-    const conn = connByProvider.get(p.key);
-    if (conn) return conn.status === "connected" ? "connected" : "attention";
-    return p.configured && vaultReady ? "ready" : "setup";
-  };
-
-  const counts = {
-    // The "connected" FILTER shows connected + attention, so its COUNT has to
-    // agree — otherwise the chip says 1 and the list below shows two rows.
-    connected: providers.filter((p) => {
-      const st = stateOf(p);
-      return st === "connected" || st === "attention";
-    }).length,
-    ready: providers.filter((p) => stateOf(p) === "ready").length,
-    setup: providers.filter((p) => stateOf(p) === "setup").length,
-  };
-
-  const q = query.trim().toLowerCase();
-  const visible = providers
-    // Match the key too: Gmail's connector is registered as "google", and
-    // typing what you see in a URL should find the thing.
-    .filter((p) => (q ? `${p.name} ${p.key}`.toLowerCase().includes(q) : true))
-    .filter((p) => {
-      const st = stateOf(p);
-      if (filter === "connected") return st === "connected" || st === "attention";
-      if (filter === "available") return st === "ready";
-      if (filter === "setup") return st === "setup";
-      return true;
-    });
-
-  /* Connected first — see the note at the call site. */
-  const ORDER = { connected: 0, attention: 1, ready: 2, setup: 3 } as const;
-  const sorted = [...visible].sort((a, b) => ORDER[stateOf(a)] - ORDER[stateOf(b)]);
-
-  const FILTERS: { id: Filter; label: string; n?: number }[] = [
-    { id: "all", label: "All", n: providers.length },
-    { id: "connected", label: "Connected", n: counts.connected },
-    { id: "available", label: "Available", n: counts.ready },
-    { id: "setup", label: "Needs setup", n: counts.setup },
-  ];
-
-  return (
-    <section className="flex flex-col gap-5">
-      <div>
-        <h2 className="font-display text-xl font-bold">
-          Connected apps let cosigno do real work for you.
-        </h2>
-        <p className="mt-1 max-w-2xl text-sm text-ink-soft">
-          Nothing is touched until you connect it, and anything that changes something
-          still waits for your approval.
-        </p>
-        {/*
-          One quiet line, not a red banner across a page about seven apps. The
-          reason still has to be readable without opening anything — otherwise
-          seven cards say "Needs setup" and none of them says why.
-        */}
-        {!vaultReady && (
-          <p className="mt-2.5 inline-flex items-center gap-2 rounded-pill bg-cream-deep px-3 py-1.5 text-xs font-semibold text-ink-soft">
-            <ShieldAlert size={13} className="shrink-0" aria-hidden="true" />
-            Connecting apps isn&apos;t switched on for this workspace yet — an administrator
-            can enable it.
-          </p>
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="relative flex-1 sm:max-w-xs">
-          <Search
-            size={14}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
-            aria-hidden="true"
-          />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search apps…"
-            aria-label="search apps"
-            className="h-9 w-full rounded-pill bg-cream-deep pl-8 pr-3 text-sm outline-none transition focus:ring-2 focus:ring-signal"
-          />
-        </label>
-        <div className="flex flex-wrap gap-1.5">
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              aria-pressed={filter === f.id}
-              className={`rounded-pill px-3 py-1.5 text-xs font-bold transition-colors duration-fast ${
-                filter === f.id
-                  ? "bg-ink text-cream"
-                  : "text-ink-soft hover:bg-cream-deep hover:text-ink"
-              }`}
-            >
-              {f.label}
-              {typeof f.n === "number" && <span className="ml-1 opacity-60">{f.n}</span>}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {sorted.length === 0 ? (
-        <p className="rounded-card bg-surface/60 px-5 py-10 text-center text-sm text-ink-soft shadow-soft">
-          {q ? `No app matches “${query}”.` : "Nothing here."}
-        </p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {sorted.map((p, i) => (
-            <AppRow
-              key={p.key}
-              provider={p}
-              connection={connByProvider.get(p.key)}
-              state={stateOf(p)}
-              vaultReady={vaultReady}
-              busy={busy}
-              index={i}
-              onConnect={onConnect}
-              onDisconnect={onDisconnect}
-              onRecheck={onRecheck}
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-/**
- * One app, one row.
- *
- * Collapsed it answers the only question that matters at a glance — is this
- * on, and what does it do for me. Everything else (the operations, the
- * approval level each one lands at, what an administrator would need to
- * switch on) is real and stays available, one disclosure down, where it does
- * not compete with the decision.
- */
-function AppRow({
-  provider,
-  connection,
-  state,
-  vaultReady,
-  busy,
-  index,
-  onConnect,
-  onDisconnect,
-  onRecheck,
-}: {
-  provider: ProviderMeta;
-  connection?: ConnectionView;
-  state: "connected" | "attention" | "ready" | "setup";
-  vaultReady: boolean;
-  busy: string | null;
-  index: number;
-  onConnect: (key: string) => void;
-  onDisconnect: (id: string) => void;
-  onRecheck: (id: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const outcomes = outcomesFor(provider.key);
-  const account = connection?.metadata?.account;
-
-  return (
-    <div
-      style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
-      className="rounded-card bg-surface/60 shadow-soft transition-shadow duration-base ease-brand-out animate-rise-in hover:shadow-depth"
-    >
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5">
-        <ConnectorLogo kind="app" providerKey={provider.key} displayName={provider.name} size={28} />
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2.5">
-            <p className="truncate text-sm font-extrabold">{provider.name}</p>
-            <AppBadge state={state} />
-          </div>
-          <p className="mt-0.5 truncate text-xs text-ink-soft">
-            {account ? `${String(account)} · ` : ""}
-            {outcomes.headline}
-          </p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1.5">
-          <button
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            className="rounded-btn px-2.5 py-1.5 text-xs font-bold text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink"
-          >
-            {open ? "Less" : "Details"}
-          </button>
-          {connection ? (
-            <>
-              {connection.status !== "connected" && (
-                <button
-                  onClick={() => onConnect(provider.key)}
-                  disabled={busy === provider.key}
-                  className="rounded-btn bg-signal px-3 py-1.5 text-xs font-bold text-ink transition-transform duration-fast active:scale-95 disabled:opacity-60"
-                >
-                  {busy === provider.key ? "Reconnecting…" : "Reconnect"}
-                </button>
-              )}
-              <button
-                onClick={() => onRecheck(connection.id)}
-                disabled={busy === connection.id}
-                title="check this connection"
-                aria-label={`check ${provider.name}`}
-                className="rounded-btn px-2 py-1.5 text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink"
-              >
-                <RefreshCw size={13} className={busy === connection.id ? "animate-spin" : ""} />
-              </button>
-              <button
-                onClick={() => onDisconnect(connection.id)}
-                disabled={busy === connection.id}
-                className="rounded-btn px-3 py-1.5 text-xs font-bold text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink"
-              >
-                Disconnect
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => onConnect(provider.key)}
-              disabled={busy === provider.key}
-              className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-1.5 text-xs font-bold text-cream transition-transform duration-fast active:scale-95 disabled:opacity-60"
-            >
-              {busy === provider.key ? (
-                <>
-                  <Loader2 size={12} className="animate-spin" aria-hidden="true" /> Connecting…
-                </>
-              ) : (
-                "Connect"
-              )}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {open && (
-        <div className="border-t border-line/60 px-4 py-4">
-          <AppDetails provider={provider} connection={connection} state={state} vaultReady={vaultReady} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AppDetails({
-  provider,
-  connection,
-  state,
-  vaultReady,
-}: {
-  provider: ProviderMeta;
-  connection?: ConnectionView;
-  state: "connected" | "attention" | "ready" | "setup";
-  vaultReady: boolean;
-}) {
-  const outcomes = outcomesFor(provider.key);
-  return (
-    <div className="flex flex-col gap-4">
-      {outcomes.can.length > 0 ? (
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-ink-soft">
-            What it can do for you
-          </p>
-          <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
-            {outcomes.can.slice(0, 4).map((line) => (
-              <li key={line} className="flex items-start gap-2 text-sm">
-                <Check size={14} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
-                {line}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-xs font-semibold text-ink-soft">{outcomes.never}</p>
-        </div>
-      ) : (
-        /* A connector with no written outcomes still gets the line that
-           matters most — otherwise a new tool shows nothing at all. */
-        <p className="text-xs font-semibold text-ink-soft">{outcomes.never}</p>
-      )}
-
-      {/*
-        The setup gap belongs HERE, on the app it affects, not as a banner
-        across a page about seven other apps that are fine.
-      */}
-      {state === "setup" && (
-        <div className="rounded-btn bg-cream-deep px-3 py-2.5">
-          <p className="text-xs font-bold">
-            {vaultReady
-              ? `${provider.name} isn't switched on for this workspace yet.`
-              : "Connecting apps isn't switched on for this workspace yet."}
-          </p>
-          <p className="mt-0.5 text-xs text-ink-soft">
-            An administrator can enable it — there&apos;s nothing to fix on your side.
-          </p>
-          <DeveloperDetails provider={provider} vaultReady={vaultReady} />
-        </div>
-      )}
-
-      {connection && <ConnectionInsight connectionId={connection.id} providerName={provider.name} />}
-
-      {/*
-        Operations, and the approval level each lands at. Real, exact, and
-        deliberately not the first thing anyone reads — this is the answer to
-        "prove it", not to "what is this".
-      */}
-      <details className="group">
-        <summary className="cursor-pointer list-none text-xs font-bold text-ink-soft transition-colors hover:text-ink">
-          <span className="underline decoration-dotted underline-offset-4">Technical details</span>
-        </summary>
-        <div className="mt-3 flex flex-col gap-2">
-          <p className="text-xs text-ink-soft">{provider.scopeSummary}</p>
-          <ul className="flex flex-col gap-1">
-            {provider.actions.map((a) => (
-              <li
-                key={a.id}
-                className="flex flex-wrap items-center gap-2 rounded-btn bg-cream/40 px-3 py-1.5 text-xs"
-              >
-                <span className="font-mono text-[11px] text-ink-soft">{a.id}</span>
-                <span className="min-w-0 flex-1 text-ink-soft">{a.summary}</span>
-                <TierBadge tier={a.tier} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      </details>
-    </div>
-  );
-}
-
-/**
- * Setting names, for the person who can act on them — and only in development.
- *
- * In a real workspace an end user seeing GOOGLE_CLIENT_ID learns nothing they
- * can use; it just tells them they are not the audience. There is no admin
- * role in this product yet, so rather than invent one this discloses in
- * development builds only, and says so.
- */
-function DeveloperDetails({ provider, vaultReady }: { provider: ProviderMeta; vaultReady: boolean }) {
-  if (process.env.NODE_ENV !== "development") return null;
-  const names = [...(vaultReady ? [] : ["INTEGRATIONS_ENCRYPTION_KEY"]), ...(provider.setupEnv ?? [])];
-  if (names.length === 0) return null;
-  return (
-    <details className="mt-2">
-      <summary className="cursor-pointer list-none text-[11px] font-bold text-ink-soft underline decoration-dotted underline-offset-4">
-        Developer details (shown in development only)
-      </summary>
-      <ul className="mt-1.5 flex flex-col gap-0.5">
-        {names.map((n) => (
-          <li key={n} className="font-mono text-[11px] text-ink-soft">
-            {n} — not set
-          </li>
-        ))}
-      </ul>
-    </details>
-  );
-}
-
-/**
- * Systems cosigno understands the words for but has no connector to — Stripe
- * and Dropbox today.
- *
- * They are listed because a rule can name them, and a page that showed only
- * what works would let a person assume anything unmentioned is handled. The
- * list is derived from the connector tables, so it empties itself the day
- * those connectors ship rather than needing to be remembered.
- */
-function NotYetAvailable() {
-  const missing = providersWithoutConnector();
-  if (missing.length === 0) return null;
-  return (
-    <section className="flex flex-col gap-2.5">
-      <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">not yet available</h4>
-      <div className="rounded-card bg-surface/60 p-4 shadow-soft">
-        <div className="flex flex-wrap items-center gap-2">
-          {missing.map((m) => (
-            <span
-              key={m.provider}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-cream-deep px-2.5 py-1 text-xs font-bold text-ink-soft"
-            >
-              {m.label}
-              <span className="text-[10px] font-black uppercase tracking-wider">
-                no connector
-              </span>
-            </span>
-          ))}
-        </div>
-        <p className="mt-2.5 text-[11px] text-ink-soft">
-          cosigno can&apos;t work with these at all yet — not switched off, not built. a safety
-          rule naming one is saved and understood, but it protects nothing until support
-          arrives. nothing here is hidden: if a tool isn&apos;t listed anywhere above,
-          cosigno can&apos;t touch it.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-/** The panel's own title — one definition, shared by every state it can be in. */
-function ConnectionsHeading() {
-  return (
-    <div>
-      <h3 className="text-sm font-extrabold lowercase tracking-widest text-ink-soft">
-        connections
-      </h3>
-      <p className="mt-1 text-xs text-ink-soft">
-        the apps and MCP servers cosigno can act across — each stays off until
-        you connect it, and every action still waits for your signature.
-      </p>
-    </div>
-  );
-}
-
-function ConnectionsComingSoon({ heading }: { heading: boolean }) {
+function ConnectionsComingSoon() {
   return (
     <div className="flex flex-1 flex-col gap-6">
-      {heading && <ConnectionsHeading />}
+      {/* No heading — the page above already carries it. */}
       <div className="group flex flex-1 flex-col items-center justify-center rounded-card bg-surface/60 px-8 py-16 text-center shadow-soft transition-all duration-slow ease-brand-out animate-spring-in hover:-translate-y-0.5 hover:shadow-depth">
         {/* Icon badge: radiating signal rings behind a gently floating plug. */}
         <div
@@ -1082,16 +1029,15 @@ function ConnectionsComingSoon({ heading }: { heading: boolean }) {
 function ConnectionsSkeleton() {
   return (
     <div className="flex flex-col gap-6" aria-busy="true" aria-label="loading connections">
-      <div>
-        <div className="h-3.5 w-28 rounded-pill bg-cream-deep" />
-        <div className="mt-2 h-3 w-3/4 rounded-pill bg-cream-deep/70" />
-      </div>
-      <section className="flex flex-col gap-2.5">
-        <div className="h-3 w-10 rounded-pill bg-cream-deep/70" />
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="h-3 w-10 rounded-pill bg-cream-deep/70" />
+          <div className="h-8 w-full max-w-[16rem] rounded-pill bg-cream-deep/60" />
+        </div>
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-card bg-surface/60 p-4 shadow-soft">
-            <div className="flex items-center gap-2">
-              <span className="h-[26px] w-[26px] shrink-0 rounded-btn bg-cream-deep" />
+          <div key={i} className="rounded-card bg-surface/60 p-5 shadow-soft">
+            <div className="flex items-center gap-2.5">
+              <span className="h-[30px] w-[30px] shrink-0 rounded-btn bg-cream-deep" />
               <span className="h-3.5 w-24 rounded-pill bg-cream-deep" />
               <span className="ml-auto h-7 w-20 rounded-btn bg-cream-deep" />
             </div>
@@ -1612,5 +1558,33 @@ function AddApiToolForm({
         {busy ? "adding…" : <><Check size={14} /> add tool</>}
       </button>
     </div>
+  );
+}
+
+/**
+ * Setting names, for whoever can actually set them.
+ *
+ * The guarantee this component carries is not "the names are gone" — it is
+ * "the names are behind this gate". It renders nothing outside a development
+ * build, so a customer can never reach it, and it is the ONLY place in the
+ * panel that reads setupEnv or names a configuration key.
+ */
+function DeveloperDetails({ provider, vaultReady }: { provider: ProviderMeta; vaultReady: boolean }) {
+  if (process.env.NODE_ENV !== "development") return null;
+  const names = [...(vaultReady ? [] : ["INTEGRATIONS_ENCRYPTION_KEY"]), ...(provider.setupEnv ?? [])];
+  if (names.length === 0) return null;
+  return (
+    <details className="mt-2">
+      <summary className="cursor-pointer list-none text-[11px] font-bold text-ink-soft underline decoration-dotted underline-offset-4">
+        Developer details (shown in development only)
+      </summary>
+      <ul className="mt-1.5 flex flex-col gap-0.5">
+        {names.map((n) => (
+          <li key={n} className="font-mono text-[11px] text-ink-soft">
+            {n} — not set
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

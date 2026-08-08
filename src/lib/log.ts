@@ -16,6 +16,7 @@ export type SecurityEvent =
   | "rejected_status_write"
   | "tier_clamped"
   | "rule_blocked"
+  | "capability_forbidden"
   | "injection_flagged"
   | "injection_approval_blocked"
   | "source_injection_detected"

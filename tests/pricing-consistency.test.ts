@@ -21,8 +21,8 @@ describe("canonical plan values (plans.ts is the single source)", () => {
     expect(PLANS.pro.actionLimit).toBe(1000);
     expect(PLANS.max.actionLimit).toBe(10000);
     expect(PLANS.free.price.monthly).toBe(0);
-    expect(PLANS.pro.price.monthly).toBe(29);
-    expect(PLANS.max.price.monthly).toBe(99);
+    expect(PLANS.pro.price.monthly).toBe(44.4);
+    expect(PLANS.max.price.monthly).toBe(111);
   });
 
   it("annual is exactly two months free (10× monthly) for paid plans", () => {
@@ -39,14 +39,14 @@ describe("canonical plan values (plans.ts is the single source)", () => {
 
 describe("derived labels come straight from the plan (no drift)", () => {
   it("actionLimitLabel formats the real actionLimit", () => {
-    expect(actionLimitLabel(PLANS.pro)).toBe("1,000 actions / month");
-    expect(actionLimitLabel(PLANS.max)).toBe("10,000 actions / month");
-    expect(actionLimitLabel(PLANS.free)).toBe("25 actions / month");
+    expect(actionLimitLabel(PLANS.pro)).toBe("1,000 AI operations / month");
+    expect(actionLimitLabel(PLANS.max)).toBe("10,000 AI operations / month");
+    expect(actionLimitLabel(PLANS.free)).toBe("25 AI operations / month");
   });
 
   it("priceLabel matches the plan price", () => {
-    expect(priceLabel(PLANS.pro, "monthly")).toBe("$29/mo");
-    expect(priceLabel(PLANS.pro, "annual")).toBe("$290/yr");
+    expect(priceLabel(PLANS.pro, "monthly")).toBe("$44.40/mo");
+    expect(priceLabel(PLANS.pro, "annual")).toBe("$444/yr");
     expect(priceLabel(PLANS.free, "monthly")).toBe("$0");
   });
 
@@ -63,7 +63,7 @@ describe("one intro offer, stated consistently", () => {
     expect(INTRO_FIRST_MONTH_PRICE).toBe(9);
     expect(introOfferLabel()).toBe(`first month $9, then ${priceLabel(PLANS.pro, "monthly")}`);
     expect(introOfferLabel()).toContain("$9");
-    expect(introOfferLabel()).toContain("$29/mo");
+    expect(introOfferLabel()).toContain("$44.40/mo");
   });
 });
 

@@ -39,7 +39,7 @@ function Row({ label, ok, value }: { label: string; ok?: boolean; value?: string
 function describeFailure(status: number, body: string): string {
   if (status === 401) return "you're signed out — sign in again and reload this page.";
   if (status === 503)
-    return "the app is running without its database or planner keys. check the Netlify environment variables.";
+    return "the app is running without its database or AI keys. check the Netlify environment variables.";
   // 5xx bodies are deliberately generic (no schema detail leaves the server),
   // so quoting them back adds nothing. Name the likeliest cause instead: this
   // route's only real work is a `missions` table query.
@@ -101,7 +101,7 @@ export function MissionHealth() {
         <Row label="mission cron" ok={health.mission_cron_configured} />
         <Row label="missions waiting for a tick" value={String(health.missions_waiting_for_tick)} />
         <Row label="database" value={health.database} />
-        <Row label="planner" ok={health.planner_configured} />
+        <Row label="AI" ok={health.planner_configured} />
         <Row label="browser provider" ok={health.browser_provider_configured} value={health.browser_provider_configured ? "configured" : "sandbox only"} />
         <Row label="live browser" ok={health.browser_live} value={health.browser_live ? "live" : "sandbox (labeled)"} />
       </ul>

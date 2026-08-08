@@ -224,6 +224,9 @@ export type AccountAuditType =
   | "emergency_stop_lifted"
   | "rule_created"
   | "rule_deleted"
+  | "trust_changed"
+  | "budget_raised"
+  | "budget_default_changed"
   | "promo";
 
 /**
@@ -500,6 +503,8 @@ export interface PermissionRuleRecord {
 export interface UserPrefs {
   user_id: string;
   memory_enabled: boolean;
+  /** The default action budget every new mission runs under. */
+  action_budget: number;
 }
 
 /* ------------------------------------------------------------------ files */
@@ -617,10 +622,16 @@ export interface MissionRecord {
   /** Tick concurrency lease — set while a worker is advancing this mission. */
   lease_owner: string | null;
   lease_expires_at: string | null;
-  /** Cost/resource counters + per-mission cap (cents). */
+  /** Internal cost/resource counters + the engine's own cap (cents). */
   tool_calls: number;
   browser_actions: number;
   budget_cents: number;
+  /**
+   * How many things this mission may CHANGE outside cosigno before it stops
+   * and asks. `null` follows the workspace default, so raising the default
+   * lifts every mission that never chose its own.
+   */
+  action_budget: number | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;

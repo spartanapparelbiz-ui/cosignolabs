@@ -13,6 +13,7 @@
  * Backward-compat (one release, with a one-time deprecation warning): the
  * previous env names are still read if the new ones are unset.
  */
+import { createHash } from "crypto";
 import { logError, logInfo, newRequestId } from "../log";
 
 let warnedApiKey = false;
@@ -137,6 +138,19 @@ export interface PlannerCall {
   system: string;
   userContent: string;
   tool: PlannerTool;
+  /**
+   * Internal accounting context. When present, the call writes one row to the
+   * AI cost ledger (model, tokens, estimated cost, user, plan, mission).
+   * Absent = unattributed call; it still runs, it just isn't in the ledger —
+   * so every real call site should pass it.
+   */
+  meta?: {
+    userId: string;
+    plan: string;
+    task: string;
+    missionId?: string | null;
+    sessionId?: string | null;
+  };
 }
 
 export interface PlannerResult {
@@ -209,6 +223,17 @@ export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
 
   const client = await plannerClient(apiKey);
 
+  // Identical work is answered from cache, not paid for twice. Keyed on the
+  // COMPLETE call (model + system + content + tool), so only a byte-identical
+  // request can ever hit — a different user asking a different thing can't
+  // collide, and the same user retrying the same command doesn't re-pay.
+  const cacheKey = plannerCacheKey(call);
+  const cached = plannerCacheGet(cacheKey);
+  if (cached) {
+    logInfo("planner_cache_hit", { task: call.meta?.task ?? "unattributed" });
+    return cached;
+  }
+
   let response;
   try {
     response = await client.messages.create({
@@ -237,9 +262,86 @@ export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
       ? (toolUse.input as Record<string, unknown>)
       : null;
 
-  return {
+  const result: PlannerResult = {
     toolInput,
     inputTokens: response.usage?.input_tokens,
     outputTokens: response.usage?.output_tokens,
   };
+
+  // Only a USABLE result is cached — caching a null toolInput would replay
+  // the failure for an hour instead of retrying it.
+  if (toolInput) plannerCacheSet(cacheKey, result);
+
+  // Internal cost ledger — fire-and-forget; accounting never delays or fails
+  // the user's request. Dynamic import keeps store code out of this module's
+  // dependency graph for callers that only need types.
+  if (call.meta) {
+    const meta = call.meta;
+    void import("../ai/costs").then(({ recordAiUsage, estimateCost }) =>
+      recordAiUsage({
+        user_id: meta.userId,
+        mission_id: meta.missionId ?? null,
+        session_id: meta.sessionId ?? null,
+        task: meta.task,
+        model: call.model,
+        input_tokens: result.inputTokens ?? 0,
+        output_tokens: result.outputTokens ?? 0,
+        est_cost_usd: estimateCost(call.model, result.inputTokens ?? 0, result.outputTokens ?? 0),
+        plan: meta.plan,
+      })
+    ).catch(() => undefined);
+  }
+
+  return result;
+}
+
+/* --------------------------------------------------- identical-work cache */
+
+/**
+ * In-process LRU for identical planner calls. Bounded and TTL'd: this exists
+ * to stop paying twice for byte-identical work (a retried command, a
+ * double-submitted form), not to be a knowledge store. Nothing here outlives
+ * the process or crosses instances.
+ */
+const PLANNER_CACHE_MAX = 200;
+const PLANNER_CACHE_TTL_MS = 60 * 60 * 1000;
+const plannerCache = new Map<string, { at: number; result: PlannerResult }>();
+
+function plannerCacheKey(call: PlannerCall): string {
+  return createHash("sha256")
+    .update(call.model)
+    .update(" ")
+    .update(call.system)
+    .update(" ")
+    .update(call.userContent)
+    .update(" ")
+    .update(JSON.stringify(call.tool))
+    .digest("hex");
+}
+
+function plannerCacheGet(key: string): PlannerResult | null {
+  const hit = plannerCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > PLANNER_CACHE_TTL_MS) {
+    plannerCache.delete(key);
+    return null;
+  }
+  // Refresh recency (Map preserves insertion order — delete+set moves to end).
+  plannerCache.delete(key);
+  plannerCache.set(key, hit);
+  return hit.result;
+}
+
+function plannerCacheSet(key: string, result: PlannerResult): void {
+  plannerCache.set(key, { at: Date.now(), result });
+  while (plannerCache.size > PLANNER_CACHE_MAX) {
+    const oldest = plannerCache.keys().next().value;
+    if (oldest === undefined) break;
+    plannerCache.delete(oldest);
+  }
+}
+
+/** For tests. */
+export function resetPlannerCacheForTests(): void {
+  plannerCache.clear();
 }

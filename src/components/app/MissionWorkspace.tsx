@@ -29,6 +29,7 @@ import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { narrateMission, type StepPhase, type WorkApp } from "@/lib/missions/narrate";
 import { heroResult } from "@/lib/missions/today";
 import { missionStatus, STATUS_TONE } from "@/lib/status";
+import { INCREASE_STEPS, type BudgetState } from "@/lib/missions/budget";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 
 /**
@@ -72,6 +73,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
   const [sources, setSources] = useState<MissionSourceRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [budget, setBudget] = useState<BudgetState | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -80,6 +82,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
       setMission(d.mission);
       setSteps(d.steps ?? []);
       setSources(d.sources ?? []);
+      setBudget(d.budget ?? null);
       setError(null);
       return d.mission as MissionRecord;
     } catch (e) {
@@ -121,6 +124,24 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
         "success",
         op === "pause" ? "paused — no new work will start." : op === "resume" ? "resumed." : "stopped — waiting steps canceled, pending cards vetoed."
       );
+      await load();
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "that didn't work.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /** Let this mission change more things, and pick up where it stopped. */
+  async function addBudget(add: number) {
+    setBusy(`budget:${add}`);
+    try {
+      const d = await jsonFetch(`/api/missions/${missionId}/budget`, {
+        method: "POST",
+        body: JSON.stringify({ add }),
+      });
+      setBudget(d.budget ?? null);
+      toast("success", `${add} more actions approved — carrying on.`);
       await load();
     } catch (e) {
       toast("error", e instanceof Error ? e.message : "that didn't work.");
@@ -195,12 +216,16 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           <span className={`rounded-pill px-3 py-1 text-xs font-bold ${STATUS_TONE[label]}`}>{label}</span>
           {!TERMINAL.has(mission.state) &&
             (mission.state === "paused" ? (
+              // Resume can't move a mission that stopped for running out of
+              // changes — only more budget can. Offering the button anyway
+              // would be a control that does nothing when pressed.
               <button
-                onClick={() => control("resume")}
+                onClick={() => (budget?.exhausted ? addBudget(INCREASE_STEPS[0]) : control("resume"))}
                 disabled={busy !== null}
                 className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
-                <Play size={12} /> Resume
+                <Play size={12} />
+                {budget?.exhausted ? `Allow ${INCREASE_STEPS[0]} more` : "Resume"}
               </button>
             ) : (
               <button
@@ -230,6 +255,45 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
         >
           <Globe size={13} aria-hidden="true" /> open the browser view
         </Link>
+      )}
+
+      {/* Ran out of changes. Not an error and not a failure — cosigno did
+          exactly what it was told and stopped. The three answers are the three
+          things a person actually wants here: a bit more, a lot more, or
+          that's enough. */}
+      {budget?.exhausted && mission.state === "paused" && (
+        <div className="rounded-card bg-signal/10 p-4 ring-1 ring-inset ring-signal/30">
+          <p className="text-sm font-extrabold">
+            this mission reached its execution limit — {budget.used} of {budget.limit} action
+            {budget.limit === 1 ? "" : "s"} used.
+          </p>
+          <p className="mt-0.5 text-xs text-ink-soft">
+            it hasn&apos;t started anything else. how much further should it go?
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            {INCREASE_STEPS.map((n) => (
+              <button
+                key={n}
+                onClick={() => addBudget(n)}
+                disabled={busy !== null}
+                className={`rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
+                  n === INCREASE_STEPS[0]
+                    ? "bg-signal text-ink"
+                    : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
+                }`}
+              >
+                +{n} actions
+              </button>
+            ))}
+            <button
+              onClick={() => control("stop")}
+              disabled={busy !== null}
+              className="rounded-btn px-3.5 py-1.5 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              that&apos;s enough — finish here
+            </button>
+          </div>
+        </div>
       )}
 
       {/* question needing the user */}
@@ -495,25 +559,103 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
             </section>
           )}
 
+          {/* What this mission has DONE, against what it's allowed to do.
+              Thinking, reading and drafting are free and never appear here — a
+              counter that ticked up while cosigno was reading would be
+              measuring effort, and effort isn't the thing anyone worries
+              about. */}
           <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
-            <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Effort</h2>
-            {/* Counters the engine keeps for budgeting. Kept because "how much
-                did this cost me" is a real question — but phrased as work done,
-                not as internal call counts. */}
-            <p className="mt-1.5 text-xs font-semibold text-ink-soft">
-              {mission.tool_calls} action{mission.tool_calls === 1 ? "" : "s"} taken
-              {mission.browser_actions > 0
-                ? ` · ${mission.browser_actions} page${mission.browser_actions === 1 ? "" : "s"} read`
-                : ""}
-            </p>
-            {receipt !== null && (
-              <p className="mt-1 text-[11px] text-ink-soft">
-                receipt: {(receipt.completed_steps as unknown[])?.length ?? 0} steps ·{" "}
-                {(receipt.deliverables as unknown[])?.length ?? 0} deliverable
-                {((receipt.deliverables as unknown[])?.length ?? 0) === 1 ? "" : "s"}
-              </p>
+            <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
+              Execution budget
+            </h2>
+            {budget === null ? (
+              <p className="mt-1.5 text-xs text-ink-soft">counting…</p>
+            ) : budget.unlimited ? (
+              <>
+                <p className="mt-1.5 text-2xl font-extrabold tabular-nums">{budget.used}</p>
+                <p className="mt-0.5 text-xs font-bold text-ink-soft">
+                  action{budget.used === 1 ? "" : "s"} used · unlimited
+                </p>
+                <p className="mt-2 text-[11px] leading-snug text-ink-soft">
+                  no action limit. every action still follows your permissions.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-1.5 text-2xl font-extrabold tabular-nums">
+                  {budget.used}
+                  <span className="text-base font-bold text-ink-soft"> / {budget.limit}</span>
+                </p>
+                <p className="mt-0.5 text-xs font-bold text-ink-soft">actions used</p>
+                <div
+                  className="mt-2 h-1.5 overflow-hidden rounded-pill bg-cream-deep"
+                  role="progressbar"
+                  aria-valuenow={budget.used}
+                  aria-valuemin={0}
+                  aria-valuemax={budget.limit}
+                  aria-label="actions used against this mission's execution budget"
+                >
+                  <div
+                    className="h-full rounded-pill bg-ink transition-all duration-base ease-brand-out"
+                    style={{ width: `${Math.min(100, (budget.used / Math.max(1, budget.limit)) * 100)}%` }}
+                  />
+                </div>
+                {budget.committed > budget.used && (
+                  <p className="mt-2 text-[11px] text-ink-soft">
+                    {budget.committed - budget.used} waiting on you, already counted.
+                  </p>
+                )}
+              </>
             )}
+            <p className="mt-2 text-[11px] leading-snug text-ink-soft">
+              {budget && budget.kinds.length > 0
+                ? budget.kinds.join(" · ").toLowerCase()
+                : "reading, searching and drafting don't count."}
+            </p>
           </section>
+
+          {/* THE EXECUTION SUMMARY — what this mission actually did, in the
+              same unit the limit was set in. No money, no token counts, no
+              provider costs: the question a receipt answers is "what did this
+              do", not "what did this cost us to run". */}
+          {receipt !== null && (
+            <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
+              <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
+                Execution summary
+              </h2>
+              <dl className="mt-2.5 flex flex-col gap-1.5">
+                {[
+                  {
+                    k: "steps automated",
+                    v: `${(receipt.completed_steps as unknown[])?.length ?? 0}`,
+                  },
+                  {
+                    k: "actions",
+                    v: `${(receipt.changes as { made?: number } | null)?.made ?? budget?.used ?? 0}`,
+                  },
+                  {
+                    k: "apps",
+                    v: Array.isArray(receipt.apps) ? `${(receipt.apps as string[]).length}` : "0",
+                  },
+                  { k: "approvals", v: `${(receipt.approvals as number) ?? 0}` },
+                  {
+                    k: "deliverables",
+                    v: `${(receipt.deliverables as unknown[])?.length ?? 0}`,
+                  },
+                ].map((r) => (
+                  <div key={r.k} className="flex items-baseline justify-between gap-3">
+                    <dt className="text-xs text-ink-soft">{r.k}</dt>
+                    <dd className="text-sm font-extrabold tabular-nums">{r.v}</dd>
+                  </div>
+                ))}
+              </dl>
+              {Array.isArray(receipt.apps) && (receipt.apps as string[]).length > 0 && (
+                <p className="mt-2 border-t border-line/60 pt-2 text-[11px] text-ink-soft">
+                  {(receipt.apps as string[]).join(" · ")}
+                </p>
+              )}
+            </section>
+          )}
         </div>
       </div>
     </div>

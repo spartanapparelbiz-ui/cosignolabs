@@ -118,6 +118,30 @@ export const tierSettingSchema = z
   })
   .strict();
 
+/**
+ * The workspace default: how many actions a mission may take before it asks.
+ * 0 means unlimited (see UNLIMITED in missions/budget.ts).
+ */
+export const actionBudgetSchema = z
+  .object({ budget: z.number().int().min(0).max(10_000) })
+  .strict();
+
+/** More room for one mission that ran out. Additive — never a new total. */
+export const budgetIncreaseSchema = z
+  .object({ add: z.number().int().min(1).max(100) })
+  .strict();
+
+/**
+ * A Trust Center row. The capability is validated against the registry in the
+ * route (an id here would only duplicate that list and drift from it).
+ */
+export const trustSettingSchema = z
+  .object({
+    capability: z.string().trim().min(1).max(40),
+    setting: z.enum(["always", "ask", "never"]),
+  })
+  .strict();
+
 export const betaSchema = z
   .object({
     // name is no longer collected by the founding-beta form (§8 trims fields

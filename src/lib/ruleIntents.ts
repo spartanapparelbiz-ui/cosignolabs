@@ -318,6 +318,21 @@ export function normalizeProviderKey(key: string): string {
   return ALIAS[k] ?? k;
 }
 
+/**
+ * A connector key or display name → the normalized provider it names, or null
+ * when it names nothing this vocabulary knows.
+ *
+ * Distinct from resolveProvider, which falls back to "custom" because an
+ * ACTION always has to resolve to something. A caller asking "which provider
+ * is this?" for display needs to be told "none of them" rather than handed a
+ * bucket that a `custom`-scoped rule would then appear to match.
+ */
+export function providerForKey(key: string | undefined): Provider | null {
+  if (!key) return null;
+  const k = normalizeProviderKey(key);
+  return isProvider(k) ? k : null;
+}
+
 function resolveProvider(providerKey?: string, category?: ActionCategory | string): Provider {
   if (providerKey) {
     const k = normalizeProviderKey(providerKey);

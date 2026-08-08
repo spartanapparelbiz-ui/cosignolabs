@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { clampBudget, DEFAULT_ACTION_BUDGET } from "../missions/budget";
 import {
   AccountAuditRecord,
   ActionEventRecord,
@@ -887,11 +888,48 @@ export class MemoryStore implements Store {
   }
 
   async getPrefs(userId: string): Promise<UserPrefs> {
-    return this.prefs.get(userId) ?? { user_id: userId, memory_enabled: true };
+    return (
+      this.prefs.get(userId) ?? {
+        user_id: userId,
+        memory_enabled: true,
+        action_budget: DEFAULT_ACTION_BUDGET,
+      }
+    );
   }
 
   async setMemoryEnabled(userId: string, enabled: boolean): Promise<void> {
-    this.prefs.set(userId, { user_id: userId, memory_enabled: enabled });
+    // Merge — writing one preference must not silently reset the others.
+    const prev = await this.getPrefs(userId);
+    this.prefs.set(userId, { ...prev, memory_enabled: enabled });
+  }
+
+  async setActionBudget(userId: string, budget: number): Promise<void> {
+    const prev = await this.getPrefs(userId);
+    this.prefs.set(userId, { ...prev, action_budget: clampBudget(budget) });
+  }
+
+  /* -- internal AI cost ledger -- */
+  private aiUsage: import("./index").StoredAiUsage[] = [];
+
+  async recordAiUsage(row: import("../ai/costs").AiUsageRow): Promise<void> {
+    this.aiUsage.push({ ...row, created_at: nowIso() });
+  }
+
+  async aiCostForMission(userId: string, missionId: string): Promise<number> {
+    return this.aiUsage
+      .filter((r) => r.user_id === userId && r.mission_id === missionId)
+      .reduce((s, r) => s + (r.est_cost_usd ?? 0), 0);
+  }
+
+  async aiCostForUserMonth(userId: string): Promise<number> {
+    const start = cycleStart();
+    return this.aiUsage
+      .filter((r) => r.user_id === userId && r.created_at >= start)
+      .reduce((s, r) => s + (r.est_cost_usd ?? 0), 0);
+  }
+
+  async listAiUsageSince(sinceIso: string): Promise<import("./index").StoredAiUsage[]> {
+    return this.aiUsage.filter((r) => r.created_at >= sinceIso);
   }
 
 
@@ -961,6 +999,8 @@ export class MemoryStore implements Store {
       tool_calls: 0,
       browser_actions: 0,
       budget_cents: 200,
+      // null = follow the workspace default, resolved at run time.
+      action_budget: null,
       created_at: now,
       updated_at: now,
       completed_at: null,
@@ -1006,7 +1046,7 @@ export class MemoryStore implements Store {
     userId: string,
     id: string,
     patch: Partial<
-      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at" | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents">
+      Pick<MissionRecord, "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at" | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents" | "action_budget">
     >
   ): Promise<MissionRecord | null> {
     const m = this.missions.find((x) => x.id === id && x.user_id === userId);

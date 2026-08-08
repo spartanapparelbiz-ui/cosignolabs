@@ -7,13 +7,15 @@ import {
   Activity,
   Gauge,
   Radar,
-  Boxes,
+  FlaskConical,
   Home,
   LayoutTemplate,
   PenLine,
   Plug,
   Rocket,
   Settings,
+  ShieldCheck,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { LogoHome } from "@/components/brand/LivingLogo";
@@ -45,17 +47,15 @@ const PRIMARY = [
  * they sit below a divider because none of them is part of a normal day, and
  * eleven equal-weight destinations made the first screen read as a control
  * panel rather than a workspace.
- *
- * "capabilities" was "twins": a person cannot guess what a twin is, and a
- * label nobody understands is a door nobody opens.
  */
 const SECONDARY = [
+  { href: "/app/trust", label: "trust", icon: ShieldCheck },
   { href: "/app/monitoring", label: "monitoring", icon: Gauge },
-  { href: "/app/mission-control", label: "control", icon: Radar },
-  { href: "/app/twins", label: "capabilities", icon: Boxes },
-  // Safety rules is deliberately NOT here. Deciding how far cosigno may go on
-  // its own is something you do once, not part of a day — it lives under
-  // account, reachable from the rules section it governs.
+  { href: "/app/mission-control", label: "live work", icon: Radar },
+  /* Digital twins are gone — "capabilities" went with them, and everything it
+     showed now lives on Connections. "simulate" points straight at the rule
+     tester rather than through /app/simulation, which only redirects. */
+  { href: "/app/settings/rules", label: "simulate", icon: FlaskConical },
   { href: "/app/templates", label: "templates", icon: LayoutTemplate },
   // /app/settings redirects here; the surface it opens is titled "account",
   // so the rail says the same word rather than a second name for one place.
@@ -151,6 +151,28 @@ function usePendingCount(): number {
   return count;
 }
 
+/**
+ * Whether this workspace is on the free plan — the ONE condition under which
+ * the rail shows an upgrade destination. Paid users manage their plan from
+ * settings; putting an upgrade ad in front of someone already paying is the
+ * pushiness the shell rules exist to prevent. Until the plan is known, the
+ * item is absent (no flash of an ad that then disappears).
+ */
+function useIsFreePlan(): boolean {
+  const [free, setFree] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/usage")
+      .then((r) => r.json())
+      .then((d) => alive && setFree((d.plan?.id ?? "free") === "free"))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return free;
+}
+
 function Badge({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
@@ -164,6 +186,7 @@ function Badge({ count }: { count: number }) {
 export function AppRail() {
   const pathname = usePathname();
   const pending = usePendingCount();
+  const isFree = useIsFreePlan();
   return (
     <aside
       className="sticky top-0 hidden h-screen w-[76px] shrink-0 flex-col items-center gap-1 border-r border-line/60 bg-cream/80 py-4 lg:flex"
@@ -195,6 +218,16 @@ export function AppRail() {
           badge={0}
         />
       ))}
+
+      {isFree && (
+        <RailLink
+          href="/pricing"
+          label="upgrade"
+          Icon={Sparkles}
+          active={false}
+          badge={0}
+        />
+      )}
     </aside>
   );
 }

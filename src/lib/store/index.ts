@@ -237,6 +237,9 @@ export type ActionHead = Pick<
 /** Minimal per-session action status, for momentum roll-ups. */
 export type ActionStatusRow = Pick<ActionRecord, "id" | "session_id" | "status">;
 
+/** A persisted AI-usage row (ledger insert + created_at). */
+export type StoredAiUsage = import("../ai/costs").AiUsageRow & { created_at: string };
+
 /**
  * Storage boundary for everything the product persists. Two backends:
  *  - SupabaseStore: production (Postgres + RLS + realtime).
@@ -468,6 +471,15 @@ export interface Store {
   deleteMemory(userId: string, id: string): Promise<void>;
   getPrefs(userId: string): Promise<UserPrefs>;
   setMemoryEnabled(userId: string, enabled: boolean): Promise<void>;
+  /** The workspace default: how many changes a mission may make before it asks. */
+  setActionBudget(userId: string, budget: number): Promise<void>;
+
+  /* -- internal AI cost ledger (never exposed to clients) -- */
+  recordAiUsage(row: import("../ai/costs").AiUsageRow): Promise<void>;
+  aiCostForMission(userId: string, missionId: string): Promise<number>;
+  aiCostForUserMonth(userId: string): Promise<number>;
+  /** Raw rows since a timestamp, for the internal dashboard's aggregation. */
+  listAiUsageSince(sinceIso: string): Promise<StoredAiUsage[]>;
 
   /* -- permission rules (structured, tighten-only policy over tools) -- */
   createPermissionRule(userId: string, input: PermissionRuleInsert): Promise<PermissionRuleRecord>;
@@ -502,7 +514,7 @@ export interface Store {
       Pick<
         MissionRecord,
         | "state" | "plan_version" | "pending_question" | "receipt" | "error" | "completed_at"
-        | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents"
+        | "lease_owner" | "lease_expires_at" | "tool_calls" | "browser_actions" | "budget_cents" | "action_budget"
       >
     >
   ): Promise<MissionRecord | null>;

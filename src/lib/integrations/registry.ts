@@ -46,6 +46,8 @@ export interface ProviderMeta {
   detail: string;
   authType: string;
   scopeSummary: string;
+  /** Where the app itself lives, when it has an obvious public home. */
+  homeUrl?: string;
   /** Whether the server env is set so this can actually be connected. */
   configured: boolean;
   /** Env var NAMES required to connect it. Names only, never values. */
@@ -65,6 +67,7 @@ export function providerMeta(p: IntegrationProvider): ProviderMeta {
     detail: p.detail,
     authType: p.authType,
     scopeSummary: p.scopeSummary,
+    homeUrl: p.homeUrl,
     configured: p.isConfigured(),
     setupEnv: p.setupEnv ?? [],
     icon: bundledLogo(p.key) ?? GENERIC_MCP_LOGO,

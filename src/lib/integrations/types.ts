@@ -149,6 +149,12 @@ export interface IntegrationProvider {
   /** Human-readable scope summary for the card. */
   scopeSummary: string;
   /**
+   * Where the app itself lives, so "open GitHub" goes to GitHub. A stable,
+   * publicly-known address — never derived from a user's data, and omitted
+   * rather than guessed for connectors without an obvious home.
+   */
+  homeUrl?: string;
+  /**
    * What this connector would put on the dashboard, in business words —
    * "revenue", "open issues", "unread mail".
    *

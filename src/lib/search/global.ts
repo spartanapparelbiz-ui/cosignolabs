@@ -38,6 +38,12 @@ const PAGES: Array<{ title: string; subtitle: string; href: string; terms: strin
   { title: "Files", subtitle: "what cosigno produced", href: "/app/files", terms: "files documents deliverables" },
   { title: "Monitoring", subtitle: "what is running right now", href: "/app/monitoring", terms: "monitoring live running" },
   { title: "Settings", subtitle: "your workspace", href: "/app/settings", terms: "settings account preferences" },
+  {
+    title: "What cosigno may do",
+    subtitle: "permissions, limits, and what always needs you",
+    href: "/app/trust",
+    terms: "trust permissions security safety allow block never approve limit budget",
+  },
 ];
 
 function matches(haystack: string, needle: string): boolean {
