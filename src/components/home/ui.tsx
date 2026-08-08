@@ -263,11 +263,7 @@ export function StepRow({
   className?: string;
 }) {
   return (
-    <li
-      className={`flex items-center gap-3 py-1.5 transition-opacity duration-base ${
-        state === "queued" ? "opacity-45" : "opacity-100"
-      } ${className}`}
-    >
+    <li className={`flex items-center gap-3 py-1.5 ${className}`}>
       <span
         className={`grid h-5 w-5 shrink-0 place-items-center rounded-pill text-[10px] font-extrabold ${
           state === "done"
@@ -281,7 +277,7 @@ export function StepRow({
         {state === "done" ? <Check size={12} strokeWidth={3.2} /> : index}
       </span>
       <span
-        className={`text-[13px] lowercase ${
+        className={`text-[13px] lowercase transition-colors duration-base ${
           state === "running" || state === "waiting"
             ? "font-extrabold text-ink"
             : "font-semibold text-ink-soft"
@@ -354,7 +350,10 @@ export function ReceiptLine({
     <p
       className={`font-mono text-[10.5px] leading-relaxed text-ink-soft ${className}`}
     >
-      <span className="text-signal">✓</span> {id} · {what}
+      <span className="mr-1 inline-block translate-y-[2px] text-signal">
+        <DrawnCheck size={11} />
+      </span>
+      {id} · {what}
     </p>
   );
 }

@@ -4,7 +4,13 @@ import { ScrollProgress } from "@/components/home/primitives";
 import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteNav } from "@/components/home/SiteNav";
 import type { ComparisonRow, PlanCard } from "@/components/home/Pricing";
-import { introOfferLabel, moneyLabel, PLAN_ORDER, PLANS } from "@/lib/plans";
+import {
+  actionLimitLabel,
+  introOfferLabel,
+  moneyLabel,
+  PLAN_ORDER,
+  PLANS,
+} from "@/lib/plans";
 
 /**
  * The cosigno home page.
@@ -63,6 +69,13 @@ const PLAN_CARDS: PlanCard[] = PLAN_ORDER.map((id) => {
   };
 });
 
+/** What the free plan actually gives you, straight from the enforced plan. */
+const FREE_TERMS = [
+  actionLimitLabel(PLANS.free).replace("AI operations", "ai operations"),
+  `${PLANS.free.integrationLimit} connected app`,
+  "no card",
+].join(" · ");
+
 const COMPARISON: ComparisonRow[] = [
   {
     label: "ai operations each month",
@@ -112,7 +125,7 @@ export default function HomePage() {
         <Monitoring />
         <Proof />
         <Pricing plans={PLAN_CARDS} rows={COMPARISON} intro={introOfferLabel()} />
-        <FinalCta />
+        <FinalCta terms={FREE_TERMS} />
       </main>
 
       <SiteFooter />

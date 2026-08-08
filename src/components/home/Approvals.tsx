@@ -103,7 +103,8 @@ export function Approvals() {
       <div className="flex flex-col justify-center px-4 py-24 motion-safe:sticky motion-safe:top-0 motion-safe:h-[100dvh] motion-safe:overflow-hidden motion-safe:py-0">
         <div className="mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] lg:gap-16">
           <div className="text-center lg:text-left">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-signal">
+            <p className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
+              <span className="h-1.5 w-1.5 rounded-pill bg-signal" aria-hidden="true" />
               approvals
             </p>
             <MaskedLines
@@ -113,9 +114,9 @@ export function Approvals() {
               className="mt-4 font-display text-[clamp(2.1rem,5.6vw,4.25rem)] font-bold leading-[0.97] tracking-[-0.035em] text-ink"
             />
             <p className="mx-auto mt-5 max-w-md text-sm font-semibold leading-relaxed text-ink-soft sm:text-base lg:mx-0">
-              not a notification. not a line you read afterwards. a card holding
-              the exact thing about to happen, and two answers — one of which is
-              no.
+              other products log what their agent did. this is the thing it has
+              to get past first — and it is the same object whether the action
+              costs nothing or ends a customer relationship.
             </p>
 
             {/* the narration, one line at a time, in reserved space */}
@@ -228,8 +229,8 @@ export function Approvals() {
                     className="absolute inset-x-0 top-2 text-[11px] font-semibold leading-relaxed text-ink-soft"
                     style={{ opacity: pinnedOut }}
                   >
-                    refunds are pinned to the top tier. the agent cannot lower
-                    them, and neither can a rule.
+                    read it, edit it, or throw it away. the mission is holding
+                    either way.
                   </motion.p>
                 )}
                 <motion.div

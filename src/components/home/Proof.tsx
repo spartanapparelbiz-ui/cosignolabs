@@ -14,26 +14,19 @@ import { Counter, MaskedLines, Rise, Stagger, StaggerItem } from "./primitives";
  */
 
 const FACTS: { value: number; from?: number; suffix?: string; label: string }[] = [
-  {
-    value: 3,
-    label: "tiers of authority. every action lands in one of them before it runs.",
-  },
+  { value: 3, label: "tiers of authority. nothing runs before it lands in one." },
   {
     value: 0,
     from: 24,
     label:
-      "changes outside cosigno that happen without your signature. reading, summarising and drafting clear on their own; nothing else does.",
+      "outside changes without your signature. reading, summarising and drafting clear on their own — nothing else does.",
   },
   {
     value: 100,
     suffix: "%",
-    label:
-      "of proposals, approvals, vetoes and executions written to the audit trail with the payload they carried.",
+    label: "of what runs leaves a receipt, including the actions you refused.",
   },
-  {
-    value: 1,
-    label: "control that halts every running mission and clears the queue.",
-  },
+  { value: 1, label: "control that halts every running mission and clears the queue." },
 ];
 
 export function Proof() {

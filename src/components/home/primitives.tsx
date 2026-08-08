@@ -252,6 +252,11 @@ export function Counter({
   const inView = useInView(ref, { once: true, margin: "0px 0px -18% 0px" });
   const [value, setValue] = useState(to);
 
+  // A countdown from 24 to 0 loses two digits on the way, and the line it sits
+  // on reflows every time. Reserve the widest rendering up front; `ch` is the
+  // digit advance under tabular figures, so this is exact.
+  const widest = Math.max(format(from).length, format(to).length);
+
   // Rewind to the start only once we know the element is off-screen.
   useEffect(() => {
     if (armed) setValue(from);
@@ -268,7 +273,11 @@ export function Counter({
   }, [armed, inView, from, to, duration]);
 
   return (
-    <span ref={ref} className={className}>
+    <span
+      ref={ref}
+      className={`inline-block tabular-nums ${className}`}
+      style={{ minWidth: `${widest}ch` }}
+    >
       {format(value)}
     </span>
   );

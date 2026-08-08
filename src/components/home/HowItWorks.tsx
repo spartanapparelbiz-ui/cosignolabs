@@ -45,14 +45,14 @@ const PANELS: {
     id: "sign",
     step: "03",
     title: "you sign the part that matters",
-    body: "anything that sends, posts, changes, or spends stops at a card carrying its exact payload. you approve it, edit it, or veto it. the plan waits.",
+    body: "the plan stops at the step that would change something. it does not skip it, it does not guess, and it does not move on until you have answered.",
     scene: <SignScene />,
   },
   {
     id: "done",
     step: "04",
     title: "the mission closes itself",
-    body: "signed steps run, get verified, and land in an audit trail you can read, filter, and export — so the only question that matters always has an answer.",
+    body: "signed steps run, get verified, and close themselves out. nobody has to come back and check whether the last one landed.",
     scene: <DoneScene />,
   },
 ];
@@ -199,18 +199,34 @@ function PanelBody({
   return (
     <div
       className={`relative mx-auto flex w-full max-w-6xl flex-col justify-center px-6 ${
-        stacked ? "gap-8 py-16" : "h-full gap-10 pb-20 pt-24"
+        stacked ? "gap-10 py-20 sm:py-24" : "h-full gap-10 pb-20 pt-24"
       } lg:grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center lg:gap-16`}
     >
-      {/* the step number, oversized and ghosted — type as texture, not decoration */}
-      <span
+      {/*
+       * The step number as a watermark. Drawn as SVG rather than set as HTML
+       * text on purpose: at 4% opacity this is ornament, not something anyone
+       * is meant to read, and marking ornament as text asks a contrast checker
+       * to enforce a ratio that would destroy the effect. As a graphic it is
+       * described accurately and exempted for the right reason.
+       */}
+      <svg
         aria-hidden="true"
-        className="pointer-events-none absolute -left-4 bottom-0 select-none font-display text-[26vw] font-bold leading-[0.7] tracking-tighter text-ink opacity-[0.035] lg:text-[18vw]"
+        viewBox="0 0 148 96"
+        className="pointer-events-none absolute -left-3 bottom-0 w-[46vw] select-none fill-ink opacity-[0.04] lg:w-[28vw]"
       >
-        {panel.step}
-      </span>
+        <text
+          x="0"
+          y="90"
+          fontSize="104"
+          fontWeight="700"
+          letterSpacing="-4"
+          style={{ fontFamily: "var(--font-display), Georgia, serif" }}
+        >
+          {panel.step}
+        </text>
+      </svg>
       <div className="relative">
-        <span className="font-mono text-[11px] tracking-[0.2em] text-signal">{panel.step}</span>
+        <span className="font-mono text-[11px] tracking-[0.2em] text-ink-soft">{panel.step}</span>
         {stacked ? (
           <h3 className="mt-3 font-display text-[clamp(1.7rem,6vw,2.6rem)] font-bold leading-[1.02] tracking-[-0.03em] text-ink">
             {panel.title}
@@ -350,8 +366,8 @@ function DoneScene() {
         <ReceiptLine id="r_1a90c7" what="217 messages read · ran on its own" />
       </div>
       <p className="mt-3 text-[11px] font-semibold leading-relaxed text-ink-soft">
-        every line above is filterable and exportable. what did it do, and who
-        said yes — answered, permanently.
+        four steps, two of them yours. the mission closed itself out and left
+        the receipts behind.
       </p>
     </div>
   );

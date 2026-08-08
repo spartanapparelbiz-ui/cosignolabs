@@ -139,12 +139,17 @@ export function Missions() {
                   </p>
                 </div>
 
-                {done && (
-                  <div className="mt-4 space-y-1 motion-safe:animate-fade-through">
-                    <ReceiptLine id="r_44c1" what="$96.00 refunded · typed confirmation" />
-                    <ReceiptLine id="r_44c2" what="2 confirmations sent · signed by you" />
-                  </div>
-                )}
+                {/* Reserved, not conditional: rendering the receipts only on
+                    completion grew the card mid-scroll and shifted the scene. */}
+                <div
+                  className={`mt-4 h-[2.1rem] space-y-1 transition-opacity duration-slow ease-brand-out ${
+                    done ? "opacity-100" : "opacity-0"
+                  }`}
+                  aria-hidden={!done}
+                >
+                  <ReceiptLine id="r_44c1" what="$96.00 refunded · typed confirmation" />
+                  <ReceiptLine id="r_44c2" what="2 confirmations sent · signed by you" />
+                </div>
               </div>
             </div>
 
@@ -160,8 +165,8 @@ export function Missions() {
                 </p>
                 <ul className="check-list mt-3 space-y-2.5 text-[12px] font-semibold leading-relaxed text-ink-soft">
                   <li>the mission pauses, not just the step.</li>
-                  <li>the card carries the exact payload it would send.</li>
-                  <li>it waits. there is no timeout and no default answer.</li>
+                  <li>nothing downstream runs ahead of your answer.</li>
+                  <li>no timeout, and no default answer.</li>
                 </ul>
               </motion.div>
 

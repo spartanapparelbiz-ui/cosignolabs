@@ -82,20 +82,23 @@ export function ApprovalMoment() {
       aria-labelledby="moment-title"
       className="relative overflow-hidden bg-cream py-24 sm:py-32"
     >
-      {/* the freeze: one hairline crosses the frame, once */}
+      {/* The freeze: one hairline crosses the frame, once. It travels on a
+          transform, not on `left` — animating an inset is the one thing on
+          this page that registered as a layout shift, however small. */}
       {!still && (
         <motion.div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 w-px bg-signal/70"
-          initial={{ left: "-2%", opacity: 0 }}
-          animate={revealed ? { left: "102%", opacity: [0, 1, 1, 0] } : {}}
+          className="pointer-events-none absolute inset-y-0 left-0 w-px bg-signal/70"
+          initial={{ x: "-2vw", opacity: 0 }}
+          animate={revealed ? { x: "102vw", opacity: [0, 1, 1, 0] } : {}}
           transition={{ duration: 0.9, ease: EASE_OUT }}
         />
       )}
 
       <div className="mx-auto w-full max-w-6xl px-4">
         <header className="mx-auto max-w-2xl text-center">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-signal">
+          <p className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
+            <span className="h-1.5 w-1.5 rounded-pill bg-signal" aria-hidden="true" />
             with cosigno
           </p>
           <MaskedLines
@@ -105,8 +108,8 @@ export function ApprovalMoment() {
             className="mt-4 font-display text-[clamp(2.1rem,6vw,4.5rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
           />
           <p className="mx-auto mt-5 max-w-lg text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
-            one card. the exact payload. two answers. the work does not move
-            until one of them is yours.
+            the queue is still there. it is just not moving — and it will go on
+            not moving for as long as you need it to.
           </p>
         </header>
 
@@ -114,9 +117,7 @@ export function ApprovalMoment() {
           {/* --------------------------------------------- the frozen queue */}
           <ul
             aria-hidden="true"
-            className={`space-y-2 transition-all duration-slow ease-brand-out ${
-              answered ? "opacity-100 blur-0" : "opacity-45 blur-[1.5px]"
-            }`}
+            className="space-y-2"
           >
             {FROZEN.map((row, i) => (
               <li

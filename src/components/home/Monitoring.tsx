@@ -135,10 +135,9 @@ export function Monitoring() {
             className="mt-4 font-display text-[clamp(2rem,5.6vw,4rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
           />
           <p className="mx-auto mt-5 max-w-xl text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
-            proposals, approvals, vetoes and executions all land in the same
-            stream, with the payload they carried. filter it, search it, export
-            it. the answer to what did it do, and who said yes is never a
-            reconstruction.
+            proposals, approvals, vetoes and executions land in one stream,
+            each with the payload it carried. what did it do, and who said yes
+            — filterable, exportable, and never a reconstruction.
           </p>
         </header>
 

@@ -8,11 +8,16 @@ import { MaskedLines, useSectionProgress, useSmoothed, useStillness } from "./pr
 /**
  * Without cosigno.
  *
- * Three lanes of actions stream past at machine speed. The first is running
- * before you arrive; the second and third fade in as you scroll, so the scene
- * doesn't get *louder*, it gets *wider* — which is what actually happens when
- * an agent is given real accounts. The counter above them is tied to the same
- * scroll position, so the number and the scene can never disagree.
+ * Three lanes of actions stream past at machine speed, each one faster than
+ * the last, so scrolling makes them visibly outrun each other. The counter
+ * above is tied to the same scroll position, so the number and the scene can
+ * never disagree.
+ *
+ * The lanes deliberately do NOT fade in. An earlier cut had the second and
+ * third rise from low opacity, which looked good and quietly rendered real
+ * sentences at a contrast ratio nobody could read — aria-hidden makes text
+ * invisible to a screen reader, not to a person with low vision. Speed
+ * carries the escalation instead, and every row stays legible.
  *
  * No red anywhere (BRAND.md): the alarm is carried by density, speed, and the
  * hazard band on the stamps that say what's missing.
@@ -74,10 +79,6 @@ export function Chaos() {
   const p = useSmoothed(raw, 150, 30);
 
   const count = useTransform(p, (v) => Math.round(v * 1284).toLocaleString());
-  // The extra lanes never start at zero: two empty thirds of the screen read
-  // as a broken layout, not as restraint. They start quiet and come up.
-  const laneBOpacity = useTransform(p, [0.18, 0.44], [0.22, 1]);
-  const laneCOpacity = useTransform(p, [0.3, 0.64], [0.12, 1]);
   // The header drifts up as the lanes take over. It never fades: dimming body
   // copy to shift focus costs real readers real contrast, and the lanes are
   // loud enough on their own.
@@ -105,13 +106,12 @@ export function Chaos() {
               className="mt-4 font-display text-[clamp(2rem,5.6vw,4rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
             />
             <p className="mx-auto mt-5 max-w-xl text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
-              email, money, customers, production. it moves at machine speed,
-              it is confident, and it is faster than the moment you would have
-              said wait.
+              email, money, customers, production. it moves at machine speed
+              — faster than the moment you would have said wait.
             </p>
           </motion.header>
 
-          <div aria-hidden="true" className="mt-8 flex items-end justify-between gap-4 sm:mt-10">
+          <div aria-hidden="true" className="mt-10 flex items-end justify-between gap-4 sm:mt-12">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">
                 actions taken · nobody asked
@@ -126,14 +126,13 @@ export function Chaos() {
             </p>
           </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
             <Lane rows={LANE_A} progress={p} speed={1} still={still} />
             <Lane
               rows={LANE_B}
               progress={p}
               speed={1.35}
               still={still}
-              opacity={laneBOpacity}
               className="hidden md:block"
             />
             <Lane
@@ -141,7 +140,6 @@ export function Chaos() {
               progress={p}
               speed={1.7}
               still={still}
-              opacity={laneCOpacity}
               className="hidden md:block"
             />
           </div>
@@ -161,14 +159,12 @@ function Lane({
   progress,
   speed,
   still,
-  opacity,
   className = "",
 }: {
   rows: readonly Row[];
   progress: MotionValue<number>;
   speed: number;
   still: boolean;
-  opacity?: MotionValue<number>;
   className?: string;
 }) {
   const shift = useTransform(
@@ -186,7 +182,6 @@ function Lane({
           "linear-gradient(to bottom, transparent, black 14%, black 86%, transparent)",
         WebkitMaskImage:
           "linear-gradient(to bottom, transparent, black 14%, black 86%, transparent)",
-        ...(still || !opacity ? {} : { opacity }),
       }}
     >
       <motion.ul

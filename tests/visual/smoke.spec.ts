@@ -235,6 +235,36 @@ for (const vp of VIEWPORTS) {
       await monitoring.screenshot({ path: join(OUT, `monitoring-${vp.name}.png`) });
     });
 
+    test("the close: the last card spells out what happens after the click", async ({
+      page,
+    }) => {
+      await page.goto("/", { waitUntil: "networkidle" });
+      const cta = page.locator("section", { has: page.locator("#cta-title") });
+      await cta.scrollIntoViewIfNeeded();
+      await expect(cta.getByText("hand you the operator.")).toBeVisible();
+
+      // The three steps are the promise; if the onboarding changes, this fails
+      // before a visitor discovers the difference.
+      await expect(cta.getByText(/what happens after you click/i)).toBeVisible();
+      await expect(cta.getByText(/create your account/i)).toBeVisible();
+      await expect(cta.getByText(/connect one tool/i)).toBeVisible();
+      await expect(cta.getByText(/stops at the first card/i)).toBeVisible();
+
+      // Two exits, and the no-account one is right beside the primary.
+      await expect(cta.getByRole("link", { name: "start free" })).toHaveAttribute(
+        "href",
+        "/sign-up"
+      );
+      await expect(cta.getByRole("link", { name: "watch it run first" })).toHaveAttribute(
+        "href",
+        "/demo"
+      );
+      await expect(cta.getByRole("link", { name: "sign in" })).toHaveAttribute("href", "/sign-in");
+
+      await noHorizontalScroll(page);
+      await cta.screenshot({ path: join(OUT, `close-${vp.name}.png`) });
+    });
+
     test("home dashboard: the four-question layout", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
       await expect(page.getByRole("heading", { name: "What should Cosigno handle?" })).toBeVisible();
