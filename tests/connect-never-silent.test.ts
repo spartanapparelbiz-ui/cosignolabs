@@ -57,10 +57,15 @@ describe("every refusal names what is missing", () => {
     // Only PROSE matters: `TIER_META` as a constant is fine, "set TIER_META"
     // shown to a founder is not. Comments explaining the rule are stripped.
     const code = PANEL.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-    const prose: string[] = [
-      ...(code.match(/"[^"\n]*\s[^"\n]*"/g) ?? []),
-      ...(code.match(/`[^`\n]*\s[^`\n]*`/g) ?? []),
-    ];
+    // Line by line. Scanning the whole file at once let `\s` match a newline,
+    // so the closing quote of one import could pair with the opening quote of
+    // the next — reporting `"; import { RULES_KEY } from "` as customer-facing
+    // prose. A string literal never spans lines here, so neither should the
+    // search for one.
+    const prose: string[] = code.split("\n").flatMap((line) => [
+      ...(line.match(/"[^"\n]*[^\S\n][^"\n]*"/g) ?? []),
+      ...(line.match(/`[^`\n]*[^\S\n][^`\n]*`/g) ?? []),
+    ]);
     const leaks = prose.filter((line) => /\b[A-Z][A-Z0-9]{2,}(_[A-Z0-9]+)+\b/.test(line));
     expect(
       leaks,

@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ShieldCheck, Trash2, X } from "lucide-react";
 import { describeRule, parsePermissionRule } from "@/lib/rules";
 import type { PermissionRuleRecord, RuleRequirement } from "@/lib/types";
+import { invalidate, setResource, useResource } from "@/lib/client/resource";
+import { RULES_KEY } from "@/lib/client/keys";
 
 /**
  * Custom permission rules — write a standing policy in plain language ("never
@@ -41,8 +43,12 @@ function RequirementBadge({ requirement }: { requirement: RuleRequirement }) {
 }
 
 export function PermissionRules() {
-  const [rules, setRules] = useState<PermissionRuleRecord[] | null>(null);
-  const [unavailable, setUnavailable] = useState(false);
+  // The rules list is read through the shared cache: the connections panel
+  // above shows which rules govern each app from the very same entry, so the
+  // page asks once instead of twice and the two can never disagree.
+  const { data, error: loadError, refresh } = useResource<{ rules?: PermissionRuleRecord[] }>(RULES_KEY);
+  const rules = data?.rules ?? (loadError ? [] : null);
+  const unavailable = Boolean(loadError);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,18 +61,10 @@ export function PermissionRules() {
     return { parsed, description: describeRule(parsed) };
   }, [text]);
 
-  async function load() {
-    try {
-      const d = await api("/api/rules");
-      setRules(d.rules ?? []);
-      setUnavailable(false);
-    } catch {
-      setUnavailable(true);
-    }
+  /** Re-read after a change; every surface showing rules updates with it. */
+  function load() {
+    invalidate(RULES_KEY);
   }
-  useEffect(() => {
-    load();
-  }, []);
 
   async function add() {
     const t = text.trim();
@@ -85,7 +83,9 @@ export function PermissionRules() {
   }
 
   async function toggle(r: PermissionRuleRecord) {
-    setRules((prev) => prev?.map((x) => (x.id === r.id ? { ...x, enabled: !x.enabled } : x)) ?? prev);
+    setResource(RULES_KEY, {
+      rules: (rules ?? []).map((x) => (x.id === r.id ? { ...x, enabled: !x.enabled } : x)),
+    });
     try {
       await api(`/api/rules/${r.id}`, { method: "PATCH", body: JSON.stringify({ enabled: !r.enabled }) });
     } catch {
@@ -94,7 +94,7 @@ export function PermissionRules() {
   }
 
   async function remove(id: string) {
-    setRules((prev) => prev?.filter((x) => x.id !== id) ?? prev);
+    setResource(RULES_KEY, { rules: (rules ?? []).filter((x) => x.id !== id) });
     try {
       await api(`/api/rules/${id}`, { method: "DELETE" });
     } catch {

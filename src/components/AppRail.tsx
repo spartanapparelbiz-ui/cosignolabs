@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Activity,
   Gauge,
@@ -10,6 +10,7 @@ import {
   FlaskConical,
   Home,
   LayoutTemplate,
+  MoreHorizontal,
   PenLine,
   Plug,
   Rocket,
@@ -20,6 +21,8 @@ import {
 } from "lucide-react";
 import { LogoHome } from "@/components/brand/LivingLogo";
 import { LinkPending } from "@/components/app/NavProgress";
+import { useResource } from "@/lib/client/resource";
+import { PENDING_APPROVALS_KEY } from "@/lib/client/keys";
 
 /**
  * The app's navigation chrome: a compact left rail on desktop, a bottom bar
@@ -106,54 +109,20 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 /**
- * Pending-approval count — ONE shared poller for however many nav surfaces
- * are mounted (the rail and the bottom bar render together, one CSS-hidden),
- * so the app fires a single request per interval instead of one per surface.
- * Polling pauses while the tab is hidden and refreshes on return.
+ * The two facts the rail needs, both read through the shared client cache.
+ *
+ * This used to run its own poller and its own plan fetch, which meant every
+ * page in the workspace paid for `/api/actions` and `/api/usage` a second time
+ * — the page itself was already asking. Now the rail asks the same questions
+ * as everyone else and the network sees one of each.
  */
-let pendingCount = 0;
-const pendingSubs = new Set<(n: number) => void>();
-let pendingTimer: ReturnType<typeof setInterval> | null = null;
-
-async function loadPending() {
-  if (document.visibilityState === "hidden") return;
-  try {
-    const res = await fetch("/api/actions?status=proposed&limit=20");
-    if (!res.ok) return;
-    const data = await res.json();
-    pendingCount = (data.actions ?? []).length;
-    pendingSubs.forEach((fn) => fn(pendingCount));
-  } catch {
-    /* quiet — the badge is a hint, not a source of truth */
-  }
-}
-
-function onPendingVisible() {
-  if (document.visibilityState === "visible") loadPending();
-}
-
-function subscribePending(fn: (n: number) => void): () => void {
-  pendingSubs.add(fn);
-  fn(pendingCount);
-  if (pendingSubs.size === 1) {
-    loadPending();
-    pendingTimer = setInterval(loadPending, 30_000);
-    document.addEventListener("visibilitychange", onPendingVisible);
-  }
-  return () => {
-    pendingSubs.delete(fn);
-    if (pendingSubs.size === 0 && pendingTimer) {
-      clearInterval(pendingTimer);
-      pendingTimer = null;
-      document.removeEventListener("visibilitychange", onPendingVisible);
-    }
-  };
-}
-
 function usePendingCount(): number {
-  const [count, setCount] = useState(0);
-  useEffect(() => subscribePending(setCount), []);
-  return count;
+  // Polled: the badge is how someone finds out a decision arrived while they
+  // were on another page, so it has to keep looking.
+  const { data } = useResource<{ actions?: unknown[] }>(PENDING_APPROVALS_KEY, {
+    refreshMs: 30_000,
+  });
+  return (data?.actions ?? []).length;
 }
 
 /**
@@ -164,18 +133,8 @@ function usePendingCount(): number {
  * item is absent (no flash of an ad that then disappears).
  */
 function useIsFreePlan(): boolean {
-  const [free, setFree] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/usage")
-      .then((r) => r.json())
-      .then((d) => alive && setFree((d.plan?.id ?? "free") === "free"))
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, []);
-  return free;
+  const { data } = useResource<{ plan?: { id?: string } }>("/api/usage");
+  return data ? (data.plan?.id ?? "free") === "free" : false;
 }
 
 function Badge({ count }: { count: number }) {
@@ -187,14 +146,27 @@ function Badge({ count }: { count: number }) {
   );
 }
 
-/** Desktop: compact left rail (logo top, items, account handled by header). */
+/**
+ * Desktop: the compact left rail.
+ *
+ * Twelve equal-weight destinations is a control panel, not a workspace — every
+ * one of them competing, none of them answering "where am I and what do I do
+ * next". The five that make up a day stay open; the six deeper tools fold
+ * behind one "more", which auto-opens whenever you are standing in one of them
+ * so it is never possible to be somewhere the rail doesn't show. Everything
+ * stays one click away, and all of it stays in ⌘K.
+ */
 export function AppRail() {
   const pathname = usePathname();
   const pending = usePendingCount();
   const isFree = useIsFreePlan();
+  const inSecondary = SECONDARY.some((item) => isActive(pathname, item.href));
+  const [showMore, setShowMore] = useState(false);
+  const expanded = showMore || inSecondary;
+
   return (
     <aside
-      className="sticky top-0 hidden h-screen w-[76px] shrink-0 flex-col items-center gap-1 border-r border-line/60 bg-cream/80 py-4 lg:flex"
+      className="sticky top-0 hidden h-screen w-[76px] shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-line/60 bg-cream/80 py-4 lg:flex"
       aria-label="app navigation"
     >
       <div className="mb-3">
@@ -213,25 +185,41 @@ export function AppRail() {
 
       <span className="my-1 h-px w-7 bg-line" aria-hidden="true" />
 
-      {SECONDARY.map(({ href, label, icon: Icon }) => (
-        <RailLink
-          key={href}
-          href={href}
-          label={label}
-          Icon={Icon}
-          active={isActive(pathname, href)}
-          badge={0}
-        />
-      ))}
+      {!expanded && (
+        <button
+          onClick={() => setShowMore(true)}
+          aria-expanded={false}
+          className="group flex w-[60px] flex-col items-center gap-0.5 rounded-btn px-1 py-2 text-[10px] font-bold lowercase text-ink-soft transition-all duration-fast ease-brand-out hover:bg-cream-deep hover:text-ink active:scale-95"
+        >
+          <MoreHorizontal size={17} strokeWidth={2.2} aria-hidden="true" />
+          more
+        </button>
+      )}
+
+      {expanded &&
+        SECONDARY.map(({ href, label, icon: Icon }) => (
+          <RailLink
+            key={href}
+            href={href}
+            label={label}
+            Icon={Icon}
+            active={isActive(pathname, href)}
+            badge={0}
+          />
+        ))}
+
+      {expanded && !inSecondary && (
+        <button
+          onClick={() => setShowMore(false)}
+          aria-expanded
+          className="mt-0.5 rounded-btn px-2 py-1 text-[10px] font-bold lowercase text-ink-soft/70 transition-colors hover:text-ink"
+        >
+          less
+        </button>
+      )}
 
       {isFree && (
-        <RailLink
-          href="/pricing"
-          label="upgrade"
-          Icon={Sparkles}
-          active={false}
-          badge={0}
-        />
+        <RailLink href="/pricing" label="upgrade" Icon={Sparkles} active={false} badge={0} />
       )}
     </aside>
   );

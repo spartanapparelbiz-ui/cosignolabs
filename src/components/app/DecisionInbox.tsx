@@ -1,9 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import type { ActionRecord, SignatureRecord } from "@/lib/types";
 import { ActionCard, type ApproveOpts } from "@/components/ActionCard";
 import { SkeletonCard } from "@/components/Skeleton";
+import {
+  invalidate,
+  readResource,
+  seedResource,
+  setResource,
+  useResource,
+} from "@/lib/client/resource";
+import { PENDING_APPROVALS_KEY } from "@/lib/client/keys";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/components/Toast";
 import { useDisplayName } from "@/lib/theme";
@@ -43,31 +51,44 @@ export function DecisionInbox({
   /** What to render instead of the full-page empty state when embedded. */
   emptyFallback?: React.ReactNode;
 }) {
-  // When the server prefetched the queue it renders on first paint; the
-  // mount load() below then revalidates in the background (SWR).
-  const [actions, setActions] = useState<ActionRecord[] | null>(initial ?? null);
-  const [saved, setSaved] = useState<SignatureRecord | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // The server's prefetch goes straight into the shared cache, so the queue is
+  // on screen at first paint and the client asks for nothing it already has.
+  // The rail's badge reads the very same entry — one request, one truth.
+  if (initial) seedResource(PENDING_APPROVALS_KEY, { actions: initial });
+  const queue = useResource<{ actions?: ActionRecord[] }>(PENDING_APPROVALS_KEY, {
+    refreshMs: 30_000,
+  });
+  const signature = useResource<{ signature?: SignatureRecord | null }>("/api/signature");
+
+  const actions = queue.data?.actions ?? (queue.loading ? null : []);
+  const saved = signature.data?.signature ?? null;
+  const error = queue.error ?? null;
   const [displayName] = useDisplayName();
   const toast = useToast();
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const data = await jsonFetch("/api/actions?status=proposed&limit=200");
-      setActions(data.actions ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load your decisions.");
+  /**
+   * A resolved decision leaves the queue on the same frame as the confirmation
+   * — the server has already told us it landed, so waiting for a refetch just
+   * to remove a card is a round trip the person watches for no reason. The
+   * refetch still runs behind it and reconciles anything else that changed.
+   *
+   * Every surface reading the queue moves together: the rail badge drops, home
+   * updates, and this list shortens, because they are one cache entry.
+   */
+  const resolved = useCallback((id: string) => {
+    const current = readResource<{ actions?: ActionRecord[] }>(PENDING_APPROVALS_KEY);
+    if (current?.actions) {
+      setResource(PENDING_APPROVALS_KEY, {
+        actions: current.actions.filter((a) => a.id !== id),
+      });
     }
+    invalidate("/api/actions");
   }, []);
 
-  useEffect(() => {
-    load();
-    // The saved signature enables Hold to Sign — best effort, never blocking.
-    jsonFetch("/api/signature")
-      .then((d) => setSaved(d.signature ?? null))
-      .catch(() => null);
-  }, [load]);
+  /** Re-read the queue without assuming what changed (edits, errors). */
+  const load = useCallback(async () => {
+    invalidate("/api/actions");
+  }, []);
 
   const onApprove = useCallback(
     async (id: string, opts: ApproveOpts): Promise<string | null> => {
@@ -80,13 +101,13 @@ export function DecisionInbox({
           }),
         });
         toast("success", opts.signature ? "signed & executed." : "approved & executed.");
-        await load();
+        resolved(id);
         return null;
       } catch (e) {
         return e instanceof Error ? e.message : "that didn't go through.";
       }
     },
-    [load, toast]
+    [resolved, toast]
   );
 
   const onSaveSignature = useCallback(
@@ -96,7 +117,7 @@ export function DecisionInbox({
           method: "PUT",
           body: JSON.stringify({ name, image }),
         });
-        setSaved(d.signature ?? null);
+        setResource("/api/signature", { signature: d.signature ?? null });
         toast("success", "signature saved — next time, hold to sign.");
       } catch {
         // Convenience only; the approval already went through.
@@ -113,13 +134,13 @@ export function DecisionInbox({
           body: JSON.stringify({ reason }),
         });
         toast("success", "vetoed — nothing ran.");
-        await load();
+        resolved(id);
         return null;
       } catch (e) {
         return e instanceof Error ? e.message : "that didn't go through.";
       }
     },
-    [load, toast]
+    [resolved, toast]
   );
 
   const onEdit = useCallback(
@@ -143,7 +164,7 @@ export function DecisionInbox({
       <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
         <p className="text-sm font-semibold text-ink-soft">{error}</p>
         <button
-          onClick={load}
+          onClick={queue.refresh}
           className="mt-3 rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep"
         >
           try again

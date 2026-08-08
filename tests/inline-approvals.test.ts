@@ -54,8 +54,13 @@ describe("approvals are actionable where the work is", () => {
 describe("the embedded inbox stays honest about the shared queue", () => {
   it("filters at render, so it never fetches a different queue than the approvals page", () => {
     const src = read(INBOX);
-    // One fetch, one source of truth: scoping is a view concern.
-    expect(src).toContain('jsonFetch("/api/actions?status=proposed&limit=200")');
+    // One fetch, one source of truth: scoping is a view concern. The queue is
+    // now read through the shared cache under a single named key, so the
+    // embedded copy, the approvals page and the rail's badge are literally the
+    // same cache entry — the drift this test guards against is unrepresentable
+    // rather than merely avoided.
+    expect(src).toContain("PENDING_APPROVALS_KEY");
+    expect(src).not.toMatch(/fetch\(["'`]\/api\/actions\?status=proposed/);
     expect(src).toMatch(/const visible = only \? actions\.filter/);
   });
 

@@ -1,8 +1,11 @@
+import { Suspense } from "react";
 import { Dashboard, type DashboardInitial } from "@/components/app/Dashboard";
 import { FirstRunIntro } from "@/components/FirstRunIntro";
+import { DashboardSkeleton } from "@/components/Skeleton";
 import { getUserId } from "@/lib/auth";
 import { servingAllowed } from "@/lib/env";
 import { loadMissionOverview } from "@/lib/missions/overview";
+import { loadingMessageFor } from "@/lib/loadingMessages";
 import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -10,23 +13,42 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "home" };
 
 /**
- * Home — the clean dashboard. Four questions, one calm page: what to ask,
- * what's in progress, what needs approval, what's finished.
+ * Home — what needs you today.
  *
- * The primary content (missions + steps + approvals) is loaded HERE, on the
- * server, in parallel — so the first paint already shows real work instead
- * of skeletons waiting on a hydrate-then-fetch round trip. Any failure falls
- * back to the client-side loader; the page itself never breaks on data.
+ * The data is fetched INSIDE a Suspense boundary rather than above it, and
+ * that one move is the difference between "the page appears, then fills in"
+ * and "nothing at all until the slowest query returns". The shell, the rail
+ * and the skeleton stream immediately; the dashboard replaces the skeleton the
+ * moment its data lands. Nothing here can be held hostage by a slow store.
+ *
+ * Whatever the server does fetch is handed to the client, which seeds it into
+ * the shared request cache — so the browser never re-asks for what already
+ * arrived in the HTML.
  */
-export default async function AppPage() {
+export default function AppPage() {
+  return (
+    <>
+      <FirstRunIntro />
+      <Suspense fallback={<DashboardSkeleton message={loadingMessageFor("/app")} />}>
+        <DashboardWithData />
+      </Suspense>
+    </>
+  );
+}
+
+async function DashboardWithData() {
   let initial: DashboardInitial | undefined;
   try {
     if (servingAllowed()) {
       const userId = await getUserId();
       if (userId) {
+        // In parallel: the approvals queue never waits on the mission
+        // overview, or the page pays for both one after the other. The limit
+        // matches PENDING_APPROVALS_KEY, so the client's shared cache is
+        // seeded with exactly the response it would otherwise have requested.
         const [overview, approvals] = await Promise.all([
           loadMissionOverview(userId),
-          getStore().listActions(userId, { status: "proposed", limit: 20 }),
+          getStore().listActions(userId, { status: "proposed", limit: 200 }),
         ]);
         initial = { missions: overview.missions, steps: overview.steps, approvals };
       }
@@ -34,10 +56,5 @@ export default async function AppPage() {
   } catch {
     // fall through — the Dashboard fetches client-side exactly as before
   }
-  return (
-    <>
-      <FirstRunIntro />
-      <Dashboard initial={initial} />
-    </>
-  );
+  return <Dashboard initial={initial} />;
 }

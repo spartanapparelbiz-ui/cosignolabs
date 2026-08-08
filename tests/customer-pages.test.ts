@@ -144,13 +144,19 @@ describe("the twin concept is gone; connections is the complete app experience",
     expect(CONNECTIONS).toMatch(/last checked \{checkedAgo\(lastCheckedAt\)\}/);
   });
 
-  it("per-app value counts are real and never render a zero", () => {
-    expect(CONNECTIONS).toMatch(/stats\.completed > 0 &&/);
-    expect(CONNECTIONS).toMatch(/stats\.approvals > 0 &&/);
-    expect(CONNECTIONS).toMatch(/stats\.automatic > 0 &&/);
-    expect(CONNECTIONS).toMatch(/actions completed/);
-    expect(CONNECTIONS).toMatch(/approvals requested/);
-    expect(CONNECTIONS).toMatch(/completed automatically/);
+  it("per-app context is real, and a zero is omitted rather than displayed", () => {
+    // The three stacked panels became one line of facts under the app name —
+    // "checked 2h ago · last used 20m ago · 14 actions done · 3 rules". The
+    // rule that mattered survives the redesign: every part is conditional, so
+    // a count of zero is absent rather than rendered as "0 actions done",
+    // which reads as a measurement of a broken app rather than an unused one.
+    expect(CONNECTIONS).toMatch(/function ConnectionContext/);
+    expect(CONNECTIONS).toMatch(/stats\.completed > 0/);
+    expect(CONNECTIONS).toMatch(/stats\.approvals > 0/);
+    expect(CONNECTIONS).toMatch(/ruleCount > 0/);
+    expect(CONNECTIONS).toMatch(/last used \$\{checkedAgo\(lastUsed\)\}/);
+    // And with nothing to report it says so in words, never an empty line.
+    expect(CONNECTIONS).toMatch(/hasn&apos;t needed it yet/);
   });
 
   it("apps are searchable, and no match says so rather than showing an empty list", () => {

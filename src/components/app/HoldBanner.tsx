@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { PauseCircle } from "lucide-react";
 import type { HoldScope } from "@/lib/types";
+import { broadcastHold, useHoldScope } from "@/lib/client/hold";
 
 /**
  * A slim, honest banner shown ONLY while Cosigno Hold is active — the
@@ -10,8 +11,9 @@ import type { HoldScope } from "@/lib/types";
  * it matters, invisible otherwise. Resume restores exactly the prior
  * behavior (base permissions are never changed).
  *
- * It listens for `cosigno:hold-changed` (dispatched by the Hold control) so
- * toggling from anywhere updates it instantly, and re-checks on a slow poll.
+ * The hold state is read through the shared client cache, so this and the stop
+ * button in the header are the same fact rather than two independent requests
+ * that can disagree.
  */
 
 const MESSAGE: Record<Exclude<HoldScope, "none">, string> = {
@@ -19,47 +21,9 @@ const MESSAGE: Record<Exclude<HoldScope, "none">, string> = {
   all: "Cosigno is on hold — all work is paused, including routine actions.",
 };
 
-async function fetchScope(): Promise<HoldScope> {
-  try {
-    const res = await fetch("/api/hold", { headers: { "Content-Type": "application/json" } });
-    if (!res.ok) return "none";
-    return ((await res.json()).hold?.scope as HoldScope) ?? "none";
-  } catch {
-    return "none";
-  }
-}
-
 export function HoldBanner() {
-  const [scope, setScope] = useState<HoldScope>("none");
+  const scope = useHoldScope();
   const [busy, setBusy] = useState(false);
-
-  const refresh = useCallback(() => {
-    fetchScope().then(setScope);
-  }, []);
-
-  useEffect(() => {
-    refresh();
-    const onChanged = (e: Event) => {
-      const detail = (e as CustomEvent<{ scope?: HoldScope }>).detail;
-      if (detail?.scope) setScope(detail.scope);
-      else refresh();
-    };
-    window.addEventListener("cosigno:hold-changed", onChanged);
-    // Slow safety poll — skipped while the tab is hidden, refreshed on return.
-    const tick = () => {
-      if (document.visibilityState !== "hidden") refresh();
-    };
-    const onVisible = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    const t = setInterval(tick, 30_000);
-    return () => {
-      window.removeEventListener("cosigno:hold-changed", onChanged);
-      document.removeEventListener("visibilitychange", onVisible);
-      clearInterval(t);
-    };
-  }, [refresh]);
 
   if (scope === "none") return null;
 
@@ -71,8 +35,7 @@ export function HoldBanner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope: "none" }),
       });
-      setScope("none");
-      window.dispatchEvent(new CustomEvent("cosigno:hold-changed", { detail: { scope: "none" } }));
+      broadcastHold("none");
     } finally {
       setBusy(false);
     }
@@ -86,7 +49,7 @@ export function HoldBanner() {
         <button
           onClick={resume}
           disabled={busy}
-          className="rounded-pill bg-cream px-3 py-0.5 text-[11px] font-extrabold text-ink transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-pill bg-cream px-3 py-0.5 text-[11px] font-extrabold text-ink transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? "Resuming…" : "Resume cosigno"}
         </button>

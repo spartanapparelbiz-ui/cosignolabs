@@ -194,10 +194,7 @@ function GoalComposer({ onStarted }: { onStarted: (id: string) => void }) {
   return (
     <div className="flex flex-col gap-2 rounded-card bg-surface/60 p-4 shadow-soft">
       <p className="text-sm font-extrabold lowercase">give cosigno any goal</p>
-      <p className="text-xs text-ink-soft">
-        cosigno turns it into a real, validated plan using only the tools it
-        actually has — then shows you before anything runs.
-      </p>
+      <p className="text-xs text-ink-soft">You see the whole plan before anything runs.</p>
       <div className="flex gap-2">
         <input
           value={goal}
@@ -376,14 +373,11 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
         <div className="flex items-start gap-2 rounded-card bg-signal/10 p-3 text-xs font-semibold ring-1 ring-inset ring-signal/30">
           <Square size={13} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
           <span>
-            {/* What happens to them, not what we failed to set up. */}
-            {/* Advancement is driven by the interval above, which only runs
-                while an ACTIVE mission is OPEN — not merely while this page is.
-                Saying "reopen the page" would be a promise the code does not
-                keep. */}
-            a mission moves forward only while you have it open. background running
-            isn&apos;t available for this workspace yet, so closing it pauses the work
-            rather than losing it — open the mission again to carry on.
+            {/* What happens to them, not what we failed to set up. Advancement
+                is driven by the interval above, which only runs while an ACTIVE
+                mission is OPEN — so "reopen the mission" is the honest fix and
+                "reopen the page" would be a promise the code does not keep. */}
+            Missions run while you have them open — closing one pauses it, and reopening it carries on.
           </span>
         </div>
       )}
@@ -397,52 +391,49 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
         }}
       />
 
-      {/* start the reference (suggested) mission */}
-      <div className="flex flex-wrap items-center gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
-        <Rocket size={18} className="shrink-0 text-ink-soft" aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold lowercase">prepare everything for tomorrow&apos;s meeting</p>
-          <p className="text-xs text-ink-soft">
-            finds the event, reviews related mail and files, builds a brief +
-            agenda, and drafts the follow-up.{" "}
-            {bgActive === true
-              ? "keeps going even if you close this tab."
-              : bgActive === false
-                ? "keep it open while it runs — it pauses when closed."
-                : "keep it open while it runs until background running is confirmed."}{" "}
-            uses your connected apps — or a clearly-marked sandbox until you
-            connect them.
-          </p>
+      {/* Examples, shown only to a workspace that has never run anything.
+          Once there are real missions on this page these are two large cards
+          of advice sitting above the actual work — and advice you have already
+          taken is clutter. */}
+      {(missions ?? []).length === 0 && (
+        <>
+        {/* start the reference (suggested) mission */}
+        <div className="flex flex-wrap items-center gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
+          <Rocket size={18} className="shrink-0 text-ink-soft" aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-extrabold lowercase">prepare everything for tomorrow&apos;s meeting</p>
+            <p className="text-xs text-ink-soft">
+              Finds the event, reads related mail and files, and drafts the brief.
+            </p>
+          </div>
+          <button
+            onClick={start}
+            disabled={busy === "start"}
+            className="shrink-0 rounded-btn px-4 py-2.5 text-sm font-bold ring-1 ring-inset ring-ink/25 transition-colors hover:bg-cream-deep disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy === "start" ? "starting…" : "start"}
+          </button>
         </div>
-        <button
-          onClick={start}
-          disabled={busy === "start"}
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-        >
-          {busy === "start" ? "starting…" : "start mission"}
-        </button>
-      </div>
 
-      {/* the browser-operator reference mission */}
-      <div className="flex flex-wrap items-center gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
-        <Globe size={18} className="shrink-0 text-ink-soft" aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold lowercase">compare three laptops under $1,000</p>
-          <p className="text-xs text-ink-soft">
-            cosigno opens real product pages, records what they actually show,
-            compares three options, and stops at the recommended product page —
-            watch every page it reads. entirely read-only: no purchase is ever
-            attempted.
-          </p>
+        {/* the browser-operator reference mission */}
+        <div className="flex flex-wrap items-center gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
+          <Globe size={18} className="shrink-0 text-ink-soft" aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-extrabold lowercase">compare three laptops under $1,000</p>
+            <p className="text-xs text-ink-soft">
+              Opens real product pages and compares three — read-only, nothing is ever bought.
+            </p>
+          </div>
+          <button
+            onClick={startLaptop}
+            disabled={busy === "laptop"}
+            className="shrink-0 rounded-btn px-4 py-2.5 text-sm font-bold ring-1 ring-inset ring-ink/25 transition-colors hover:bg-cream-deep disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy === "laptop" ? "starting…" : "start"}
+          </button>
         </div>
-        <button
-          onClick={startLaptop}
-          disabled={busy === "laptop"}
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-        >
-          {busy === "laptop" ? "starting…" : "start mission"}
-        </button>
-      </div>
+        </>
+      )}
 
       {missions === null && (
         <div className="flex flex-col gap-3" aria-busy="true" aria-label="loading missions">

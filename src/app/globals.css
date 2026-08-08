@@ -88,6 +88,67 @@ body {
 }
 
 /* ------------------------------------------------------------------ */
+/* The page scale.                                                     */
+/*                                                                     */
+/* Every workspace page was inventing its own container width, padding */
+/* and heading size — max-w-3xl here, max-w-none there, py-8 next to   */
+/* pt-10, a 2xl title beside a 3xl one. The result reads as pages      */
+/* built at different times by different people, which is exactly what */
+/* it was. These four classes are the only page chrome; a new surface  */
+/* inherits the rhythm instead of guessing at it.                      */
+/* ------------------------------------------------------------------ */
+
+.page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 56rem; /* 896px — comfortable for reading and for one column */
+  padding-inline: 1.25rem;
+  padding-block: 2.5rem 4rem;
+}
+/* Grid-heavy surfaces (connections, monitoring) earn the extra width. */
+.page-wide {
+  max-width: 72rem;
+}
+@media (min-width: 1024px) {
+  .page {
+    padding-inline: 2rem;
+    padding-block: 3.5rem 5rem;
+  }
+}
+
+.page-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+}
+
+/* The one line under a title. It is a lede, not documentation: if it needs a
+   second sentence, the page is explaining something the interface should be
+   showing. */
+.page-lede {
+  margin-top: 0.5rem;
+  max-width: 46ch;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: rgb(var(--c-ink-soft));
+}
+
+/* The label above a band of content. Never a heading — it is a signpost. */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(var(--c-ink-soft));
+}
+
+/* ------------------------------------------------------------------ */
 /* Microinteractions, applied once, globally.                          */
 /*                                                                     */
 /* The alternative — hand-decorating a few hundred call sites — is how  */

@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
+import { SkeletonCard } from "@/components/Skeleton";
 import { getUserId } from "@/lib/auth";
 import { servingAllowed } from "@/lib/env";
 import { getStore } from "@/lib/store";
@@ -14,7 +16,24 @@ export const metadata = { title: "approvals" };
  * the inbox then revalidates client-side (and any prefetch failure falls
  * back to the client loader unchanged).
  */
-export default async function ApprovalsPage() {
+export default function ApprovalsPage() {
+  return (
+    <div className="page flex flex-1 flex-col">
+      <header>
+        <h1 className="page-title">approvals</h1>
+        <p className="page-lede">Nothing here runs until you decide.</p>
+      </header>
+      <div className="mt-8 flex-1">
+        {/* The heading is on screen before the queue is even queried. */}
+        <Suspense fallback={<SkeletonCard />}>
+          <Queue />
+        </Suspense>
+      </div>
+    </div>
+  );
+}
+
+async function Queue() {
   let initial: ActionRecord[] | undefined;
   try {
     if (servingAllowed()) {
@@ -26,16 +45,5 @@ export default async function ApprovalsPage() {
   } catch {
     // fall through — DecisionInbox fetches client-side exactly as before
   }
-  return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8">
-      <h1 className="font-display text-2xl font-bold lowercase">approvals</h1>
-      <p className="mt-1 text-sm font-semibold text-ink-soft">
-        every action waiting for your signature, across all your missions.
-        approving executes it; vetoing kills it. nothing runs on its own.
-      </p>
-      <div className="mt-6 flex-1">
-        <DecisionInbox initial={initial} />
-      </div>
-    </div>
-  );
+  return <DecisionInbox initial={initial} />;
 }

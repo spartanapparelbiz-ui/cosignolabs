@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useResource } from "@/lib/client/resource";
+import { BACKGROUND_HEALTH_KEY } from "@/lib/client/keys";
 
 /**
  * Is anything actually going to run scheduled work while nobody is here?
@@ -17,33 +18,25 @@ import { useEffect, useState } from "react";
  *
  * Returns `null` while unknown — callers must say nothing rather than guess in
  * either direction.
+ *
+ * The answer is a property of the DEPLOYMENT, not of the user's data: it
+ * cannot change while somebody is looking at a page. So it is read through the
+ * shared cache with a long freshness window — asked once per session, and
+ * every surface that needs it shares that one answer.
  */
+const DEPLOYMENT_FACT_MS = 10 * 60_000;
+
 export function useBackgroundExecution(): boolean | null {
-  const [active, setActive] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/health/mission", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        /**
-         * Only a real boolean answers the question. `Boolean(...)` turned a
-         * missing field into `false` and the string "false" into `true`,
-         * which is worse than not knowing — unknown must stay unknown so
-         * callers can say so.
-         */
-        if (cancelled) return;
-        if (typeof d?.background_execution_active === "boolean") {
-          setActive(d.background_execution_active);
-        }
-      })
-      .catch(() => {
-        /* unknown stays unknown — see above */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return active;
+  const { data } = useResource<{ background_execution_active?: unknown }>(
+    BACKGROUND_HEALTH_KEY,
+    { staleMs: DEPLOYMENT_FACT_MS }
+  );
+  /**
+   * Only a real boolean answers the question. `Boolean(...)` turned a missing
+   * field into `false` and the string "false" into `true`, which is worse than
+   * not knowing — unknown must stay unknown so callers can say so.
+   */
+  return typeof data?.background_execution_active === "boolean"
+    ? data.background_execution_active
+    : null;
 }

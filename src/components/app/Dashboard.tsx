@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useDisplayName } from "@/lib/theme";
-import { ArrowRight, Check, ShieldQuestion, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, ShieldQuestion, X } from "lucide-react";
 import type { ActionRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
 import { SourceComposer } from "@/components/app/SourceComposer";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { todayDigest } from "@/lib/missions/today";
 import { useNewItems } from "@/lib/useNewItems";
 import { WorkingPip } from "@/components/brand/WorkingPip";
+import { invalidate, seedResource, useResource } from "@/lib/client/resource";
+import { MISSIONS_KEY, PENDING_APPROVALS_KEY } from "@/lib/client/keys";
 import { headline, partOfDay } from "@/lib/dashboard/greeting";
 
 /**
@@ -52,16 +54,6 @@ function promptsFor(connections: ReadonlyArray<{ provider_key: string }>): reado
     : PROMPTS_BASE;
 }
 
-async function jsonFetch(url: string, init?: RequestInit) {
-  const res = await fetch(url, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
-  return body;
-}
-
 interface ConnectionView {
   provider_key: string;
   display_name: string;
@@ -80,57 +72,45 @@ export interface DashboardInitial {
 }
 
 export function Dashboard({ initial }: { initial?: DashboardInitial }) {
-  const [missions, setMissions] = useState<MissionRecord[] | null>(initial?.missions ?? null);
-  const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>(initial?.steps ?? {});
-  const [approvals, setApprovals] = useState<ActionRecord[]>(initial?.approvals ?? []);
+  // What the server already fetched goes straight into the shared cache, so
+  // the client's first render has it and asks for none of it again. Seeding
+  // during render (not in an effect) means it lands before the first paint.
+  if (initial) {
+    seedResource(MISSIONS_KEY, { missions: initial.missions, steps: initial.steps });
+    seedResource(PENDING_APPROVALS_KEY, { actions: initial.approvals });
+  }
+
+  // Four independent reads. Each section renders the moment ITS data lands —
+  // a slow /api/connections can no longer hold up the work you came to see.
+  // Two of these keys are the same ones the rail reads, so the network sees
+  // one request, not two.
+  const missionsRes = useResource<{ missions?: MissionRecord[]; steps?: Record<string, MissionStepRecord[]> }>(
+    MISSIONS_KEY
+  );
+  const approvalsRes = useResource<{ actions?: ActionRecord[] }>(PENDING_APPROVALS_KEY, {
+    refreshMs: 30_000,
+  });
+  const connectionsRes = useResource<{ connections?: ConnectionView[] }>("/api/connections");
+  const usageRes = useResource<{ usage?: { actions_executed?: number } }>("/api/usage");
+
+  const missions = missionsRes.data?.missions ?? (missionsRes.loading ? null : []);
+  const steps = missionsRes.data?.steps ?? {};
+  const approvals = (approvalsRes.data?.actions ?? []).filter((a) => a.status === "proposed");
+  const connections = (connectionsRes.data?.connections ?? []).filter((c) => c.kind === "app");
+  const opsThisMonth = Number(usageRes.data?.usage?.actions_executed) || 0;
+
   const [displayName] = useDisplayName();
-  const [connections, setConnections] = useState<ConnectionView[]>([]);
-  // The quiet value line under the greeting — the real usage-meter count.
-  // Rendered only when it's non-zero; a zero reinforces nothing.
-  const [opsThisMonth, setOpsThisMonth] = useState(0);
   // Resolved after mount from the visitor's own clock — never server-guessed.
   const [dayPart, setDayPart] = useState<string | null>(null);
-
   useEffect(() => {
     setDayPart(partOfDay(new Date().getHours()));
   }, []);
 
-
-  const loadSide = useCallback(async () => {
-    // The right-column extras (connected apps, the usage meter).
-    const [c, u] = await Promise.all([
-      jsonFetch("/api/connections").catch(() => ({ connections: [] })),
-      jsonFetch("/api/usage").catch(() => ({})),
-    ]);
-    setOpsThisMonth(Number(u.usage?.actions_executed) || 0);
-    const appConns = (c.connections ?? []).filter((x: ConnectionView) => x.kind === "app");
-    setConnections(appConns.filter((x: ConnectionView) => x.status === "connected"));
+  /** After starting work, the queue and the mission list are both out of date. */
+  const reload = useCallback(() => {
+    invalidate("/api/missions");
+    invalidate("/api/actions");
   }, []);
-
-  const load = useCallback(async () => {
-    try {
-      // One wave: the missions call piggybacks active-mission steps
-      // (include=steps), so there's no second round of per-mission fetches.
-      const [m, a] = await Promise.all([
-        jsonFetch("/api/missions?include=steps").catch(() => ({ missions: [], steps: {} })),
-        jsonFetch("/api/actions?status=proposed&limit=20").catch(() => ({ actions: [] })),
-        loadSide(),
-      ]);
-      const ms: MissionRecord[] = m.missions ?? [];
-      setMissions(ms);
-      setSteps((m.steps ?? {}) as Record<string, MissionStepRecord[]>);
-      setApprovals((a.actions ?? []).filter((x: ActionRecord) => x.status === "proposed"));
-    } catch {
-      setMissions([]);
-    }
-  }, [loadSide]);
-
-  useEffect(() => {
-    // SWR: when the server prefetched missions/steps/approvals, they're
-    // already on screen — this load() is a background revalidate (also
-    // covers a router-cache restore). Without prefetch it's the first load.
-    load();
-  }, [load]);
 
   const digest = todayDigest(missions ?? [], steps);
 
@@ -151,93 +131,88 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
     ...finished.map((l) => l.missionId),
   ]);
 
+  /**
+   * Does anything actually need this person right now? The answer reorders the
+   * page, and that reordering is the whole idea: showing someone a big empty
+   * text box first, while two signatures are waiting, is an interface that has
+   * not looked at its own data. When there IS work, the work leads and the box
+   * follows. When there isn't, the box is the only thing that matters.
+   */
+  const needsYou = approvals.length > 0 || waiting.length > 0;
+  const busy = needsYou || working.length > 0 || finished.length > 0;
+
+  const composer = (
+    <SourceComposer
+      onStarted={reload}
+      /* The starting points render below as cards when the page is quiet, so
+         the box never shows a second copy of the same four suggestions. */
+      suggestions={[]}
+    />
+  );
+
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-10 sm:pt-16">
-      {/* ------------------------------ the ask ------------------------------ */}
-      {/* The page opens by naming the person and the state of their day, then
-          gives them the box. Everything below is a consequence of what they
-          type into it, so it comes after. */}
-      <header className="text-center">
+    <div className="page">
+      {/* --------------------- who, and what today is --------------------- */}
+      <header className={busy ? "" : "text-center"}>
         <h1
-          className={`font-display text-3xl font-bold tracking-tight transition-opacity duration-base ease-brand-out sm:text-4xl ${
+          className={`font-display text-[28px] font-bold tracking-tight transition-opacity duration-base ease-brand-out sm:text-[34px] ${
             dayPart ? "opacity-100" : "opacity-0"
           }`}
         >
           {/* The clock is the visitor's, so the greeting resolves after mount
-              and fades in. The non-breaking space holds the line's height for
-              that one frame, so nothing below it ever jumps. */}
-          {dayPart ? `${dayPart}${displayName.trim() ? `, ${displayName.trim()}` : ""}.` : " "}
+              and fades in. The space holds the line's height for that one
+              frame, so nothing below it ever jumps. */}
+          {dayPart ? `${dayPart}${displayName.trim() ? `, ${displayName.trim()}` : ""}.` : " "}
         </h1>
-        <p className="mt-2 text-sm font-semibold text-ink-soft">
+        <p className="mt-2 text-[15px] text-ink-soft">
           {missions === null
-            ? " "
+            ? " "
             : headline({
                 approvals: approvals.length || waiting.length,
                 working: working.length,
                 finished: finished.length,
               })}
         </p>
+        <Attention connections={connections} />
       </header>
 
-      <div className="mt-7">
-        {/* The starting points live below as cards, so the box shows none of
-            its own — the same four suggestions twice is clutter. */}
-        <SourceComposer onStarted={load} suggestions={[]} />
-      </div>
-
-      {/* Prompt cards, not chips — something you actually want to click. They
-          name the apps this workspace has actually connected, so nothing here
-          suggests work cosigno can't currently do. */}
-      {working.length === 0 && waiting.length === 0 && (
-        <section className="mt-7">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
-            Try asking
-          </p>
-          <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
-            {promptsFor(connections).map((p) => (
-              <button
-                key={p}
-                onClick={() => askFor(p)}
-                className="group card-lift rounded-card border border-line bg-surface px-4 py-3 text-left text-sm font-semibold shadow-soft hover:border-signal"
-              >
-                {p}
-                <ArrowRight
-                  size={13}
-                  className="ml-1.5 inline text-ink-soft transition-transform group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </button>
-            ))}
-          </div>
-        </section>
+      {/* When the box leads it gets room around it, with the suggestions under
+          it. For someone with nothing waiting, this is the whole page. */}
+      {!busy && (
+        <>
+          <div className="mx-auto mt-8 max-w-2xl">{composer}</div>
+          <section className="mx-auto mt-8 max-w-2xl">
+            <p className="section-title">Try asking</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {promptsFor(connections).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => askFor(p)}
+                  className="group card-lift rounded-card border border-line bg-surface px-4 py-3 text-left text-sm font-semibold shadow-soft hover:border-signal"
+                >
+                  {p}
+                  <ArrowRight
+                    size={13}
+                    className="ml-1.5 inline text-ink-soft transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </button>
+              ))}
+            </div>
+          </section>
+        </>
       )}
 
-      {/* --------------------------- working now --------------------------- */}
-      {working.length > 0 && (
-        <Section title="Working right now" tone="live">
-          {working.map((l) => (
-            <Row
-              key={l.missionId}
-              href={`/app/missions/${l.missionId}`}
-              icon={<WorkingPip className="mt-1.5" />}
-              isNew={fresh.has(l.missionId)}
-            >
-              {l.text}
-            </Row>
-          ))}
-        </Section>
-      )}
-
-      {/* ------------------------- needs your approval ------------------------- */}
-      {/* Only ever rendered when something is genuinely waiting. An empty
-          "nothing is waiting" panel is a row of furniture that says nothing. */}
+      {/* --------------------------- what needs you --------------------------- */}
+      {/* First, because it is the only thing on this page that costs something
+          by being missed. Real decision cards, not a link to them. */}
       {approvals.length > 0 && (
-        <Section title="Needs your approval" tone="attention">
+        <Section title="Needs you" tone="attention">
           <DecisionInbox initial={approvals} compact emptyFallback={null} />
         </Section>
       )}
       {approvals.length === 0 && waiting.length > 0 && (
-        <Section title="Needs your approval" tone="attention">
+        <Section title="Needs you" tone="attention">
           {waiting.map((l) => (
             <Row
               key={l.missionId}
@@ -251,9 +226,25 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
         </Section>
       )}
 
-      {/* --------------------------- completed today --------------------------- */}
+      {/* ---------------------------- working now ---------------------------- */}
+      {working.length > 0 && (
+        <Section title="Working now" tone="live">
+          {working.map((l) => (
+            <Row
+              key={l.missionId}
+              href={`/app/missions/${l.missionId}`}
+              icon={<WorkingPip className="mt-1.5" />}
+              isNew={fresh.has(l.missionId)}
+            >
+              {l.text}
+            </Row>
+          ))}
+        </Section>
+      )}
+
+      {/* ----------------------------- done today ----------------------------- */}
       {finished.length > 0 && (
-        <Section title="Completed today">
+        <Section title="Done today">
           {finished.map((l) => (
             <Row
               key={l.missionId}
@@ -276,17 +267,23 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
         </Section>
       )}
 
-      {/* Nothing running, nothing waiting, nothing finished today. The
-          greeting already said so in plain words; repeating "no missions" here
-          would only report the same absence twice. What belongs at the bottom
-          of a quiet page is the state of the machine, quietly. */}
-      {working.length === 0 && waiting.length === 0 && finished.length === 0 && missions !== null && (
-        <p className="mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs font-bold lowercase tracking-widest text-ink-soft/70">
+      {/* With work above, the box comes after it — still one keystroke away, no
+          longer competing with the thing that needs a decision. */}
+      {busy && (
+        <section className="mt-10 border-t border-line/60 pt-7">
+          <p className="section-title">Ask for something else</p>
+          <div className="mt-3">{composer}</div>
+        </section>
+      )}
+
+      {/* Nothing running, waiting, or finished today. The greeting already said
+          so in plain words; repeating "no missions" here would report the same
+          absence twice. What belongs at the bottom of a quiet page is the state
+          of the machine, quietly. */}
+      {!busy && missions !== null && (
+        <p className="mt-14 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs font-bold lowercase tracking-widest text-ink-soft/70">
           <span className="h-1.5 w-1.5 rounded-pill bg-signal/70" aria-hidden="true" />
           ready to work
-          {/* The month's real count, kept down here where a quiet number
-              belongs. It was competing with the greeting at the top of the
-              page, which is the one line that should own that space. */}
           {opsThisMonth > 0 && (
             <span>
               · {opsThisMonth.toLocaleString()} operation{opsThisMonth === 1 ? "" : "s"} this month
@@ -298,6 +295,37 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   );
 }
 
+/**
+ * The one notification line on home.
+ *
+ * A connection that has stopped working is the single piece of news that
+ * silently breaks everything else: missions that need that app simply stop
+ * being possible, with no error anywhere the operator would look. So it gets a
+ * line — one sentence naming the app and the fix — rather than a card. When
+ * every app is fine it renders nothing, which is the common case and should
+ * cost no space at all.
+ */
+function Attention({ connections }: { connections: ConnectionView[] }) {
+  const broken = connections.filter((c) => c.status === "needs_reauth" || c.status === "error");
+  if (broken.length === 0) return null;
+  const names = broken.map((c) => c.display_name);
+  const label =
+    names.length === 1
+      ? `${names[0]} stopped working`
+      : `${names.slice(0, 2).join(" and ")}${
+          names.length > 2 ? ` and ${names.length - 2} more` : ""
+        } stopped working`;
+  return (
+    <Link
+      href="/app/connections"
+      className="mt-3 inline-flex items-center gap-2 rounded-pill bg-signal/12 px-3 py-1.5 text-[13px] font-bold text-ink ring-1 ring-inset ring-signal/30 transition-colors duration-fast hover:bg-signal/20"
+    >
+      <AlertTriangle size={13} className="shrink-0 text-signal" aria-hidden="true" />
+      {label} — reconnect
+      <ArrowRight size={12} className="shrink-0 text-ink-soft" aria-hidden="true" />
+    </Link>
+  );
+}
 
 /** A titled band of rows. The only section shape on this page. */
 function Section({

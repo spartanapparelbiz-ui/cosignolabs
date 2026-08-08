@@ -16,6 +16,8 @@ import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { ConnectionInsight } from "@/components/account/ConnectionInsight";
 import { humanizeActionId, humanizeEndpoint } from "@/lib/integrations/engine/humanize";
 import { ruleAppliesToApp } from "@/lib/rules";
+import { useResource } from "@/lib/client/resource";
+import { RULES_KEY } from "@/lib/client/keys";
 
 /**
  * The Connections screen: available third-party apps, the user's connected
@@ -206,9 +208,12 @@ export function ConnectionsPanel() {
   >([]);
   /** Instant filter over app names. Empty = show everything. */
   const [query, setQuery] = useState("");
-  const [rules, setRules] = useState<
-    { id: string; text: string; target: string; enabled: boolean }[]
-  >([]);
+  // Shared with the rules editor further down this page: one read, and the
+  // per-app rule chips can never drift from the list that edits them.
+  const rulesRes = useResource<{
+    rules?: { id: string; text: string; target: string; enabled: boolean }[];
+  }>(RULES_KEY);
+  const rules = rulesRes.data?.rules ?? [];
 
   async function load() {
     try {
@@ -217,12 +222,11 @@ export function ConnectionsPanel() {
       // Every connector action, any status — executed ones are the work done,
       // tier>1 ones are the approvals asked for. Both counted from the same
       // ledger the activity page shows.
-      api("/api/activity?category=connection_call&limit=1000")
+      api("/api/activity?category=connection_call&limit=200")
         .then((d) => setRecentWork(Array.isArray(d.actions) ? d.actions : []))
         .catch(() => undefined);
-      api("/api/rules")
-        .then((d) => setRules(Array.isArray(d.rules) ? d.rules : []))
-        .catch(() => undefined);
+      // Rules come from the shared cache (see the hook below) — this panel and
+      // the rules editor further down the page are one request, not two.
     } catch {
       // The connections backend isn't fully provisioned on this deployment
       // yet (login + database + per-app setup). Rather than show a scary
@@ -555,8 +559,13 @@ export function ConnectionsPanel() {
 
               {/* An unavailable thing has to say what would make it available,
                   or the reader is left to guess whether it's broken, unbuilt,
-                  or waiting on them. */}
-              {!p.configured && !conn && (
+                  or waiting on them.
+
+                  But it says it ONCE. When secure storage is off, nothing can
+                  be connected and the banner at the top of the page already
+                  says so — repeating it under all seven apps is the same
+                  sentence seven times, which reads as seven problems. */}
+              {!p.configured && !conn && data?.vaultReady && (
                 <p className="mt-1 text-[11px] text-ink-soft/80">
                   {p.name} isn&apos;t switched on for this workspace yet — an
                   administrator can enable it.
@@ -598,18 +607,33 @@ export function ConnectionsPanel() {
                   what cosigno may do with it — measured live, never examples. */}
               {conn && conn.status === "connected" && (
                 <>
-                  <ConnectionInsight connectionId={conn.id} providerName={p.name} />
-                  <AppValue stats={statsFor(conn.display_name || p.name)} />
-                  <AppRecentWork
-                    name={conn.display_name || p.name}
+                  {/* One line of real context instead of the word "connected":
+                      when it was last checked, what it has actually done, and
+                      how many standing rules govern it. Four stacked panels
+                      said this in about forty words and three boxes. */}
+                  <ConnectionContext
                     lastCheckedAt={conn.last_health_at ?? null}
-                    work={statsFor(conn.display_name || p.name).recent}
+                    stats={statsFor(conn.display_name || p.name)}
+                    ruleCount={
+                      rules.filter((r) => r.enabled && ruleAppliesToApp(r, p.key, p.name)).length
+                    }
                   />
-                  <AppPolicies
-                    providerKey={p.key}
-                    providerName={p.name}
-                    rules={rules}
-                  />
+                  {/* The detail is one disclosure away, not permanently on
+                      screen. Someone auditing an app opens it; everyone else
+                      gets their answer from the line above. */}
+                  <details className="group mt-2">
+                    <summary className="cursor-pointer list-none text-xs font-bold lowercase text-ink-soft underline underline-offset-2 marker:content-['']">
+                      <span className="group-open:hidden">what&apos;s in it, and what governs it</span>
+                      <span className="hidden group-open:inline">hide details</span>
+                    </summary>
+                    <ConnectionInsight connectionId={conn.id} providerName={p.name} />
+                    <AppRecentWork
+                      name={conn.display_name || p.name}
+                      lastCheckedAt={conn.last_health_at ?? null}
+                      work={statsFor(conn.display_name || p.name).recent}
+                    />
+                    <AppPolicies providerKey={p.key} providerName={p.name} rules={rules} />
+                  </details>
                 </>
               )}
               <p className="mt-0.5 text-[11px] text-ink-soft/80">
@@ -814,35 +838,45 @@ export function ConnectionsPanel() {
  */
 
 /**
- * What this app has been worth, in three real counts from the ledger. A count
- * at zero is omitted rather than shown — "0 actions completed" reinforces
- * nothing, and a card of zeros reads as a product that doesn't work. With
- * nothing yet, the row simply isn't there and the recent-work block below
- * says so in words.
+ * The one line under a connected app's name.
+ *
+ * "Connected" describes a wire and answers nothing. What a person actually
+ * wants to know, in the two seconds they look at this card, is whether it is
+ * still working, whether cosigno has used it, and what is holding it back —
+ * so that is what it says, as facts separated by dots. Every number is real
+ * and any that is zero is simply absent, because "0 actions" reinforces
+ * nothing.
  */
-function AppValue({
+function ConnectionContext({
+  lastCheckedAt,
   stats,
+  ruleCount,
 }: {
-  stats: { completed: number; approvals: number; automatic: number };
+  lastCheckedAt: string | null;
+  stats: { completed: number; approvals: number; recent: { created_at: string }[] };
+  ruleCount: number;
 }) {
-  const cells = [
-    stats.completed > 0 && { n: stats.completed, label: "actions completed" },
-    stats.approvals > 0 && { n: stats.approvals, label: "approvals requested" },
-    stats.automatic > 0 && { n: stats.automatic, label: "completed automatically" },
-  ].filter((c): c is { n: number; label: string } => Boolean(c));
-  if (cells.length === 0) return null;
-  return (
-    <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5">
-      {cells.map((c) => (
-        <span key={c.label} className="text-[11px]">
-          <span className="font-display text-sm font-extrabold tabular-nums">
-            {c.n.toLocaleString()}
-          </span>{" "}
-          <span className="text-ink-soft">{c.label}</span>
-        </span>
-      ))}
-    </div>
-  );
+  const lastUsed = stats.recent[0]?.created_at;
+  const parts = [
+    lastCheckedAt ? `checked ${checkedAgo(lastCheckedAt)}` : null,
+    lastUsed ? `last used ${checkedAgo(lastUsed)}` : null,
+    stats.completed > 0
+      ? `${stats.completed.toLocaleString()} action${stats.completed === 1 ? "" : "s"} done`
+      : null,
+    stats.approvals > 0
+      ? `${stats.approvals.toLocaleString()} approval${stats.approvals === 1 ? "" : "s"} asked`
+      : null,
+    ruleCount > 0 ? `${ruleCount} rule${ruleCount === 1 ? "" : "s"}` : null,
+  ].filter(Boolean);
+
+  if (parts.length === 0) {
+    return (
+      <p className="mt-1.5 text-[12px] text-ink-soft">
+        Ready — cosigno hasn&apos;t needed it yet.
+      </p>
+    );
+  }
+  return <p className="mt-1.5 text-[12px] text-ink-soft">{parts.join(" · ")}</p>;
 }
 
 /** Minutes/hours/days ago, for the last real health check. */

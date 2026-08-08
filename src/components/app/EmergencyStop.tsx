@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { OctagonX, Play } from "lucide-react";
+import { broadcastHold, useHoldScope } from "@/lib/client/hold";
 
 /**
  * Global emergency stop — reachable from every page in the workspace.
@@ -17,49 +18,19 @@ import { OctagonX, Play } from "lucide-react";
  *   toast — after hitting a kill switch you need to know it actually landed.
  * · While stopped it stays visible and becomes the resume control, so the
  *   held state is never something you have to go hunting for.
+ * · The held state is READ through the shared client cache, not fetched here.
+ *   A control that reads "Stop" while everything is frozen tells the operator
+ *   work is flowing when it isn't — the one lie this button must never tell —
+ *   and two independent requests for the same fact can always disagree.
  */
 
 type Scope = "none" | "external" | "all";
 
 export function EmergencyStop() {
-  const [scope, setScope] = useState<Scope>("none");
+  const scope = useHoldScope() as Scope;
   const [armed, setArmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/hold", { cache: "no-store" });
-      if (r.ok) setScope(((await r.json()).hold?.scope as Scope) ?? "none");
-    } catch {
-      /* leave as-is; the banner is the authoritative surface */
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-    const onChanged = (e: Event) => {
-      const d = (e as CustomEvent<{ scope?: Scope }>).detail;
-      if (d?.scope) setScope(d.scope);
-    };
-    // A hold set anywhere else — the control page, another tab, a second
-    // device — must reach this button. Mounting once is not enough: a control
-    // that reads "Stop" while everything is frozen tells the operator work is
-    // flowing when it isn't, which is the one lie this button must never tell.
-    // Re-checking on focus/visibility covers every one of those paths without
-    // polling a request every few seconds forever.
-    const recheck = () => {
-      if (document.visibilityState === "visible") load();
-    };
-    window.addEventListener("cosigno:hold-changed", onChanged);
-    window.addEventListener("focus", recheck);
-    document.addEventListener("visibilitychange", recheck);
-    return () => {
-      window.removeEventListener("cosigno:hold-changed", onChanged);
-      window.removeEventListener("focus", recheck);
-      document.removeEventListener("visibilitychange", recheck);
-    };
-  }, [load]);
 
   // Auto-disarm: never leave a live stop button armed under the cursor.
   useEffect(() => {
@@ -68,18 +39,13 @@ export function EmergencyStop() {
     return () => clearTimeout(t);
   }, [armed]);
 
-  function broadcast(next: Scope) {
-    setScope(next);
-    window.dispatchEvent(new CustomEvent("cosigno:hold-changed", { detail: { scope: next } }));
-  }
-
   async function stop() {
     setBusy(true);
     try {
       const r = await fetch("/api/emergency-stop", { method: "POST" });
       const d = await r.json();
       if (!r.ok) throw new Error(d.message || "stop failed");
-      broadcast("all");
+      broadcastHold("all");
       setReceipt(
         `Stopped in ${d.took_ms}ms · ${d.revoked_grants} temporary grant${d.revoked_grants === 1 ? "" : "s"} revoked · state preserved`
       );
@@ -96,7 +62,7 @@ export function EmergencyStop() {
     try {
       const r = await fetch("/api/emergency-stop", { method: "DELETE" });
       if (r.ok) {
-        broadcast("none");
+        broadcastHold("none");
         setReceipt(null);
       }
     } finally {
