@@ -106,7 +106,7 @@ export default function ElementsForm(props: CheckoutDriverProps) {
 
   if (fatal) return <HostedFallback plan={plan} interval={interval} onError={onError} />;
   if (!clientSecret || !stripeReady) {
-    return <div className="h-56 animate-pulse rounded-card bg-cream-deep" aria-hidden="true" />;
+    return <div className="h-56 skeleton rounded-card" aria-hidden="true" />;
   }
 
   return (

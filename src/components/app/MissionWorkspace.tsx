@@ -12,7 +12,6 @@ import {
   HelpCircle,
   ExternalLink,
   Link2,
-  Loader2,
   MinusCircle,
   OctagonX,
   Pause,
@@ -22,6 +21,7 @@ import {
   Square,
   XCircle,
 } from "lucide-react";
+import { WorkingPip } from "@/components/brand/WorkingPip";
 import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/lib/types";
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
@@ -173,7 +173,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
     );
   }
   if (!mission) {
-    return <div className="h-64 animate-pulse rounded-card bg-cream-deep" aria-hidden="true" aria-busy="true" />;
+    return <div className="h-64 skeleton rounded-card" aria-hidden="true" aria-busy="true" />;
   }
 
   const label = missionStatus(mission.state);
@@ -344,8 +344,13 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               Only shown when the work has settled: a receipt for something
               still running would be a claim about an unfinished outcome. */}
           {narration.finished && (
-            <div className="rounded-card border border-signal/40 bg-surface p-4 shadow-soft">
-              <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
+            // Arriving at a finished outcome is the best moment in the
+            // product, so it is the one place the receipt earns real depth: it
+            // springs in, the check draws itself once, and then it stops. No
+            // confetti — this is somebody's work, not a game.
+            <div className="animate-spring-in rounded-card border border-signal/40 bg-surface p-4 shadow-depth">
+              <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
+                {mission.state === "completed" && <DrawnCheck />}
                 {mission.state === "completed" ? "Done" : "Result"}
               </p>
               <p className="mt-1 font-display text-lg font-bold leading-snug">
@@ -402,7 +407,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                   )}
                 </div>
                 {narration.nowWorking.phase === "current" && (
-                  <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin text-ink" aria-hidden="true" />
+                  <WorkingPip size={9} className="mt-1.5" />
                 )}
               </div>
             ) : (
@@ -515,10 +520,19 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
             <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Progress</h2>
             <p className="mt-1.5 text-sm font-bold">{narration.status}</p>
+            {/* The fill is a scaleX, not an animated width: width is a layout
+                property, so a bar that transitions it re-lays-out the page on
+                every frame of every step. This composites. */}
             <div className="mt-2 h-1.5 overflow-hidden rounded-pill bg-cream-deep">
               <div
-                className="h-full rounded-pill bg-signal transition-[width]"
-                style={{ width: `${steps.length ? Math.round((done / steps.length) * 100) : 0}%` }}
+                className="h-full origin-left rounded-pill bg-signal transition-transform duration-slow ease-brand-out"
+                style={{
+                  transform: `scaleX(${steps.length ? done / steps.length : 0})`,
+                }}
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={steps.length}
+                aria-valuenow={done}
               />
             </div>
           </section>
@@ -700,6 +714,29 @@ function WorkAppMark({
     >
       {done ? <CheckCircle2 size={small ? 12 : 15} /> : <Circle size={small ? 12 : 15} />}
     </span>
+  );
+}
+
+/**
+ * The brand check, drawing itself once. The stroke length is normalized with
+ * pathLength so the draw reads identically at any size, and the animation is a
+ * single pass — a completion that keeps re-announcing itself stops meaning
+ * anything. Static under prefers-reduced-motion, like everything else.
+ */
+function DrawnCheck() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4.5 12.5 10 18 20 6.5"
+        stroke="rgb(var(--c-signal))"
+        strokeWidth="3.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        pathLength={1}
+        strokeDasharray="1"
+        className="motion-safe:animate-logo-draw"
+      />
+    </svg>
   );
 }
 

@@ -1,6 +1,6 @@
 import { INK, SIGNAL, INK_SOFT, LINE } from "@/lib/brand";
 
-export type EmptyKind = "workspace" | "activity" | "integrations";
+export type EmptyKind = "workspace" | "activity" | "integrations" | "handled" | "quiet";
 
 /**
  * Custom flat empty-state illustrations — ink line work with a single orange
@@ -31,6 +31,8 @@ export function EmptyIllustration({
       {kind === "workspace" && <Workspace />}
       {kind === "activity" && <Activity />}
       {kind === "integrations" && <Integrations />}
+      {kind === "handled" && <Handled />}
+      {kind === "quiet" && <Quiet />}
     </svg>
   );
 }
@@ -95,6 +97,53 @@ function Activity() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </>
+  );
+}
+
+/**
+ * An inbox tray, empty and at rest, with the last signed card filed above it.
+ * This is the illustration for "you're done", not "there's nothing" — the
+ * difference between an achievement and an absence is the whole point of it.
+ */
+function Handled() {
+  return (
+    <>
+      <ellipse cx="80" cy="104" rx="44" ry="5" fill={INK_SOFT} opacity="0.12" />
+      {/* the signed card, filed and finished, floating above the tray */}
+      <rect x="46" y="18" width="68" height="40" rx="8" {...faint} fill="none" />
+      <line x1="58" y1="32" x2="92" y2="32" {...faint} />
+      <line x1="58" y1="42" x2="80" y2="42" {...faint} />
+      <circle cx="102" cy="46" r="9" fill={SIGNAL} />
+      <path
+        d="M97.8 46.3 100.8 49.3 106.4 43"
+        stroke={INK}
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* the tray itself: open, level, and empty */}
+      <path d="M38 72 H122 L114 96 H46 Z" {...stroke} fill="none" />
+      <line x1="38" y1="72" x2="46" y2="96" {...stroke} />
+      <line x1="52" y1="84" x2="108" y2="84" {...faint} />
+    </>
+  );
+}
+
+/**
+ * A still pond with one ring on it — the workspace has been quiet, and quiet
+ * is a state, not a failure.
+ */
+function Quiet() {
+  return (
+    <>
+      <ellipse cx="80" cy="102" rx="46" ry="5" fill={INK_SOFT} opacity="0.12" />
+      <ellipse cx="80" cy="62" rx="46" ry="15" {...stroke} fill="none" />
+      <ellipse cx="80" cy="62" rx="29" ry="9" {...faint} fill="none" />
+      <ellipse cx="80" cy="62" rx="13" ry="4" {...faint} fill="none" />
+      {/* the single drop that made the ring — the one orange accent */}
+      <circle cx="80" cy="34" r="4" fill={SIGNAL} />
+      <line x1="80" y1="44" x2="80" y2="52" stroke={SIGNAL} strokeWidth="2.4" strokeLinecap="round" />
     </>
   );
 }

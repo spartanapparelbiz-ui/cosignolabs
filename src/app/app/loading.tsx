@@ -1,10 +1,14 @@
-import { LogoLoader } from "@/components/brand/LogoLoader";
+import { DashboardSkeleton } from "@/components/Skeleton";
+import { loadingMessageFor } from "@/lib/loadingMessages";
 
-/** Route-level loading state — the living mark, never a bare spinner. */
+/**
+ * Home's loading state — and the first five seconds of the product.
+ *
+ * The shell (rail, header, footer) is already painted by the layout, so this
+ * fills only the content column: the mark signing itself in, the line that
+ * says what is actually being prepared, and the shape of the page underneath.
+ * Nothing flashes white and nothing moves when the real dashboard lands.
+ */
 export default function Loading() {
-  return (
-    <div className="flex flex-1 items-center justify-center py-24">
-      <LogoLoader label="loading your workspace" />
-    </div>
-  );
+  return <DashboardSkeleton message={loadingMessageFor("/app")} />;
 }

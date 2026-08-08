@@ -87,6 +87,118 @@ body {
   border-radius: 6px;
 }
 
+/* ------------------------------------------------------------------ */
+/* Microinteractions, applied once, globally.                          */
+/*                                                                     */
+/* The alternative — hand-decorating a few hundred call sites — is how  */
+/* an app ends up with three different button feels. These four rules   */
+/* give every control the same physics: press compresses, fields glow   */
+/* on focus, and both collapse under prefers-reduced-motion with the    */
+/* rest of the motion system.                                          */
+/* ------------------------------------------------------------------ */
+
+/* Every button compresses under the finger. Transform-only, so it costs
+   nothing and never disturbs layout. Opt out with data-no-press on the rare
+   control that is already carrying its own transform choreography. */
+button:not([data-no-press]),
+[role="button"]:not([data-no-press]) {
+  transition-property: transform, box-shadow, background-color, color, border-color, opacity;
+  transition-duration: 160ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+button:not([data-no-press]):not(:disabled):active,
+[role="button"]:not([data-no-press]):active {
+  transform: scale(0.97);
+}
+
+/* Text fields warm up on focus: the signal ring plus a soft halo, so a
+   focused input reads as "live" rather than merely outlined. */
+input,
+textarea,
+select {
+  transition: box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  box-shadow: 0 0 0 4px rgba(251, 76, 32, 0.13);
+}
+
+/* A container that lights up while anything inside it has focus — used by the
+   ask box and the command bar, where the input itself is chrome-less. */
+.field-glow:focus-within {
+  box-shadow: 0 0 0 4px rgba(251, 76, 32, 0.13);
+  border-color: rgb(var(--c-signal) / 0.55);
+}
+
+/* The one card hover in the product: it lifts a hair and gains depth. */
+.card-lift {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(20, 20, 20, 0.06), 0 16px 40px rgba(20, 20, 20, 0.13);
+}
+
+/* Scrollbars, quietly. The default chrome-grey bar is the loudest thing on an
+   otherwise calm cream page. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--c-line)) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--c-line));
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--c-ink-soft) / 0.55);
+  background-clip: content-box;
+}
+
+/* The skeleton surface: a still placeholder with one light band travelling
+   across it. The band is a transform-only overlay, so a screen full of
+   skeletons still composites on the GPU. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  /* Softer than a solid fill: a skeleton should suggest the shape of what is
+     coming, not compete with the page that replaces it. */
+  background-color: rgb(var(--c-cream-deep) / 0.65);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--c-surface) / 0.55),
+    transparent
+  );
+  animation: skeleton-sweep 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+@keyframes skeleton-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 /* Signature check motif — shared surface language across the app. */
 
 /* Tier-3 (locked/destructive) cards wear a faint diagonal hazard band so a

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ActionRecord, SessionRecord } from "@/lib/types";
-import { EmptyIllustration } from "@/components/EmptyIllustration";
+import { EmptyState } from "@/components/EmptyState";
 
 /**
  * Missions — every goal you've delegated, as a persistent unit of work (one
@@ -101,7 +101,7 @@ export function MissionList() {
     return (
       <div className="flex flex-col gap-3" aria-busy="true" aria-label="loading missions">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="h-20 animate-pulse rounded-card bg-cream-deep" />
+          <div key={i} className="h-20 skeleton rounded-card" />
         ))}
       </div>
     );
@@ -109,21 +109,12 @@ export function MissionList() {
 
   if (missions.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-card bg-surface/40 px-6 py-12 text-center shadow-soft">
-        <EmptyIllustration kind="workspace" />
-        <p className="text-sm font-extrabold lowercase">no missions yet.</p>
-        <p className="max-w-sm text-xs text-ink-soft">
-          give the operator a goal in the workspace — each one becomes a
-          mission you can track here, decision by decision.
-        </p>
-        <Link
-          href="/app"
-          prefetch
-          className="mt-1 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft"
-        >
-          start a mission
-        </Link>
-      </div>
+      <EmptyState
+        kind="workspace"
+        title="Nothing has been handed to cosigno yet."
+        body="Describe an outcome you want — cosigno turns it into a plan, works it, and stops at anything that needs your signature."
+        action={{ label: "Give cosigno a job", href: "/app" }}
+      />
     );
   }
 
@@ -135,7 +126,7 @@ export function MissionList() {
           <div
             key={m.session.id}
             style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
-            className="animate-rise-in rounded-card bg-surface/60 p-4 shadow-soft"
+            className="card-lift animate-rise-in rounded-card bg-surface/60 p-4 shadow-soft"
           >
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="min-w-0 flex-1 truncate text-sm font-extrabold" title={m.session.title}>

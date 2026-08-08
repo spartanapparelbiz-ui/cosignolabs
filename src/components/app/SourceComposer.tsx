@@ -7,13 +7,13 @@ import {
   FileText,
   Image as ImageIcon,
   Link2,
-  Loader2,
   Lock,
   Paperclip,
   Plug,
   Sparkles,
   X,
 } from "lucide-react";
+import { WorkingPip } from "@/components/brand/WorkingPip";
 import type { MissionSourceRecord, MissionSourceStatus } from "@/lib/types";
 import { classifyDelegation, returnCondition } from "@/lib/delegate";
 import { useToast } from "@/components/Toast";
@@ -127,7 +127,7 @@ function SourceRow({ source, onRemove }: { source: MissionSourceRecord; onRemove
             {source.name}
           </p>
           <span className={`inline-flex shrink-0 items-center gap-1 rounded-pill px-2 py-0.5 text-[10px] font-bold ${toneCls}`}>
-            {IN_PROGRESS.includes(source.status) && <Loader2 size={10} className="animate-spin" aria-hidden="true" />}
+            {IN_PROGRESS.includes(source.status) && <WorkingPip size={6} />}
             {sv.label}
           </span>
         </div>
@@ -553,7 +553,7 @@ export function SourceComposer({
         </button>
         {anyWorking && (
           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-soft">
-            <Loader2 size={11} className="animate-spin" aria-hidden="true" /> finishing your files…
+            <WorkingPip size={7} /> finishing your files…
           </span>
         )}
       </div>
@@ -600,18 +600,22 @@ export function SourceComposer({
         </div>
       )}
 
-      {/* examples */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {(suggestions ?? EXAMPLES).map((ex) => (
-          <button
-            key={ex}
-            onClick={() => setGoal(ex)}
-            className="rounded-pill border border-line/70 bg-cream/40 px-3.5 py-1.5 text-sm font-semibold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
-          >
-            {ex}
-          </button>
-        ))}
-      </div>
+      {/* Examples. An explicit empty list means the surface around the box is
+          already showing starting points of its own (home does), and two rows
+          of the same four suggestions is clutter, not helpfulness. */}
+      {(suggestions ?? EXAMPLES).length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(suggestions ?? EXAMPLES).map((ex) => (
+            <button
+              key={ex}
+              onClick={() => setGoal(ex)}
+              className="rounded-pill border border-line/70 bg-cream/40 px-3.5 py-1.5 text-sm font-semibold text-ink-soft transition-colors duration-fast hover:border-ink/30 hover:bg-cream-deep/60 hover:text-ink"
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

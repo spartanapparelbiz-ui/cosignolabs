@@ -119,7 +119,9 @@ interface Data {
 }
 
 const STATUS_STYLE: Record<ConnectionView["status"], { label: string; cls: string }> = {
-  connected: { label: "connected", cls: "bg-signal text-cream" },
+  // "connected" describes a wire; what the reader wants to know is whether
+  // cosigno can actually use the app right now. Same record, useful word.
+  connected: { label: "ready to work", cls: "bg-signal text-cream" },
   needs_reauth: { label: "needs re-auth", cls: "ring-1 ring-inset ring-signal text-signal" },
   error: { label: "error", cls: "ring-1 ring-inset ring-ink/40 text-ink-soft" },
   revoked: { label: "disconnected", cls: "ring-1 ring-inset ring-ink/30 text-ink-soft" },
@@ -450,12 +452,17 @@ export function ConnectionsPanel() {
             <div
               key={p.key}
               style={{ animationDelay: `${i * 70}ms` }}
-              className={`rounded-card bg-surface/60 p-5 shadow-soft transition-all duration-base ease-brand-out animate-rise-in hover:-translate-y-0.5 hover:shadow-depth ${
-                justConnected === p.key ? "ring-2 ring-signal animate-pulse-glow" : ""
+              className={`card-lift animate-rise-in rounded-card bg-surface/60 p-5 shadow-soft ${
+                justConnected === p.key ? "ring-2 ring-signal animate-success-halo" : ""
               }`}
             >
               <div className="flex flex-wrap items-center gap-2.5">
-                <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={30} />
+                {/* The moment it connects, the app's own icon comes to life —
+                    the confirmation lands on the thing that changed, not on a
+                    banner somewhere else. */}
+                <span className={justConnected === p.key ? "animate-provider-light" : ""}>
+                  <ConnectorLogo kind="app" providerKey={p.key} displayName={p.name} size={30} />
+                </span>
                 <span className="text-base font-extrabold">{p.name}</span>
                 {conn && <StatusPill status={conn.status} />}
                 {/* "coming soon" told people to wait for cosigno to build
@@ -897,7 +904,7 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
   const req = preview.request;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex animate-overlay-in items-center justify-center bg-ink/45 p-4 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-label="action preview"

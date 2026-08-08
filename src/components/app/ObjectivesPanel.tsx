@@ -160,7 +160,7 @@ export function ObjectivesPanel() {
       {objectives === null ? (
         <div className="flex flex-col gap-3" aria-busy="true">
           {[0, 1].map((i) => (
-            <div key={i} className="h-28 animate-pulse rounded-card bg-cream-deep" />
+            <div key={i} className="h-28 skeleton rounded-card" />
           ))}
         </div>
       ) : objectives.length === 0 && !addOpen ? (

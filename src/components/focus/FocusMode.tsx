@@ -292,7 +292,7 @@ export function FocusMode() {
   if (queue === null) {
     return (
       <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-16" aria-busy="true">
-        <div className="h-64 animate-pulse rounded-card bg-cream-deep" />
+        <div className="h-64 skeleton rounded-card" />
       </div>
     );
   }

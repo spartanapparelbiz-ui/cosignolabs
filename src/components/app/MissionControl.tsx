@@ -134,7 +134,7 @@ export function MissionControl() {
       {!snap && !error ? (
         <div className="mt-8 grid gap-4 sm:grid-cols-2" aria-hidden="true">
           {[0, 1].map((i) => (
-            <div key={i} className="h-[190px] animate-pulse rounded-card bg-cream-deep" />
+            <div key={i} className="h-[190px] skeleton rounded-card" />
           ))}
         </div>
       ) : nodes.length === 0 && !error ? (
@@ -336,7 +336,7 @@ function Inspector({ node: n, onClose }: { node: Node; onClose: () => void }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-30 flex justify-end bg-ink/30 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-30 flex animate-overlay-in justify-end bg-ink/30 backdrop-blur-md" onClick={onClose}>
       <aside
         role="dialog"
         aria-modal="true"

@@ -214,7 +214,7 @@ export function AutomationsPanel() {
     return (
       <div className="flex flex-col gap-3" aria-busy="true" aria-label="loading automations">
         {[0, 1].map((i) => (
-          <div key={i} className="h-24 animate-pulse rounded-card bg-cream-deep" />
+          <div key={i} className="h-24 skeleton rounded-card" />
         ))}
       </div>
     );

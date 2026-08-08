@@ -86,7 +86,7 @@ export function MissionHealth() {
         <span>{error}</span>
       </p>
     );
-  if (!health) return <div className="h-40 animate-pulse rounded-card bg-cream-deep" aria-hidden="true" />;
+  if (!health) return <div className="h-40 skeleton rounded-card" aria-hidden="true" />;
 
   return (
     <div className="flex flex-col gap-4">

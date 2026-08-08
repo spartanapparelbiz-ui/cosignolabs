@@ -203,10 +203,10 @@ export function AutopilotView() {
   if (!overview) {
     return (
       <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-8" aria-busy="true">
-        <div className="h-40 animate-pulse rounded-card bg-cream-deep" />
+        <div className="h-40 skeleton rounded-card" />
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="h-64 animate-pulse rounded-card bg-cream-deep" />
-          <div className="h-64 animate-pulse rounded-card bg-cream-deep" />
+          <div className="h-64 skeleton rounded-card" />
+          <div className="h-64 skeleton rounded-card" />
         </div>
       </div>
     );

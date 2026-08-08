@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Check, Loader2, Lock, RefreshCw, X } from "lucide-react";
+import { AlertTriangle, Check, Lock, RefreshCw, X } from "lucide-react";
+import { WorkingPip } from "@/components/brand/WorkingPip";
 
 /**
  * What a connected app actually contains, and what the AI may do with it.
@@ -82,7 +83,7 @@ export function ConnectionInsight({
   if (busy && !data) {
     return (
       <p className="flex items-center gap-2 px-1 py-2 text-xs font-semibold text-ink-soft">
-        <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+        <WorkingPip size={8} />
         reading your {providerName} account…
       </p>
     );

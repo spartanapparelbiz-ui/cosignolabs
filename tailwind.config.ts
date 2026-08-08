@@ -217,6 +217,102 @@ const config: Config = {
           "60%": { transform: "scale(0.997)" },
           "100%": { transform: "scale(1)" },
         },
+        // --- the loading mark: cosigno signs itself in ---
+        // The mark reveals left-to-right, the way a signature is written. It
+        // runs ONCE and its final keyframe is the complete mark, so under
+        // prefers-reduced-motion (globals.css collapses duration to ~0) the
+        // logo simply renders — it never lands mid-reveal or invisible.
+        "logo-sign": {
+          "0%": { "clip-path": "inset(0 100% 0 0)" },
+          "100%": { "clip-path": "inset(0 0 0 0)" },
+        },
+        // The bright leading edge that travels with the reveal, then leaves.
+        "sign-edge": {
+          "0%": { transform: "translateX(0)", opacity: "0" },
+          "18%": { opacity: "0.9" },
+          "82%": { opacity: "0.9" },
+          "100%": { transform: "translateX(100%)", opacity: "0" },
+        },
+        // A soft orange breath behind the loading mark — the only thing that
+        // keeps repeating, so a long wait stays alive without ever spinning.
+        "aura-breathe": {
+          "0%, 100%": { transform: "scale(0.86)", opacity: "0.22" },
+          "50%": { transform: "scale(1.12)", opacity: "0.5" },
+        },
+        // --- surfaces arriving ---
+        // Scrims fade; panels arrive from slightly above with a hair of scale.
+        "overlay-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "command-in": {
+          "0%": { opacity: "0", transform: "translateY(-10px) scale(0.975)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        // A menu unrolling from its trigger — physical, not a pop.
+        "menu-in": {
+          "0%": { opacity: "0", transform: "translateY(-6px) scale(0.96)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        // One row appearing in a list that is already on screen. Used ONLY on
+        // genuinely new items, so the rest of the page never re-animates.
+        "row-in": {
+          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        // Skeleton sweep: a light band travels across the placeholder. Pure
+        // transform on an overlay, so it composites instead of repainting.
+        "skeleton-sweep": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+        // A toast leaving — it recedes rather than blinking out.
+        "toast-out": {
+          "0%": { opacity: "1", transform: "translateY(0) scale(1)" },
+          "100%": { opacity: "0", transform: "translateY(6px) scale(0.97)" },
+        },
+        // A number that just changed: a hair of scale, no bounce.
+        "count-pop": {
+          "0%": { transform: "scale(1)" },
+          "40%": { transform: "scale(1.09)" },
+          "100%": { transform: "scale(1)" },
+        },
+        // A provider icon coming to life the moment its app connects.
+        "provider-light": {
+          "0%": { transform: "scale(0.9)", filter: "saturate(0.2)", opacity: "0.55" },
+          "55%": { transform: "scale(1.08)", filter: "saturate(1.1)", opacity: "1" },
+          "100%": { transform: "scale(1)", filter: "saturate(1)", opacity: "1" },
+        },
+        // The ring that fires once when something succeeds — a widening halo
+        // that clears itself, never a persistent glow.
+        "success-halo": {
+          "0%": { boxShadow: "0 0 0 0 rgba(251, 76, 32, 0.45)" },
+          "100%": { boxShadow: "0 0 0 14px rgba(251, 76, 32, 0)" },
+        },
+        // A mission step ticking over from running to done.
+        "step-done": {
+          "0%": { transform: "translateX(-4px)", opacity: "0.55" },
+          "100%": { transform: "translateX(0)", opacity: "1" },
+        },
+        // The page itself arriving: content lifts into place under the chrome,
+        // which never moves. Paired with `page-out` there is no white flash.
+        "page-in": {
+          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        // The navigation hairline: it races out, then creeps, so it can be
+        // honest about a slow route without ever claiming to be finished.
+        "nav-progress": {
+          "0%": { transform: "scaleX(0.02)" },
+          "35%": { transform: "scaleX(0.45)" },
+          "70%": { transform: "scaleX(0.72)" },
+          "100%": { transform: "scaleX(0.9)" },
+        },
+        "nav-complete": {
+          "0%": { transform: "scaleX(0.9)", opacity: "1" },
+          "45%": { transform: "scaleX(1)", opacity: "1" },
+          "100%": { transform: "scaleX(1)", opacity: "0" },
+        },
         // --- the handshake: responsibility physically transfers ---
         // Work arrives from cosigno's side (left), and after authorization
         // it returns to cosigno (slides right, fades). Meaningful motion
@@ -257,6 +353,22 @@ const config: Config = {
         "sig-reveal": "sig-reveal 700ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "sig-underline": "sig-underline 450ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both",
         "sig-seal": "sig-seal 380ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "logo-sign": "logo-sign 820ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "sign-edge": "sign-edge 820ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "aura-breathe": "aura-breathe 3.2s ease-in-out infinite",
+        "overlay-in": "overlay-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "command-in": "command-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "menu-in": "menu-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "row-in": "row-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "skeleton-sweep": "skeleton-sweep 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite",
+        "toast-out": "toast-out 220ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "count-pop": "count-pop 320ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "provider-light": "provider-light 520ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "success-halo": "success-halo 620ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "step-done": "step-done 320ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "page-in": "page-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "nav-progress": "nav-progress 2.4s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "nav-complete": "nav-complete 260ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "handoff-in": "handoff-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "handoff-return": "handoff-return 380ms cubic-bezier(0.22, 1, 0.36, 1) both",
         settle: "settle 500ms cubic-bezier(0.22, 1, 0.36, 1) both",

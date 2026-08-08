@@ -137,12 +137,21 @@ export function EventStream({
   events,
   empty,
   onSelect,
+  freshIds,
 }: {
   events: ActivityEvent[];
   empty?: React.ReactNode;
   onSelect?: (event: ActivityEvent) => void;
+  /**
+   * Ids that arrived while the timeline was already on screen. Only these
+   * animate: a feed that re-animates on every poll is a feed nobody can read.
+   */
+  freshIds?: ReadonlySet<string>;
 }) {
   if (events.length === 0) {
+    // A caller may hand over a whole empty state (illustration, explanation,
+    // next step); a bare string still gets the plain dashed panel.
+    if (empty && typeof empty !== "string") return <>{empty}</>;
     return (
       <div className="rounded-card border border-dashed border-line bg-surface/40 px-6 py-10 text-center">
         <p className="text-sm font-semibold text-ink-soft">
@@ -154,7 +163,7 @@ export function EventStream({
   return (
     <ol className="flex flex-col gap-0.5">
       {events.map((e) => (
-        <li key={e.id}>
+        <li key={e.id} className={freshIds?.has(e.id) ? "animate-row-in" : ""}>
           <EventCard event={e} onSelect={onSelect} />
         </li>
       ))}

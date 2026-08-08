@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useDisplayName } from "@/lib/theme";
-import { ArrowRight, Check, Loader2, ShieldQuestion, X } from "lucide-react";
-import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
-import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
+import { ArrowRight, Check, ShieldQuestion, X } from "lucide-react";
+import type { ActionRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
 import { SourceComposer } from "@/components/app/SourceComposer";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { todayDigest } from "@/lib/missions/today";
+import { useNewItems } from "@/lib/useNewItems";
+import { WorkingPip } from "@/components/brand/WorkingPip";
+import { headline, partOfDay } from "@/lib/dashboard/greeting";
 
 /**
  * The home dashboard — one calm place that answers four questions:
@@ -16,33 +18,39 @@ import { todayDigest } from "@/lib/missions/today";
  *   2. what is cosigno working on?     (in progress)
  *   3. what needs my approval?         (needs your approval)
  *   4. what has cosigno finished?      (recently completed)
- * Everything is read from real data (missions, approvals, automations,
- * connections). No charts, no fake progress, no technical words.
+ * Everything is read from real data (missions, approvals, connections). No
+ * charts, no fake progress, no technical words.
  */
 
-
-/**
- * Time-of-day greeting. Uses the browser's clock, which is the user's own —
- * a server-side hour would greet someone in Sydney with "good evening" at
- * breakfast.
- */
-function greeting(name: string): string {
-  const h = new Date().getHours();
-  const part = h < 12 ? "good morning" : h < 18 ? "good afternoon" : "good evening";
-  return name.trim() ? `${part}, ${name.trim()}` : `${part}`;
-}
 
 /**
  * Starting points, phrased as things a person would actually say. Shown only
  * when nothing is running — once there is real work on the page, suggestions
  * are noise competing with it.
+ *
+ * Two sets: with an inbox and calendar connected, the mail-and-meetings jobs
+ * are the ones cosigno can actually finish today; without them, suggesting
+ * "review my unread email" is an invitation to a dead end.
  */
-const PROMPTS = [
+const PROMPTS_CONNECTED = [
   "Prepare tomorrow's meeting",
   "Review my unread email",
-  "Research the best option",
   "Follow up on unanswered threads",
+  "Summarize this week's calendar",
 ] as const;
+
+const PROMPTS_BASE = [
+  "Research the best option",
+  "Compare three laptops under $1,000",
+  "Draft a plan for next week",
+  "Summarize a document I upload",
+] as const;
+
+function promptsFor(connections: ReadonlyArray<{ provider_key: string }>): readonly string[] {
+  return connections.some((c) => c.provider_key.startsWith("google") || c.provider_key === "outlook")
+    ? PROMPTS_CONNECTED
+    : PROMPTS_BASE;
+}
 
 async function jsonFetch(url: string, init?: RequestInit) {
   const res = await fetch(url, {
@@ -52,35 +60,6 @@ async function jsonFetch(url: string, init?: RequestInit) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
   return body;
-}
-
-/* --------- plain-language status (never technical words) --------- */
-const ACTIVE_STATES = new Set([
-  "queued",
-  "running",
-  "awaiting_input",
-  "awaiting_approval",
-  "retrying",
-  "verifying",
-  "paused",
-  "blocked",
-]);
-
-/** The connected apps a mission touches, derived from its step tools. */
-const TOOL_PROVIDER: Record<string, string> = {
-  "calendar.find_event": "google-calendar",
-  "gmail.search_related": "google",
-  "drive.search_files": "google-drive",
-};
-
-function timeUntil(iso: string): string {
-  const mins = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
-  if (mins <= 0) return "due now";
-  if (mins < 60) return `in ${mins} minute${mins === 1 ? "" : "s"}`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `in ${hrs} hour${hrs === 1 ? "" : "s"}`;
-  const days = Math.round(hrs / 24);
-  return `in ${days} day${days === 1 ? "" : "s"}`;
 }
 
 interface ConnectionView {
@@ -105,24 +84,25 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>(initial?.steps ?? {});
   const [approvals, setApprovals] = useState<ActionRecord[]>(initial?.approvals ?? []);
   const [displayName] = useDisplayName();
-  const [automation, setAutomation] = useState<AutomationRecord | null>(null);
   const [connections, setConnections] = useState<ConnectionView[]>([]);
   // The quiet value line under the greeting — the real usage-meter count.
   // Rendered only when it's non-zero; a zero reinforces nothing.
   const [opsThisMonth, setOpsThisMonth] = useState(0);
+  // Resolved after mount from the visitor's own clock — never server-guessed.
+  const [dayPart, setDayPart] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDayPart(partOfDay(new Date().getHours()));
+  }, []);
 
 
   const loadSide = useCallback(async () => {
-    // The right-column extras (next automation, connected apps).
-    const [au, c, u] = await Promise.all([
-      jsonFetch("/api/automations").catch(() => ({ automations: [] })),
+    // The right-column extras (connected apps, the usage meter).
+    const [c, u] = await Promise.all([
       jsonFetch("/api/connections").catch(() => ({ connections: [] })),
       jsonFetch("/api/usage").catch(() => ({})),
     ]);
     setOpsThisMonth(Number(u.usage?.actions_executed) || 0);
-    const enabled: AutomationRecord[] = (au.automations ?? []).filter((x: AutomationRecord) => x.enabled);
-    enabled.sort((x, y) => new Date(x.next_run_at).getTime() - new Date(y.next_run_at).getTime());
-    setAutomation(enabled[0] ?? null);
     const appConns = (c.connections ?? []).filter((x: ConnectionView) => x.kind === "app");
     setConnections(appConns.filter((x: ConnectionView) => x.status === "connected"));
   }, []);
@@ -152,9 +132,6 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
     load();
   }, [load]);
 
-  const active = (missions ?? []).filter((m) => ACTIVE_STATES.has(m.state)).slice(0, 4);
-  const completed = (missions ?? []).filter((m) => m.state === "completed" || m.state === "partial").slice(0, 3);
-
   const digest = todayDigest(missions ?? [], steps);
 
   /** Put a suggestion into the ask box rather than starting it silently. */
@@ -166,47 +143,68 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   const waiting = digest.lines.filter((l) => l.kind === "waiting");
   const finished = digest.lines.filter((l) => l.kind === "done" || l.kind === "failed");
 
+  // Only genuinely new work animates in; everything already on screen holds
+  // still, so motion on this page always means "look, that just changed".
+  const fresh = useNewItems([
+    ...working.map((l) => l.missionId),
+    ...waiting.map((l) => l.missionId),
+    ...finished.map((l) => l.missionId),
+  ]);
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-10 sm:pt-16">
       {/* ------------------------------ the ask ------------------------------ */}
-      {/* The page opens on the thing it is for. Everything else is a
-          consequence of what you type here, so it comes after. */}
+      {/* The page opens by naming the person and the state of their day, then
+          gives them the box. Everything below is a consequence of what they
+          type into it, so it comes after. */}
       <header className="text-center">
-        <p className="text-sm font-bold text-ink-soft">{greeting(displayName)}</p>
-        <h1 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          what would you like cosigno to do?
+        <h1
+          className={`font-display text-3xl font-bold tracking-tight transition-opacity duration-base ease-brand-out sm:text-4xl ${
+            dayPart ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          {/* The clock is the visitor's, so the greeting resolves after mount
+              and fades in. The non-breaking space holds the line's height for
+              that one frame, so nothing below it ever jumps. */}
+          {dayPart ? `${dayPart}${displayName.trim() ? `, ${displayName.trim()}` : ""}.` : " "}
         </h1>
+        <p className="mt-2 text-sm font-semibold text-ink-soft">
+          {missions === null
+            ? " "
+            : headline({
+                approvals: approvals.length || waiting.length,
+                working: working.length,
+                finished: finished.length,
+              })}
+        </p>
         {opsThisMonth > 0 && (
-          <p className="mt-2 text-xs font-bold text-ink-soft">
-            {opsThisMonth.toLocaleString()} AI operation{opsThisMonth === 1 ? "" : "s"} completed
-            this month
+          <p className="mt-3 text-[11px] font-bold uppercase tracking-widest text-ink-soft/70">
+            {opsThisMonth.toLocaleString()} operation{opsThisMonth === 1 ? "" : "s"} completed this
+            month
           </p>
         )}
       </header>
 
-      <div className="mt-6">
-        <SourceComposer
-          onStarted={load}
-          suggestions={
-            connections.some((c) => c.provider_key.startsWith("google"))
-              ? ["prepare tomorrow's meeting", "review my unread emails", "follow up on unanswered threads", "research the best option"]
-              : undefined
-          }
-        />
+      <div className="mt-7">
+        {/* The starting points live below as cards, so the box shows none of
+            its own — the same four suggestions twice is clutter. */}
+        <SourceComposer onStarted={load} suggestions={[]} />
       </div>
 
-      {/* Prompt cards, not chips — something you actually want to click. */}
+      {/* Prompt cards, not chips — something you actually want to click. They
+          name the apps this workspace has actually connected, so nothing here
+          suggests work cosigno can't currently do. */}
       {working.length === 0 && waiting.length === 0 && (
-        <section className="mt-6">
+        <section className="mt-7">
           <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
             Try asking
           </p>
           <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
-            {PROMPTS.map((p) => (
+            {promptsFor(connections).map((p) => (
               <button
                 key={p}
                 onClick={() => askFor(p)}
-                className="group rounded-card border border-line bg-surface px-4 py-3 text-left text-sm font-semibold shadow-soft transition-all hover:-translate-y-0.5 hover:border-signal hover:shadow-depth"
+                className="group card-lift rounded-card border border-line bg-surface px-4 py-3 text-left text-sm font-semibold shadow-soft hover:border-signal"
               >
                 {p}
                 <ArrowRight
@@ -224,7 +222,12 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
       {working.length > 0 && (
         <Section title="Working right now" tone="live">
           {working.map((l) => (
-            <Row key={l.missionId} href={`/app/missions/${l.missionId}`} icon={<Loader2 size={14} className="animate-spin text-ink" />}>
+            <Row
+              key={l.missionId}
+              href={`/app/missions/${l.missionId}`}
+              icon={<WorkingPip className="mt-1.5" />}
+              isNew={fresh.has(l.missionId)}
+            >
               {l.text}
             </Row>
           ))}
@@ -242,7 +245,12 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
       {approvals.length === 0 && waiting.length > 0 && (
         <Section title="Needs your approval" tone="attention">
           {waiting.map((l) => (
-            <Row key={l.missionId} href={`/app/missions/${l.missionId}`} icon={<ShieldQuestion size={14} className="text-signal" />}>
+            <Row
+              key={l.missionId}
+              href={`/app/missions/${l.missionId}`}
+              icon={<ShieldQuestion size={14} className="text-signal" />}
+              isNew={fresh.has(l.missionId)}
+            >
               {l.text}
             </Row>
           ))}
@@ -256,11 +264,15 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
             <Row
               key={l.missionId}
               href={`/app/missions/${l.missionId}`}
+              isNew={fresh.has(l.missionId)}
               icon={
                 l.kind === "failed" ? (
                   <X size={14} className="text-ink-soft" />
                 ) : (
-                  <Check size={14} className="text-signal" />
+                  <Check
+                    size={14}
+                    className={`text-signal ${fresh.has(l.missionId) ? "animate-check-pop" : ""}`}
+                  />
                 )
               }
             >
@@ -270,16 +282,20 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
         </Section>
       )}
 
-      {/* Nothing running, nothing waiting, nothing finished today. Say what
-          the product is for rather than reporting an absence. */}
+      {/* Nothing running, nothing waiting, nothing finished today. The
+          greeting already said so in plain words; repeating "no missions" here
+          would only report the same absence twice. What belongs at the bottom
+          of a quiet page is the state of the machine, quietly. */}
       {working.length === 0 && waiting.length === 0 && finished.length === 0 && missions !== null && (
-        <p className="mt-10 text-center text-sm font-semibold text-ink-soft">
-          cosigno is ready.
+        <p className="mt-12 flex items-center justify-center gap-2 text-center text-xs font-bold lowercase tracking-widest text-ink-soft/70">
+          <span className="h-1.5 w-1.5 rounded-pill bg-signal/70" aria-hidden="true" />
+          ready to work
         </p>
       )}
     </div>
   );
 }
+
 
 /** A titled band of rows. The only section shape on this page. */
 function Section({
@@ -307,20 +323,30 @@ function Section({
   );
 }
 
-/** One line of work. Compact, clickable, nothing you cannot act on. */
+/**
+ * One line of work. Compact, clickable, nothing you cannot act on.
+ *
+ * `isNew` is set only for a row that has just arrived while the page was
+ * already open, so the entrance animation marks a real change instead of
+ * replaying every time the dashboard revalidates.
+ */
 function Row({
   href,
   icon,
   children,
+  isNew = false,
 }: {
   href: string;
   icon: React.ReactNode;
   children: React.ReactNode;
+  isNew?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className="group flex items-start gap-2.5 rounded-btn px-2 py-2 transition-colors hover:bg-cream-deep/50"
+      className={`group flex items-start gap-2.5 rounded-btn px-2 py-2 transition-colors duration-fast hover:bg-cream-deep/60 ${
+        isNew ? "animate-row-in" : ""
+      }`}
     >
       <span className="mt-0.5 shrink-0" aria-hidden="true">
         {icon}

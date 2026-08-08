@@ -146,7 +146,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
   }
 
   if (!objective || !progress) {
-    return <div className="h-64 animate-pulse rounded-card bg-cream-deep" aria-busy="true" />;
+    return <div className="h-64 skeleton rounded-card" aria-busy="true" />;
   }
 
   const linkedIds = new Set(delegations.map((d) => d.session.id));

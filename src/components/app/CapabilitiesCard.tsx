@@ -46,7 +46,7 @@ export function CapabilitiesCard() {
         {open && (
           <div className="mt-3">
             {report === null ? (
-              <div className="h-24 animate-pulse rounded-btn bg-cream-deep" aria-hidden="true" />
+              <div className="h-24 skeleton rounded-btn" aria-hidden="true" />
             ) : (
               <>
                 <p className="text-[11px] font-extrabold uppercase tracking-wide text-ink-soft">Right now I can</p>

@@ -89,7 +89,7 @@ export function TodayStrip() {
           ))}
         </div>
       ) : (
-        <div className="h-9 w-64 animate-pulse rounded-pill bg-cream-deep" aria-hidden="true" />
+        <div className="h-9 w-64 skeleton rounded-pill" aria-hidden="true" />
       )}
     </div>
   );

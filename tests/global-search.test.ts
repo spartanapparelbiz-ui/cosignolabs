@@ -166,7 +166,20 @@ describe("the command bar behaves", () => {
 
   it("says plainly when nothing matched", () => {
     // An empty box makes the reader guess whether it is broken or empty.
-    expect(BAR_SRC).toMatch(/Nothing matches/);
+    expect(BAR_SRC).toMatch(/Nothing here matches/);
+  });
+
+  it("offers a way forward instead of ending on a dead end", () => {
+    // Nothing matching a search is the single most common moment to lose
+    // someone. What they typed is a job description often enough that handing
+    // it to the operator is a better answer than an apology.
+    expect(BAR_SRC).toMatch(/Make it a mission instead/);
+    expect(BAR_SRC).toMatch(/cosigno:compose/);
+  });
+
+  it("shows real work before anything is typed, never a blank panel", () => {
+    expect(BAR_SRC).toMatch(/recent=1/);
+    expect(BAR_SRC).toMatch(/Recent searches/);
   });
 
   it("debounces rather than firing per keystroke", () => {

@@ -481,7 +481,7 @@ function LoosenModal({
   const consequence = WHAT_CHANGES[`${from}→${to}`] ?? explain(to);
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4"
+      className="fixed inset-0 z-50 flex animate-overlay-in items-center justify-center bg-ink/40 px-4 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-label={`change ${title}`}

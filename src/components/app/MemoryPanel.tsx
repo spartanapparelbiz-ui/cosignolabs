@@ -113,7 +113,7 @@ export function MemoryPanel() {
     return (
       <div className="flex flex-col gap-3" aria-busy="true" aria-label="loading memory">
         {[0, 1].map((i) => (
-          <div key={i} className="h-14 animate-pulse rounded-card bg-cream-deep" />
+          <div key={i} className="h-14 skeleton rounded-card" />
         ))}
       </div>
     );

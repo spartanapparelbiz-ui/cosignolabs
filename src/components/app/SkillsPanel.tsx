@@ -95,7 +95,7 @@ export function SkillsPanel() {
     return (
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2" aria-busy="true">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-52 animate-pulse rounded-card bg-cream-deep" />
+          <div key={i} className="h-52 skeleton rounded-card" />
         ))}
       </div>
     );

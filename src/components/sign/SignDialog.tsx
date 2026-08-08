@@ -116,7 +116,7 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
   // otherwise turn position:fixed into position:inside-the-card.
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex animate-overlay-in items-center justify-center bg-ink/45 p-4 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-label="sign to authorize"

@@ -285,8 +285,11 @@ function ActionCardInner({
       style={enterDelay}
       tabIndex={pending ? 0 : undefined}
       onKeyDown={pending ? onCardKeyDown : undefined}
-      className={`relative animate-card-in overflow-hidden rounded-card bg-surface/70 p-4 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
-        pending ? "shadow-depth-lift" : "shadow-depth"
+      className={`relative animate-card-in overflow-hidden rounded-card bg-surface/70 p-4 transition-shadow duration-base focus:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
+        // A card that is genuinely waiting on a person is the loudest thing on
+        // the page: it sits higher AND carries a hairline of signal. Resolved
+        // cards keep the plain depth so the queue reads at a glance.
+        pending ? "shadow-depth-lift ring-1 ring-inset ring-signal/25" : "shadow-depth"
       } ${action.status === "vetoed" ? "opacity-70 grayscale" : ""}`}
     >
       {/* Tier-3 (locked) cards wear a faint diagonal hazard band down the edge. */}
@@ -401,8 +404,15 @@ function ActionCardInner({
               </p>
               <table className="w-full font-mono text-[11px] leading-relaxed">
                 <tbody>
-                  {diff.map((row) => (
-                    <tr key={row.field} className="border-t border-line/50 first:border-0">
+                  {diff.map((row, i) => (
+                    <tr
+                      key={row.field}
+                      // The change is the payload of this card, so it arrives
+                      // one row at a time rather than appearing all at once —
+                      // it reads as something being shown to you.
+                      style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
+                      className="animate-row-in border-t border-line/50 first:border-0"
+                    >
                       <td className="px-3 py-1.5 align-top font-bold text-ink-soft">{row.field}</td>
                       <td className="px-2 py-1.5 align-top text-ink-soft line-through decoration-ink/40">
                         {row.before}

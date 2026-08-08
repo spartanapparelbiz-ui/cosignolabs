@@ -201,7 +201,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
     );
   }
   if (!data) {
-    return <div className="h-72 animate-pulse rounded-card bg-cream-deep" aria-hidden="true" aria-busy="true" />;
+    return <div className="h-72 skeleton rounded-card" aria-hidden="true" aria-busy="true" />;
   }
 
   const { mission, session, products, steps, live } = data;

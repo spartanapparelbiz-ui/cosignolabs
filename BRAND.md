@@ -131,9 +131,70 @@ beta CTA, app header, checkout success.
 Two spin-offs of the same idea:
 
 - **`LogoLoader`** (`src/components/brand/LogoLoader.tsx`) replaces every
-  spinner — the breathing mark with an optional label. It always breathes (it
-  signals active work, so it's exempt from the single-breather rule) and is the
-  route-level `loading.tsx` for `/app`.
+  spinner. The mark **signs itself in**: a ghost of the symbol sits underneath,
+  the real mark is revealed left-to-right the way a signature is written
+  (`logo-sign`), and a bright edge travels with the reveal (`sign-edge`). That
+  runs **once**; afterwards the mark simply breathes over a soft orange aura
+  (`aura-breathe`), so a three-second wait and a fifteen-second wait are equally
+  calm. `logo-sign` ends on the complete mark, so reduced motion renders the
+  logo whole and still with no branch in the component.
+- **`WorkingPip`** (`src/components/brand/WorkingPip.tsx`) is the inline
+  "cosigno is doing this right now" mark — a signal dot with a ring that widens
+  and clears. It replaced `Loader2` everywhere. The only glyph still permitted
+  to rotate is `RefreshCw`, which is animating its own meaning.
+### Waiting, arriving, and leaving
+
+The three moments a product is most often judged on. All three are systemic —
+adding a route or a modal inherits them rather than reinventing them.
+
+**Loading.** Every route under `/app` has its own `loading.tsx`; a missing one
+is a test failure (`tests/loading-experience.test.ts`), so no page can ever open
+on a blank frame. Each renders that page's real geometry — including its **real
+heading**, since we already know which page is opening, so the h1 never moves
+when the content lands. Under the heading sits the contextual line from
+`src/lib/loadingMessages.ts`: "Checking connected apps" appears if and only if
+you are opening connections. Messages are derived from the route and are never
+random — a wait that says something different every time says nothing.
+
+**Skeletons.** The `.skeleton` class (globals.css) is the only placeholder:
+a soft `cream-deep` fill with one light band travelling across it on a
+transform-only overlay, so a screen full of them still composites. Tailwind's
+default `animate-pulse` is not used anywhere.
+
+**Transitions.** `src/app/app/template.tsx` lifts new content 8px into place
+(`page-in`, 260ms) while the chrome — rail, header, footer — never moves. The
+sequence is content → that route's skeleton → content, so there is no white
+frame at either end. `NavProgress` draws a single hairline across the top while
+a link is pending (`useLinkStatus`), so a click is acknowledged instantly even
+when the route behind it is slow.
+
+**Overlays.** One language: scrims fade (`overlay-in`) and blur what is behind
+them; panels arrive from slightly above with a hair of scale (`command-in`,
+`menu-in`). Toasts arrive with `toast-in` and leave with `toast-out` — a result
+that blinks out of existence reads as a glitch.
+
+### Microinteractions
+
+Applied once, globally, in `globals.css` rather than decorated onto call sites
+— which is how an app ends up with three different button feels:
+
+| what | rule |
+| --- | --- |
+| press | every `button` compresses to `scale(0.97)` while held (opt out with `data-no-press`) |
+| focus | text fields gain a soft signal halo on top of the focus ring; `.field-glow` does the same for a container whose input is chrome-less |
+| card hover | `.card-lift` — 2px rise plus depth |
+| new item | `row-in`, applied ONLY to genuinely new ids (`src/lib/useNewItems.ts`) so motion on a live surface always means something changed |
+| success | `check-pop` / `check-draw` / `success-halo`, each a single pass |
+| error | `shake-x`, once, lightly |
+
+### Empty states
+
+One component (`src/components/EmptyState.tsx`), three rules: say what IS true
+rather than what is missing ("Everything waiting on you has been handled", not
+"No approvals"); explain what would put something here; offer exactly one next
+action. Illustrations live in `EmptyIllustration.tsx` — ink line work, one
+orange accent, no people, no stock look.
+
 - **Favicon status-swap** (`src/lib/useFaviconStatus.ts`): while the workspace
   holds actions awaiting a signature, the browser-tab icon gains a filled orange
   badge — the orb's "waiting for you" signal, carried to the tab. Cleared the

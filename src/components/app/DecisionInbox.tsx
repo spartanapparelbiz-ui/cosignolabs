@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ActionRecord, SignatureRecord } from "@/lib/types";
 import { ActionCard, type ApproveOpts } from "@/components/ActionCard";
 import { SkeletonCard } from "@/components/Skeleton";
-import { EmptyIllustration } from "@/components/EmptyIllustration";
+import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/components/Toast";
 import { useDisplayName } from "@/lib/theme";
 
@@ -169,14 +169,11 @@ export function DecisionInbox({
   if (visible.length === 0) {
     if (emptyFallback !== undefined) return <>{emptyFallback}</>;
     return (
-      <div className="flex flex-col items-center gap-3 rounded-card bg-surface/40 px-6 py-12 text-center shadow-soft">
-        <EmptyIllustration kind="workspace" />
-        <p className="text-sm font-extrabold lowercase">nothing needs your decision.</p>
-        <p className="max-w-sm text-xs text-ink-soft">
-          when the operator prepares an action that needs your sign-off, it
-          lands here — and nothing moves until you decide.
-        </p>
-      </div>
+      <EmptyState
+        kind="handled"
+        title="Everything waiting on you has been handled."
+        body="When cosigno prepares an action that needs your signature, it lands here — and nothing moves until you decide."
+      />
     );
   }
 

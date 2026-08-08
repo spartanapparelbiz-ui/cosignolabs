@@ -56,7 +56,7 @@ export function ReplayModal({ sessionId, onClose }: { sessionId: string; onClose
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex animate-overlay-in items-center justify-center bg-ink/45 p-4 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-label="delegation replay"
@@ -89,7 +89,7 @@ export function ReplayModal({ sessionId, onClose }: { sessionId: string; onClose
           </p>
         )}
         {!lines && !error && (
-          <div className="mt-4 h-40 animate-pulse rounded-btn bg-cream-deep" aria-hidden="true" />
+          <div className="mt-4 h-40 skeleton rounded-btn" aria-hidden="true" />
         )}
 
         {lines && (

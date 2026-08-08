@@ -159,7 +159,7 @@ function ConfirmModal({
   const [shake, setShake] = useState(false);
   const ok = typed.trim().toLowerCase() === confirmWord.toLowerCase();
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex animate-overlay-in items-center justify-center bg-ink/40 px-4 backdrop-blur-md" role="dialog" aria-modal="true">
       <div className="w-full max-w-sm origin-center animate-modal-in rounded-card bg-cream p-5 shadow-lift">
         <h3 className="text-base font-extrabold lowercase">{title}</h3>
         <p className="mt-1.5 text-sm text-ink-soft">{body}</p>

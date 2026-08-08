@@ -8,13 +8,13 @@ import {
   ChevronDown,
   CircleDollarSign,
   ExternalLink,
-  Loader2,
   Mail,
   PenLine,
   ShieldQuestion,
   Trash2,
   X,
 } from "lucide-react";
+import { WorkingPip } from "@/components/brand/WorkingPip";
 import type { ChangeKind, ResultStatus, ResultView } from "@/lib/results/describe";
 
 /**
@@ -32,11 +32,13 @@ import type { ChangeKind, ResultStatus, ResultView } from "@/lib/results/describ
  *   an em dash where a value belongs still reads as a value.
  */
 
-const STATUS_STYLE: Record<ResultStatus, { label: string; cls: string; Icon: typeof Check }> = {
+// `Icon: null` means the status draws the working pip instead of a glyph —
+// cosigno has no spinners, so "in flight" is a pulse, never a rotation.
+const STATUS_STYLE: Record<ResultStatus, { label: string; cls: string; Icon: typeof Check | null }> = {
   completed: { label: "Completed", cls: "bg-signal/15 text-ink ring-1 ring-inset ring-signal/40", Icon: Check },
-  running: { label: "Running", cls: "bg-cream-deep text-ink-soft", Icon: Loader2 },
+  running: { label: "Running", cls: "bg-cream-deep text-ink-soft", Icon: null },
   needs_approval: { label: "Needs approval", cls: "bg-signal text-ink", Icon: ShieldQuestion },
-  queued: { label: "Queued", cls: "bg-cream-deep text-ink-soft", Icon: Loader2 },
+  queued: { label: "Queued", cls: "bg-cream-deep text-ink-soft", Icon: null },
   declined: { label: "Declined", cls: "bg-ink text-cream", Icon: Ban },
   failed: { label: "Failed", cls: "bg-ink text-cream", Icon: X },
 };
@@ -85,7 +87,7 @@ export function ResultCard({ result, details }: { result: ResultView; details?: 
           className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-pill ${s.cls}`}
           aria-hidden="true"
         >
-          <s.Icon size={13} className={result.status === "running" ? "animate-spin" : ""} />
+          {s.Icon ? <s.Icon size={13} /> : <WorkingPip size={7} />}
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-extrabold leading-snug">{result.headline}</p>

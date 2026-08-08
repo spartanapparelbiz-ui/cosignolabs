@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, Check, Info, Loader2, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ArrowRight, Check, Info, ShieldCheck, TriangleAlert } from "lucide-react";
+import { WorkingPip } from "@/components/brand/WorkingPip";
 import { GALLERY } from "./galleryRules";
 
 /**
@@ -278,7 +279,7 @@ function Editor({
       >
         {busy ? (
           <>
-            <Loader2 size={16} className="animate-spin" aria-hidden="true" /> checking your work…
+            <WorkingPip size={9} /> checking your work…
           </>
         ) : (
           <>
@@ -456,7 +457,7 @@ function Report({
           >
             {saving ? (
               <>
-                <Loader2 size={16} className="animate-spin" aria-hidden="true" /> turning it on…
+                <WorkingPip size={9} /> turning it on…
               </>
             ) : (
               <>

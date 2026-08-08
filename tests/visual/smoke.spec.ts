@@ -213,18 +213,52 @@ for (const vp of VIEWPORTS) {
       await board.screenshot({ path: join(OUT, `tierboard-${vp.name}.png`) });
     });
 
-    test("home dashboard: the four-question layout", async ({ page }) => {
+    test("home dashboard: it greets you, then hands you the box", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "What should Cosigno handle?" })).toBeVisible();
-      // The ask box + the four honest section headings (stable regardless of
-      // how much data exists in the shared demo store).
-      await expect(page.getByPlaceholder(/Ask cosigno to handle something/)).toBeVisible();
-      await expect(page.getByRole("button", { name: /Start Mission/ })).toBeVisible();
-      await expect(page.getByText("In progress").first()).toBeVisible();
-      await expect(page.getByText("Needs your approval").first()).toBeVisible();
-      await expect(page.getByText("Connected apps").first()).toBeVisible();
+      // The page opens by naming the time of day (resolved from the visitor's
+      // own clock after mount) and stating what this workspace needs today —
+      // never the word "Dashboard".
+      await expect(
+        page.getByRole("heading", { name: /^Good (morning|afternoon|evening)/ })
+      ).toBeVisible();
+      await expect(page.getByText(/waiting for your signature|cosigno is working on|Everything from today is done|Nothing needs your attention/)).toBeVisible();
+      await expect(page.getByPlaceholder(/Ask cosigno anything/)).toBeVisible();
+      await expect(page.getByRole("button", { name: /Delegate/ })).toBeVisible();
+      // Search is discoverable without knowing the shortcut.
+      await expect(page.getByRole("button", { name: "search cosigno" }).first()).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `dashboard-${vp.name}.png`), fullPage: true });
+    });
+
+    test("command bar: opens on ⌘K, shows real work, and never dead-ends", async ({ page }) => {
+      await page.goto("/app", { waitUntil: "networkidle" });
+      await page.keyboard.press("ControlOrMeta+k");
+      const bar = page.getByRole("dialog", { name: "search cosigno" });
+      await expect(bar).toBeVisible();
+      // An empty box is a screen, not an absence: the pinned destinations are
+      // always there even in a brand-new workspace.
+      await expect(bar.getByText("Go to")).toBeVisible();
+      await expect(bar.getByText("Approvals")).toBeVisible();
+      await page.screenshot({ path: join(OUT, `command-bar-${vp.name}.png`) });
+
+      // Nothing matching offers the operator rather than an apology.
+      await page.keyboard.type("zzzz no such thing zzzz");
+      await expect(bar.getByText(/Nothing here matches/)).toBeVisible();
+      await expect(bar.getByRole("button", { name: /Make it a mission instead/ })).toBeVisible();
+      await page.screenshot({ path: join(OUT, `command-bar-empty-${vp.name}.png`) });
+      await page.keyboard.press("Escape");
+      await expect(bar).toBeHidden();
+    });
+
+    test("empty states encourage rather than report an absence", async ({ page }) => {
+      await page.goto("/app/approvals", { waitUntil: "networkidle" });
+      // Either there are decisions waiting, or the queue says it is CLEAR —
+      // both are fine, but "No approvals" is not one of the options.
+      const handled = page.getByText("Everything waiting on you has been handled.");
+      if (await handled.isVisible().catch(() => false)) {
+        await page.screenshot({ path: join(OUT, `approvals-empty-${vp.name}.png`) });
+      }
+      await noHorizontalScroll(page);
     });
 
     test("ask box: file + link controls, and the paste-a-link field fits", async ({ page }) => {

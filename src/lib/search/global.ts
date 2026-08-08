@@ -46,6 +46,18 @@ const PAGES: Array<{ title: string; subtitle: string; href: string; terms: strin
   },
 ];
 
+/**
+ * The four places worth offering before anyone has typed anything. Pinned, in
+ * the sense that they never change and never need to be searched for — the
+ * daily loop, one keystroke from anywhere.
+ */
+export const PINNED_PAGES: ReadonlyArray<{ title: string; subtitle: string; href: string }> = [
+  { title: "Home", subtitle: "today's work", href: "/app" },
+  { title: "Missions", subtitle: "everything cosigno is working on", href: "/app/missions" },
+  { title: "Approvals", subtitle: "decisions waiting on you", href: "/app/approvals" },
+  { title: "Connections", subtitle: "the apps cosigno can work with", href: "/app/connections" },
+];
+
 function matches(haystack: string, needle: string): boolean {
   return haystack.toLowerCase().includes(needle);
 }
@@ -116,6 +128,43 @@ export async function globalSearch(userId: string, rawQuery: string, limit = 12)
   for (const p of PAGES) {
     if (!matches(p.title, q) && !matches(p.terms, q)) continue;
     results.push({ kind: "page", title: p.title, subtitle: p.subtitle, href: p.href });
+  }
+
+  return results.slice(0, limit);
+}
+
+/**
+ * What the command bar offers before a single key is pressed: the decisions
+ * waiting on you, then the missions you touched most recently.
+ *
+ * An empty search box is the most common state a command bar is ever in, so it
+ * has to earn its screen. Showing what is already in front of you turns the
+ * blank moment into the fastest path back to work — and everything here is a
+ * real record, never a suggestion of something that doesn't exist.
+ */
+export async function recentResults(userId: string, limit = 7): Promise<SearchResult[]> {
+  const store = getStore();
+  const [missions, actions] = await Promise.all([
+    store.listMissions(userId, 12).catch(() => []),
+    store.listActions(userId, { status: "proposed", limit: 5 }).catch(() => []),
+  ]);
+
+  const results: SearchResult[] = actions.map((a) => ({
+    kind: "decision" as const,
+    title: a.summary,
+    subtitle: "waiting for your approval",
+    href: "/app/approvals",
+  }));
+
+  for (const m of missions) {
+    if (results.length >= limit) break;
+    const hero = heroResult(m, undefined);
+    results.push({
+      kind: "mission",
+      title: hero ?? m.goal,
+      subtitle: WAITING.has(m.state) ? "waiting on you" : hero ? m.goal : undefined,
+      href: `/app/missions/${m.id}`,
+    });
   }
 
   return results.slice(0, limit);

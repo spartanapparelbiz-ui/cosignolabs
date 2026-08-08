@@ -127,7 +127,7 @@ export function DelegationActions({
       {briefOpen &&
         createPortal(
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/45 p-4 backdrop-blur-[2px]"
+            className="fixed inset-0 z-50 flex animate-overlay-in items-center justify-center bg-ink/45 p-4 backdrop-blur-md"
             role="dialog"
             aria-modal="true"
             aria-label="delegation brief"
@@ -150,7 +150,7 @@ export function DelegationActions({
                 </button>
               </div>
               {!brief ? (
-                <div className="mt-4 h-28 animate-pulse rounded-btn bg-cream-deep" aria-hidden="true" />
+                <div className="mt-4 h-28 skeleton rounded-btn" aria-hidden="true" />
               ) : (
                 <>
                   <h2 className="mt-3 text-base font-extrabold leading-snug">{brief.goal}</h2>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { errorResponse, requireUser } from "@/lib/api";
-import { globalSearch } from "@/lib/search/global";
+import { globalSearch, recentResults } from "@/lib/search/global";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,8 +17,13 @@ export async function GET(req: NextRequest) {
   try {
     const userId = await requireUser();
     const q = req.nextUrl.searchParams.get("q") ?? "";
-    // Bounded so a pasted document can't turn into an expensive scan.
-    const results = await globalSearch(userId, q.slice(0, 120));
+    // `recent=1` is what the command bar shows before anything is typed: the
+    // decisions and missions already in front of you, not a blank panel.
+    const results =
+      req.nextUrl.searchParams.get("recent") === "1"
+        ? await recentResults(userId)
+        : // Bounded so a pasted document can't turn into an expensive scan.
+          await globalSearch(userId, q.slice(0, 120));
     return NextResponse.json({ results }, { headers: { "cache-control": "no-store" } });
   } catch (err) {
     return errorResponse(err);

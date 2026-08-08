@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Circle, Loader2, PenLine } from "lucide-react";
+import { Check, Circle, PenLine } from "lucide-react";
+import { WorkingPip } from "@/components/brand/WorkingPip";
 
 /**
  * The hero visual — a real product composition, not a floating card: the
@@ -122,7 +123,7 @@ export function HeroMissionDemo() {
                 {stepDone ? (
                   <Check size={13} className="shrink-0 text-signal" aria-hidden="true" />
                 ) : active && live ? (
-                  <Loader2 size={13} className="shrink-0 animate-spin text-ink-soft" aria-hidden="true" />
+                  <WorkingPip size={8} />
                 ) : (
                   <Circle size={13} className="shrink-0 text-line" aria-hidden="true" />
                 )}

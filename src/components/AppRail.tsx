@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { LogoHome } from "@/components/brand/LivingLogo";
+import { LinkPending } from "@/components/app/NavProgress";
 
 /**
  * The app's navigation chrome: a compact left rail on desktop, a bottom bar
@@ -83,11 +84,15 @@ function RailLink({
       href={href}
       prefetch
       aria-current={active ? "page" : undefined}
-      className={`relative flex w-[60px] flex-col items-center gap-0.5 rounded-btn px-1 py-2 text-[10px] font-bold lowercase transition-colors ${
-        active ? "bg-ink text-cream" : "text-ink-soft hover:bg-cream-deep hover:text-ink"
+      className={`group relative flex w-[60px] flex-col items-center gap-0.5 rounded-btn px-1 py-2 text-[10px] font-bold lowercase transition-all duration-fast ease-brand-out ${
+        active
+          ? "bg-ink text-cream"
+          : "text-ink-soft hover:bg-cream-deep hover:text-ink active:scale-95"
       }`}
     >
-      <span className="relative">
+      {/* Reports this link's pending state to the chrome's progress hairline. */}
+      <LinkPending />
+      <span className="relative transition-transform duration-fast ease-brand-out group-hover:-translate-y-px">
         <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
         {badge > 0 && <Badge count={badge} />}
       </span>
@@ -256,11 +261,16 @@ export function AppBottomNav() {
             href={href}
             prefetch
             aria-current={active ? "page" : undefined}
-            className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-btn py-1 text-[9px] font-bold lowercase ${
+            className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-btn py-1 text-[9px] font-bold lowercase transition-transform duration-fast ease-brand-out active:scale-95 ${
               active ? "text-ink" : "text-ink-soft"
             }`}
           >
-            <span className={`relative rounded-pill px-2.5 py-0.5 ${active ? "bg-signal/20" : ""}`}>
+            <LinkPending />
+            <span
+              className={`relative rounded-pill px-2.5 py-0.5 transition-colors duration-fast ${
+                active ? "bg-signal/20" : ""
+              }`}
+            >
               <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
               {label === "approvals" && <Badge count={pending} />}
             </span>

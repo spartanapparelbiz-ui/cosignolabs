@@ -8,6 +8,8 @@ import { EmergencyStop } from "@/components/app/EmergencyStop";
 import { HoldBanner } from "@/components/app/HoldBanner";
 import { CommandBar } from "@/components/app/CommandBar";
 import { AccountChip } from "@/components/app/AccountChip";
+import { SearchTrigger } from "@/components/app/SearchTrigger";
+import { NavProgress } from "@/components/app/NavProgress";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +41,9 @@ function Chrome({
 }) {
   return (
     <ToastProvider>
+      {/* One hairline for the whole workspace: a click is acknowledged the
+          instant it lands, even when the route behind it is slow. */}
+      <NavProgress />
       <div className="flex min-h-screen [min-height:100dvh]">
         {/* desktop: compact left rail */}
         <AppRail />
@@ -51,13 +56,17 @@ function Chrome({
           <HoldBanner />
           {/* ⌘K from anywhere in the workspace. Renders nothing until opened. */}
           <CommandBar />
-          <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
-            <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
+          {/* The chrome never moves. It is the one fixed thing across every
+              navigation, which is what makes a page change read as the page
+              changing rather than the app reloading. */}
+          <header className="sticky top-0 z-10 border-b border-line/40 bg-cream/80 backdrop-blur-xl">
+            <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-2.5">
               {/* mobile shows the logo up top; desktop's logo lives in the rail */}
               <div className="lg:hidden">
                 <LogoHome href="/app" label="cosigno workspace" size={26} textClass="text-xl" />
               </div>
-              <div className="ml-auto flex items-center gap-3">
+              <div className="ml-auto flex items-center gap-2 sm:gap-3">
+                <SearchTrigger />
                 <EmergencyStop />
                 {userSlot}
               </div>
