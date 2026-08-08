@@ -109,6 +109,62 @@ export const SKILLS: SkillDef[] = [
     ],
   },
   {
+    key: "visual-operator",
+    name: "Visual Operator",
+    tagline: "Photos, screenshots, and video — read, reported on, and filed.",
+    items: [
+      {
+        name: "Daily photo review",
+        command:
+          "Review the photos and screenshots I added today, describe what each one actually shows, and prepare a short written report of anything that needs my attention.",
+        interval_hours: 24,
+        mode: "prepare",
+      },
+      {
+        name: "Receipt and document capture",
+        command:
+          "Read any receipts, invoices, or photographed documents I added, pull out the amounts, dates, and vendors, and prepare a summary table for my review.",
+        interval_hours: 24,
+        mode: "prepare",
+      },
+      {
+        name: "Listing photo check",
+        command:
+          "Check the product photos I added for problems that would hurt a listing — bad lighting, visible damage, wrong angles, unreadable labels — and tell me which ones to reshoot.",
+        interval_hours: 168,
+        mode: "prepare",
+      },
+    ],
+  },
+  {
+    key: "document-operator",
+    name: "Document Operator",
+    tagline: "Files read, reports written, PDFs produced.",
+    items: [
+      {
+        name: "Weekly report",
+        command:
+          "Gather what changed this week from my missions, files, and email, and prepare a written report I can save as a PDF.",
+        interval_hours: 168,
+        mode: "prepare",
+      },
+      {
+        name: "Attachment digest",
+        command:
+          "Read the files and links I added since yesterday, summarize what's in each one, and flag anything that needs a decision from me.",
+        interval_hours: 24,
+        mode: "prepare",
+      },
+      {
+        name: "Contract and terms watch",
+        command:
+          "Watch for contracts, terms, or agreements arriving in my email, read them, and tell me about any deadline, renewal, or obligation buried in them.",
+        interval_hours: 24,
+        mode: "monitor",
+      },
+    ],
+  },
+  {
     key: "sales-operator",
     name: "Sales Operator",
     tagline: "Leads researched, outreach drafted, opportunities never go cold.",

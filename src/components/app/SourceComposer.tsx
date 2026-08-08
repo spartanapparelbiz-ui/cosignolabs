@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
+  Camera,
   FileText,
+  Film,
   Image as ImageIcon,
   Link2,
   Loader2,
@@ -18,6 +20,16 @@ import type { MissionSourceRecord, MissionSourceStatus } from "@/lib/types";
 import { classifyDelegation, returnCondition } from "@/lib/delegate";
 import { useToast } from "@/components/Toast";
 import { useBackgroundExecution } from "./useBackgroundExecution";
+import { CameraCapture } from "./CameraCapture";
+import { AnswerCard, type AnswerResult } from "./AnswerCard";
+import {
+  cameraSupported,
+  extractVideoFrames,
+  isImageFile,
+  isVideoFile,
+  prefersNativeCamera,
+  prepareImageForUpload,
+} from "@/lib/client/media";
 
 /**
  * The ask-box body: a place to type a request and, without leaving the
@@ -34,7 +46,8 @@ const EXAMPLES = [
   "research the best option",
 ];
 
-const ACCEPT = ".pdf,.docx,.txt,.md,.markdown,.csv,.png,.jpg,.jpeg,.webp";
+const ACCEPT =
+  ".pdf,.docx,.txt,.md,.markdown,.csv,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.m4v,.webm";
 
 /** Statuses that mean "still working" — the mission can't start yet. */
 const IN_PROGRESS: MissionSourceStatus[] = ["uploading", "processing", "checking", "reading"];
@@ -55,7 +68,15 @@ function statusView(s: MissionSourceRecord): StatusView {
     case "reading":
       return { label: "Reading page…", tone: "working" };
     case "ready":
-      return { label: s.kind === "link" ? "Read" : "Ready", tone: "ok" };
+      // "Ready" said nothing about whether the thing was actually readable.
+      // These labels are a promise about what the operator will see.
+      if (s.kind === "link") return { label: "Read", tone: "ok" };
+      if (s.kind === "video") {
+        const n = typeof s.detail?.frames === "number" ? s.detail.frames : 0;
+        return { label: n > 0 ? `${n} frames read` : "Read", tone: "ok" };
+      }
+      if (s.subtype.startsWith("image/")) return { label: "Image read", tone: "ok" };
+      return { label: "Read", tone: "ok" };
     case "unsupported":
       return { label: "Unsupported", tone: "warn" };
     case "login_required":
@@ -109,7 +130,8 @@ function SourceRow({ source, onRemove }: { source: MissionSourceRecord; onRemove
   const sv = statusView(source);
   const reason = reasonOf(source);
   const isImage = source.kind === "file" && source.subtype.startsWith("image/");
-  const Icon = source.kind === "link" ? Link2 : isImage ? ImageIcon : FileText;
+  const Icon =
+    source.kind === "link" ? Link2 : source.kind === "video" ? Film : isImage ? ImageIcon : FileText;
   const toneCls =
     sv.tone === "ok"
       ? "bg-signal/15 text-ink"
@@ -208,6 +230,12 @@ export function SourceComposer({
   const [preview, setPreview] = useState<CompilePreview | null>(null);
   const [busy, setBusy] = useState(false);
 
+  /** A question about attached material is answered here, not delegated. */
+  const [answer, setAnswer] = useState<{ question: string; result: AnswerResult } | null>(null);
+  const [savingAnswer, setSavingAnswer] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const cameraRef = useRef<HTMLInputElement | null>(null);
+
   const loadSources = useCallback(async () => {
     try {
       const data = await jsonFetch("/api/sources");
@@ -224,21 +252,35 @@ export function SourceComposer({
   const all = [...sources, ...pending];
   const anyWorking = all.some((s) => IN_PROGRESS.includes(s.status));
 
-  /* ---- file upload ---- */
+  /**
+   * Camera availability is a property of the device, which the server can't
+   * know. Detecting it after mount keeps the server and client markup
+   * identical and avoids a hydration mismatch.
+   */
+  const [canUseCamera, setCanUseCamera] = useState(false);
+  const [nativeCamera, setNativeCamera] = useState(false);
+  useEffect(() => {
+    setCanUseCamera(cameraSupported());
+    setNativeCamera(prefersNativeCamera());
+  }, []);
+
+  /* ---- file / photo / video upload ---- */
   async function onFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     for (const file of Array.from(files)) {
+      const video = isVideoFile(file);
       const tempId = `tmp-${Math.random().toString(36).slice(2)}`;
       const placeholder: MissionSourceRecord = {
         id: tempId,
         user_id: "",
         mission_id: null,
-        kind: "file",
+        kind: video ? "video" : "file",
         name: file.name,
         subtype: file.type || "",
         size_bytes: file.size,
-        status: "uploading",
+        status: video ? "processing" : "uploading",
         summary: "",
+        media: [],
         injection_flag: false,
         detail: {},
         created_at: new Date().toISOString(),
@@ -246,19 +288,62 @@ export function SourceComposer({
       };
       setPending((p) => [...p, placeholder]);
       try {
-        const form = new FormData();
-        form.append("file", file);
-        const res = await fetch("/api/sources/file", { method: "POST", body: form });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body.message || "upload failed.");
+        const source = video ? await uploadVideo(file) : await uploadFile(file);
         setPending((p) => p.filter((x) => x.id !== tempId));
-        setSources((s) => [...s, body.source as MissionSourceRecord]);
+        setSources((s) => [...s, source]);
       } catch (e) {
         setPending((p) => p.filter((x) => x.id !== tempId));
-        toast("error", e instanceof Error ? e.message : "that file couldn't be uploaded.");
+        toast("error", e instanceof Error ? e.message : "that file couldn't be added.");
       }
     }
     if (fileRef.current) fileRef.current.value = "";
+    if (cameraRef.current) cameraRef.current.value = "";
+  }
+
+  /**
+   * A phone photo is 12 MP and several megabytes. Resizing it here is what
+   * keeps "snap it and ask" from failing at the size limit on cellular.
+   */
+  async function uploadFile(file: File): Promise<MissionSourceRecord> {
+    const prepared = isImageFile(file) ? await prepareImageForUpload(file) : file;
+    const form = new FormData();
+    form.append("file", prepared);
+    const res = await fetch("/api/sources/file", { method: "POST", body: form });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.message || "that file couldn't be uploaded.");
+    return body.source as MissionSourceRecord;
+  }
+
+  /**
+   * The video never leaves this device. Frames are decoded here and only the
+   * frames are uploaded — which is why a two-minute clip attaches in seconds
+   * and isn't refused for being too big.
+   */
+  async function uploadVideo(file: File): Promise<MissionSourceRecord> {
+    const { frames, timestamps, duration, width, height } = await extractVideoFrames(file);
+    const form = new FormData();
+    form.append("name", file.name);
+    form.append("mime", file.type || "video/mp4");
+    form.append("duration", String(duration));
+    form.append("width", String(width));
+    form.append("height", String(height));
+    form.append("size_bytes", String(file.size));
+    frames.forEach((blob, i) => {
+      form.append("frames", blob, `frame-${i}.jpg`);
+      form.append("timestamps", String(timestamps[i] ?? 0));
+    });
+    const res = await fetch("/api/sources/video", { method: "POST", body: form });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.message || "that video couldn't be read.");
+    return body.source as MissionSourceRecord;
+  }
+
+  /** A capture from the laptop camera behaves exactly like any other upload. */
+  async function onCameraCapture(file: File) {
+    setCameraOpen(false);
+    const list = new DataTransfer();
+    list.items.add(file);
+    await onFiles(list.files);
   }
 
   /* ---- link add ---- */
@@ -279,6 +364,7 @@ export function SourceComposer({
         size_bytes: 0,
         status: "checking",
         summary: "",
+        media: [],
         injection_flag: false,
         detail: {},
         created_at: new Date().toISOString(),
@@ -322,7 +408,21 @@ export function SourceComposer({
       // Delegation, not workflow-picking: "watch for…" becomes a standing
       // watch and "every monday…" a recurring rule — the user never chooses
       // the mechanism. Everything else compiles into a mission as before.
-      const intent = classifyDelegation(g);
+      const intent = classifyDelegation(g, { hasAttachments: sources.length > 0 });
+
+      // A question about material in hand is answered now. It used to be
+      // compiled into a research mission, which is how "give me a detailed
+      // report on this photo" came back as web research about a picture
+      // nobody had opened.
+      if (intent.kind === "read") {
+        const data = await jsonFetch("/api/analyze", {
+          method: "POST",
+          body: JSON.stringify({ question: g, sourceIds: sources.map((s) => s.id) }),
+        });
+        setAnswer({ question: g, result: data as AnswerResult });
+        return;
+      }
+
       if (intent.kind === "watch" || intent.kind === "automation") {
         await jsonFetch("/api/automations", {
           method: "POST",
@@ -364,6 +464,51 @@ export function SourceComposer({
     }
   }
 
+  /**
+   * Keep an answer as a real document. It is saved into Files (so it has a
+   * home and a version) and the requested format is downloaded — the PDF is
+   * rendered from the saved text, so the file on disk and the file in cosigno
+   * can never disagree.
+   */
+  async function saveAnswer(format: "md" | "pdf") {
+    if (!answer || savingAnswer) return;
+    setSavingAnswer(true);
+    try {
+      const stamp = new Date().toISOString().slice(0, 10);
+      const title = answer.question.replace(/[\n\r]/g, " ").trim().slice(0, 60) || "Answer";
+      const body =
+        `# ${title}\n\n${answer.result.answer}\n` +
+        (answer.result.looked_at.length > 0 ? `\nRead: ${answer.result.looked_at.join(", ")}\n` : "") +
+        (answer.result.could_not_read.length > 0
+          ? `\nNot read: ${answer.result.could_not_read.join("; ")}\n`
+          : "");
+
+      const saved = await jsonFetch("/api/files", {
+        method: "POST",
+        body: JSON.stringify({ name: `${title} (${stamp})`, mime: "text/markdown", content: body }),
+      });
+      const file = saved.file as { id: string; name: string };
+
+      if (format === "pdf") {
+        const res = await fetch(`/api/files/${file.id}/export?format=pdf`);
+        if (!res.ok) throw new Error("the PDF couldn't be created.");
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${title}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      // Say WHERE it went. A saved file the user can't find is a lost file.
+      toast("success", `saved to Files as "${file.name}" — open Files to edit or re-download it.`);
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "that couldn't be saved.");
+    } finally {
+      setSavingAnswer(false);
+    }
+  }
+
   /* ---- confirm & start ---- */
   async function start() {
     const g = goal.trim();
@@ -384,6 +529,22 @@ export function SourceComposer({
       toast("error", e instanceof Error ? e.message : "couldn't start that — try rephrasing the goal.");
       setBusy(false);
     }
+  }
+
+  /* ---------------------------- the answer ---------------------------- */
+  if (answer) {
+    return (
+      <AnswerCard
+        question={answer.question}
+        result={answer.result}
+        saving={savingAnswer}
+        onSave={saveAnswer}
+        onAskAgain={() => {
+          setAnswer(null);
+          setGoal("");
+        }}
+      />
+    );
   }
 
   /* ------------- the delegation agreement (I'll handle this) ------------- */
@@ -514,6 +675,7 @@ export function SourceComposer({
       onDrop={onDrop}
       className={dragOver ? "rounded-card ring-2 ring-signal/60" : undefined}
     >
+      {cameraOpen && <CameraCapture onCapture={onCameraCapture} onClose={() => setCameraOpen(false)} />}
       {dragOver && (
         <p className="mt-3 rounded-btn bg-signal/10 px-3 py-2 text-center text-xs font-extrabold text-ink">
           Drop it — cosigno will take it from here.
@@ -545,6 +707,28 @@ export function SourceComposer({
         <button onClick={() => fileRef.current?.click()} className={controlBtn}>
           <Paperclip size={14} /> Add file
         </button>
+        {/*
+          Take a photo. On a phone, `capture` hands off to the OS camera app,
+          which focuses and exposes far better than anything in a web page; on
+          a laptop we open a live preview instead. Either way it is one tap
+          from "point at the thing" to "ask about the thing".
+        */}
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden
+          onChange={(e) => onFiles(e.target.files)}
+        />
+        {(nativeCamera || canUseCamera) && (
+          <button
+            onClick={() => (nativeCamera ? cameraRef.current?.click() : setCameraOpen(true))}
+            className={controlBtn}
+          >
+            <Camera size={14} /> Take photo
+          </button>
+        )}
         <button onClick={() => setLinkOpen((v) => !v)} className={controlBtn} aria-expanded={linkOpen}>
           <Link2 size={14} /> Add link
         </button>

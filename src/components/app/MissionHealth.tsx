@@ -48,9 +48,55 @@ function describeFailure(status: number, body: string): string {
   return `health check failed (${status}).${body ? ` server said: ${body}` : ""}`;
 }
 
+/** The live key check from /api/health/planner — verified, not assumed. */
+interface PlannerHealth {
+  ok: boolean;
+  reason: string;
+  vision: boolean;
+  message: string;
+  hint?: string;
+  detail?: string;
+}
+
 export function MissionHealth() {
   const [health, setHealth] = useState<Health | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [planner, setPlanner] = useState<PlannerHealth | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  /**
+   * "Is the key set?" and "does the key work?" are different questions, and
+   * only the second one matters. This asks the second — it makes a real
+   * call — which is why it is a button rather than something that fires on
+   * every page load.
+   */
+  async function checkKey() {
+    if (checking) return;
+    setChecking(true);
+    try {
+      const res = await fetch("/api/health/planner");
+      const body = await res.json().catch(() => ({}));
+      setPlanner(
+        res.ok
+          ? (body as PlannerHealth)
+          : {
+              ok: false,
+              reason: "unreachable",
+              vision: false,
+              message: body.message || `the check failed (${res.status}).`,
+            }
+      );
+    } catch {
+      setPlanner({
+        ok: false,
+        reason: "unreachable",
+        vision: false,
+        message: "the check couldn't be run from this browser.",
+      });
+    } finally {
+      setChecking(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -101,10 +147,58 @@ export function MissionHealth() {
         <Row label="mission cron" ok={health.mission_cron_configured} />
         <Row label="missions waiting for a tick" value={String(health.missions_waiting_for_tick)} />
         <Row label="database" value={health.database} />
-        <Row label="AI" ok={health.planner_configured} />
+        <Row label="AI" ok={health.planner_configured} value={health.planner_configured ? "key present" : "no key"} />
+        {planner && (
+          <>
+            <Row
+              label="AI key verified against the provider"
+              ok={planner.ok}
+              value={planner.ok ? "working" : planner.reason.replace(/_/g, " ")}
+            />
+            <Row label="reads images" ok={planner.vision} value={planner.vision ? "yes" : "not verified"} />
+          </>
+        )}
         <Row label="browser provider" ok={health.browser_provider_configured} value={health.browser_provider_configured ? "configured" : "sandbox only"} />
         <Row label="live browser" ok={health.browser_live} value={health.browser_live ? "live" : "sandbox (labeled)"} />
       </ul>
+
+      {/*
+        A key that is PRESENT but rejected, out of credit, or pointed at a
+        model that doesn't exist looks identical to a working one from the
+        outside — until a user's first request fails with "temporarily
+        unavailable". This runs the real call and says which it is.
+      */}
+      <div className="flex flex-col gap-2 rounded-card bg-surface/60 p-4 shadow-soft">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={checkKey}
+            disabled={checking}
+            className="rounded-btn bg-ink px-4 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
+          >
+            {checking ? "checking…" : "test the AI connection"}
+          </button>
+          <span className="text-xs font-semibold text-ink-soft">
+            sends one small real request, including an image, and reports what came back.
+          </span>
+        </div>
+        {planner && (
+          <div
+            className={`flex items-start gap-2 rounded-btn p-3 text-sm font-semibold ${
+              planner.ok ? "bg-signal/10 ring-1 ring-inset ring-signal/30" : "bg-cream-deep"
+            }`}
+          >
+            {planner.ok ? (
+              <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-signal" aria-hidden="true" />
+            ) : (
+              <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
+            )}
+            <span>
+              {planner.message}
+              {planner.hint && <span className="mt-1 block text-xs text-ink-soft">{planner.hint}</span>}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -132,12 +132,60 @@ export interface PlannerTool {
   input_schema: Record<string, unknown>;
 }
 
+/**
+ * The image formats the model can genuinely SEE. This list is a property of
+ * the provider, which is why it lives here and nowhere else: callers ask
+ * `visionMimeSupported()` rather than hard-coding a format list that would
+ * silently rot when the provider changes.
+ */
+const VISION_MIMES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+
+export function visionMimeSupported(mime: string): boolean {
+  return VISION_MIMES.has(mime.toLowerCase().trim());
+}
+
+/** The human-facing list, so error copy and the provider never disagree. */
+export const VISION_LABEL = "PNG, JPG, WebP, and GIF";
+
+/**
+ * Per-image ceiling for a single call. The provider rejects oversized images
+ * outright, so an image that would fail is dropped BEFORE the call with an
+ * honest note rather than failing the whole request.
+ */
+export const MAX_VISION_BYTES = 3.75 * 1024 * 1024;
+
+/** Total attached-image budget for one call — cost and latency containment. */
+export const MAX_VISION_IMAGES = 8;
+
+/**
+ * An image the model actually looks at. `data` is raw base64 (no data: URL
+ * prefix). `label` is shown to the model as a caption so it can refer to
+ * "the second frame" or "the receipt" by name instead of by position.
+ */
+export interface PlannerImage {
+  mime: string;
+  data: string;
+  label?: string;
+}
+
 export interface PlannerCall {
   model: string;
   maxTokens: number;
   system: string;
   userContent: string;
-  tool: PlannerTool;
+  /**
+   * Structured output. When present the model is FORCED to call this tool.
+   * When absent the model answers in prose — which is the only way a question
+   * ("what is in this photo?") can be answered at all. A call that must
+   * always propose actions can never answer a question, so this is optional
+   * by design, not by accident.
+   */
+  tool?: PlannerTool;
+  /**
+   * Images the model sees. Anything here is genuine visual input — never a
+   * text description standing in for a picture.
+   */
+  images?: PlannerImage[];
   /**
    * Internal accounting context. When present, the call writes one row to the
    * AI cost ledger (model, tokens, estimated cost, user, plan, mission).
@@ -156,6 +204,8 @@ export interface PlannerCall {
 export interface PlannerResult {
   /** The tool input object the planner produced, or null. */
   toolInput: Record<string, unknown> | null;
+  /** The prose answer, when the call ran without a forced tool. */
+  text: string;
   inputTokens?: number;
   outputTokens?: number;
 }
@@ -234,15 +284,47 @@ export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
     return cached;
   }
 
+  // Multimodal content. Images go FIRST: a model reads the picture, then the
+  // instruction about it, which is the ordering the provider recommends and
+  // the one that stops an instruction being answered before the image is
+  // seen. An image that the provider would reject is dropped here, and the
+  // caller is told in the text so the answer can say what it couldn't see —
+  // never silently pretend it looked.
+  const images = (call.images ?? []).slice(0, MAX_VISION_IMAGES);
+  const usable = images.filter(
+    (img) => visionMimeSupported(img.mime) && base64Bytes(img.data) <= MAX_VISION_BYTES
+  );
+  const dropped = images.length - usable.length;
+
+  const content: unknown[] = [];
+  for (const img of usable) {
+    if (img.label) content.push({ type: "text", text: img.label });
+    content.push({
+      type: "image",
+      source: { type: "base64", media_type: img.mime, data: img.data },
+    });
+  }
+  content.push({
+    type: "text",
+    text:
+      dropped > 0
+        ? `${call.userContent}\n\n(${dropped} attached image${dropped === 1 ? "" : "s"} could not be opened and ${dropped === 1 ? "is" : "are"} NOT visible to you. Say so plainly rather than describing ${dropped === 1 ? "it" : "them"}.)`
+        : call.userContent,
+  });
+
   let response;
   try {
     response = await client.messages.create({
       model: call.model,
       max_tokens: call.maxTokens,
       system: call.system,
-      messages: [{ role: "user", content: call.userContent }],
-      tools: [call.tool as never],
-      tool_choice: { type: "tool", name: call.tool.name },
+      messages: [{ role: "user", content: content as never }],
+      // Only a call that asked for structured output forces a tool. Without
+      // one the model answers in prose — the difference between "here is a
+      // detailed report on your photo" and a forced list of action cards.
+      ...(call.tool
+        ? { tools: [call.tool as never], tool_choice: { type: "tool" as const, name: call.tool.name } }
+        : {}),
     });
   } catch (err) {
     // Log the FULL provider error server-side (status, body, stack) under a
@@ -262,15 +344,23 @@ export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
       ? (toolUse.input as Record<string, unknown>)
       : null;
 
+  const text = response.content
+    .filter((b) => b.type === "text")
+    .map((b) => (b.type === "text" ? b.text : ""))
+    .join("\n")
+    .trim();
+
   const result: PlannerResult = {
     toolInput,
+    text,
     inputTokens: response.usage?.input_tokens,
     outputTokens: response.usage?.output_tokens,
   };
 
-  // Only a USABLE result is cached — caching a null toolInput would replay
-  // the failure for an hour instead of retrying it.
-  if (toolInput) plannerCacheSet(cacheKey, result);
+  // Only a USABLE result is cached — caching an empty result would replay the
+  // failure for an hour instead of retrying it. "Usable" depends on what was
+  // asked for: a tool call needs its input, a prose answer needs its text.
+  if (call.tool ? Boolean(toolInput) : text.length > 0) plannerCacheSet(cacheKey, result);
 
   // Internal cost ledger — fire-and-forget; accounting never delays or fails
   // the user's request. Dynamic import keeps store code out of this module's
@@ -308,15 +398,29 @@ const PLANNER_CACHE_TTL_MS = 60 * 60 * 1000;
 const plannerCache = new Map<string, { at: number; result: PlannerResult }>();
 
 function plannerCacheKey(call: PlannerCall): string {
-  return createHash("sha256")
+  const h = createHash("sha256")
     .update(call.model)
-    .update(" ")
+    .update("\0")
     .update(call.system)
-    .update(" ")
+    .update("\0")
     .update(call.userContent)
-    .update(" ")
-    .update(JSON.stringify(call.tool))
-    .digest("hex");
+    .update("\0")
+    .update(JSON.stringify(call.tool ?? null));
+  // Images are part of the question. Without them, two different photos sent
+  // with the same words would collide on the same key — and the second person
+  // would be handed an answer about a picture they never uploaded.
+  for (const img of call.images ?? []) {
+    h.update("\0").update(img.mime).update("\0").update(img.label ?? "").update("\0").update(img.data);
+  }
+  return h.digest("hex");
+}
+
+/** Decoded byte length of a base64 payload, without allocating the buffer. */
+function base64Bytes(b64: string): number {
+  const len = b64.length;
+  if (len === 0) return 0;
+  const padding = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
+  return Math.floor((len * 3) / 4) - padding;
 }
 
 function plannerCacheGet(key: string): PlannerResult | null {
@@ -344,4 +448,89 @@ function plannerCacheSet(key: string, result: PlannerResult): void {
 /** For tests. */
 export function resetPlannerCacheForTests(): void {
   plannerCache.clear();
+}
+
+/* ------------------------------------------------------------ key health */
+
+export type PlannerHealth = {
+  /** The key is present AND the provider accepted it on a real call. */
+  ok: boolean;
+  /** Machine-readable cause, for the operator UI. Never shown raw to users. */
+  reason:
+    | "ok"
+    | "no_key"
+    | "no_model"
+    | "key_rejected"
+    | "no_credit"
+    | "unknown_model"
+    | "rate_limited"
+    | "provider_down"
+    | "unreachable";
+  /** An operator-facing sentence. Contains NO key material and no stack. */
+  detail: string;
+  /** Whether the configured model actually accepted an image. */
+  vision: boolean;
+};
+
+/**
+ * Verify the planner key by USING it. "Is the env var set?" is not a health
+ * check — a typo'd key, an exhausted balance, and a model id that doesn't
+ * exist all pass that test and then fail on a real user's first request. This
+ * sends the smallest possible real call (a 1×1 image plus one word) so the
+ * answer covers the key, the model id, the credit balance, AND whether vision
+ * works, which is the combination that actually has to hold.
+ */
+export async function verifyPlannerKey(): Promise<PlannerHealth> {
+  const apiKey = plannerApiKey();
+  if (!apiKey) {
+    return { ok: false, reason: "no_key", detail: "No planner API key is set for this deployment.", vision: false };
+  }
+  const model = plannerModel("default");
+  if (!model) {
+    return { ok: false, reason: "no_model", detail: "No planner model id is set for this deployment.", vision: false };
+  }
+
+  // A 1×1 transparent PNG. Small enough to be free-ish, real enough that a
+  // provider which cannot do vision will say so.
+  const PIXEL =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+  try {
+    const client = await plannerClient(apiKey);
+    await client.messages.create({
+      model,
+      max_tokens: 16,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: "image/png", data: PIXEL } },
+            { type: "text", text: "Reply with the single word: ready" },
+          ] as never,
+        },
+      ],
+    });
+    return { ok: true, reason: "ok", detail: "The planner key works and the model accepted an image.", vision: true };
+  } catch (err) {
+    const { status, detail } = describeFailure(err);
+    const lower = detail.toLowerCase();
+    logError(newRequestId(), err, { event: "planner_health_failed", status, model });
+
+    if (status === 401 || status === 403) {
+      return { ok: false, reason: "key_rejected", detail: "The provider rejected the planner key.", vision: false };
+    }
+    if (lower.includes("credit") || lower.includes("billing") || lower.includes("quota")) {
+      return { ok: false, reason: "no_credit", detail: "The provider account has no available credit.", vision: false };
+    }
+    if (status === 404 || lower.includes("model")) {
+      return { ok: false, reason: "unknown_model", detail: "The configured planner model id was not recognized.", vision: false };
+    }
+    if (status === 429) {
+      return { ok: false, reason: "rate_limited", detail: "The provider is rate-limiting this account right now.", vision: false };
+    }
+    if (status !== null && status >= 500) {
+      return { ok: false, reason: "provider_down", detail: "The provider returned a server error.", vision: false };
+    }
+    return { ok: false, reason: "unreachable", detail: "The provider could not be reached from this deployment.", vision: false };
+  }
 }

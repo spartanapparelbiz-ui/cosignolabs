@@ -2,28 +2,35 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileText, Plus, Trash2 } from "lucide-react";
+import { Download, FileDown, FileText, Plus, Trash2 } from "lucide-react";
 import type { FileRecord } from "@/lib/types";
 import { CosignoMark } from "@/components/brand/Logo";
 import { useToast } from "@/components/Toast";
 
 /**
- * Files — text deliverables and documents that live inside cosigno. Create,
- * open, edit (each save bumps the version), download, delete. Text-only v1
- * (plain / markdown / csv); binary uploads are a later phase and are not
- * pretended here. Full loading / error / empty states.
+ * Files — documents that live inside cosigno. Create, open, edit (each save
+ * bumps the version), download, delete.
+ *
+ * Documents are authored and stored as TEXT, and binary formats are rendered
+ * on download. That is what lets a report be exported as a PDF without
+ * freezing a copy: the PDF is generated from the current version every time,
+ * so the download and the document can never drift apart.
  */
 
 const MIME_LABEL: Record<FileRecord["mime"], string> = {
   "text/plain": "text",
   "text/markdown": "markdown",
   "text/csv": "csv",
+  "text/html": "html",
+  "image/svg+xml": "svg",
 };
 
 const MIME_EXT: Record<FileRecord["mime"], string> = {
   "text/plain": ".txt",
   "text/markdown": ".md",
   "text/csv": ".csv",
+  "text/html": ".html",
+  "image/svg+xml": ".svg",
 };
 
 async function jsonFetch(url: string, init?: RequestInit) {
@@ -34,6 +41,22 @@ async function jsonFetch(url: string, init?: RequestInit) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
   return body;
+}
+
+/**
+ * Download as a PDF. The bytes come from the server, which renders the
+ * CURRENT stored text — so a PDF is never a stale snapshot of an older edit.
+ */
+async function downloadPdf(file: FileRecord): Promise<void> {
+  const res = await fetch(`/api/files/${file.id}/export?format=pdf`);
+  if (!res.ok) throw new Error("the PDF couldn't be created.");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${file.name.replace(/\.[^.]+$/, "") || "document"}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function download(file: FileRecord) {
@@ -242,6 +265,22 @@ export function FilesPanel() {
               className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep"
             >
               <Download size={11} /> download
+            </button>
+            <button
+              onClick={async () => {
+                setBusy(f.id);
+                try {
+                  await downloadPdf(f);
+                } catch (e) {
+                  toast("error", e instanceof Error ? e.message : "the PDF couldn't be created.");
+                } finally {
+                  setBusy(null);
+                }
+              }}
+              disabled={busy === f.id}
+              className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <FileDown size={11} /> pdf
             </button>
           </div>
 

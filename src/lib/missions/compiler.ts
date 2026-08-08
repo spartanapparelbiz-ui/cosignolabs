@@ -20,11 +20,25 @@ export interface SourceContext {
 
 /** Honest, human line for a source on the understanding screen. */
 function describeSource(s: SourceContext): string {
+  if (s.kind === "video") {
+    if (s.status === "ready") {
+      const n = /(\d+) frames? sampled/.exec(s.summary)?.[1];
+      return n
+        ? `${s.name} — ${n} frames read from the video`
+        : `${s.name} — frames read from the video`;
+    }
+    return `${s.name} — couldn't be read (won't be used)`;
+  }
   if (s.kind === "file") {
     if (s.status === "ready") {
-      return s.summary && !s.summary.startsWith("[image attached")
-        ? `${s.name} — file read as context`
-        : `${s.name} — attached as a visual reference (not read as text)`;
+      // An image is now genuinely read, so the screen says so. It used to say
+      // "attached as a visual reference (not read as text)" — which was
+      // accurate at the time and is exactly the limitation that got fixed.
+      if (s.summary.startsWith("[image:")) return `${s.name} — image read`;
+      if (s.summary.startsWith("[image attached")) {
+        return `${s.name} — attached, but not readable as an image`;
+      }
+      return `${s.name} — file read as context`;
     }
     if (s.status === "unsupported") return `${s.name} — file type not supported (won't be used)`;
     return `${s.name} — couldn't be read (won't be used)`;
