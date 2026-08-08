@@ -8,6 +8,7 @@ import { buildSystemPrompt, SYSTEM_PROMPT_VERSION } from "./systemPrompt";
 import { scanUntrusted, wrapUntrusted, type UntrustedBlock } from "./untrusted";
 import { connectedCapabilitiesSummary } from "../integrations/runtime/summary";
 import { memorySummary } from "../memory";
+import { learnedSummary } from "../learning";
 
 // Re-export so callers keep a single import surface for planner readiness.
 export { plannerConfigured } from "./provider";
@@ -78,15 +79,21 @@ export async function planCommand(
     );
   }
 
-  // Tell the planner what the user has actually connected, so it proposes
-  // within reach and suggests connecting a tool instead of inventing an action.
-  // Independent reads — gathered together.
-  const [connected, memory] = userId
-    ? await Promise.all([connectedCapabilitiesSummary(userId), memorySummary(userId)])
-    : ["", ""];
+  // Three independent reads, gathered together behind the one multi-second
+  // call that follows: what the user has CONNECTED (so the planner proposes
+  // within reach instead of inventing an action), what they've WRITTEN down,
+  // and what their own past decisions have SHOWN. Each is additive — any of
+  // them coming back empty just drops a section from the prompt.
+  const [connected, memory, learned] = userId
+    ? await Promise.all([
+        connectedCapabilitiesSummary(userId),
+        memorySummary(userId),
+        learnedSummary(userId),
+      ])
+    : ["", "", ""];
 
   const plan = plannerConfigured()
-    ? await planWithLLM(command, blocks, connected, memory, userId, opts)
+    ? await planWithLLM(command, blocks, connected, memory, learned, userId, opts)
     : planWithMock(command, blocks);
 
   return {
@@ -149,6 +156,7 @@ async function planWithLLM(
   blocks: UntrustedBlock[],
   connected: string,
   memory: string,
+  learned: string,
   userId?: string,
   opts: PlanCommandOpts = {}
 ): Promise<RawPlan> {
@@ -170,7 +178,7 @@ async function planWithLLM(
   let result = await callPlanner({
     model: opts.model || modelFor("plan"),
     maxTokens: MAX_TOKENS,
-    system: buildSystemPrompt(connected, memory),
+    system: buildSystemPrompt(connected, memory, learned),
     userContent,
     tool: PROPOSE_ACTIONS_TOOL,
     meta,
@@ -193,7 +201,7 @@ async function planWithLLM(
     result = await callPlanner({
       model: escalation.model,
       maxTokens: MAX_TOKENS,
-      system: buildSystemPrompt(connected, memory),
+      system: buildSystemPrompt(connected, memory, learned),
       userContent,
       tool: PROPOSE_ACTIONS_TOOL,
       meta,

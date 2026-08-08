@@ -19,9 +19,11 @@ export default function MemoryPage() {
         your standing operating principles, in plain language — &ldquo;always prepare
         external emails for review,&rdquo; &ldquo;never cancel a meeting without asking.&rdquo;
         the operator reads every enabled rule as explicit context on every
-        delegation. only you write here; explicit rules override anything
-        cosigno has inferred, and one switch turns it all off. the hard limits —
-        signatures and locked actions — hold either way, and nothing you write
+        delegation. only you write the rules; below them, cosigno shows what it
+        has worked out from your own approvals, edits and vetoes — with the
+        count behind each one, and a switch to drop any of it. what you write
+        beats what it inferred, and one switch turns it all off. the hard
+        limits — signatures and locked actions — hold either way, and nothing
         here can loosen them.
       </p>
       <div className="mt-6 flex-1">

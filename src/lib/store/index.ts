@@ -314,6 +314,16 @@ export interface Store {
     userId: string,
     actionIds: string[]
   ): Promise<ActionEventRecord[]>;
+  /**
+   * Which of these actions the user edited themselves — ids only.
+   *
+   * Learning runs on the planner's path and only needs the fact of an edit,
+   * so it must not pull event bodies to find it: an approval event's `detail`
+   * carries the authorization record, and that can include a drawn signature
+   * image. Reading a hundred of those to count corrections would be a large
+   * transfer for one boolean per action.
+   */
+  listUserEditedActionIds(userId: string, actionIds: string[]): Promise<string[]>;
 
   getTierSettings(userId: string): Promise<TierSettingRecord[]>;
   setTierSetting(
@@ -471,6 +481,12 @@ export interface Store {
   deleteMemory(userId: string, id: string): Promise<void>;
   getPrefs(userId: string): Promise<UserPrefs>;
   setMemoryEnabled(userId: string, enabled: boolean): Promise<void>;
+  /**
+   * Switch one derived preference on or off. Preferences themselves are
+   * recomputed from decision history and never stored — this list is how a
+   * user overrules a conclusion without deleting the decisions behind it.
+   */
+  setPreferenceMuted(userId: string, key: string, muted: boolean): Promise<string[]>;
   /** The workspace default: how many changes a mission may make before it asks. */
   setActionBudget(userId: string, budget: number): Promise<void>;
 

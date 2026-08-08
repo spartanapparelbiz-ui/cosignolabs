@@ -287,6 +287,27 @@ export class MemoryStore implements Store {
     );
   }
 
+  async listUserEditedActionIds(
+    userId: string,
+    actionIds: string[]
+  ): Promise<string[]> {
+    if (actionIds.length === 0) return [];
+    const wanted = new Set(actionIds);
+    return [
+      ...new Set(
+        this.events
+          .filter(
+            (e) =>
+              e.user_id === userId &&
+              e.type === "edited" &&
+              e.actor === "user" &&
+              wanted.has(e.action_id)
+          )
+          .map((e) => e.action_id)
+      ),
+    ];
+  }
+
   async getTierSettings(userId: string): Promise<TierSettingRecord[]> {
     return this.tierSettings.filter((t) => t.user_id === userId);
   }
@@ -893,6 +914,7 @@ export class MemoryStore implements Store {
         user_id: userId,
         memory_enabled: true,
         action_budget: DEFAULT_ACTION_BUDGET,
+        muted_preferences: [],
       }
     );
   }
@@ -901,6 +923,19 @@ export class MemoryStore implements Store {
     // Merge — writing one preference must not silently reset the others.
     const prev = await this.getPrefs(userId);
     this.prefs.set(userId, { ...prev, memory_enabled: enabled });
+  }
+
+  async setPreferenceMuted(
+    userId: string,
+    key: string,
+    muted: boolean
+  ): Promise<string[]> {
+    const prev = await this.getPrefs(userId);
+    const next = muted
+      ? [...new Set([...prev.muted_preferences, key])].sort()
+      : prev.muted_preferences.filter((k) => k !== key);
+    this.prefs.set(userId, { ...prev, muted_preferences: next });
+    return next;
   }
 
   async setActionBudget(userId: string, budget: number): Promise<void> {
