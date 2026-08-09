@@ -52,6 +52,10 @@ in `supabase/migrations/` (through `0014_mission_sources.sql`) in the Supabase
 SQL editor, and point your scheduler at `/api/missions/tick` and
 `/api/automations/tick`. The per-service table further down explains each one.
 
+Sign-in also needs its **dashboard** side configured — Site URL, Redirect URLs,
+and email templates — which the keys alone don't cover. See
+[`AUTH_SETUP.md`](./AUTH_SETUP.md).
+
 ---
 
 ## "Every page is showing an error" — fix it in 4 checks
@@ -144,8 +148,16 @@ likely fix right underneath.
 4. **Redeploy** so the keys take effect
    - Netlify → **Deploys → Trigger deploy → Clear cache and deploy site**.
 
-5. **Prove it works**
+5. **Configure Supabase auth in the dashboard**
+   - Keys are not enough: Site URL, Redirect URLs, and the email templates all
+     have to be set, and they fail silently when wrong. Follow
+     [`AUTH_SETUP.md`](./AUTH_SETUP.md) — 10 minutes, and skipping it is the
+     most common reason sign-up appears to work but confirmation emails don't.
+
+6. **Prove it works**
    - `npm run verify:deploy -- https://cosignolabs.com` → all `PASS`/`SKIP`.
+   - Sign up with a real, unused address and confirm the email link points at
+     **your** domain, not at `supabase.co`, before clicking it.
 
 ---
 
@@ -176,6 +188,67 @@ without it and where to get it.
   `https://<your-domain>/api/stripe/webhook` and put its signing secret in
   `STRIPE_WEBHOOK_SECRET`. The webhook is the only thing that grants a paid
   plan — a checkout on its own never does.
+
+---
+
+## Supabase authentication (sign-in and confirmation emails)
+
+Keys alone do **not** finish auth. Supabase also needs its URL configuration
+and email templates set in the dashboard, and both fail *silently* when wrong —
+no build error, no console error, just users who click a confirmation link and
+land somewhere broken.
+
+**[`AUTH_SETUP.md`](./AUTH_SETUP.md) is the complete guide.** The short version:
+
+1. **Authentication → URL Configuration → Site URL**
+
+   ```
+   https://cosignolabs.com
+   ```
+
+   The `https://` is mandatory and there is no trailing slash. A scheme-less
+   value sends every confirmation link to
+   `https://<project-ref>.supabase.co/cosignolabs.com`, which returns
+   `{"error":"requested path is invalid"}`.
+
+2. **Authentication → URL Configuration → Redirect URLs** — the app builds auth
+   URLs from the live browser origin, so every origin it can run on must be
+   allow-listed:
+
+   ```
+   https://cosignolabs.com/**
+   https://www.cosignolabs.com/**
+   http://localhost:3000/**
+   https://*.netlify.app/**
+   ```
+
+   The `/**` matters: a bare origin matches only the exact root URL. An origin
+   that isn't listed is discarded silently and replaced with Site URL.
+
+3. **Authentication → Emails** — the **default templates do not work with this
+   codebase**. `/auth/confirm` verifies tokens server-side and needs
+   `token_hash` and `type` on the URL, which `{{ .ConfirmationURL }}` does not
+   provide. Confirm signup must link to:
+
+   ```
+   {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/app
+   ```
+
+   and password reset to the same route with `type=recovery`. Full templates,
+   including the 6-digit-code fallback the sign-up screen offers, are in
+   [`AUTH_SETUP.md`](./AUTH_SETUP.md#3-email-templates).
+
+4. **Google sign-in** (optional) — register
+   `https://<project-ref>.supabase.co/auth/v1/callback` in Google Cloud
+   Console, enable the provider in Supabase, *then* set
+   `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH=1`. In that order: the button stays hidden
+   until the variable is set, and a visible button with a disabled provider
+   errors with nothing useful to show the user.
+
+Connector OAuth (Gmail, Slack, GitHub…) is a **different** system that does not
+touch Supabase — those callbacks are `/api/connections/<key>/callback` and are
+registered in each provider's own console. See
+[`MAKE_IT_WORK.md`](./MAKE_IT_WORK.md).
 
 ---
 
@@ -216,6 +289,11 @@ prints one line per missing service, e.g.
 | **`/app` shows "cosigno is warming up"** | Expected with missing keys — **not** an error. | Add Planner + Supabase keys and redeploy. |
 | **SSL warning / "not secure"** | Certificate hasn't issued yet. | Domain management → wait for "Netlify certificate"; make sure DNS resolves first. |
 | **Billing button does nothing** | Stripe keys or price IDs missing. | Run `check:env`; add the `STRIPE_*` keys + four price IDs; redeploy. |
+| **Confirmation link goes to `<project-ref>.supabase.co/cosignolabs.com`**, showing `{"error":"requested path is invalid"}` | Supabase **Site URL** is missing its `https://` scheme, so a relative redirect resolves against the Supabase host. | Set Site URL to `https://cosignolabs.com` and add the four Redirect URLs. [`AUTH_SETUP.md`](./AUTH_SETUP.md#requested-path-is-invalid). Then send a **new** test email — old links keep the old destination. |
+| **Confirmation link bounces to `/sign-in`** and the account stays unconfirmed | Email template still uses the Supabase default `{{ .ConfirmationURL }}`, so `/auth/confirm` receives no `token_hash`. | Rewrite the templates: [`AUTH_SETUP.md`](./AUTH_SETUP.md#3-email-templates). |
+| **Auth works for you, breaks for some users** | A missing **Redirect URL** — usually `www`, a deploy preview, or localhost. The app derives auth URLs from the live browser origin. | Add all four entries with the `/**` suffix. [`AUTH_SETUP.md`](./AUTH_SETUP.md#redirect-urls). |
+| **Confirmation emails link to `localhost:3000`** | Site URL was pointed at a dev machine. It is a single global value shared by every environment. | Site URL is production, always; put localhost in Redirect URLs instead. |
+| **Reset link shows "enter your email" again** instead of the new-password form | The reset template didn't use `type=recovery`, so no session was established. | Use `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`. |
 
 ---
 

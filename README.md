@@ -102,6 +102,14 @@ Apply `supabase/migrations/0001_init.sql`. Highlights:
 - `transition_action()` / `increment_usage()` are `security definer` RPCs
   callable only by the service role.
 
+### Auth setup
+
+Sign-in is Supabase Auth driven headlessly — the engine is theirs, every screen
+is ours. Beyond the three Supabase keys it needs dashboard configuration (Site
+URL, Redirect URLs, and **custom email templates**, since the defaults are
+incompatible with `/auth/confirm`). All of it, plus the failure modes and a
+clean-project walkthrough, is in [`AUTH_SETUP.md`](./AUTH_SETUP.md).
+
 ## Acceptance guarantees (tested in `tests/acceptance.test.ts`)
 
 - A tier-2 action can never reach `executed` without a logged approval row.
