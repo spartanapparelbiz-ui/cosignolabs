@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     const userId = await requireUser();
     await enforceLimit("commandMinute", userId);
     await enforceLimit("commandDay", userId);
-    await enforceGlobalPlanningBudget();
+    await enforceGlobalPlanningBudget(userId);
     const body = parseStrict(missionCreateSchema, await readJsonBody(req), "mission_create");
 
     let missionId: string;

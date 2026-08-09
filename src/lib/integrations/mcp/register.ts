@@ -136,7 +136,10 @@ export async function registerMcp(
     user_id: userId,
     provider_key: "mcp",
     kind: "mcp",
-    display_name: input.displayName.slice(0, 60) || discovered.serverName || "custom MCP",
+    // A name the user typed wins; otherwise the server's own name for itself
+    // beats anything we could infer from a URL. An import deliberately passes
+    // an empty string to reach that second case.
+    display_name: input.displayName.trim().slice(0, 60) || discovered.serverName?.slice(0, 60) || "custom MCP",
     auth_type: "mcp_remote",
     encrypted_credentials: encryptSecret({ bearer: input.bearer, headers: cfg.headers }),
     scopes: null,

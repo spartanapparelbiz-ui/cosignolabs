@@ -294,9 +294,19 @@ export interface AskAnswer {
 
 /* ------------------------------------------------------------- overview */
 
+/**
+ * Autopilot has nothing to read: no connected source is producing business
+ * metrics yet. It reports that and stops — it does not stand in a sample
+ * business, and it does not offer recommendations it has no basis for.
+ */
+export interface AutopilotEmpty {
+  data_source: "none";
+  as_of: string;
+}
+
 /** Everything the Autopilot page renders, assembled server-side. */
-export interface AutopilotOverview {
-  data_source: "sample" | "live";
+export interface AutopilotReading {
+  data_source: "live";
   business_name: string;
   as_of: string;
   brief: DailyBrief;
@@ -312,3 +322,9 @@ export interface AutopilotOverview {
   map: BusinessMap;
   recommendations: Recommendation[];
 }
+
+/**
+ * Discriminated on data_source so a surface cannot read a metric off an
+ * overview that has no data behind it — the compiler stops it.
+ */
+export type AutopilotOverview = AutopilotEmpty | AutopilotReading;

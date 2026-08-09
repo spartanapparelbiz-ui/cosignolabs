@@ -8,6 +8,7 @@ import { buildSystemPrompt, SYSTEM_PROMPT_VERSION } from "./systemPrompt";
 import { scanUntrusted, wrapUntrusted, type UntrustedBlock } from "./untrusted";
 import { connectedCapabilitiesSummary } from "../integrations/runtime/summary";
 import { memorySummary } from "../memory";
+import { learnedSummary } from "../learning";
 
 // Re-export so callers keep a single import surface for planner readiness.
 export { plannerConfigured } from "./provider";
@@ -27,6 +28,13 @@ export interface ProposedAction {
 
 export interface PlanResult {
   reasoning: string;
+  /**
+   * A direct answer, when the command was a question rather than work. The
+   * planner used to have no way to return one — it was forced to emit action
+   * proposals for every input, so "what does this mean?" came back as a card
+   * to approve instead of an answer.
+   */
+  answer: string;
   proposals: ProposedAction[];
   /** True if any external content the agent read looked like it was trying to direct it. */
   injectionSuspected: boolean;
@@ -78,15 +86,21 @@ export async function planCommand(
     );
   }
 
-  // Tell the planner what the user has actually connected, so it proposes
-  // within reach and suggests connecting a tool instead of inventing an action.
-  // Independent reads — gathered together.
-  const [connected, memory] = userId
-    ? await Promise.all([connectedCapabilitiesSummary(userId), memorySummary(userId)])
-    : ["", ""];
+  // Three independent reads, gathered together behind the one multi-second
+  // call that follows: what the user has CONNECTED (so the planner proposes
+  // within reach instead of inventing an action), what they've WRITTEN down,
+  // and what their own past decisions have SHOWN. Each is additive — any of
+  // them coming back empty just drops a section from the prompt.
+  const [connected, memory, learned] = userId
+    ? await Promise.all([
+        connectedCapabilitiesSummary(userId),
+        memorySummary(userId),
+        learnedSummary(userId),
+      ])
+    : ["", "", ""];
 
   const plan = plannerConfigured()
-    ? await planWithLLM(command, blocks, connected, memory, userId, opts)
+    ? await planWithLLM(command, blocks, connected, memory, learned, userId, opts)
     : planWithMock(command, blocks);
 
   return {
@@ -97,7 +111,7 @@ export async function planCommand(
   };
 }
 
-type RawPlan = { reasoning: string; proposals: ProposedAction[] };
+type RawPlan = { reasoning: string; answer: string; proposals: ProposedAction[] };
 
 const PROPOSE_ACTIONS_TOOL = {
   name: "propose_actions",
@@ -109,6 +123,11 @@ const PROPOSE_ACTIONS_TOOL = {
       reasoning: {
         type: "string",
         description: "2-3 plain-language sentences on the plan.",
+      },
+      answer: {
+        type: "string",
+        description:
+          "If the person asked a QUESTION, or asked you to explain, analyze, or describe something, put the full answer here and leave proposals empty. This is the reply they read — answer it properly.",
       },
       proposals: {
         type: "array",
@@ -140,6 +159,9 @@ const PROPOSE_ACTIONS_TOOL = {
         },
       },
     },
+    // `proposals` is required but may be EMPTY: a question has no actions in
+    // it, and inventing one to satisfy the schema is exactly how a request
+    // for an answer became a list of things to approve.
     required: ["reasoning", "proposals"],
   },
 };
@@ -149,6 +171,7 @@ async function planWithLLM(
   blocks: UntrustedBlock[],
   connected: string,
   memory: string,
+  learned: string,
   userId?: string,
   opts: PlanCommandOpts = {}
 ): Promise<RawPlan> {
@@ -170,7 +193,7 @@ async function planWithLLM(
   let result = await callPlanner({
     model: opts.model || modelFor("plan"),
     maxTokens: MAX_TOKENS,
-    system: buildSystemPrompt(connected, memory),
+    system: buildSystemPrompt(connected, memory, learned),
     userContent,
     tool: PROPOSE_ACTIONS_TOOL,
     meta,
@@ -193,17 +216,22 @@ async function planWithLLM(
     result = await callPlanner({
       model: escalation.model,
       maxTokens: MAX_TOKENS,
-      system: buildSystemPrompt(connected, memory),
+      system: buildSystemPrompt(connected, memory, learned),
       userContent,
       tool: PROPOSE_ACTIONS_TOOL,
       meta,
     });
     if (!result.toolInput) {
-      return { reasoning: "the operator couldn't produce a plan — try rephrasing.", proposals: [] };
+      return {
+        reasoning: "the operator couldn't produce a plan — try rephrasing.",
+        answer: "",
+        proposals: [],
+      };
     }
   }
   const input = result.toolInput as {
     reasoning?: string;
+    answer?: string;
     proposals?: ProposedAction[];
   };
   const proposals = (input.proposals ?? [])
@@ -224,5 +252,5 @@ async function planWithLLM(
           : {},
       requested_tier: p.requested_tier,
     }));
-  return { reasoning: input.reasoning ?? "", proposals };
+  return { reasoning: input.reasoning ?? "", answer: (input.answer ?? "").trim(), proposals };
 }

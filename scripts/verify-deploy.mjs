@@ -29,13 +29,51 @@ function record(name, pass, detail, fix) {
 }
 const SKIP = Symbol("skip");
 
+const NET_RETRIES = 2;
+const RETRY_DELAY_MS = 2000;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * fetch that retries only transient NETWORK failures — a DNS blip, a dropped
+ * connection, a reset handshake. It never retries an HTTP status: a 500 is a
+ * real answer about the deploy and must be recorded as one.
+ *
+ * The distinction matters because this gate decides whether a production
+ * deploy is called broken. One `TypeError: fetch failed` on a single hit,
+ * while every other route on the same host answers 200 seconds later, is
+ * noise — and failing the whole run on it reports a healthy site as down.
+ */
+async function netFetch(url, init, retries = NET_RETRIES) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fetch(url, init);
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) await sleep(RETRY_DELAY_MS);
+    }
+  }
+  throw lastErr;
+}
+
 async function timedFetch(url, init) {
   const start = Date.now();
-  const res = await fetch(url, init);
+  const res = await netFetch(url, init);
   return { res, ms: Date.now() - start };
 }
 
 async function main() {
+  // Wake the serverless functions before measuring anything. On the post-deploy
+  // gate the first request is ALWAYS cold, so timing it measured the platform
+  // starting up rather than how fast the site serves — which turned healthy
+  // deploys red. This throwaway hit pays that cost; the timed request below
+  // then measures steady state, which is what the check claims to assert.
+  try {
+    await netFetch(BASE + "/", { redirect: "manual" });
+  } catch {
+    /* the landing check below is what reports an unreachable site */
+  }
+
   // 1. landing
   try {
     const { res, ms } = await timedFetch(BASE + "/");
@@ -156,7 +194,7 @@ async function main() {
   if (BASE.startsWith("https://") && isApex) {
     try {
       const wwwUrl = `https://www.${host}/`;
-      const res = await fetch(wwwUrl, { redirect: "manual" });
+      const res = await netFetch(wwwUrl, { redirect: "manual" });
       const loc = res.headers.get("location") || "";
       const redirects = res.status >= 300 && res.status < 400 && new URL(loc, wwwUrl).host === host;
       record("www → apex redirect", redirects, `status ${res.status} → ${loc || "(none)"}`,

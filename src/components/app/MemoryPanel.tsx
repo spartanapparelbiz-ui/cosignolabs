@@ -1,15 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Brain, Plus, Trash2 } from "lucide-react";
+import { Brain, Eye, Plus, Trash2 } from "lucide-react";
+import type { LearnedPreference } from "@/lib/learning/preferences";
 import type { MemoryRecord } from "@/lib/types";
 import { useToast } from "@/components/Toast";
 
 /**
- * Memory — user-controlled planner context. Everything the directive demands:
- * view, add, edit, per-memory enable, delete, and a master switch that stops
- * memory reaching the planner entirely. The agent never writes here; only you
- * do. Full loading / error / empty states.
+ * Memory — user-controlled planner context, in two clearly separated halves.
+ *
+ * NOTES are what you wrote: view, add, edit, per-note enable, delete. The
+ * agent never writes there.
+ *
+ * OBSERVATIONS are what cosigno worked out from your own approvals, edits and
+ * vetoes. They are shown here for one reason: a system that quietly forms
+ * opinions about a person is a system that person cannot correct. So each one
+ * states the count it was derived from, and each one has an off switch that
+ * doesn't require deleting the history behind it.
+ *
+ * The master switch governs both.
  */
 
 async function jsonFetch(url: string, init?: RequestInit) {
@@ -24,6 +33,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
 
 export function MemoryPanel() {
   const [memories, setMemories] = useState<MemoryRecord[] | null>(null);
+  const [learned, setLearned] = useState<LearnedPreference[]>([]);
   const [masterOn, setMasterOn] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -37,6 +47,7 @@ export function MemoryPanel() {
     try {
       const data = await jsonFetch("/api/memory");
       setMemories(data.memories ?? []);
+      setLearned(data.learned ?? []);
       setMasterOn(Boolean(data.memory_enabled));
     } catch (e) {
       setError(e instanceof Error ? e.message : "couldn't load your memory.");
@@ -71,6 +82,27 @@ export function MemoryPanel() {
       });
       setMasterOn(!masterOn);
       toast("success", !masterOn ? "memory on." : "memory off — cosigno stops using your notes.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /**
+   * Muting removes an observation from the planner but leaves the decisions it
+   * came from untouched — so the audit trail stays whole and the correction
+   * still costs one click.
+   */
+  async function mute(p: LearnedPreference) {
+    setBusy(p.key);
+    try {
+      await jsonFetch("/api/memory", {
+        method: "PATCH",
+        body: JSON.stringify({ preference_key: p.key, muted: true }),
+      });
+      toast("success", "dropped — cosigno stops using that observation.");
+      await load();
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "couldn't drop that.");
     } finally {
       setBusy(null);
     }
@@ -131,8 +163,8 @@ export function MemoryPanel() {
           <p className="text-sm font-extrabold lowercase">memory is {masterOn ? "on" : "off"}</p>
           <p className="text-xs text-ink-soft">
             {masterOn
-              ? "enabled notes below are given to cosigno as your saved context."
-              : "cosigno isn\u2019t using your notes — they\u2019re kept, but unused."}
+              ? "your enabled notes, and what cosigno has noticed about your decisions, are given to it as context."
+              : "cosigno isn\u2019t using your notes or what it noticed — they\u2019re kept, but unused."}
           </p>
         </div>
         <button
@@ -239,6 +271,41 @@ export function MemoryPanel() {
           )}
         </div>
       ))}
+
+      {/* what cosigno worked out on its own */}
+      {learned.length > 0 && (
+        <div className="mt-2 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Eye size={15} className="shrink-0 text-ink-soft" />
+            <div className="min-w-0">
+              <p className="text-sm font-extrabold lowercase">what cosigno noticed</p>
+              <p className="text-xs text-ink-soft">
+                worked out from your own approvals, edits and vetoes — not from
+                anything you wrote. these change what gets proposed. they never
+                change what needs your approval.
+              </p>
+            </div>
+          </div>
+
+          {learned.map((p) => (
+            <div key={p.key} className="rounded-card bg-surface/40 p-4 shadow-soft">
+              <p className="text-sm font-semibold leading-snug">{p.statement}</p>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                <span className="rounded-pill bg-cream-deep px-2.5 py-1 text-[11px] font-bold lowercase text-ink-soft">
+                  {p.weight} of {p.observed} decisions
+                </span>
+                <button
+                  onClick={() => mute(p)}
+                  disabled={busy === p.key}
+                  className="ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep"
+                >
+                  <Trash2 size={11} /> that&rsquo;s not right
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

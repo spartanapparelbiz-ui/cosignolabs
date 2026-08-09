@@ -31,6 +31,7 @@ import {
   BrowserActionRecord,
   BrowserProductRecord,
   MissionSourceRecord,
+  SourceMediaImage,
   SignalStateRecord,
   SignalStateStatus,
   SignatureRecord,
@@ -178,6 +179,23 @@ export class SupabaseStore implements Store {
     const { data, error } = await query;
     if (error) throw new Error(error.message);
     return data ?? [];
+  }
+
+  async listDecisionHeads(
+    userId: string,
+    limit: number
+  ): Promise<import("./index").DecisionHead[]> {
+    // Both the projection and the "decided" predicate are pushed down, so a
+    // pile of pending cards can't shrink the window and no payload moves.
+    const { data, error } = await this.client
+      .from("actions")
+      .select("id, category, status, veto_reason, created_at, resolved_at")
+      .eq("user_id", userId)
+      .neq("status", "proposed")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as import("./index").DecisionHead[];
   }
 
   async listActionHeads(userId: string, limit: number): Promise<ActionHead[]> {
@@ -337,6 +355,30 @@ export class SupabaseStore implements Store {
       out.push(...(data ?? []));
     }
     return out.sort((a, b) => a.created_at.localeCompare(b.created_at));
+  }
+
+  async listUserEditedActionIds(
+    userId: string,
+    actionIds: string[]
+  ): Promise<string[]> {
+    if (actionIds.length === 0) return [];
+    const found = new Set<string>();
+    // Projection + predicate pushed to the database: one short column back,
+    // and event bodies (which can carry a signature image) never move.
+    for (let i = 0; i < actionIds.length; i += 100) {
+      const { data, error } = await this.client
+        .from("action_events")
+        .select("action_id")
+        .eq("user_id", userId)
+        .eq("type", "edited")
+        .eq("actor", "user")
+        .in("action_id", actionIds.slice(i, i + 100));
+      if (error) throw new Error(error.message);
+      for (const row of (data ?? []) as Array<{ action_id: string }>) {
+        found.add(row.action_id);
+      }
+    }
+    return [...found];
   }
 
   async getTierSettings(userId: string): Promise<TierSettingRecord[]> {
@@ -1186,6 +1228,7 @@ export class SupabaseStore implements Store {
       user_id: userId,
       memory_enabled: row?.memory_enabled ?? true,
       action_budget: row?.action_budget ?? DEFAULT_ACTION_BUDGET,
+      muted_preferences: row?.muted_preferences ?? [],
     };
   }
 
@@ -1194,6 +1237,28 @@ export class SupabaseStore implements Store {
       .from("user_prefs")
       .upsert({ user_id: userId, memory_enabled: enabled, updated_at: new Date().toISOString() });
     if (error) throw new Error(error.message);
+  }
+
+  async setPreferenceMuted(
+    userId: string,
+    key: string,
+    muted: boolean
+  ): Promise<string[]> {
+    // Read-modify-write on a single-row-per-user table. The array is the
+    // user's own short list, edited one key at a time from one screen, so the
+    // simple path is honest here — and a lost concurrent mute costs a click,
+    // never authority.
+    const current = await this.getPrefs(userId);
+    const next = muted
+      ? [...new Set([...current.muted_preferences, key])].sort()
+      : current.muted_preferences.filter((k) => k !== key);
+    const { error } = await this.client.from("user_prefs").upsert({
+      user_id: userId,
+      muted_preferences: next,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+    return next;
   }
 
   async setActionBudget(userId: string, budget: number): Promise<void> {
@@ -1621,6 +1686,7 @@ export class SupabaseStore implements Store {
         size_bytes: input.size_bytes ?? 0,
         status: input.status,
         summary: input.summary ?? "",
+        media: input.media ?? [],
         injection_flag: input.injection_flag ?? false,
         detail: input.detail ?? {},
       })
@@ -1638,29 +1704,59 @@ export class SupabaseStore implements Store {
       .eq("id", id)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return (data as MissionSourceRecord) ?? null;
+    if (!data) return null;
+    const rec = data as MissionSourceRecord;
+    return { ...rec, media: rec.media ?? [] };
   }
+
+  /**
+   * Columns for a LIST of sources. `media` is deliberately absent: a chip in
+   * the ask box needs a name and a status, not several megabytes of base64.
+   * Media is read separately, only when a model call is actually being built.
+   */
+  private static readonly SOURCE_LIST_COLUMNS =
+    "id, user_id, mission_id, kind, name, subtype, size_bytes, status, summary, injection_flag, detail, created_at, updated_at";
 
   async listStagedSources(userId: string): Promise<MissionSourceRecord[]> {
     const { data, error } = await this.client
       .from("mission_sources")
-      .select("*")
+      .select(SupabaseStore.SOURCE_LIST_COLUMNS)
       .eq("user_id", userId)
       .is("mission_id", null)
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
-    return (data ?? []) as MissionSourceRecord[];
+    return ((data ?? []) as unknown as MissionSourceRecord[]).map((s) => ({ ...s, media: [] }));
   }
 
   async listMissionSources(userId: string, missionId: string): Promise<MissionSourceRecord[]> {
     const { data, error } = await this.client
       .from("mission_sources")
-      .select("*")
+      .select(SupabaseStore.SOURCE_LIST_COLUMNS)
       .eq("user_id", userId)
       .eq("mission_id", missionId)
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
-    return (data ?? []) as MissionSourceRecord[];
+    return ((data ?? []) as unknown as MissionSourceRecord[]).map((s) => ({ ...s, media: [] }));
+  }
+
+  /**
+   * The pixels for specific sources, fetched only when a model call needs
+   * them. Ownership is enforced in the query, so an id belonging to someone
+   * else returns nothing rather than another account's image.
+   */
+  async listSourceMedia(userId: string, ids: string[]): Promise<Map<string, SourceMediaImage[]>> {
+    if (ids.length === 0) return new Map();
+    const { data, error } = await this.client
+      .from("mission_sources")
+      .select("id, media")
+      .eq("user_id", userId)
+      .in("id", ids);
+    if (error) throw new Error(error.message);
+    const out = new Map<string, SourceMediaImage[]>();
+    for (const row of (data ?? []) as unknown as { id: string; media: SourceMediaImage[] | null }[]) {
+      out.set(row.id, row.media ?? []);
+    }
+    return out;
   }
 
   async deleteMissionSource(userId: string, id: string): Promise<void> {

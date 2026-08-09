@@ -34,7 +34,7 @@ export async function runAutomation(
     // to typed commands — an automation can never out-spend its owner.
     await enforceLimit("commandMinute", userId);
     await enforceLimit("commandDay", userId);
-    await enforceGlobalPlanningBudget();
+    await enforceGlobalPlanningBudget(userId);
 
     const result = await runCommand(userId, automation.command, {});
     sessionId = result.session.id;

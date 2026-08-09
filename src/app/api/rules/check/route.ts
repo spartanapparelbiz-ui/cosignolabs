@@ -184,6 +184,11 @@ export async function POST(req: NextRequest) {
         // Newest first, capped — the list is evidence, not an export.
         would_ask: wouldAsk.slice(0, 8),
         would_block: wouldBlock.slice(0, 8),
+        // The counts are NOT capped. A summary counted from the trimmed lists
+        // above would quietly under-report the moment a rule catches more than
+        // eight things — the one number a person reads before deciding.
+        would_ask_count: wouldAsk.length,
+        would_block_count: wouldBlock.length,
         recommendation,
       },
       { headers: { "cache-control": "no-store" } }

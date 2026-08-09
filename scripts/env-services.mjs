@@ -64,6 +64,15 @@ export const SERVICES = [
     where: "Cloudflare → Turnstile",
   },
   {
+    name: "OWNER",
+    vars: ["OWNER_IDS"],
+    gatesApp: false,
+    note: "optional — internal accounts only",
+    breaks:
+      "nobody gets the owner override, so every account (including yours) is billed like a customer. Set it to a comma-separated list of Supabase Auth user ids",
+    where: "Supabase → Authentication → Users → the UID column",
+  },
+  {
     name: "STRIPE",
     vars: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
     gatesApp: false,

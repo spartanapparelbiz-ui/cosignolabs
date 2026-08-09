@@ -24,6 +24,8 @@ export interface MockProposal {
 
 export interface MockPlan {
   reasoning: string;
+  /** The offline planner plans; it never fabricates an answer it can't have. */
+  answer: string;
   proposals: MockProposal[];
   /** False when no simulated domain matched — the demo must say so honestly. */
   supported: boolean;
@@ -196,5 +198,5 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
     ? "i planned from your command only. content i read from an external source contained instructions aimed at me — i ignored them and held the affected cards for your review."
     : "i broke your command into the smallest independently-approvable steps. read-only steps run automatically; anything that changes the outside world waits for your signature.";
 
-  return { reasoning, proposals, supported, planPreview };
+  return { reasoning, answer: "", proposals, supported, planPreview };
 }

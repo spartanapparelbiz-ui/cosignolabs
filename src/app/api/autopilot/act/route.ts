@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     await enforceLimit("commandMinute", userId);
     await enforceLimit("commandDay", userId);
     const body = parseStrict(autopilotActSchema, await readJsonBody(req), "action");
-    await enforceGlobalPlanningBudget();
+    await enforceGlobalPlanningBudget(userId);
 
     const result = await runCommand(userId, body.command, {});
 

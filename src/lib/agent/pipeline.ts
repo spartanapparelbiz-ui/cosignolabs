@@ -126,11 +126,14 @@ export async function runCommand(
     actions.push(proposed.tier === 1 ? await autoExecute(userId, proposed) : proposed);
   }
 
+  // What the person reads. A direct answer wins over the plan summary: when
+  // they asked a question, the answer IS the reply, and showing them a
+  // rationale for an empty plan instead was the old, useless behavior.
   const agentMessage = await store.addMessage(
     userId,
     session.id,
     "agent",
-    plan.reasoning || "Plan prepared."
+    plan.answer || plan.reasoning || "Plan prepared."
   );
 
   return { session, userMessage, agentMessage, actions };

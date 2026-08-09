@@ -36,7 +36,7 @@ const SURFACES = [
   "/app/monitoring",
   "/app/mission-control",
   "/app/twins",
-  "/app/settings/rules",
+  "/app/preview",
   "/app/templates",
   "/app/watch",
   "/app/account",
@@ -100,7 +100,6 @@ const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 1200 } });
 await ctx.addInitScript(() => {
   try {
-    localStorage.setItem("cosigno_intro_seen", "1");
     localStorage.setItem("cosigno_briefing_seen", String(Date.now() - 3_600_000));
   } catch {
     /* storage may be unavailable */

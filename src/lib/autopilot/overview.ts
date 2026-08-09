@@ -4,12 +4,10 @@ import { computeForecast } from "./forecast";
 import { computeHealth } from "./health";
 import { computeBrief, computeChanges, computeRecommendations } from "./insights";
 import { computeMap } from "./map";
-import { sampleSnapshot } from "./sample";
 import { detectSignals } from "./signals";
 import type {
   AskAnswer,
   AutopilotOverview,
-  BusinessAreaKey,
   BusinessSnapshot,
   Signal,
   SignalView,
@@ -18,47 +16,24 @@ import type {
 /**
  * Assembles everything the Autopilot surfaces render. The engine itself is
  * pure; this module is the only place Autopilot touches the store (signal
- * dispositions + the last-viewed marker) and the user's connections (which
- * real tools feed each business area on the map).
+ * dispositions + the last-viewed marker).
  *
- * DATA SOURCE, honestly: until live metric readers exist for revenue/ads/CRM
- * providers, the snapshot is the labeled SAMPLE business — every payload
- * carries data_source: "sample" and the UI shows it. Connected apps do flow
- * into the Business Map's systems, so the map reflects the user's real
- * stack. When live readers land, buildSnapshot() is the one seam to swap.
+ * DATA SOURCE, honestly: no live metric reader exists yet for revenue/ads/CRM
+ * providers, so there is no snapshot to reason over and Autopilot reports
+ * exactly that. It does NOT stand a sample business in the gap. A person
+ * opening a new account sees an empty account — no invented history, no
+ * scores computed from numbers that were never theirs, and no recommended
+ * actions derived from them. buildSnapshot() is the one seam to swap when
+ * live readers land; everything downstream already works, and the engine
+ * stays covered by tests against the sample fixture in ./sample.
  */
 
-/** Which business area each connectable provider feeds. */
-const PROVIDER_AREAS: Record<string, BusinessAreaKey[]> = {
-  gmail: ["sales", "support"],
-  outlook: ["sales", "support"],
-  slack: ["support", "operations"],
-  notion: ["operations"],
-  "google-calendar": ["operations"],
-  "google-drive": ["operations"],
-  github: ["products"],
-};
-
-async function connectedSystems(
-  userId: string
-): Promise<Partial<Record<BusinessAreaKey, string[]>>> {
-  const out: Partial<Record<BusinessAreaKey, string[]>> = {};
-  try {
-    const connections = await getStore().listConnections(userId);
-    for (const c of connections) {
-      if (c.status !== "connected") continue;
-      for (const area of PROVIDER_AREAS[c.provider_key] ?? []) {
-        (out[area] ??= []).push(c.display_name);
-      }
-    }
-  } catch {
-    // Connections are enrichment for the map — never fail the overview on them.
-  }
-  return out;
-}
-
-async function buildSnapshot(userId: string, now: Date): Promise<BusinessSnapshot> {
-  return sampleSnapshot(now, await connectedSystems(userId));
+/**
+ * The user's real business metrics, or null when nothing is producing any.
+ * Returns null unconditionally today — there is no reader to call yet.
+ */
+async function buildSnapshot(_userId: string, _now: Date): Promise<BusinessSnapshot | null> {
+  return null;
 }
 
 function joinStates(
@@ -91,6 +66,10 @@ export async function buildOverview(
   const store = getStore();
 
   const snapshot = await buildSnapshot(userId, now);
+  // Nothing is feeding Autopilot. Say so and return — do not run the engine
+  // over an invented business just to have something on the page.
+  if (!snapshot) return { data_source: "none", as_of: now.toISOString() };
+
   const signals = detectSignals(snapshot);
   const states = await store.ensureSignalStates(userId, signals.map((s) => s.key));
   const views = joinStates(signals, states);
@@ -117,7 +96,7 @@ export async function buildOverview(
   }
 
   return {
-    data_source: snapshot.data_source,
+    data_source: "live",
     business_name: snapshot.business_name,
     as_of: snapshot.as_of,
     brief,
@@ -139,6 +118,20 @@ export async function answerQuestion(
   now = new Date()
 ): Promise<AskAnswer> {
   const snapshot = await buildSnapshot(userId, now);
+  if (!snapshot) {
+    // An answer with no data behind it would be a guess wearing a suit.
+    return {
+      question,
+      answer:
+        "I can't answer that yet — nothing is reporting your business numbers to me.",
+      evidence: [],
+      metrics: [],
+      confidence: "low",
+      next_step:
+        "Connect the tools that hold your revenue, customer, and support data, and I'll answer from those.",
+      action: null,
+    };
+  }
   const signals = detectSignals(snapshot);
   const health = computeHealth(snapshot);
   const forecast = computeForecast(snapshot, signals);

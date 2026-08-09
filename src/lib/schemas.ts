@@ -42,6 +42,19 @@ const statusEnum = z.enum([
 /** Payloads are arbitrary JSON objects but never arrays/scalars. */
 const payloadObject = z.record(z.string(), z.unknown());
 
+/**
+ * Reading and answering attached material. Small by design: the material is
+ * already stored (uploaded as sources), so only its ids travel here — never
+ * the bytes, which is what keeps this inside the 100 kB body limit.
+ */
+export const analyzeSchema = z
+  .object({
+    question: z.string().trim().min(1).max(MAX_COMMAND_LENGTH),
+    sourceIds: z.array(uuid).max(20).optional(),
+    sessionId: uuid.optional(),
+  })
+  .strict();
+
 export const commandSchema = z
   .object({
     command: z.string().min(1).max(MAX_COMMAND_LENGTH),
@@ -313,6 +326,23 @@ export const memoryPrefsSchema = z
   .object({ memory_enabled: z.boolean() })
   .strict();
 
+/**
+ * Mute or unmute one learned preference. The key is a derived identifier
+ * (`avoid:send_email`, `constraint:weekend`), so the pattern is tight enough
+ * that nothing else can be smuggled into the stored array.
+ */
+export const preferenceMuteSchema = z
+  .object({
+    preference_key: z
+      .string()
+      .trim()
+      .min(3)
+      .max(80)
+      .regex(/^[a-z]+:[a-z0-9_']+$/, "that isn't a preference we recognise."),
+    muted: z.boolean(),
+  })
+  .strict();
+
 /* ---------------------------------------------------- permission rules */
 
 /** Create a permission rule from plain language (parsed server-side). */
@@ -337,7 +367,7 @@ export const permissionRulePatchSchema = z
 export const fileSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
-    mime: z.enum(["text/plain", "text/markdown", "text/csv"]),
+    mime: z.enum(["text/plain", "text/markdown", "text/csv", "text/html", "image/svg+xml"]),
     content: z.string().max(80000),
     session_id: uuid.optional(),
   })

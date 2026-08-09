@@ -1,4 +1,5 @@
 import { logSecurity } from "./log";
+import { isOwner } from "./owner";
 
 /**
  * Rate limiting. Production uses Upstash Redis (@upstash/ratelimit sliding
@@ -152,6 +153,23 @@ export class RateLimitError extends Error {
 
 /** Throws RateLimitError (mapped to HTTP 429) when the window is exhausted. */
 export async function enforceLimit(name: LimitName, key: string): Promise<void> {
+  // ─── OWNER OVERRIDE ──────────────────────────────────────────────────────
+  // Per-user windows are a plan-shaped ceiling like any other: they cap AI
+  // usage, connector previews, uploads and every other authenticated action
+  // by the minute and by the day. An owner has none of them.
+  //
+  // The bypass keys off the SAME value the window is keyed by, which is what
+  // makes it correct rather than merely convenient. `key` is the user id on
+  // every authenticated limit, so identity is exact. The windows keyed by
+  // something else — client IP on the anonymous sandbox and the beta form,
+  // `authz:<org>` on the token routes — cannot match: ownerIds() only ever
+  // admits UUID-shaped entries, so an IP or an org string can never be in
+  // the set. Those surfaces stay limited, which is the point of them.
+  //
+  // Costs one env read when OWNER_IDS is unset — isOwner() short-circuits on
+  // an empty set without touching auth or the network. See lib/owner.ts.
+  if (isOwner(key)) return;
+
   const limiter = await getLimiter(name);
   const res = await limiter.limit(key);
   if (!res.success) {
@@ -164,8 +182,19 @@ export async function enforceLimit(name: LimitName, key: string): Promise<void> 
  * Global circuit breaker: bounds total daily planner invocations across
  * ALL users, so even a per-user-limit bypass has a hard ceiling. Uses a
  * Redis daily counter when Upstash is configured, else process memory.
+ *
+ * `userId` is optional so a caller that genuinely has no user — there is no
+ * such caller today, but the ceiling must not depend on that staying true —
+ * still gets the cap. Pass it wherever it is known.
  */
-export async function enforceGlobalPlanningBudget(): Promise<void> {
+export async function enforceGlobalPlanningBudget(userId?: string): Promise<void> {
+  // ─── OWNER OVERRIDE ──────────────────────────────────────────────────────
+  // The last ceiling standing between an owner and the planner, so "unlimited
+  // AI usage" has to mean this one too. Owners return BEFORE the counter is
+  // incremented — not merely before it is compared — so their traffic neither
+  // hits the shared beta cap nor consumes it on behalf of paying users.
+  if (isOwner(userId)) return;
+
   // Hard daily ceiling on total planner (spend) calls across ALL users.
   // DAILY_PLAN_CAP is the canonical env var; COSIGNO_GLOBAL_DAILY_PLANS is
   // still read for backward-compat. Default 500 — a sane beta ceiling.

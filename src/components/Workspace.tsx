@@ -21,12 +21,6 @@ const COMMAND_KEYWORDS = [
   "refund", "unsubscribe", "forward", "label", "follow up", "update",
 ];
 
-const EXAMPLES = [
-  "clear my inbox of newsletters",
-  "draft replies to these 3 leads",
-  "reprice these products for the summer sale",
-];
-
 async function jsonFetch(url: string, init?: RequestInit) {
   const res = await fetch(url, {
     ...init,
@@ -462,23 +456,6 @@ export function Workspace() {
         )}
 
         <div className="flex flex-col gap-2">
-          {messages.length === 0 && !thinking && (
-            <div className="rounded-card bg-surface/40 p-5 shadow-soft">
-              <p className="text-sm font-bold text-ink-soft">try one of these:</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {EXAMPLES.map((ex) => (
-                  <button
-                    key={ex}
-                    onClick={() => submit(ex)}
-                    className="rounded-btn bg-cream-deep px-4 py-2 text-sm font-semibold transition-colors hover:bg-ink hover:text-cream"
-                  >
-                    {ex}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {messages.map((m) =>
             m.role === "user" ? (
               <p

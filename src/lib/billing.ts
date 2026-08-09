@@ -1,4 +1,5 @@
 import { getStore } from "./store";
+import { isOwner } from "./owner";
 import {
   getPlan,
   PAST_DUE_GRACE_DAYS,
@@ -35,8 +36,36 @@ export interface ResolvedPlan {
  *  - past_due → keep paid access for PAST_DUE_GRACE_DAYS from past_due_since,
  *    then drop to free until resolved.
  *  - anything else → free.
+ *
+ * The ONE exception to "read the row" is the owner override, checked first:
+ * see below.
  */
 export async function getUserPlan(userId: string): Promise<ResolvedPlan> {
+  /**
+   * Owner override — server-side, and BEFORE any store read so an owner's
+   * access never depends on Stripe, a webhook, or a row existing at all.
+   *
+   * Keyed on the immutable Supabase Auth user id via OWNER_IDS (lib/owner.ts).
+   * This is the only path to the owner plan and the only place it is granted:
+   * putting it here rather than at a route means all nine enforcement points
+   * that already funnel through getUserPlan inherit it, and none of them can
+   * disagree about who an owner is.
+   *
+   * It fails closed in the same direction as everything else — OWNER_IDS unset
+   * means no owners.
+   */
+  if (isOwner(userId)) {
+    return {
+      plan: getPlan("owner"),
+      planId: "owner",
+      status: "active",
+      activeUntil: null,
+      cancelAtPeriodEnd: false,
+      inGrace: false,
+      pastDue: false,
+    };
+  }
+
   const free: ResolvedPlan = {
     plan: getPlan("free"),
     planId: "free",
@@ -55,6 +84,10 @@ export async function getUserPlan(userId: string): Promise<ResolvedPlan> {
   }
   if (!sub) return free;
 
+  // Only the three PUBLIC tiers are honored from a stored row. `owner` is
+  // absent from this map on purpose: the owner plan is granted by OWNER_IDS
+  // alone, so an "owner" value that somehow reaches the subscriptions table
+  // resolves to free instead of escalating. Do not add it here.
   const planId = (sub.plan as PlanId) in { free: 1, pro: 1, max: 1 } ? (sub.plan as PlanId) : "free";
   if (planId === "free") return free;
 

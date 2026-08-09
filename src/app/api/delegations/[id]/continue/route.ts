@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!session) throw new ApiError(404, "not_found", "we couldn't find that delegation.");
     const actions = await store.listActions(userId, { session_id: id, limit: 500 });
 
-    await enforceGlobalPlanningBudget();
+    await enforceGlobalPlanningBudget(userId);
 
     const command = buildContinuationCommand(session.title, actions, body.mode);
     const result = await runCommand(userId, command, { sessionId: id });

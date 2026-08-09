@@ -35,7 +35,7 @@ const SURFACES = {
   monitoring: { path: "/app/monitoring" },
   control: { path: "/app/mission-control" },
   capabilities: { path: "/app/twins" },
-  rules: { path: "/app/settings/rules", wait: "test an AI rule" },
+  preview: { path: "/app/preview", wait: "See exactly what changes" },
   templates: { path: "/app/templates" },
   settings: { path: "/app/settings" },
   health: { path: "/app/health" },
@@ -83,7 +83,6 @@ for (const vp of VIEWPORTS) {
   // captures, not something that should sit on top of every other surface.
   await ctx.addInitScript(() => {
     try {
-      localStorage.setItem("cosigno_intro_seen", "1");
       localStorage.setItem("cosigno_briefing_seen", String(Date.now() - 3_600_000));
       localStorage.setItem("cosigno_name", "Nicholas");
     } catch {

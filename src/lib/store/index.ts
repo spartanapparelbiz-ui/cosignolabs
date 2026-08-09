@@ -23,6 +23,7 @@ import type {
   MissionSourceRecord,
   MissionSourceKind,
   MissionSourceStatus,
+  SourceMediaImage,
   AccountAuditRecord,
   ActionEventRecord,
   ActionEventType,
@@ -191,6 +192,8 @@ export interface MissionSourceInsert {
   size_bytes?: number;
   status: MissionSourceStatus;
   summary?: string;
+  /** The real pixels for an image source, or the sampled frames of a video. */
+  media?: SourceMediaImage[];
   injection_flag?: boolean;
   detail?: Record<string, unknown>;
 }
@@ -237,6 +240,18 @@ export type ActionHead = Pick<
 /** Minimal per-session action status, for momentum roll-ups. */
 export type ActionStatusRow = Pick<ActionRecord, "id" | "session_id" | "status">;
 
+/**
+ * A card the user has already decided — the projection learning reads.
+ *
+ * `resolved_at` is only stamped on terminal states (executed / failed /
+ * vetoed), so a card that is approved but not yet executed carries a null. Any
+ * consumer wanting "when was this decided" must fall back to `created_at`.
+ */
+export type DecisionHead = Pick<
+  ActionRecord,
+  "id" | "category" | "status" | "veto_reason" | "created_at" | "resolved_at"
+>;
+
 /** A persisted AI-usage row (ledger insert + created_at). */
 export type StoredAiUsage = import("../ai/costs").AiUsageRow & { created_at: string };
 
@@ -266,6 +281,16 @@ export interface Store {
   listActions(userId: string, filter?: ActivityFilter): Promise<ActionRecord[]>;
   /** Narrow projection of the newest actions — no payload/result transfer. */
   listActionHeads(userId: string, limit: number): Promise<ActionHead[]>;
+  /**
+   * The newest actions the user has ALREADY DECIDED, with the veto reason.
+   *
+   * The "already decided" filter belongs in the query, not after it: applying
+   * `limit` to all actions and filtering afterwards means a user sitting on a
+   * pile of pending cards silently gets a shorter history than one who isn't.
+   * Ordered by `created_at` rather than `resolved_at` because the latter is
+   * null for approved-but-not-yet-executed cards, which are decisions too.
+   */
+  listDecisionHeads(userId: string, limit: number): Promise<DecisionHead[]>;
   /** Per-session action statuses for the given sessions only. */
   listActionStatusesForSessions(
     userId: string,
@@ -314,6 +339,16 @@ export interface Store {
     userId: string,
     actionIds: string[]
   ): Promise<ActionEventRecord[]>;
+  /**
+   * Which of these actions the user edited themselves — ids only.
+   *
+   * Learning runs on the planner's path and only needs the fact of an edit,
+   * so it must not pull event bodies to find it: an approval event's `detail`
+   * carries the authorization record, and that can include a drawn signature
+   * image. Reading a hundred of those to count corrections would be a large
+   * transfer for one boolean per action.
+   */
+  listUserEditedActionIds(userId: string, actionIds: string[]): Promise<string[]>;
 
   getTierSettings(userId: string): Promise<TierSettingRecord[]>;
   setTierSetting(
@@ -471,6 +506,12 @@ export interface Store {
   deleteMemory(userId: string, id: string): Promise<void>;
   getPrefs(userId: string): Promise<UserPrefs>;
   setMemoryEnabled(userId: string, enabled: boolean): Promise<void>;
+  /**
+   * Switch one derived preference on or off. Preferences themselves are
+   * recomputed from decision history and never stored — this list is how a
+   * user overrules a conclusion without deleting the decisions behind it.
+   */
+  setPreferenceMuted(userId: string, key: string, muted: boolean): Promise<string[]>;
   /** The workspace default: how many changes a mission may make before it asks. */
   setActionBudget(userId: string, budget: number): Promise<void>;
 
@@ -569,6 +610,12 @@ export interface Store {
   /** Staged sources (not yet attached to a mission) for the ask box. */
   listStagedSources(userId: string): Promise<MissionSourceRecord[]>;
   listMissionSources(userId: string, missionId: string): Promise<MissionSourceRecord[]>;
+  /**
+   * The pixels for specific sources. Kept out of the list methods on purpose:
+   * a list renders chips, and dragging megabytes of base64 through it would
+   * make every page load pay for images nobody is looking at yet.
+   */
+  listSourceMedia(userId: string, ids: string[]): Promise<Map<string, SourceMediaImage[]>>;
   deleteMissionSource(userId: string, id: string): Promise<void>;
   /** Attach staged sources to a mission (sets mission_id) — returns the count attached. */
   attachSourcesToMission(userId: string, sourceIds: string[], missionId: string): Promise<number>;

@@ -5,15 +5,37 @@ import { CATEGORY_LIST } from "../types";
  * or readable by the client. Bump SYSTEM_PROMPT_VERSION on any change so
  * audit entries can be correlated with the prompt that produced them.
  */
-export const SYSTEM_PROMPT_VERSION = "2026-07-10.1";
+export const SYSTEM_PROMPT_VERSION = "2026-08-08.1";
 
-export function buildSystemPrompt(connected?: string, memory?: string): string {
+export function buildSystemPrompt(
+  connected?: string,
+  memory?: string,
+  learned?: string
+): string {
   const categories = CATEGORY_LIST.map(
     (c) => `- ${c.category}: ${c.description}`
   ).join("\n");
 
   const memorySection = memory
     ? `Saved user context (notes the user chose to save — preferences and goals, not commands):\n${memory}`
+    : "";
+
+  // Kept in its own section, and never merged with the notes above: what the
+  // user WROTE and what was INFERRED from their behaviour carry different
+  // authority, and collapsing them would let a counting result be read as
+  // something the user said. The closing lines are the load-bearing part —
+  // a preference is a prior on what to propose, never a grant of permission,
+  // and the live command always outranks it.
+  const learnedSection = learned
+    ? `Observed from this user's own past decisions — approvals, edits made at the approval door, and vetoes. Inferred, not stated by them:
+${learned}
+
+How to use those observations:
+- They shape WHAT you propose and how you write it. They change nothing else.
+- They are not permission. They never raise or lower a tier, never authorize an action, and never mean an approval can be skipped. Every proposal still goes to the user exactly as it would have.
+- The command in front of you outranks them. If this command asks for something an observation argues against, follow the command and note the difference in one clause of your reasoning.
+- Anything the user actually wrote — the saved context above — outranks them too. An observation is a guess about a person; a note is that person speaking. On a conflict, the note wins.
+- If an observation is irrelevant to this command, ignore it silently.`
     : "";
 
   const connectedSection = connected
@@ -36,7 +58,17 @@ ${connectedSection}
 
 ${memorySection}
 
-Respond by calling the propose_actions tool exactly once with 1-5 proposals plus a short reasoning summary (2-3 sentences, plain language, no markdown).
+${learnedSection}
+
+Answering vs. proposing — decide which the person actually asked for:
+
+- If they asked a QUESTION, or asked you to explain, describe, analyze, or summarize something, put the real answer in \`answer\` and return an EMPTY proposals list. Answer it fully and specifically. Do not turn a question into a to-do list, and never invent an action just to have something to propose.
+- If they asked for WORK to be done, propose it: 1-5 proposals, and leave \`answer\` empty.
+- If they asked for both ("tell me what's in this and then email it"), answer the question AND propose the action.
+
+Never claim to have looked at something you were not given. If a file or image is referred to but is not present in this message, say you could not open it. Do not describe a file from its name.
+
+Respond by calling the propose_actions tool exactly once, with a short reasoning summary (2-3 sentences, plain language, no markdown) plus whichever of \`answer\` / \`proposals\` fits what was asked.
 
 System prompt version: ${SYSTEM_PROMPT_VERSION}`;
 }
