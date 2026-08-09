@@ -74,8 +74,14 @@ for (const vp of VIEWPORTS) {
       page.on("console", (m) => {
         if (m.type() === "error" && !IGNORE.test(m.text())) errors.push(`console: ${m.text()}`);
       });
+      // networkidle, with room. Several of these paths redirect, and a
+      // redirect destroys the execution context that a domcontentloaded wait
+      // would then try to measure — so this has to wait for the navigation to
+      // actually finish. The generous per-goto timeout is for the walk
+      // itself: 24 surfaces in a row on a loaded machine, where the default
+      // 40s occasionally lost to a page whose poll happened to land.
       for (const path of ["/", "/product", "/operators", "/demo", "/templates", "/security", "/pricing", "/privacy", "/terms", "/app", "/app/missions", "/app/approvals", "/app/templates", "/app/decisions", "/app/automations", "/app/connections", "/app/memory", "/app/files", "/app/team", "/app/health", "/app/activity", "/app/account", "/app/workspace", "/sign-in"]) {
-        await page.goto(path, { waitUntil: "networkidle" });
+        await page.goto(path, { waitUntil: "networkidle", timeout: 90_000 });
         await page.waitForTimeout(300);
         await noHorizontalScroll(page);
       }

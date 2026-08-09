@@ -243,8 +243,18 @@ function ActionCardInner({
         className={`group flex w-full items-center gap-3 rounded-card bg-surface/50 px-4 py-2.5 text-left shadow-soft transition-shadow hover:shadow-lift animate-card-in ${
           action.status === "executed" ? "animate-ring-flash" : ""
         }`}
-        aria-label={`${actionStatus(action.status)}: ${action.summary} — expand details`}
       >
+        {/* No aria-label here on purpose.
+            One used to restate the row as "{status}: {summary} — expand
+            details", which reads fine and quietly REPLACED everything the row
+            actually shows: the result line and the time were no longer part of
+            the button's name, and someone using voice control could not
+            activate it by saying the words in front of them (WCAG 2.5.3).
+            The row already says all of that in visible text; the only thing
+            missing was the status, which is carried by a glyph — so that is
+            what gets added, and the name is now the visible row plus the one
+            fact a sighted reader gets from a shape. */}
+        <span className="sr-only">{actionStatus(action.status)}:</span>
         {action.status === "executed" ? (
           <SignedCheck label="" />
         ) : action.status === "vetoed" ? (
