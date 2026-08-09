@@ -6,6 +6,7 @@ import type { MissionRecord, MissionStepRecord } from "@/lib/types";
 import { missionStatus } from "@/lib/status";
 import { MissionCard } from "@/components/app/MissionCard";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
+import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { useBackgroundExecution } from "./useBackgroundExecution";
 
@@ -160,31 +161,31 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
       )}
 
       {missions.length > 0 && (
-        <div
-          role="tablist"
-          aria-label="filter missions"
-          className="flex flex-wrap gap-1.5"
-        >
-          {FILTERS.map((f) => {
-            const active = filter === f.id;
-            const n = counts[f.id];
-            return (
-              <button
-                key={f.id}
-                role="tab"
-                aria-selected={active}
-                onClick={() => setFilter(f.id)}
-                className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-pill px-3.5 text-xs font-bold transition-[background-color,color,transform] duration-fast ease-brand-out active:scale-[0.98] ${
-                  active
-                    ? "bg-ink text-cream"
-                    : "text-ink-soft ring-1 ring-inset ring-line hover:bg-cream-deep hover:text-ink"
-                }`}
-              >
-                {f.label}
-                <span className="tabular-nums opacity-70">{n}</span>
-              </button>
-            );
-          })}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div role="tablist" aria-label="filter missions" className="flex flex-wrap gap-1.5">
+            {FILTERS.map((f) => {
+              const active = filter === f.id;
+              return (
+                <button
+                  key={f.id}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setFilter(f.id)}
+                  className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-pill px-3.5 text-xs font-bold transition-[background-color,color,transform] duration-fast ease-brand-out active:scale-[0.98] ${
+                    active
+                      ? "bg-ink text-cream"
+                      : "text-ink-soft ring-1 ring-inset ring-line hover:bg-cream-deep hover:text-ink"
+                  }`}
+                >
+                  {f.label}
+                  <span className="tabular-nums opacity-70">{counts[f.id]}</span>
+                </button>
+              );
+            })}
+          </div>
+          <ButtonLink href="/app" size="sm" className="ml-auto">
+            Start something
+          </ButtonLink>
         </div>
       )}
 

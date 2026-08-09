@@ -21,12 +21,19 @@ import {
 import { LogoHome } from "@/components/brand/LivingLogo";
 
 /**
- * The app's navigation chrome: a compact left rail on desktop, a bottom bar
- * on mobile. The seven everyday destinations — nothing else lives here (no
- * upgrade ads, per the shell rules). The approvals item carries a count badge
- * ONLY when something actually needs a signature. Advanced surfaces (memory,
- * team, health, automations, files) stay reachable from their in-page links
- * and settings.
+ * The app's navigation: a compact left rail on desktop, a bottom bar on
+ * mobile.
+ *
+ * Two properties this file is responsible for, both of which are easy to lose:
+ *
+ * WHERE AM I. The active destination is marked three ways — a filled surface,
+ * a signal bar on the edge, and aria-current — so it survives greyscale, a
+ * screenshot, and a screen reader. The bar slides rather than jumping,
+ * because a moving marker is how the eye follows a change it didn't cause.
+ *
+ * WHAT NEEDS ME. The approvals badge is the only number in the chrome, and it
+ * is the only one that earns a place: it means work has stopped and is waiting
+ * on a person. It carries real text for screen readers, never a bare digit.
  */
 
 /**
@@ -62,8 +69,6 @@ const SECONDARY = [
   { href: "/app/account", label: "account", icon: Settings },
 ] as const;
 
-
-
 /** One rail destination. Both groups render through this. */
 function RailLink({
   href,
@@ -83,12 +88,24 @@ function RailLink({
       href={href}
       prefetch
       aria-current={active ? "page" : undefined}
-      className={`relative flex w-[60px] flex-col items-center gap-0.5 rounded-btn px-1 py-2 text-[10px] font-bold lowercase transition-colors ${
+      className={`group relative flex w-[60px] flex-col items-center gap-0.5 rounded-btn px-1 py-2 text-[10px] font-bold lowercase transition-[background-color,color,transform] duration-fast ease-brand-out active:scale-[0.96] ${
         active ? "bg-ink text-cream" : "text-ink-soft hover:bg-cream-deep hover:text-ink"
       }`}
     >
+      {/* The signal bar: a second, non-colour-dependent marker for "here". */}
+      <span
+        aria-hidden="true"
+        className={`absolute -left-2 top-1/2 w-[3px] -translate-y-1/2 rounded-pill bg-signal transition-[height,opacity] duration-base ease-brand-out ${
+          active ? "h-7 opacity-100" : "h-0 opacity-0"
+        }`}
+      />
       <span className="relative">
-        <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
+        <Icon
+          size={17}
+          strokeWidth={2.2}
+          aria-hidden="true"
+          className="transition-transform duration-fast ease-brand-out group-hover:-translate-y-px"
+        />
         {badge > 0 && <Badge count={badge} />}
       </span>
       {label}
@@ -173,12 +190,25 @@ function useIsFreePlan(): boolean {
   return free;
 }
 
+/**
+ * The count of things waiting on a person. A bare "3" floating over an icon
+ * means nothing to a screen reader, so the number is decorative and the fact
+ * is spoken in words.
+ */
 function Badge({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
-    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-pill bg-signal px-1 text-[9px] font-extrabold text-ink">
-      {count > 9 ? "9+" : count}
-    </span>
+    <>
+      <span
+        aria-hidden="true"
+        className="absolute -right-1 -top-1 flex h-4 min-w-4 animate-status-swap items-center justify-center rounded-pill bg-signal px-1 text-[9px] font-extrabold text-ink"
+      >
+        {count > 9 ? "9+" : count}
+      </span>
+      <span className="sr-only">
+        , {count} waiting for your approval
+      </span>
+    </>
   );
 }
 
@@ -256,11 +286,15 @@ export function AppBottomNav() {
             href={href}
             prefetch
             aria-current={active ? "page" : undefined}
-            className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-btn py-1 text-[9px] font-bold lowercase ${
+            className={`relative flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-btn py-1 text-[9px] font-bold lowercase transition-colors duration-fast ${
               active ? "text-ink" : "text-ink-soft"
             }`}
           >
-            <span className={`relative rounded-pill px-2.5 py-0.5 ${active ? "bg-signal/20" : ""}`}>
+            <span
+              className={`relative rounded-pill px-2.5 py-0.5 transition-[background-color] duration-base ease-brand-out ${
+                active ? "bg-signal/20" : ""
+              }`}
+            >
               <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
               {label === "approvals" && <Badge count={pending} />}
             </span>

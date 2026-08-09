@@ -128,14 +128,53 @@ body {
   -webkit-mask-size: contain;
 }
 
-/* Motion respects the visitor: every animation collapses to an instant
-   state change under prefers-reduced-motion. */
+/* In-page jumps (a mission card's "review it" landing on the decision it
+   means) glide rather than teleport, so the reader keeps their place. Turned
+   off below for anyone who asked for less motion. */
+html {
+  scroll-behavior: smooth;
+}
+
+/*
+ * REDUCED MOTION.
+ *
+ * The blunt version of this rule — collapse everything to 0.01ms — is safe
+ * and slightly broken: every state change becomes an instant hard swap, so a
+ * toggle flipping, a card being approved, and a status changing all happen
+ * with no perceptible transition at all. People who set this preference are
+ * asking not to be moved, not to be denied feedback.
+ *
+ * So: all MOVEMENT goes (transforms, loops, entrances, parallax, the 3D
+ * layer, which also switches itself off in JS), and a short colour/opacity
+ * cross-fade stays on the things a person interacts with. That keeps
+ * "something just changed" legible without anything sliding across the
+ * screen.
+ */
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+  }
+
+  /* The one exception: interactive surfaces keep a fade so their state change
+     is still visible. Restricting the property list is what removes the
+     movement — a transform simply isn't in it. */
+  a,
+  button,
+  summary,
+  [role="switch"],
+  [role="tab"],
+  [role="progressbar"] > * {
+    transition-property: opacity, color, background-color, border-color, box-shadow !important;
+    transition-duration: 140ms !important;
   }
 }

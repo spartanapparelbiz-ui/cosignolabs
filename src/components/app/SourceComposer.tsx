@@ -157,10 +157,20 @@ function SourceRow({ source, onRemove }: { source: MissionSourceRecord; onRemove
 export function SourceComposer({
   onStarted,
   suggestions,
+  showExamples = true,
 }: {
   onStarted: () => void;
   /** Contextual delegation prompts (from real connected apps); defaults to the generic set. */
   suggestions?: string[];
+  /**
+   * Whether to render the example chips at all.
+   *
+   * Home already offers six worked examples underneath, and a page that
+   * suggests the same four things twice, in two different shapes, reads as a
+   * page that isn't sure what it wants you to do. The surface that owns the
+   * examples turns the composer's own set off.
+   */
+  showExamples?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -601,6 +611,7 @@ export function SourceComposer({
       )}
 
       {/* examples */}
+      {showExamples && (
       <div className="mt-4 flex flex-wrap gap-2">
         {(suggestions ?? EXAMPLES).map((ex) => (
           <button
@@ -612,6 +623,7 @@ export function SourceComposer({
           </button>
         ))}
       </div>
+      )}
     </div>
   );
 }

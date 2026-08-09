@@ -39,6 +39,15 @@ function Chrome({
 }) {
   return (
     <ToastProvider>
+      {/* The first stop for a keyboard user. Without it, reaching the actual
+          content means tabbing through eleven navigation items on every page
+          — which is how keyboard navigation quietly becomes unusable. */}
+      <a
+        href="#main"
+        className="sr-only rounded-btn bg-ink px-4 py-2 text-sm font-bold text-cream focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50"
+      >
+        Skip to content
+      </a>
       <div className="flex min-h-screen [min-height:100dvh]">
         {/* desktop: compact left rail */}
         <AppRail />
@@ -63,8 +72,13 @@ function Chrome({
               </div>
             </div>
           </header>
-          {/* bottom padding keeps content clear of the mobile bottom bar */}
-          <main className="flex flex-1 flex-col pb-20 lg:pb-0">{children}</main>
+          {/* bottom padding keeps content clear of the mobile bottom bar.
+              The route key gives every page the same short fade-through on
+              arrival: enough continuity that a navigation reads as a move
+              within one product, not a document reload. */}
+          <main id="main" tabIndex={-1} className="flex flex-1 flex-col pb-20 outline-none lg:pb-0">
+            {children}
+          </main>
           <footer className="border-t border-line/60">
             <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-4 text-[11px] font-semibold lowercase tracking-wide text-ink-soft">
               <span>© {new Date().getFullYear()} aethric llc</span>

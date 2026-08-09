@@ -2,6 +2,7 @@
 
 import { memo, useState } from "react";
 import { actionStatus } from "@/lib/status";
+import { StatusPill } from "@/components/ui/StatusPill";
 import {
   AlignLeft,
   Banknote,
@@ -307,20 +308,13 @@ function ActionCardInner({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <TierBadge tier={action.tier} />
+            {/* Who prepared this. "communication operator" was the engine's
+                word for it; a person reads the same fact as a specialist
+                cosigno brought in, which is also what actually happened. */}
             <span className="rounded-pill bg-ink/5 px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide text-ink-soft ring-1 ring-inset ring-ink/15">
-              {operatorOf(action.category)} operator
+              {operatorOf(action.category)} specialist
             </span>
-            <span
-              className={`rounded-pill px-2.5 py-0.5 text-[11px] font-bold lowercase tracking-wide ${
-                action.status === "executed"
-                  ? "bg-signal text-cream"
-                  : action.status === "vetoed" || action.status === "failed"
-                    ? "ring-1 ring-inset ring-ink/40 text-ink"
-                    : "bg-cream-deep text-ink-soft"
-              }`}
-            >
-              {actionStatus(action.status)}
-            </span>
+            <StatusPill status={actionStatus(action.status)} size="sm" />
             <span className="ml-auto text-[11px] text-ink-soft">
               {timeOf(action.resolved_at ?? action.created_at)}
             </span>

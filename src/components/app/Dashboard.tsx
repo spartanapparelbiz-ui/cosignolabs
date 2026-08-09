@@ -18,7 +18,6 @@ import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { MissionCard } from "@/components/app/MissionCard";
 import { ProactiveFindings } from "@/components/app/ProactiveFindings";
 import { PersonalNote } from "@/components/app/PersonalNote";
-import { SignatureStack } from "@/components/motion/Depth";
 import { LoadingState } from "@/components/ui/States";
 
 /**
@@ -177,8 +176,13 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   );
 
   const loading = missions === null;
-  const nothingAtAll =
-    !loading && active.length === 0 && finishedToday.length === 0 && approvals.length === 0;
+  /**
+   * A quiet page: nothing running, nothing waiting. This is the state the six
+   * starting points exist for — and they ARE the empty state, so there is no
+   * separate "nothing here" panel underneath saying the same thing a third
+   * time.
+   */
+  const quiet = !loading && active.length === 0 && approvals.length === 0;
 
   /** Put a suggestion into the ask box rather than starting it silently. */
   function askFor(text: string) {
@@ -204,6 +208,11 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
       <div className="mt-6">
         <SourceComposer
           onStarted={load}
+          // The six starting points below carry the examples while the page is
+          // quiet. Once there is real work, the composer's own contextual
+          // chips take over — and they're drawn from apps actually connected,
+          // so they're suggestions cosigno can really act on.
+          showExamples={!quiet}
           suggestions={
             connections.some((c) => c.provider_key.startsWith("google"))
               ? [
@@ -220,7 +229,7 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
       {/* --------------------------- starting points --------------------------- */}
       {/* Only while the page is otherwise quiet. Once real work is here, an
           example is a suggestion competing with the thing it suggested. */}
-      {!loading && active.length === 0 && approvals.length === 0 && (
+      {quiet && (
         <section className="mt-8" aria-labelledby="starting-points">
           <h2
             id="starting-points"
@@ -257,8 +266,8 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-center text-xs font-semibold text-ink-soft">
-            Or type anything at all — these are examples, not a menu.
+          <p className="mt-3 flex flex-wrap items-center justify-center gap-x-2 text-center text-xs font-semibold text-ink-soft">
+            <span>Or type anything at all — these are examples, not a menu.</span>
           </p>
         </section>
       )}
@@ -307,18 +316,6 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           actually learned something from real decisions. */}
       <PersonalNote />
 
-      {/* Nothing running, nothing waiting, nothing finished. Say what this
-          place is for rather than reporting an absence. */}
-      {nothingAtAll && (
-        <div className="mt-12 flex flex-col items-center text-center">
-          <SignatureStack size={124} />
-          <p className="mt-2 font-display text-lg font-bold">Your workspace is clear.</p>
-          <p className="mt-1 max-w-xs text-sm font-semibold text-ink-soft">
-            Nothing is waiting and nothing is running. Give cosigno something to
-            work on and it&apos;ll show up here.
-          </p>
-        </div>
-      )}
     </div>
   );
 }

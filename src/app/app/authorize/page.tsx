@@ -48,8 +48,8 @@ export default async function AuthorizeConsole() {
         <p className="text-xs font-black uppercase tracking-[0.28em] text-signal">
           authorization layer
         </p>
-        <h1 className="mt-2 font-display text-3xl font-bold lowercase tracking-tight sm:text-4xl">
-          every AI action, decided and on the record.
+        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
+          Every AI action, decided and on the record.
         </h1>
         <p className="mt-2 max-w-2xl text-sm font-semibold text-ink-soft">
           Agents call <code className="rounded bg-cream-deep px-1.5 py-0.5 font-mono text-xs">POST /api/v1/authorize</code>.

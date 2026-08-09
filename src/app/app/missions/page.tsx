@@ -1,5 +1,4 @@
 import { MissionRunner } from "@/components/app/MissionRunner";
-import { ButtonLink } from "@/components/ui/Button";
 import { getUserId } from "@/lib/auth";
 import { servingAllowed } from "@/lib/env";
 import { getStore } from "@/lib/store";
@@ -37,6 +36,10 @@ export default async function MissionsPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8">
       <div className="flex flex-wrap items-start gap-3">
+        {/* The "start something" control lives in the list itself, which knows
+            whether the page is empty — an empty page already has one in the
+            middle of it, and two identical orange buttons split the attention
+            they exist to focus. */}
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-2xl font-bold">Missions</h1>
           <p className="mt-1 text-sm font-semibold text-ink-soft">
@@ -45,7 +48,6 @@ export default async function MissionsPage() {
             matters.
           </p>
         </div>
-        <ButtonLink href="/app">Start something</ButtonLink>
       </div>
       <div className="mt-6 flex-1">
         <MissionRunner initial={initial} />

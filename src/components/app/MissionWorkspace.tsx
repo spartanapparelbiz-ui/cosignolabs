@@ -12,7 +12,6 @@ import {
   HelpCircle,
   ExternalLink,
   Link2,
-  Loader2,
   MinusCircle,
   OctagonX,
   Pause,
@@ -306,7 +305,11 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                 </>
               ) : (
                 <span className="text-ink-soft">
-                  {brief.settled ? "Nothing — this is finished." : "Nothing is running."}
+                  {brief.settled
+                    ? "Nothing — this is finished."
+                    : brief.you
+                      ? "Paused, waiting for you."
+                      : "Nothing is running."}
                 </span>
               )}
             </dd>
@@ -319,12 +322,18 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               {brief.next ?? <span className="text-ink-soft">Nothing left to start.</span>}
             </dd>
           </div>
-          {brief.you && (
-            <div className="sm:col-span-2 rounded-btn bg-signal/12 px-3 py-2">
+          {(brief.you || narration.pausedBecause) && (
+            <div className="rounded-btn bg-signal/12 px-3 py-2 sm:col-span-2">
               <dt className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
                 Needs you
               </dt>
-              <dd className="mt-0.5 text-sm font-extrabold">{brief.you.ask}</dd>
+              {brief.you && <dd className="mt-0.5 text-sm font-extrabold">{brief.you.ask}</dd>}
+              {narration.pausedBecause && (
+                <dd className="mt-1 flex items-start gap-1.5 text-xs font-semibold">
+                  <PauseCircle size={13} className="mt-px shrink-0 text-signal" aria-hidden="true" />
+                  <span>{narration.pausedBecause}</span>
+                </dd>
+              )}
             </div>
           )}
           {brief.done.headline && (
@@ -452,13 +461,6 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
         </div>
       )}
 
-      {mission.state === "awaiting_approval" && (
-        <p className="rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold">
-          a consequential step is waiting for your signature. the mission resumes
-          automatically after you decide.
-        </p>
-      )}
-
       {/* The decision itself, on the mission that raised it. Scoped to THIS
           mission's cards, so approving here can never sign off something
           unrelated that happened to be sitting in the shared queue. */}
@@ -507,60 +509,12 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
             </div>
           )}
 
-          {/* NOW WORKING — always pinned, never empty. When nothing is running
-              it says so plainly rather than showing a blank panel. */}
-          <div className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
-              Now working
-            </p>
-            {narration.nowWorking ? (
-              <div className="mt-2 flex items-start gap-3">
-                <WorkAppMark app={narration.nowWorking.app} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-extrabold leading-snug">
-                    {narration.nowWorking.headline}
-                  </p>
-                  {(narration.nowWorking.app.department ?? narration.nowWorking.app.name) && (
-                    <p className="text-[11px] font-bold text-ink-soft">
-                      {narration.nowWorking.app.department ?? narration.nowWorking.app.name}
-                      {narration.nowWorking.app.department && narration.nowWorking.app.name
-                        ? ` · ${narration.nowWorking.app.name}`
-                        : ""}
-                    </p>
-                  )}
-                  {narration.nowWorking.at && (
-                    <p className="mt-0.5 text-[11px] text-ink-soft">
-                      started {elapsed(narration.nowWorking.at)} ago
-                    </p>
-                  )}
-                </div>
-                {narration.nowWorking.phase === "current" && (
-                  <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin text-ink" aria-hidden="true" />
-                )}
-              </div>
-            ) : (
-              <p className="mt-2 text-sm font-bold">
-                {narration.finished ? "Everything finished." : "Nothing running right now."}
-              </p>
-            )}
-
-            {/* Why it stopped, in the words a person would use. */}
-            {narration.pausedBecause && (
-              <p className="mt-3 flex items-start gap-2 rounded-btn bg-signal/10 px-3 py-2 text-xs font-semibold ring-1 ring-inset ring-signal/30">
-                <PauseCircle size={14} className="mt-px shrink-0 text-signal" aria-hidden="true" />
-                <span>{narration.pausedBecause}</span>
-              </p>
-            )}
-
-            {/* Exactly one next thing. Five future items is a plan, and nobody
-                reads a plan — they want to know what follows this. */}
-            {!narration.finished && narration.upNext && (
-              <p className="mt-3 border-t border-line/60 pt-2 text-[11px] text-ink-soft">
-                <span className="font-bold text-ink">Next:</span> {narration.upNext.headline}
-                {narration.upNext.app.name ? ` in ${narration.upNext.app.name}` : ""}
-              </p>
-            )}
-          </div>
+          {/* What is happening right now lives ONCE, in the panel at the top of
+              the page. It used to live here as well, and the two disagreed: a
+              mission parked on a signature read "Nothing is running" up there
+              and showed the waiting step as live down here. Two panels, two
+              answers, same question — so this one is gone and the summary at
+              the top is the only place that answers it. */}
 
           {/* THE FEED — accomplishments, oldest first, grouped by who did them. */}
           <div className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">

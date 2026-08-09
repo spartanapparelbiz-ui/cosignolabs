@@ -25,7 +25,7 @@ function action(over: Partial<ActionRecord> = {}): ActionRecord {
     id: "a1",
     session_id: "s1",
     user_id: "u1",
-    category: "email_send",
+    category: "send_email",
     tier: 2,
     status: "executed",
     summary: "send the follow-up",
@@ -44,12 +44,12 @@ function mission(goal: string): MissionRecord {
   return { id: goal, user_id: "u1", goal, state: "completed" } as MissionRecord;
 }
 
-const vetoes = (n: number, category: ActionRecord["category"] = "email_send") =>
+const vetoes = (n: number, category: ActionRecord["category"] = "send_email") =>
   Array.from({ length: n }, (_, i) =>
     action({ id: `v${i}`, category, status: "vetoed", veto_reason: "not this one" })
   );
 
-const approvals = (n: number, category: ActionRecord["category"] = "email_send") =>
+const approvals = (n: number, category: ActionRecord["category"] = "send_email") =>
   Array.from({ length: n }, (_, i) => action({ id: `e${i}`, category, status: "executed" }));
 
 describe("nothing is learned from an incident", () => {
@@ -122,9 +122,9 @@ describe("the profile stays small and evidenced", () => {
   it("is capped, so it can never become a character study", () => {
     const prefs = derivePreferences({
       actions: [
-        ...vetoes(8, "email_send"),
+        ...vetoes(8, "send_email"),
         ...vetoes(8, "delete"),
-        ...approvals(8, "post_public"),
+        ...approvals(8, "post_content"),
         ...approvals(8, "spend"),
       ],
       commands: ["keep it short", "short please", "shorter", "in detail", "thoroughly", "be thorough"],

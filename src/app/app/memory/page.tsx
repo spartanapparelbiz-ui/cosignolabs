@@ -14,7 +14,7 @@ export const metadata = { title: "memory" };
 export default function MemoryPage() {
   return (
     <div className="mx-auto flex w-full max-w-none flex-1 flex-col px-6 lg:px-10 py-8">
-      <h1 className="font-display text-2xl font-bold lowercase">my rules &amp; memory</h1>
+      <h1 className="font-display text-2xl font-bold">My rules &amp; memory</h1>
       <p className="mt-1 text-sm font-semibold text-ink-soft">
         your standing operating principles, in plain language — &ldquo;always prepare
         external emails for review,&rdquo; &ldquo;never cancel a meeting without asking.&rdquo;

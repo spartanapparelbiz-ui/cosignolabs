@@ -11,9 +11,9 @@ export const metadata = { title: "activity" };
 export default function ActivityPage() {
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
-      <h1 className="font-display text-2xl font-bold lowercase">activity</h1>
+      <h1 className="font-display text-2xl font-bold">Activity</h1>
       <p className="mt-1 text-sm font-semibold text-ink-soft">
-        everything that has happened in your workspace, newest first. anything
+        Everything that has happened in your workspace, newest first. Anything
         still waiting on you stays at the top.
       </p>
       <ActivityStream />

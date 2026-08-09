@@ -20,7 +20,11 @@ import { useDisplayName, initialsFor } from "@/lib/theme";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UsageRing } from "./UsageRing";
 import { ConnectionsPanel } from "./ConnectionsPanel";
+import { LearnedPanel } from "./LearnedPanel";
 import { TrustCenter } from "@/components/trust/TrustCenter";
+import { Toggle } from "@/components/ui/Toggle";
+import { Button } from "@/components/ui/Button";
+import { Tilt3D, DepthLayer, SignatureStack } from "@/components/motion/Depth";
 
 const TABS = [
   { id: "profile", label: "profile", icon: UserRound },
@@ -85,8 +89,22 @@ export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }
 
   return (
     <div className="mt-6 flex flex-1 flex-col gap-5 md:flex-row md:gap-8">
-      <nav
+      {/* A real tablist: arrow keys move between sections the way every other
+          tabbed interface on the machine does, so nobody has to discover that
+          this one is different. */}
+      <div
+        role="tablist"
         aria-label="account sections"
+        onKeyDown={(e) => {
+          const dirs: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+          const step = dirs[e.key];
+          if (!step) return;
+          e.preventDefault();
+          const i = TABS.findIndex((t) => t.id === tab);
+          const next = TABS[(i + step + TABS.length) % TABS.length];
+          setTab(next.id);
+          document.getElementById(`tab-${next.id}`)?.focus();
+        }}
         className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:w-48 md:flex-col md:overflow-visible md:px-0 md:pb-0"
       >
         {TABS.map((t) => {
@@ -95,20 +113,41 @@ export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }
           return (
             <button
               key={t.id}
+              id={`tab-${t.id}`}
+              role="tab"
+              aria-selected={active}
+              aria-controls="account-panel"
+              tabIndex={active ? 0 : -1}
               onClick={() => setTab(t.id)}
-              aria-current={active ? "page" : undefined}
-              className={`inline-flex shrink-0 items-center gap-2 rounded-btn px-3.5 py-2 text-sm font-bold lowercase transition-all duration-fast ease-brand-out ${
+              className={`group relative inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-btn px-3.5 py-2 text-sm font-bold lowercase transition-[background-color,color,transform] duration-fast ease-brand-out active:scale-[0.98] ${
                 active ? "bg-ink text-cream shadow-soft" : "text-ink-soft hover:bg-cream-deep"
               }`}
             >
-              <Icon size={15} strokeWidth={2.4} aria-hidden="true" />
+              <span
+                aria-hidden="true"
+                className={`absolute left-0 top-1/2 hidden w-[3px] -translate-y-1/2 rounded-pill bg-signal transition-[height,opacity] duration-base ease-brand-out md:block ${
+                  active ? "h-5 opacity-100" : "h-0 opacity-0"
+                }`}
+              />
+              <Icon
+                size={15}
+                strokeWidth={2.4}
+                aria-hidden="true"
+                className="transition-transform duration-fast ease-brand-out group-hover:-translate-y-px"
+              />
               {t.label}
             </button>
           );
         })}
-      </nav>
+      </div>
 
-      <div key={tab} className="flex min-w-0 flex-1 flex-col animate-fade-through">
+      <div
+        key={tab}
+        id="account-panel"
+        role="tabpanel"
+        aria-labelledby={`tab-${tab}`}
+        className="flex min-w-0 flex-1 animate-fade-through flex-col"
+      >
         {tab === "profile" && <ProfilePanel />}
         {tab === "permissions" && <PermissionsPanel />}
         {tab === "usage" && <UsagePanel usage={usage} plan={plan} actions={actions} />}
@@ -128,10 +167,16 @@ function Keycap({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * One casing rule on this page, because the mix was visible: navigation (the
+ * rail, the tabs) stays lowercase like the wordmark; anything that is content
+ * — headings, labels, settings — is sentence case, which is what people
+ * actually read fastest.
+ */
 function PanelHeading({ title, sub }: { title: string; sub: string }) {
   return (
     <div className="mb-4">
-      <h2 className="text-lg font-extrabold lowercase">{title}</h2>
+      <h2 className="text-lg font-extrabold">{title}</h2>
       <p className="mt-0.5 text-sm text-ink-soft">{sub}</p>
     </div>
   );
@@ -235,30 +280,47 @@ function ProfilePanel() {
 
   return (
     <section>
-      <PanelHeading title="profile" sub="make cosigno yours — your name, your look." />
+      <PanelHeading
+        title="Profile"
+        sub="Your name, your look, and what cosigno has worked out about how you like to work."
+      />
 
-      {/* Identity card */}
-      <div className="flex items-center gap-4 rounded-card bg-surface/60 p-5 shadow-soft">
-        <div className="flex h-14 w-14 items-center justify-center rounded-pill bg-ink text-xl font-extrabold uppercase text-cream">
-          {initialsFor(display)}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate font-bold lowercase">{display}</p>
-          <p className="truncate text-sm text-ink-soft">your cosigno operator</p>
-        </div>
-        <button
-          onClick={signOut}
-          className="ml-auto rounded-btn px-4 py-1.5 text-sm font-bold lowercase ring-1 ring-inset ring-ink transition-all duration-fast hover:-translate-y-px hover:bg-cream-deep"
+      {/* THE IDENTITY CARD.
+          The account page is the one surface in a working product that is
+          about the person rather than the work, and treating it as an admin
+          form wastes that. It gets the product's own 3D object — a stack of
+          signed cards, which is what cosigno actually does — leaning toward
+          the pointer on a device that can afford it, and rendering as a flat,
+          fast card everywhere else. */}
+      <Tilt3D
+        maxTilt={4}
+        className="relative overflow-hidden rounded-card bg-surface/70 p-5 shadow-depth"
+      >
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-14 -right-8 hidden opacity-70 sm:block"
         >
-          sign out
-        </button>
-      </div>
+          <SignatureStack size={150} />
+        </span>
+        <DepthLayer z={18} className="relative flex items-center gap-4 sm:pr-24">
+          <span className="flex h-14 w-14 items-center justify-center rounded-pill bg-ink text-xl font-extrabold uppercase text-cream shadow-lift">
+            {initialsFor(display)}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate font-bold lowercase">{display}</span>
+            <span className="block truncate text-sm text-ink-soft">your cosigno operator</span>
+          </span>
+          <Button tone="ghost" size="sm" onClick={signOut} className="ml-auto">
+            Sign out
+          </Button>
+        </DepthLayer>
+      </Tilt3D>
 
       {/* Personalize: display name */}
       <div className="mt-6 rounded-card bg-surface/60 p-5 shadow-soft">
-        <p className="text-sm font-bold lowercase">display name</p>
+        <p className="text-sm font-bold">Display name</p>
         <p className="mt-0.5 text-xs text-ink-soft">
-          what cosigno calls you across the app. just for you — stored on this device.
+          What cosigno calls you across the app. Just for you — stored on this device.
         </p>
         <input
           value={name}
@@ -272,9 +334,9 @@ function ProfilePanel() {
 
       {/* Personalize: theme */}
       <div className="mt-6 rounded-card bg-surface/60 p-5 shadow-soft">
-        <p className="text-sm font-bold lowercase">appearance</p>
+        <p className="text-sm font-bold">Appearance</p>
         <p className="mt-0.5 text-xs text-ink-soft">
-          light, dark, or match your device. changes instantly.
+          Light, dark, or match your device. Changes instantly.
         </p>
         <div className="mt-3">
           <ThemeToggle />
@@ -282,35 +344,23 @@ function ProfilePanel() {
       </div>
 
       {/* Preferences */}
-      <div className="mt-6 flex items-center gap-4 rounded-card bg-surface/60 p-4 shadow-soft">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-btn bg-cream-deep text-ink-soft">
-          <Keyboard size={20} strokeWidth={2.2} aria-hidden="true" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold lowercase">keyboard shortcut hints</p>
-          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-ink-soft">
-            show the <Keycap>a</Keycap> approve <span aria-hidden="true">·</span>{" "}
-            <Keycap>v</Keycap> veto footer on focused action cards.
-          </p>
-        </div>
-        <button
-          onClick={() => setKeyHints(!keyHints)}
-          role="switch"
-          aria-checked={keyHints}
-          aria-label="toggle keyboard shortcut hints"
-          className={`inline-flex h-6 w-11 shrink-0 items-center rounded-pill p-0.5 transition-colors duration-fast ${
-            keyHints ? "bg-signal" : "bg-line"
-          }`}
-        >
-          {/* Flex + padding keeps the knob inside the track at both ends —
-              travel is exactly the free space, so it never overflows. */}
-          <span
-            className={`h-5 w-5 rounded-pill bg-surface shadow-soft transition-transform duration-fast ease-brand-out ${
-              keyHints ? "translate-x-5" : "translate-x-0"
-            }`}
-          />
-        </button>
+      <div className="mt-6">
+        <Toggle
+          checked={keyHints}
+          onChange={setKeyHints}
+          label="Keyboard shortcut hints"
+          icon={<Keyboard size={20} strokeWidth={2.2} aria-hidden="true" />}
+          description={
+            <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+              Show the <Keycap>a</Keycap> approve <span aria-hidden="true">·</span>{" "}
+              <Keycap>v</Keycap> veto footer on focused action cards.
+            </span>
+          }
+        />
       </div>
+
+      {/* What cosigno has learned, and the switch that stops it. */}
+      <LearnedPanel />
 
       {/* Danger zone — hazard-striped so a destructive area reads at a glance. */}
       <div className="tier3-texture mt-8 overflow-hidden rounded-card p-5 ring-1 ring-inset ring-signal/30">
@@ -319,10 +369,10 @@ function ProfilePanel() {
             <AlertTriangle size={20} strokeWidth={2.4} aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <h3 className="text-sm font-extrabold lowercase text-signal">danger zone</h3>
+            <h3 className="text-sm font-extrabold text-signal">Danger zone</h3>
             <p className="mt-1 text-sm text-ink-soft">
-              deleting your account cancels any subscription and permanently erases
-              your sessions, actions, audit trail, and settings. this can&apos;t be undone.
+              Deleting your account cancels any subscription and permanently erases
+              your sessions, actions, audit trail, and settings. This can&apos;t be undone.
             </p>
           </div>
         </div>
@@ -331,10 +381,10 @@ function ProfilePanel() {
         )}
         <button
           onClick={() => setConfirming(true)}
-          className="mt-4 inline-flex items-center gap-2 rounded-btn px-4 py-2 text-sm font-bold lowercase text-signal ring-1 ring-inset ring-signal transition-all duration-fast hover:-translate-y-px hover:bg-signal hover:text-cream"
+          className="mt-4 inline-flex min-h-[40px] items-center gap-2 rounded-btn px-4 py-2 text-sm font-bold text-signal ring-1 ring-inset ring-signal transition-all duration-fast hover:-translate-y-px hover:bg-signal hover:text-cream"
         >
           <Trash2 size={14} strokeWidth={2.4} aria-hidden="true" />
-          delete account
+          Delete account
         </button>
       </div>
 
@@ -367,8 +417,8 @@ function PermissionsPanel() {
   return (
     <section>
       <PanelHeading
-        title="trust center"
-        sub="choose how much you trust cosigno to act on your behalf. every change is logged in security."
+        title="Trust center"
+        sub="Choose how much you trust cosigno to act on your behalf. Every change is logged in security."
       />
       <TrustCenter />
 
@@ -380,11 +430,11 @@ function PermissionsPanel() {
         className="mt-5 flex items-center justify-between gap-3 rounded-card bg-surface/60 p-4 shadow-soft transition-all duration-fast hover:-translate-y-0.5 hover:shadow-depth"
       >
         <span>
-          <span className="flex items-center gap-1.5 text-sm font-bold lowercase">
-            <ShieldCheck size={14} aria-hidden="true" /> safety rules
+          <span className="flex items-center gap-1.5 text-sm font-bold">
+            <ShieldCheck size={14} aria-hidden="true" /> Safety rules
           </span>
           <span className="mt-0.5 block text-[11px] text-ink-soft">
-            test an AI rule against your past work, then turn it on.
+            Test a rule against your past work, then turn it on.
           </span>
         </span>
         <span aria-hidden="true" className="shrink-0 text-sm font-bold text-ink-soft">
@@ -504,7 +554,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
 
   return (
     <section>
-      <PanelHeading title="plan & usage" sub="what you've spent this cycle, and what's next." />
+      <PanelHeading title="Plan &amp; usage" sub="What you've spent this cycle, and what's next." />
       {plan?.pastDue && (
         <div className="mb-4 rounded-card bg-ink px-4 py-3 text-sm font-semibold text-cream">
           your payment didn&apos;t go through — update your card to keep {plan.name}.{" "}
@@ -661,7 +711,7 @@ function SecurityPanel({ actions }: { actions: ActionRecord[] | null }) {
 
   return (
     <section>
-      <PanelHeading title="security" sub="the trust cockpit — what the operator did, and what it caught." />
+      <PanelHeading title="Security" sub="Everything cosigno did on your behalf, and everything it caught." />
       <div className="grid gap-3 sm:grid-cols-3">
         {[
           { label: "injection flags caught", value: injections, note: "external content held for review", link: "/app/activity" },
