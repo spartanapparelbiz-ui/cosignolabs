@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import { Search } from "lucide-react";
-import { DrawnCheck } from "./ui";
+import { DrawnCheck, Eyebrow, Lede } from "./ui";
 import { EASE_OUT, MaskedLines, Rise, useStillness } from "./primitives";
 
 /**
@@ -123,22 +123,20 @@ export function Monitoring() {
       style={DEEP}
       className="bg-cream py-24 text-ink sm:py-32"
     >
-      <div className="mx-auto w-full max-w-6xl px-4">
+      <div className="mx-auto w-full max-w-6xl px-5">
         <header className="mx-auto max-w-2xl text-center">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
-            monitoring
-          </p>
+          <Eyebrow>the record</Eyebrow>
           <MaskedLines
             as="h2"
             id="monitoring-title"
             lines={["you can always ask", "what it is doing."]}
-            className="mt-4 font-display text-[clamp(2rem,5.6vw,4rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
+            className="mt-4 text-balance font-display text-[clamp(2rem,5.6vw,4rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
           />
-          <p className="mx-auto mt-5 max-w-xl text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
-            proposals, approvals, vetoes and executions land in one stream,
-            each with the payload it carried. what did it do, and who said yes.
-            filterable, exportable, never a reconstruction.
-          </p>
+          <Lede className="mx-auto mt-5 max-w-xl">
+            everything it asked, everything you answered and everything it ran
+            lands in one list, with the exact details it used. search it, filter
+            it, export it.
+          </Lede>
         </header>
 
         <Rise className="mt-12 grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
@@ -255,9 +253,9 @@ export function Monitoring() {
                 emergency stop
               </p>
               <p className="mt-2 text-[12px] font-semibold leading-relaxed text-ink-soft">
-                one control halts every running mission and clears the queue.
-                anything already signed keeps its receipt; nothing unsigned
-                survives.
+                one button stops every job at once and clears whatever was
+                waiting. anything you already approved keeps its receipt.
+                nothing else survives.
               </p>
               <span className="mt-3 inline-flex items-center rounded-btn px-3.5 py-2 text-[12px] font-extrabold lowercase text-ink ring-1 ring-inset ring-ink">
                 stop everything

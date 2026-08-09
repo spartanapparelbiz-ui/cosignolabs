@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { motion, useMotionValueEvent, useTransform } from "framer-motion";
-import { ActionCard, Chip, ProgressRail, ReceiptLine, StepRow, type StepState } from "./ui";
+import { ActionCard, Chip, Eyebrow, Lede, ProgressRail, ReceiptLine, StepRow, type StepState } from "./ui";
 import { MaskedLines, useSectionProgress, useSmoothed, useStillness } from "./primitives";
 
 /**
@@ -77,19 +77,17 @@ export function Missions() {
       <div className="flex flex-col justify-center px-4 py-24 motion-safe:sticky motion-safe:top-0 motion-safe:h-[100dvh] motion-safe:overflow-hidden motion-safe:py-0">
         <div className="mx-auto w-full max-w-5xl">
           <header className="mx-auto max-w-2xl text-center">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
-              missions
-            </p>
+            <Eyebrow>missions</Eyebrow>
             <MaskedLines
               as="h2"
               id="missions-title"
               lines={["a mission runs itself", "until it needs you."]}
-              className="mt-4 font-display text-[clamp(1.9rem,5vw,3.5rem)] font-bold leading-[1] tracking-[-0.03em] text-ink"
+              className="mt-4 text-balance font-display text-[clamp(1.9rem,5vw,3.5rem)] font-bold leading-[1] tracking-[-0.03em] text-ink"
             />
-            <p className="mx-auto mt-4 max-w-lg text-sm font-semibold leading-relaxed text-ink-soft">
-              the moment a step would change something outside cosigno, the
-              whole mission holds. it waits as long as you need it to.
-            </p>
+            <Lede className="mx-auto mt-5 max-w-lg">
+              a mission is a job you hand over. when one step would change
+              something real, the whole job stops and waits for you.
+            </Lede>
           </header>
 
           {/* The card that arrives at the hold gets its own column rather than
@@ -152,13 +150,13 @@ export function Missions() {
                 {/* Reserved, not conditional: rendering the receipts only on
                     completion grew the card mid-scroll and shifted the scene. */}
                 <div
-                  className={`mt-4 h-[2.1rem] space-y-1 transition-opacity duration-slow ease-brand-out ${
+                  className={`mt-4 h-[2.35rem] space-y-1 transition-opacity duration-slow ease-brand-out ${
                     done ? "opacity-100" : "opacity-0"
                   }`}
                   aria-hidden={!done}
                 >
-                  <ReceiptLine id="r_44c1" what="$96.00 refunded, typed confirmation" />
-                  <ReceiptLine id="r_44c2" what="2 confirmations sent, signed by you" />
+                  <ReceiptLine id="r_44c1" what="$96.00 refunded, you typed it" at="11:01" />
+                  <ReceiptLine id="r_44c2" what="2 emails sent, signed by you" at="11:02" />
                 </div>
               </div>
             </div>
@@ -171,12 +169,12 @@ export function Missions() {
                 style={still ? { opacity: 0 } : { opacity: noteOpacity }}
               >
                 <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-ink-soft">
-                  what a hold means
+                  what stopping means
                 </p>
-                <ul className="check-list mt-3 space-y-2.5 text-[12px] font-semibold leading-relaxed text-ink-soft">
-                  <li>the mission pauses, not just the step.</li>
-                  <li>nothing downstream runs ahead of your answer.</li>
-                  <li>no timeout, and no default answer.</li>
+                <ul className="check-list mt-3 space-y-2.5 text-[12.5px] font-medium leading-relaxed text-ink-soft">
+                  <li>the whole job pauses, not just that step.</li>
+                  <li>nothing later runs ahead of your answer.</li>
+                  <li>it never times out and never guesses for you.</li>
                 </ul>
               </motion.div>
 

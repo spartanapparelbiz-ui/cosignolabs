@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check } from "lucide-react";
-import { ActionCard, Chip, PayloadWell, ReceiptLine, TierChip } from "./ui";
+import { ActionCard, Chip, Lede, PayloadWell, ReceiptLine, TierChip } from "./ui";
 import { MaskedLines, Rise } from "./primitives";
 
 /**
@@ -30,29 +30,29 @@ const PANELS: {
   {
     id: "connect",
     step: "01",
-    title: "connect what it may touch",
-    body: "cosigno reaches your tools through the access you grant it, and only that. nothing is assumed, nothing is inherited, and you can take a tool back in one click.",
+    title: "connect your apps",
+    body: "cosigno can only reach the apps you connect, with the access you pick. it never assumes more, and you can take an app back in one click.",
     scene: <ConnectScene />,
   },
   {
     id: "plan",
     step: "02",
-    title: "it writes the plan before it moves",
-    body: "the goal becomes steps. each one names the tool it will use and the authority it needs: runs on its own, needs your signature, or locked behind a typed confirmation.",
+    title: "it shows you the plan first",
+    body: "your goal becomes a list of steps. each step names the app it will use and says whether it can go ahead on its own or has to ask you.",
     scene: <PlanScene />,
   },
   {
     id: "sign",
     step: "03",
-    title: "you sign the part that matters",
-    body: "the plan stops at the step that would change something. it does not skip it, it does not guess, and it does not move on until you have answered.",
+    title: "you approve what matters",
+    body: "at the step that would change something real, it stops. it will not skip it, guess at it, or carry on until you have answered.",
     scene: <SignScene />,
   },
   {
     id: "done",
     step: "04",
-    title: "the mission closes itself",
-    body: "signed steps run, get verified, and close themselves out. nobody has to come back and check whether the last one landed.",
+    title: "it finishes and shows its work",
+    body: "approved steps run, get checked, and close themselves out. you do not have to come back later to see whether the last one landed.",
     scene: <DoneScene />,
   },
 ];
@@ -360,14 +360,14 @@ function DoneScene() {
         </Chip>
       </div>
       <div className="mt-3 space-y-1">
-        <ReceiptLine id="r_1a90c4" what="4 replies sent, signed by you 10:58" />
-        <ReceiptLine id="r_1a90c5" what="$96.00 refunded, typed confirmation 11:01" />
-        <ReceiptLine id="r_1a90c6" what="summary written to drive, signed by you 11:03" />
-        <ReceiptLine id="r_1a90c7" what="217 messages read, ran on its own" />
+        <ReceiptLine id="r_1a90c4" what="4 replies sent, signed by you" at="10:58" />
+        <ReceiptLine id="r_1a90c5" what="$96.00 refunded, you typed it" at="11:01" />
+        <ReceiptLine id="r_1a90c6" what="summary saved to drive, signed" at="11:03" />
+        <ReceiptLine id="r_1a90c7" what="217 messages read, ran on its own" at="10:44" />
       </div>
-      <p className="mt-3 text-[11px] font-semibold leading-relaxed text-ink-soft">
-        four steps, two of them yours. the mission closed itself out and left
-        the receipts behind.
+      <p className="mt-3 text-[12px] font-medium leading-relaxed text-ink-soft">
+        four steps, two of them yours. it closed itself out and left the
+        receipts behind.
       </p>
     </div>
   );

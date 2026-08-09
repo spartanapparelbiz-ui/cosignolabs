@@ -107,13 +107,13 @@ for (const vp of VIEWPORTS) {
         /give ai your accounts and it will use them/i,
         /everything stops right here/i,
         /how cosigno works/i,
-        /connect what it may touch/i,
-        /you sign the part that matters/i,
+        /connect your apps/i,
+        /you approve what matters/i,
         /connect everything\. hand over nothing/i,
         /a mission runs itself until it needs you/i,
         /the approval is the product/i,
         /you can always ask what it is doing/i,
-        /built for teams shipping ai into production/i,
+        /built for teams already running ai at work/i,
         /one signature\. three sizes/i,
         /nothing happens until you say so/i,
       ]) {
@@ -241,13 +241,13 @@ for (const vp of VIEWPORTS) {
       await page.goto("/", { waitUntil: "networkidle" });
       const cta = page.locator("section", { has: page.locator("#cta-title") });
       await cta.scrollIntoViewIfNeeded();
-      await expect(cta.getByText("hand you the operator.")).toBeVisible();
+      await expect(cta.getByText("start working for you.")).toBeVisible();
 
       // The three steps are the promise; if the onboarding changes, this fails
       // before a visitor discovers the difference.
       await expect(cta.getByText(/what happens after you click/i)).toBeVisible();
-      await expect(cta.getByText(/create your account/i)).toBeVisible();
-      await expect(cta.getByText(/connect one tool/i)).toBeVisible();
+      await expect(cta.getByText(/make an account/i)).toBeVisible();
+      await expect(cta.getByText(/connect one app/i)).toBeVisible();
       await expect(cta.getByText(/stops at the first card/i)).toBeVisible();
 
       // Two exits, and the no-account one is right beside the primary.

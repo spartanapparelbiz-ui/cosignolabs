@@ -2,9 +2,16 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { CosignoMark } from "@/components/brand/Logo";
-import { TierChip } from "./ui";
-import { EASE_OUT, MaskedLines, Rise, useStillness } from "./primitives";
+import { Eyebrow, Lede, TierChip } from "./ui";
+import { Mark3D } from "./Mark3D";
+import {
+  EASE_OUT,
+  MaskedLines,
+  Rise,
+  useSectionPass,
+  useSmoothed,
+  useStillness,
+} from "./primitives";
 
 /**
  * Connections.
@@ -42,33 +49,39 @@ const RULES = [
 
 export function Connections() {
   const ref = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const still = useStillness();
   const inView = useInView(ref, { once: true, margin: "0px 0px -18% 0px" });
   const on = inView || still;
+  // The hub turns as the section crosses the window, so the thing every line
+  // points at is the one object on the page with real depth.
+  const pass = useSmoothed(useSectionPass(sectionRef), 130, 26);
 
   return (
-    <section aria-labelledby="connections-title" className="bg-cream-deep/50 py-24 sm:py-32">
-      <div className="mx-auto w-full max-w-6xl px-4">
+    <section
+      ref={sectionRef}
+      aria-labelledby="connections-title"
+      className="bg-cream-deep/50 py-20 sm:py-32"
+    >
+      <div className="mx-auto w-full max-w-6xl px-5">
         <header className="mx-auto max-w-2xl text-center">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
-            connections
-          </p>
+          <Eyebrow>your apps</Eyebrow>
           <MaskedLines
             as="h2"
             id="connections-title"
             lines={["connect everything.", "hand over nothing."]}
-            className="mt-4 font-display text-[clamp(2rem,5.6vw,4rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
+            className="mt-4 text-balance font-display text-[clamp(2rem,5.6vw,4rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
           />
-          <p className="mx-auto mt-5 max-w-xl text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
-            one connection per tool, asking for the narrowest access that still
-            does the job. the rules arrive with the connection. you can move
-            them. the agent cannot.
-          </p>
+          <Lede className="mx-auto mt-5 max-w-xl">
+            each app asks for the least access it needs. you decide what it may
+            do on its own and what it must ask about. cosigno cannot change
+            those rules.
+          </Lede>
         </header>
 
         <div
           ref={ref}
-          className="relative mx-auto mt-14 aspect-[4/5] w-full max-w-4xl sm:aspect-[16/10]"
+          className="relative mx-auto mt-10 aspect-square w-full max-w-4xl sm:mt-14 sm:aspect-[16/10]"
         >
           {/*
            * The lines are drawn in a coordinate space with the same 16:10
@@ -106,10 +119,18 @@ export function Connections() {
             })}
           </svg>
 
-          {/* the mark, at the middle of everything it is allowed to touch */}
+          {/* The mark, at the middle of everything it is allowed to touch —
+              and the one object here with depth, turning as you scroll past.
+              The plate stays: it is what separates the hub from the lines. */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <span className="grid h-20 w-20 place-items-center rounded-card bg-surface shadow-depth-lift sm:h-24 sm:w-24">
-              <CosignoMark size={40} />
+            <span className="grid h-24 w-24 place-items-center rounded-card bg-surface shadow-depth-lift sm:h-28 sm:w-28">
+              <Mark3D
+                progress={pass}
+                still={still}
+                mode="ambient"
+                fallbackSize={52}
+                className="h-full w-full"
+              />
             </span>
           </div>
 
@@ -167,10 +188,9 @@ export function Connections() {
             </div>
           ))}
         </Rise>
-        <p className="mx-auto mt-5 max-w-xl text-center text-[11px] font-semibold leading-relaxed text-ink-soft">
-          refunds, deletions and payments are pinned to the top tier. they
-          cannot be lowered, and the agent has no way to raise its own
-          authority.
+        <p className="mx-auto mt-5 max-w-xl text-balance text-center text-[12px] font-medium leading-relaxed text-ink-soft">
+          refunds, deletions and payments are always locked. cosigno cannot
+          unlock them, and it cannot give itself more access.
         </p>
       </div>
     </section>

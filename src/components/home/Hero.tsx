@@ -176,26 +176,22 @@ export function Hero() {
             progress={p}
             still={still}
             mode="hero"
-            fallbackSize={128}
-            className="mb-1 h-[clamp(128px,19dvh,300px)] w-full max-w-[540px] sm:h-[clamp(168px,26dvh,300px)]"
+            fallbackSize={150}
+            className="h-[clamp(120px,17dvh,260px)] w-full max-w-[520px] sm:h-[clamp(150px,22dvh,270px)]"
           />
-
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft sm:text-xs">
-            the operating system for trusted ai
-          </p>
 
           {/* The trailing space on the first line is load-bearing: block spans
               concatenate for assistive tech, and "cannotact" is not a word. */}
-          <h1 className="mt-5 font-display text-[clamp(2.5rem,9.2vw,7.25rem)] font-bold leading-[0.93] tracking-[-0.035em] text-ink">
+          <h1 className="mt-1 text-balance font-display text-[clamp(2.5rem,9.2vw,7.25rem)] font-bold leading-[0.93] tracking-[-0.035em] text-ink">
             <span className="block motion-safe:animate-word-in">ai that cannot </span>
             <span className="block motion-safe:animate-word-in motion-safe:[animation-delay:110ms]">
               act without you.
             </span>
           </h1>
 
-          <p className="mt-6 max-w-xl text-base font-semibold leading-relaxed text-ink-soft motion-safe:animate-word-in motion-safe:[animation-delay:260ms] sm:text-lg">
-            cosigno runs the work across your tools. it stops before anything
-            sends, changes, or spends.
+          <p className="mt-6 max-w-[36rem] text-pretty text-base font-medium leading-relaxed text-ink-soft motion-safe:animate-word-in motion-safe:[animation-delay:260ms] sm:text-lg">
+            cosigno does the busywork in the apps you already use. it always
+            asks before it sends, changes, or spends anything.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 motion-safe:animate-word-in motion-safe:[animation-delay:380ms]">
@@ -213,8 +209,8 @@ export function Hero() {
               see the plans
             </a>
           </div>
-          <p className="mt-3 text-[11px] font-semibold lowercase text-ink-soft motion-safe:animate-word-in motion-safe:[animation-delay:440ms]">
-            free tier, no card, about two minutes to your first mission
+          <p className="mt-3 text-[12px] font-medium lowercase text-ink-soft motion-safe:animate-word-in motion-safe:[animation-delay:440ms]">
+            free plan. no card. about two minutes to set up.
           </p>
         </motion.div>
 

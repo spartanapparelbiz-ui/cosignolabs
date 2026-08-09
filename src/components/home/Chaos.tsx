@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useTransform, type MotionValue } from "framer-motion";
-import { Chip } from "./ui";
+import { Chip, Eyebrow, Lede } from "./ui";
 import { MaskedLines, useSectionProgress, useSmoothed, useStillness } from "./primitives";
 
 /**
@@ -96,33 +96,31 @@ export function Chaos() {
             className="mx-auto max-w-3xl text-center"
             style={still ? undefined : { y: headY }}
           >
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
-              without cosigno
-            </p>
+            <Eyebrow>without cosigno</Eyebrow>
             <MaskedLines
               as="h2"
               id="chaos-title"
               lines={["give ai your accounts", "and it will use them."]}
-              className="mt-4 font-display text-[clamp(2rem,5.6vw,4rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
+              className="mt-4 text-balance font-display text-[clamp(2rem,5.6vw,4rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
             />
-            <p className="mx-auto mt-5 max-w-xl text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
-              email, money, customers, production. it moves faster than you can
-              say wait.
-            </p>
+            <Lede className="mx-auto mt-5 max-w-xl">
+              it can email your customers, spend your money and change your live
+              site before you notice.
+            </Lede>
           </motion.header>
 
           <div aria-hidden="true" className="mt-10 flex items-end justify-between gap-4 sm:mt-12">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">
-                actions taken, nobody asked
+                things it did without asking
               </p>
               <motion.p className="font-display text-4xl font-bold tabular-nums leading-none text-ink sm:text-5xl">
                 {still ? "1,284" : count}
               </motion.p>
             </div>
-            <p className="hidden max-w-[15rem] text-right text-[11px] font-semibold leading-relaxed text-ink-soft sm:block">
-              every line below already happened. there was no card, no payload,
-              and nothing to point at afterwards.
+            <p className="hidden max-w-[16rem] text-balance text-right text-[12px] font-medium leading-relaxed text-ink-soft sm:block">
+              every line below is already done. nobody was asked, and there is
+              no record to go back to.
             </p>
           </div>
 

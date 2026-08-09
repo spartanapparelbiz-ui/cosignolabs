@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView } from "framer-motion";
-import { ActionCard, DrawnCheck, type ActionSpec } from "./ui";
+import { ActionCard, DrawnCheck, Eyebrow, Lede, type ActionSpec } from "./ui";
 import { Mark3D } from "./Mark3D";
 import { EASE_OUT, EASE_SPRING, MaskedLines, useStillness } from "./primitives";
 
@@ -83,7 +83,7 @@ export function ApprovalMoment() {
     <section
       ref={ref}
       aria-labelledby="moment-title"
-      className="relative overflow-hidden bg-cream py-24 sm:py-32"
+      className="relative overflow-hidden bg-cream py-20 sm:py-32"
     >
       {/* The freeze: one hairline crosses the frame, once. It travels on a
           transform, not on `left` — animating an inset is the one thing on
@@ -98,21 +98,19 @@ export function ApprovalMoment() {
         />
       )}
 
-      <div className="mx-auto w-full max-w-6xl px-4">
+      <div className="mx-auto w-full max-w-6xl px-5">
         <header className="mx-auto max-w-2xl text-center">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
-            with cosigno
-          </p>
+          <Eyebrow>with cosigno</Eyebrow>
           <MaskedLines
             as="h2"
             id="moment-title"
             lines={["everything stops", "right here."]}
-            className="mt-4 font-display text-[clamp(2.1rem,6vw,4.5rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
+            className="mt-4 text-balance font-display text-[clamp(2.1rem,6vw,4.5rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
           />
-          <p className="mx-auto mt-5 max-w-lg text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
-            the queue is still there. it just is not moving, and it will not
-            move until you answer.
-          </p>
+          <Lede className="mx-auto mt-5 max-w-lg">
+            the work is still there. it simply stopped, and it will not move
+            again until you answer.
+          </Lede>
         </header>
 
         <div className="mt-12 grid items-center gap-8 lg:mt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-14">

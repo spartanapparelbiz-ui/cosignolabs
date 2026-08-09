@@ -15,6 +15,37 @@ import { CosignoMark } from "@/components/brand/Logo";
  * refused action wears an ink outline and the hazard texture, never a colour.
  */
 
+/* ------------------------------------------------------- section typography */
+
+/**
+ * The two text roles every section shares, in one place so the page reads as
+ * one document rather than eleven.
+ *
+ * Both were tuned down rather than up. The eyebrow used to be extrabold at
+ * 0.22em; small caps at that weight look shouted, and wide tracking with a
+ * lighter weight is what makes a label look drawn rather than typed. The lede
+ * used to be semibold — a weight for emphasis, not for reading — so it now
+ * sits at medium, one step larger, with generous leading and `text-pretty` so
+ * no line is left carrying a single word.
+ */
+export function Eyebrow({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <p className={`text-[10.5px] font-bold uppercase tracking-[0.3em] text-ink-soft ${className}`}>
+      {children}
+    </p>
+  );
+}
+
+export function Lede({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <p
+      className={`text-pretty text-[15px] font-medium leading-[1.62] text-ink-soft sm:text-[17px] ${className}`}
+    >
+      {children}
+    </p>
+  );
+}
+
 /* ------------------------------------------------------------------ chips */
 
 export type Tier = "auto" | "sign" | "locked";
@@ -354,24 +385,36 @@ export function Panel({
   );
 }
 
-/** The audit line every executed action leaves behind. */
+/**
+ * The audit line every executed action leaves behind.
+ *
+ * A row rather than a sentence, because a sentence wraps: on a phone the
+ * timestamp used to fall onto a line of its own, so a list of four receipts
+ * read as seven ragged lines with orphaned times. Here the id and the time are
+ * fixed columns and only the description reflows between them.
+ */
 export function ReceiptLine({
   id,
   what,
+  at,
   className = "",
 }: {
   id: string;
   what: string;
+  /** The clock time, kept in its own column so it never orphans. */
+  at?: string;
   className?: string;
 }) {
   return (
-    <p
-      className={`font-mono text-[10.5px] leading-relaxed text-ink-soft ${className}`}
+    <div
+      className={`flex items-start gap-1.5 font-mono text-[10px] leading-relaxed text-ink-soft sm:text-[10.5px] ${className}`}
     >
-      <span className="mr-1 inline-block translate-y-[2px] text-signal">
+      <span className="mt-[2px] shrink-0 text-signal">
         <DrawnCheck size={11} />
       </span>
-      <span className="text-ink">{id}</span> {what}
-    </p>
+      <span className="shrink-0 text-ink">{id}</span>
+      <span className="min-w-0 flex-1">{what}</span>
+      {at && <span className="shrink-0 tabular-nums">{at}</span>}
+    </div>
   );
 }

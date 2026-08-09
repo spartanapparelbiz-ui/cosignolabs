@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
-import { DrawnCheck } from "./ui";
+import { DrawnCheck, Eyebrow, Lede } from "./ui";
 import { EASE_OUT, MaskedLines, Rise, Stagger, StaggerItem, useArmed } from "./primitives";
 import { PricingLink } from "@/components/landing/Track";
 
@@ -47,26 +47,23 @@ export function Pricing({
   const [hovered, setHovered] = useState<string | null>(null);
 
   return (
-    <section id="pricing" aria-labelledby="pricing-title" className="bg-cream-deep/45 py-24 sm:py-32">
-      <div className="mx-auto w-full max-w-6xl px-4">
+    <section id="pricing" aria-labelledby="pricing-title" className="bg-cream-deep/45 py-20 sm:py-32">
+      <div className="mx-auto w-full max-w-6xl px-5">
         <header className="mx-auto max-w-2xl text-center">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
-            pricing
-          </p>
+          <Eyebrow>pricing</Eyebrow>
           <MaskedLines
             as="h2"
             id="pricing-title"
             lines={["one signature.", "three sizes."]}
-            className="mt-4 font-display text-[clamp(2rem,5.6vw,4rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
+            className="mt-4 text-balance font-display text-[clamp(2rem,5.6vw,4rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
           />
-          <p className="mx-auto mt-5 max-w-lg text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
-            an operation is one piece of thinking or one executed action. the
-            approval model is identical on every plan. it is the product, not a
-            tier.
-          </p>
+          <Lede className="mx-auto mt-5 max-w-lg">
+            one operation is one step of thinking, or one action taken. every
+            plan asks you the same way. being asked is never an upgrade.
+          </Lede>
         </header>
 
-        <Stagger className="mt-14 grid gap-4 md:grid-cols-3" step={0.1}>
+        <Stagger className="mt-11 grid sm:mt-14 gap-4 md:grid-cols-3" step={0.1}>
           {plans.map((plan) => {
             const lifted = hovered === plan.id;
             return (
@@ -139,7 +136,7 @@ export function Pricing({
         </p>
 
         {/* ------------------------------------------------ what differs */}
-        <Rise className="mt-14 overflow-hidden rounded-card bg-surface shadow-depth">
+        <Rise className="mt-11 overflow-hidden sm:mt-14 rounded-card bg-surface shadow-depth">
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">what differs between the plans</caption>
             <thead>

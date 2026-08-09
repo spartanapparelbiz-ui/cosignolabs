@@ -49,7 +49,9 @@ describe("what happens after you click is what actually happens", () => {
     // Gmail asks for `gmail.modify`, so "read-only to start" would be a lie.
     const gmail = readFileSync("src/lib/integrations/providers/gmail.ts", "utf8");
     expect(gmail).toMatch(/gmail\.modify/);
-    expect(CTA.replace(/\s+/g, " ")).toMatch(/narrowest access that does the job/);
+    // The wording is allowed to get plainer ("least" rather than "narrowest");
+    // what may never change is that the claim is about scope, not read-only.
+    expect(CTA.replace(/\s+/g, " ")).toMatch(/(narrowest|least) access that does the job/);
     expect(CTA).not.toMatch(/read-only/i);
   });
 

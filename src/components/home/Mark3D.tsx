@@ -142,8 +142,13 @@ export function Mark3D({
       });
       renderer.setPixelRatio(dpr);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.06;
+      // No tone mapping. ACES is the right choice for a photographic scene and
+      // the wrong one for a logo: it rolls saturated oranges toward brick, and
+      // the whole point of rendering the real brand geometry is that the object
+      // is the mark, not an interpretation of it. The light rig below is
+      // balanced so a face pointed at the camera renders at #FB4C20 exactly,
+      // which is checked by eye against the flat mark beside it.
+      renderer.toneMapping = THREE.NoToneMapping;
       renderer.domElement.style.width = "100%";
       renderer.domElement.style.height = "100%";
       renderer.domElement.style.display = "block";
@@ -170,8 +175,11 @@ export function Mark3D({
         return geom;
       }
 
-      const cGeom = buildGeometry(LOGO_C_PATH, 13);
-      const checkGeom = buildGeometry(LOGO_CHECK_PATH, 15);
+      // Depth is deliberately shallow. The mark has to read as the mark first
+      // and as an object second; a deep extrusion turns the C into a slab and
+      // the silhouette stops matching the favicon sitting in the same tab.
+      const cGeom = buildGeometry(LOGO_C_PATH, 10);
+      const checkGeom = buildGeometry(LOGO_CHECK_PATH, 11.5);
 
       // Centre both on the mark's shared 160×160 canvas, not on their own
       // bounds, or the check would recentre itself out of the C's opening.
@@ -212,11 +220,21 @@ export function Mark3D({
 
       /* --------------------------------------------------------- the light */
 
-      scene.add(new THREE.HemisphereLight(0xfff4e8, 0x6b5a48, 1.05));
-      const key = new THREE.DirectionalLight(0xffffff, 2.1);
+      // A face light first, sitting where the reader is. Without it the front
+      // of the extrusion — the part that IS the logo — was lit only by fill,
+      // and rendered a full stop darker than the orange beside it in the nav
+      // while the bevels caught the key and read brighter than either. The
+      // mark looked like a different colour from itself.
+      const face = new THREE.DirectionalLight(0xffffff, 2.65);
+      face.position.set(0, 0.35, 6);
+      scene.add(face);
+      scene.add(new THREE.HemisphereLight(0xfff4e8, 0x6b5a48, 0.55));
+      // The key exists for the bevels and the sense of a light source, not to
+      // carry the colour.
+      const key = new THREE.DirectionalLight(0xffffff, 0.85);
       key.position.set(3.4, 4.6, 5.2);
       scene.add(key);
-      const rim = new THREE.DirectionalLight(0xffb59a, 1.15);
+      const rim = new THREE.DirectionalLight(0xffb59a, 0.55);
       rim.position.set(-4.2, -1.4, -3.6);
       scene.add(rim);
       hostRef.current.appendChild(renderer.domElement);
@@ -302,15 +320,27 @@ export function Mark3D({
         // is alive even when the page is still. Every term is BOUNDED — an
         // earlier cut let the idle drift accumulate as `drift * 0.1`, which
         // eventually turned the mark edge-on and rendered the brand as an
-        // orange sliver. The mark stays inside roughly ±45°, where both the C
-        // and the check read, and the depth is carried by the extrusion and
-        // the lighting rather than by spinning past legibility.
+        // orange sliver.
+        //
+        // The scroll term is deliberately the largest one: turning through
+        // most of a quarter circle, rolling as it goes and pulling toward the
+        // reader is what makes the object read as an object rather than a
+        // picture. The budget is arithmetic, not hope — scroll 0.78 plus
+        // drift 0.16 plus pointer 0.26, against a face that stops reading at
+        // 1.57 (90°). Worst case lands near 66°, where the C and the check
+        // both still read and the extrusion is at its most legible.
         const drift = stillRef.current || !drifts ? 0 : (t - clock) / 1000;
+        const turn = eased - 0.5; // -0.5 → 0.5, so the middle of the scroll is level
+        // Each mode is centred on the moment the reader is actually looking at
+        // the mark: the hero's is the top of the page, so it rests near
+        // face-on and turns away as you leave; an ambient mark is most visible
+        // halfway through its section, so face-on lands at 0.5.
         rig.rotation.y = AMBIENT
-          ? -0.34 + eased * 0.52 + Math.sin(drift * 0.25) * 0.22
-          : -0.5 + eased * 1.1 + Math.sin(drift * 0.42) * 0.14;
-        rig.rotation.x = (AMBIENT ? 0.06 : 0.11) + Math.sin(drift * 0.33) * 0.05 - eased * 0.2;
-        rig.rotation.z = Math.sin(drift * 0.27) * 0.035;
+          ? -0.46 + eased * 0.92 + Math.sin(drift * 0.25) * 0.22
+          : -0.16 + eased * 1.05 + Math.sin(drift * 0.42) * 0.16;
+        rig.rotation.x =
+          (AMBIENT ? 0.06 : 0.13) + Math.sin(drift * 0.33) * 0.05 - eased * (AMBIENT ? 0.3 : 0.34);
+        rig.rotation.z = Math.sin(drift * 0.27) * 0.035 + turn * (AMBIENT ? 0.2 : 0.28);
 
         // Pointer parallax, critically damped so it never overshoots.
         pointerX += (targetX - pointerX) * 0.045;
@@ -318,8 +348,15 @@ export function Mark3D({
         rig.rotation.y += pointerX * 0.26;
         rig.rotation.x += pointerY * 0.16;
 
-        rig.position.y = Math.sin(drift * 0.5) * 0.05 - eased * 0.35;
-        camera.position.z = 7.4 + eased * (AMBIENT ? 0.8 : 2.6);
+        // Depth: the object swings through the frame and comes at you as the
+        // section resolves, instead of sitting at one distance the whole way.
+        rig.position.y = Math.sin(drift * 0.5) * 0.05 - eased * (AMBIENT ? 0.42 : 0.5);
+        rig.position.x = turn * (AMBIENT ? 0.22 : 0.38);
+        // The hero mark is the page's opening image and sits closer to the
+        // lens than the ambient ones, which have to stay clear of the surfaces
+        // they sit behind or inside.
+        camera.position.z =
+          (AMBIENT ? 7.4 : 6.5) + eased * (AMBIENT ? 1.5 : 3.2) - Math.sin(eased * Math.PI) * 0.6;
 
         // The check leaves and returns along its own axis, never through the C.
         const want = sealedRef.current ? 0 : 1;

@@ -14,8 +14,7 @@ export function SiteFooter() {
           <div>
             <LivingLockup size={22} textClass="text-lg" />
             <p className="mt-3 max-w-xs text-[12px] font-semibold leading-relaxed text-ink-soft">
-              the operating system for trusted ai. give it the work, keep the
-              final say.
+              give it the work. keep the final say.
             </p>
           </div>
 

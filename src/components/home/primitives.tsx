@@ -297,6 +297,21 @@ export function useSectionProgress(ref: React.RefObject<HTMLElement | null>) {
   return scrollYProgress;
 }
 
+/**
+ * Progress as a section *passes* the window: 0 when its top reaches the bottom
+ * of the viewport, 1 when its bottom leaves the top. `useSectionProgress`
+ * measures travel through a pinned stage and collapses for anything shorter
+ * than a screen; this one works on ordinary stacked sections, which is what
+ * the scroll-driven marks outside the pinned scenes need.
+ */
+export function useSectionPass(ref: React.RefObject<HTMLElement | null>) {
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+  return scrollYProgress;
+}
+
 /** A lightly damped version of a progress value — takes the jitter out of scrubs. */
 export function useSmoothed(value: MotionValue<number>, stiffness = 140, damping = 26) {
   return useSpring(value, { stiffness, damping, restDelta: 0.0005 });

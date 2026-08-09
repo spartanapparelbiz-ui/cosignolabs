@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import { motion, useMotionValueEvent, useTransform } from "framer-motion";
 import { CosignoMark } from "@/components/brand/Logo";
-import { DrawnCheck, PayloadWell, TierChip } from "./ui";
+import { DrawnCheck, Eyebrow, Lede, PayloadWell, TierChip } from "./ui";
+import { Mark3D } from "./Mark3D";
 import { EASE_OUT, MaskedLines, useSectionProgress, useSmoothed, useStillness } from "./primitives";
 
 /**
@@ -26,19 +27,19 @@ const MARKS = [0.13, 0.3, 0.45, 0.63, 0.8];
 
 const CAPTIONS = [
   "three actions are waiting.",
-  "the consequential one comes forward.",
-  "everything it will do, before it does it.",
-  "a locked action asks you to type its name.",
-  "your signature, not a checkbox.",
+  "the one that matters comes forward.",
+  "everything it will do, before it does any of it.",
+  "a locked action makes you type its name.",
+  "your signature, not a tickbox.",
   "signed, executed, and written down.",
 ];
 
 /** The four things every card carries, whatever the action is. */
 const CARD_ALWAYS: [string, string][] = [
-  ["the exact payload", "every recipient, every amount, every id, before it runs."],
-  ["the tool it will use", "which connection it goes through, and how far that reaches."],
-  ["whether it can be undone", "stated on the card, not discovered afterwards."],
-  ["two answers", "approve or veto. both are written down and both are yours."],
+  ["exactly what it will do", "every recipient, every amount, every reference, before it runs."],
+  ["which app it will use", "which connection it goes through, and how far that reaches."],
+  ["whether you can undo it", "written on the card, not discovered afterwards."],
+  ["two answers", "yes or no. both are written down, and both are yours."],
 ];
 
 /** A believable hand, drawn once. */
@@ -103,20 +104,18 @@ export function Approvals() {
       <div className="flex flex-col justify-center px-4 py-24 motion-safe:sticky motion-safe:top-0 motion-safe:h-[100dvh] motion-safe:overflow-hidden motion-safe:py-0">
         <div className="mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] lg:gap-16">
           <div className="text-center lg:text-left">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
-              approvals
-            </p>
+            <Eyebrow>approvals</Eyebrow>
             <MaskedLines
               as="h2"
               id="approvals-title"
               lines={["the approval", "is the product."]}
-              className="mt-4 font-display text-[clamp(2.1rem,5.6vw,4.25rem)] font-bold leading-[0.97] tracking-[-0.035em] text-ink"
+              className="mt-4 text-balance font-display text-[clamp(2.1rem,5.6vw,4.25rem)] font-bold leading-[0.97] tracking-[-0.035em] text-ink"
             />
-            <p className="mx-auto mt-5 max-w-md text-sm font-semibold leading-relaxed text-ink-soft sm:text-base lg:mx-0">
-              other products log what their agent did. this is what it has to
-              get past first. the same card whether the action costs nothing or
-              costs you a customer.
-            </p>
+            <Lede className="mx-auto mt-5 max-w-md lg:mx-0">
+              other tools tell you what the ai already did. cosigno shows you
+              the card first, and waits. same card for a small thing as for a
+              costly one.
+            </Lede>
 
             {/* the narration, one line at a time, in reserved space */}
             <div className="mt-8 h-6" aria-live="polite">
@@ -157,6 +156,20 @@ export function Approvals() {
 
           {/* ------------------------------------------------------ the deck */}
           <div className="relative mx-auto w-full max-w-[30rem]">
+            {/* The mark, behind the card, turning with the scroll and sealing
+                the moment the signature lands. It is positioned out of flow on
+                purpose: this scene is pinned to the viewport height, and a mark
+                that took layout space would push the card off a short screen. */}
+            <div className="pointer-events-none absolute -inset-x-10 -top-24 bottom-0 -z-0 hidden opacity-[0.16] sm:block">
+              <Mark3D
+                progress={p}
+                still={still}
+                sealed={shown >= 4}
+                mode="ambient"
+                fallbackSize={220}
+                className="h-full w-full"
+              />
+            </div>
             {!still && (
               <>
                 <motion.div
@@ -228,8 +241,8 @@ export function Approvals() {
                     className="absolute inset-x-0 top-2 text-[11px] font-semibold leading-relaxed text-ink-soft"
                     style={{ opacity: pinnedOut }}
                   >
-                    read it, edit it, or throw it away. the mission is holding
-                    either way.
+                    read it, change it, or throw it away. the job waits either
+                    way.
                   </motion.p>
                 )}
                 <motion.div
@@ -300,7 +313,7 @@ export function Approvals() {
                     className="absolute inset-x-0 top-3 font-mono text-[10px] text-ink-soft"
                     style={{ opacity: unsignedOut }}
                   >
-                    unsigned. nothing has run. no receipt yet.
+                    not approved. nothing has run. no receipt yet.
                   </motion.p>
                 )}
                 <motion.svg

@@ -27,9 +27,9 @@ import { EASE_SPRING, MaskedLines, useSectionProgress, useSmoothed, useStillness
  */
 
 const STEPS: [string, string][] = [
-  ["01", "create your account with email and a password, or continue with google"],
-  ["02", "connect one tool. it asks for the narrowest access that does the job"],
-  ["03", "give it a job. it stops at the first card and waits for you"],
+  ["01", "make an account with an email and a password, or continue with google"],
+  ["02", "connect one app. it asks for the least access that does the job"],
+  ["03", "give it something to do. it stops at the first card and waits"],
 ];
 
 export function FinalCta({ terms }: { terms: string }) {
@@ -72,7 +72,7 @@ export function FinalCta({ terms }: { terms: string }) {
           as="h2"
           id="cta-title"
           lines={["nothing happens", "until you say so."]}
-          className="text-center font-display text-[clamp(2.3rem,7.2vw,5.25rem)] font-bold leading-[0.94] tracking-[-0.035em] text-ink"
+          className="text-balance text-center font-display text-[clamp(2.3rem,7.2vw,5.25rem)] font-bold leading-[0.94] tracking-[-0.035em] text-ink"
         />
 
         <Mark3D
@@ -84,7 +84,7 @@ export function FinalCta({ terms }: { terms: string }) {
         />
 
         <p className="mx-auto mt-2 max-w-sm text-center font-mono text-[11px] tracking-[0.04em] text-ink-soft">
-          one card left. this one is yours.
+          one last card. this one is yours.
         </p>
 
         {/* --------------------------------------------------- the last card */}
@@ -107,7 +107,7 @@ export function FinalCta({ terms }: { terms: string }) {
             </div>
 
             <p className="mt-3 font-display text-2xl font-bold leading-tight tracking-tight text-ink sm:text-3xl">
-              hand you the operator.
+              start working for you.
             </p>
             <p className="mt-1.5 text-[12px] font-semibold lowercase text-ink-soft">{terms}</p>
 
@@ -142,8 +142,8 @@ export function FinalCta({ terms }: { terms: string }) {
             </div>
 
             <p className="mt-4 text-[11px] font-semibold lowercase leading-relaxed text-ink-soft">
-              the free plan never asks for a card. the demo needs no account at
-              all and runs in your browser against simulated tools.
+              the free plan never asks for a card. the demo needs no account
+              at all, and runs in your browser on pretend data.
             </p>
           </div>
         </motion.div>
