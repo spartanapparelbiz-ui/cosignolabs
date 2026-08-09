@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { applyRules, parsePermissionRule, readRule } from "../src/lib/rules";
-import { GALLERY_RULES } from "../src/components/app/galleryRules";
+import { PREVIEW_EXAMPLES } from "../src/components/app/previewExamples";
 import { PROVIDER_ACTION_OPERATION } from "../src/lib/ruleIntents";
 import type { PermissionRuleRecord } from "../src/lib/types";
 
 /**
  * Every rule the product hands a person must be exact.
  *
- * A gallery is a promise: these are safe, understood, and they do what they
- * say. A single ambiguous entry teaches someone that safety rules are
- * approximate, and after that no rule of theirs is trusted either. So each one
+ * An offered example is a promise: it is understood, and it does what it says.
+ * A single ambiguous entry teaches someone that a rule is approximate, and
+ * after that no rule of theirs is trusted either. So each one
  * is checked here — it parses to one named operation, and across every
  * capability of every built-in provider it fires on exactly the operations it
  * names and on nothing else.
@@ -49,13 +49,13 @@ const PRODUCT_CATEGORIES = [
   "payment",
 ] as const;
 
-describe("every built-in gallery rule is unambiguous", () => {
-  it("the gallery is not empty (a silent regression would pass every other test)", () => {
+describe("every rule the Preview page offers is unambiguous", () => {
+  it("the example list is not empty (a silent regression would pass every other test)", () => {
     expect(ALL_ACTIONS.length).toBeGreaterThan(20);
-    expect(GALLERY_RULES.length).toBeGreaterThan(0);
+    expect(PREVIEW_EXAMPLES.length).toBeGreaterThan(0);
   });
 
-  for (const text of GALLERY_RULES) {
+  for (const text of PREVIEW_EXAMPLES) {
     describe(`"${text}"`, () => {
       const parsed = parsePermissionRule(text);
 
@@ -106,7 +106,7 @@ describe("every built-in gallery rule is unambiguous", () => {
       /**
        * A rule that binds nothing is not safe, it is decorative — and offering
        * it teaches someone that turning rules on does not do anything. Every
-       * gallery entry has to govern a capability that really exists, either a
+       * example has to govern a capability that really exists, either a
        * connector action or one of cosigno's own action categories.
        */
       it("actually governs something the product can do", () => {

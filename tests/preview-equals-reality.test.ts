@@ -4,7 +4,7 @@ import { effectiveBoundary, providerBoundary } from "../src/lib/integrations/bou
 import { getProvider, listProviders } from "../src/lib/integrations/registry";
 import { PROVIDER_ACTION_OPERATION } from "../src/lib/ruleIntents";
 import { MemoryStore } from "../src/lib/store/memory";
-import { GALLERY_RULES } from "../src/components/app/galleryRules";
+import { PREVIEW_EXAMPLES } from "../src/components/app/previewExamples";
 import type { PermissionRuleRecord } from "../src/lib/types";
 
 /**
@@ -63,7 +63,7 @@ describe("preview equals reality", () => {
    * two ever disagreed, a person would be shown one thing and get another.
    */
   it("the boundary shown for a connection matches the preview's decision, action by action", () => {
-    for (const text of GALLERY_RULES) {
+    for (const text of PREVIEW_EXAMPLES) {
       const rule = asRecord(text);
       for (const key of PROVIDER_KEYS) {
         const provider = getProvider(key);
@@ -108,7 +108,7 @@ describe("preview equals reality", () => {
    * dropping it entirely — cannot change what a rule does.
    */
   it("a decision is unchanged by the action's wording", () => {
-    for (const text of GALLERY_RULES) {
+    for (const text of PREVIEW_EXAMPLES) {
       const rule = asRecord(text);
       for (const [key, actions] of Object.entries(PROVIDER_ACTION_OPERATION)) {
         for (const actionId of Object.keys(actions)) {
@@ -132,7 +132,7 @@ describe("preview equals reality", () => {
 
   /** The same inputs must always produce the same decision. */
   it("is deterministic across repeated evaluation", () => {
-    for (const text of GALLERY_RULES) {
+    for (const text of PREVIEW_EXAMPLES) {
       const rule = asRecord(text);
       for (const [key, actions] of Object.entries(PROVIDER_ACTION_OPERATION)) {
         for (const actionId of Object.keys(actions)) {

@@ -35,7 +35,7 @@ const SURFACES = [
   "/app/monitoring",
   "/app/mission-control",
   "/app/twins",
-  "/app/settings/rules",
+  "/app/preview",
   "/app/templates",
   "/app/account",
   "/app/health",

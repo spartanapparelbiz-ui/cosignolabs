@@ -8,7 +8,7 @@ import {
   PROVIDERS,
 } from "../src/lib/ruleIntents";
 import { listProviders } from "../src/lib/integrations/registry";
-import { GALLERY_RULES } from "../src/components/app/galleryRules";
+import { PREVIEW_EXAMPLES } from "../src/components/app/previewExamples";
 
 /**
  * Honesty about coverage.
@@ -60,8 +60,8 @@ describe("coverageFor — what a rule can actually govern today", () => {
    * turned on. Offering one that cannot is the exact false confidence this
    * whole pass exists to remove.
    */
-  it("no gallery rule is ever unreachable", () => {
-    for (const text of GALLERY_RULES) {
+  it("no rule the Preview page offers is ever unreachable", () => {
+    for (const text of PREVIEW_EXAMPLES) {
       const parsed = parsePermissionRule(text);
       const coverage = coverageFor(parsed.target, parsed.verb);
       expect(coverage.unreachable, `"${text}" would protect nothing when turned on`).toBe(false);
