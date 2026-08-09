@@ -300,11 +300,15 @@ function ProfilePanel() {
         maxTilt={4}
         className="relative overflow-hidden rounded-card bg-surface/70 p-5 shadow-depth"
       >
+        {/* A deliberate bleed, not a clipped decoration: large enough that the
+            corner of it reads as an object continuing past the card, rather
+            than a sliver of something that didn't fit. Hidden below sm, where
+            there is no room for it to be anything but clutter. */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-14 -right-8 hidden opacity-70 sm:block"
+          className="pointer-events-none absolute -bottom-20 -right-12 hidden opacity-60 sm:block"
         >
-          <SignatureStack size={150} />
+          <SignatureStack size={200} />
         </span>
         <DepthLayer z={18} className="relative flex items-center gap-4 sm:pr-24">
           <span className="flex h-14 w-14 items-center justify-center rounded-pill bg-ink text-xl font-extrabold uppercase text-cream shadow-lift">

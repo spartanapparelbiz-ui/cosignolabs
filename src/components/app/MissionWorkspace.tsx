@@ -121,6 +121,23 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
     };
   }, [load, missionId]);
 
+  /**
+   * A mission card's "Review it" links to #decide on this page. The browser
+   * tries to jump there the moment the document arrives — before this
+   * component has fetched the mission, so the target does not exist yet and
+   * the reader lands at the top with no idea why the link went nowhere. Once
+   * the decision is really on the page, take them to it.
+   */
+  const jumped = useRef(false);
+  useEffect(() => {
+    if (jumped.current || !mission) return;
+    if (window.location.hash !== "#decide") return;
+    const el = document.getElementById("decide");
+    if (!el) return;
+    jumped.current = true;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [mission, steps]);
+
   async function control(op: "pause" | "resume" | "stop") {
     setBusy(op);
     try {
