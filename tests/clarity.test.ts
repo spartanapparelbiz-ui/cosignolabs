@@ -93,10 +93,10 @@ describe("missionGuide — changes made are only what actually executed", () => 
 
 describe("approval language is action-specific and truthful", () => {
   it("labels name the consequence, never a bare approve", () => {
-    expect(approveLabel("send_email")).toBe("approve & send");
-    expect(approveLabel("delete")).toBe("approve deletion");
-    expect(approveLabel("payment")).toBe("approve & pay");
-    expect(approveLabel("post_content")).toBe("approve & publish");
+    expect(approveLabel("send_email")).toBe("Approve & send");
+    expect(approveLabel("delete")).toBe("Approve deletion");
+    expect(approveLabel("payment")).toBe("Approve & pay");
+    expect(approveLabel("post_content")).toBe("Approve & publish");
   });
 
   it("before-approval lines state that nothing has happened", () => {

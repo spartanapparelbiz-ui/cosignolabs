@@ -49,28 +49,28 @@ function sim(summary: string, detail: Record<string, unknown> = {}): ExecutionRe
  */
 const HANDLERS: Readonly<Record<ActionCategory, Handler>> = Object.freeze({
   search: async (payload) =>
-    sim(`searched for "${str(payload.query) ?? "query"}".`, { matches: 0 }),
-  summarize: async () => sim("summary generated and saved to the session thread."),
+    sim(`Searched for "${str(payload.query) ?? "query"}".`, { matches: 0 }),
+  summarize: async () => sim("Summary generated and saved to the session thread."),
   draft: async (payload) =>
-    sim(`draft saved${payload.to ? ` for ${str(payload.to)}` : ""}. nothing was sent.`, {
+    sim(`Draft saved${payload.to ? ` for ${str(payload.to)}` : ""}. Nothing was sent.`, {
       draft: payload.body ?? payload.draft ?? null,
     }),
   // The REAL Gmail send is a `connection_call` on a connected account (see
   // providers/gmail.ts). This generic `send_email` category is the sandbox
   // stand-in for users with nothing connected.
   send_email: async (payload) =>
-    sim(`email drafted to ${str(payload.to) ?? "recipient"}.`, { subject: payload.subject ?? null }),
+    sim(`Email drafted to ${str(payload.to) ?? "recipient"}.`, { subject: payload.subject ?? null }),
   post_content: async (payload) =>
-    sim(`content prepared for ${str(payload.destination) ?? "destination"}.`),
+    sim(`Content prepared for ${str(payload.destination) ?? "destination"}.`),
   update_record: async (payload) =>
-    sim(`record ${str(payload.record_id) ?? ""} update prepared.`.replace("  ", " "), {
+    sim(`Record ${str(payload.record_id) ?? ""} update prepared.`.replace("  ", " "), {
       changes: payload.changes ?? payload,
     }),
-  spend: async (payload) => sim(`spend of ${str(payload.amount) ?? "amount"} recorded.`),
-  webhook: async () => sim("webhook prepared for your configured endpoint."),
-  delete: async (payload) => sim(`deletion of ${str(payload.target) ?? "target"} prepared.`),
-  refund: async (payload) => sim(`refund of ${str(payload.amount) ?? "amount"} prepared.`),
-  payment: async (payload) => sim(`payment of ${str(payload.amount) ?? "amount"} prepared.`),
+  spend: async (payload) => sim(`Spend of ${str(payload.amount) ?? "amount"} recorded.`),
+  webhook: async () => sim("Webhook prepared for your configured endpoint."),
+  delete: async (payload) => sim(`Deletion of ${str(payload.target) ?? "target"} prepared.`),
+  refund: async (payload) => sim(`Refund of ${str(payload.amount) ?? "amount"} prepared.`),
+  payment: async (payload) => sim(`Payment of ${str(payload.amount) ?? "amount"} prepared.`),
   // The ONE mediated network handler. It does NOT let the model reach an
   // arbitrary endpoint: connection_call is never planner-selectable, its
   // payload is built by the integrations runtime, and it can only target a

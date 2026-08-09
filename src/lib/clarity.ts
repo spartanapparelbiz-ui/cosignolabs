@@ -169,26 +169,26 @@ export function sourceIdentity(action: Pick<A, "category" | "payload">): SourceI
 export function approveLabel(category: ActionCategory): string {
   switch (category) {
     case "send_email":
-      return "approve & send";
+      return "Approve & send";
     case "draft":
-      return "save the draft";
+      return "Save the draft";
     case "post_content":
-      return "approve & publish";
+      return "Approve & publish";
     case "update_record":
-      return "approve & update";
+      return "Approve & update";
     case "spend":
     case "payment":
-      return "approve & pay";
+      return "Approve & pay";
     case "refund":
-      return "approve & refund";
+      return "Approve & refund";
     case "delete":
-      return "approve deletion";
+      return "Approve deletion";
     case "webhook":
-      return "approve & fire";
+      return "Approve & fire";
     case "connection_call":
-      return "approve & run";
+      return "Approve & run";
     default:
-      return "approve & run";
+      return "Approve & run";
   }
 }
 

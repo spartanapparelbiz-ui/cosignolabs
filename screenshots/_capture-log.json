@@ -196,6 +196,20 @@
     "errors": []
   },
   {
+    "folder": "06-boundary",
+    "file": "signature-drawn-desktop.png",
+    "note": "Signature drawn, ready to authorize",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "06-boundary",
+    "file": "signature-sealed-desktop.png",
+    "note": "Signature sealing — Signed by Nicholas",
+    "ok": true,
+    "errors": []
+  },
+  {
     "folder": "08-activity",
     "file": "activity-ledger-desktop.png",
     "note": "Activity ledger — filters, search, today",

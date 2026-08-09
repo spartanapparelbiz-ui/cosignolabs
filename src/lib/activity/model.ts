@@ -116,7 +116,11 @@ function decisionSentence(
 ): { headline: string; actor: ActivityEvent["actor"] } | null {
   switch (event.type) {
     case "proposed":
-      return { headline: `Asked to ${action.summary}`, actor: "cosigno" };
+      // A colon, not "Asked to …". The summary is a sentence of its own and
+      // starts with a capital, so gluing it after a preposition produced
+      // "Asked to Send the email …". Every sibling row here already uses the
+      // label-colon-summary shape.
+      return { headline: `Asked: ${action.summary}`, actor: "cosigno" };
     case "approved":
       return event.detail?.auto === true
         ? // Auto-approved tier-1 work is cosigno clearing its own low-risk
