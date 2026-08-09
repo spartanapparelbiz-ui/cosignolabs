@@ -175,7 +175,7 @@ function GoalComposer({ onStarted }: { onStarted: (id: string) => void }) {
             <button
               onClick={start}
               disabled={busy}
-              className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+              className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-on-signal disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             >
               {busy ? "starting…" : "confirm & start"}
             </button>
@@ -417,7 +417,7 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
         <button
           onClick={start}
           disabled={busy === "start"}
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-on-signal shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
         >
           {busy === "start" ? "starting…" : "start mission"}
         </button>
@@ -438,7 +438,7 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
         <button
           onClick={startLaptop}
           disabled={busy === "laptop"}
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-on-signal shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
         >
           {busy === "laptop" ? "starting…" : "start mission"}
         </button>
@@ -514,7 +514,7 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                           disabled={busy === m.id}
                           className={`min-h-[32px] rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
                             o === m.pending_question?.recommended
-                              ? "bg-signal text-ink"
+                              ? "bg-signal text-on-signal"
                               : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                           }`}
                         >

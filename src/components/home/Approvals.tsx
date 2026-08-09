@@ -274,7 +274,7 @@ export function Approvals() {
                   className="absolute inset-0 flex items-center gap-2"
                   style={still ? { opacity: 0 } : { opacity: pendingOut }}
                 >
-                  <span className="relative inline-flex items-center gap-2 overflow-hidden rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold lowercase text-ink shadow-soft">
+                  <span className="relative inline-flex items-center gap-2 overflow-hidden rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold lowercase text-on-signal shadow-soft">
                     {/* the sheen that crosses the button as it is signed */}
                     {!still && (
                       <motion.span

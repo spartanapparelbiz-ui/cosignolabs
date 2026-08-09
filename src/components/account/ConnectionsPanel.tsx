@@ -474,7 +474,7 @@ export function ConnectionsPanel() {
                         <button
                           onClick={() => connect(p.key)}
                           disabled={busy === p.key}
-                          className="rounded-btn bg-signal px-3 py-1.5 text-xs font-bold text-ink disabled:opacity-60"
+                          className="rounded-btn bg-signal px-3 py-1.5 text-xs font-bold text-on-signal disabled:opacity-60"
                         >
                           {busy === p.key ? "reconnecting…" : "reconnect"}
                         </button>
@@ -1200,7 +1200,7 @@ function ToolRow({
             this tool can read or change data. enable it for your operator to use?
           </p>
           <div className="mt-1.5 flex gap-2">
-            <button onClick={() => set(true, true)} disabled={busy} className="rounded-btn bg-signal px-3 py-1 text-[11px] font-bold text-ink">
+            <button onClick={() => set(true, true)} disabled={busy} className="rounded-btn bg-signal px-3 py-1 text-[11px] font-bold text-on-signal">
               yes, enable
             </button>
             <button onClick={() => setConfirming(false)} className="rounded-btn px-3 py-1 text-[11px] font-bold text-ink-soft hover:bg-cream-deep">
@@ -1275,7 +1275,7 @@ function AddMcpForm({ onAdded }: { onAdded: () => Promise<void> }) {
         </div>
         {error && <p className="text-xs font-semibold text-signal">{error}</p>}
         {result && <p className="text-xs font-semibold text-ink">{result}</p>}
-        <button onClick={submit} disabled={!ready} className="self-start rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
+        <button onClick={submit} disabled={!ready} className="self-start rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-on-signal disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
           {busy ? "testing connection…" : "test & add"}
         </button>
       </div>

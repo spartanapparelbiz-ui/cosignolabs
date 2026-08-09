@@ -80,7 +80,7 @@ export function EventCard({
         ) : (
           <span
             className={`flex h-[18px] w-[18px] items-center justify-center rounded-btn ${
-              event.pinned ? "bg-signal text-ink" : "bg-cream-deep text-ink-soft"
+              event.pinned ? "bg-signal text-on-signal" : "bg-cream-deep text-ink-soft"
             }`}
           >
             <Icon size={11} />

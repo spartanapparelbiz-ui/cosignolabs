@@ -274,7 +274,7 @@ export function Simulation() {
               <button
                 onClick={enable}
                 disabled={!enforced || enabling || enabled}
-                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold lowercase text-ink transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
+                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold lowercase text-on-signal transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
               >
                 {enabled ? "enabled ✓" : enabling ? "enabling…" : "enable this rule"}
               </button>

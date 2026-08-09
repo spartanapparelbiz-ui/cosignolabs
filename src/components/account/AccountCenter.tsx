@@ -184,7 +184,7 @@ function ConfirmModal({
               onConfirm();
             }}
             disabled={busy}
-            className={`rounded-btn px-4 py-2 text-sm font-extrabold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${danger ? "bg-ink" : "bg-signal !text-ink"}`}
+            className={`rounded-btn px-4 py-2 text-sm font-extrabold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${danger ? "bg-ink" : "bg-signal !text-on-signal"}`}
           >
             {busy ? "working…" : title}
           </button>
@@ -551,7 +551,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
                 <>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {plan.upgradeTo && (
-                      <button onClick={() => go("upgrade")} disabled={busy === "upgrade"} className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink transition-transform duration-fast hover:-translate-y-px disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
+                      <button onClick={() => go("upgrade")} disabled={busy === "upgrade"} className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-on-signal transition-transform duration-fast hover:-translate-y-px disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
                         {busy === "upgrade" ? "starting…" : `upgrade to ${plan.upgradeTo}`}
                       </button>
                     )}
@@ -571,7 +571,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
                       <p className="text-sm font-bold">before you go — keep {plan.name} at half price.</p>
                       <p className="mt-1 text-xs text-ink-soft">50% off your next 2 months. one tap, stays on your card.</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <button onClick={takeRetention} disabled={retentionBusy} className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
+                        <button onClick={takeRetention} disabled={retentionBusy} className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-on-signal disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
                           {retentionBusy ? "applying…" : "keep it — 50% off"}
                         </button>
                         <button onClick={() => go("portal")} disabled={busy === "portal"} className="rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-surface/50">

@@ -278,7 +278,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                 disabled={busy !== null}
                 className={`rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
                   n === INCREASE_STEPS[0]
-                    ? "bg-signal text-ink"
+                    ? "bg-signal text-on-signal"
                     : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                 }`}
               >
@@ -310,7 +310,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                 onClick={() => answer(o)}
                 disabled={busy === "answer"}
                 className={`rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
-                  o === mission.pending_question?.recommended ? "bg-signal text-ink" : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
+                  o === mission.pending_question?.recommended ? "bg-signal text-on-signal" : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                 }`}
               >
                 {o}

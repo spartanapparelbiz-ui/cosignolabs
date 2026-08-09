@@ -46,7 +46,7 @@ export default function DemoPage() {
             <Link
               href="/sign-up"
               prefetch
-              className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-all duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
+              className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-on-signal shadow-soft transition-all duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
             >
               start free
             </Link>

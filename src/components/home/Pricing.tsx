@@ -185,7 +185,7 @@ export function Pricing({ plans, intro }: { plans: PlanCard[]; intro: string }) 
                     prefetch={!plan.href.startsWith("/checkout")}
                     className={`mt-6 rounded-btn px-4 py-3 text-center text-sm font-extrabold lowercase transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95 ${
                       plan.featured
-                        ? "bg-signal text-ink shadow-soft motion-safe:animate-pulse-glow"
+                        ? "bg-signal text-on-signal shadow-soft motion-safe:animate-pulse-glow"
                         : "text-ink ring-1 ring-inset ring-ink hover:bg-cream-deep"
                     }`}
                   >

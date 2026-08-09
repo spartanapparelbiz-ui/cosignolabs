@@ -125,7 +125,7 @@ export function FinalCta({ terms }: { terms: string }) {
               <Link
                 href="/sign-up"
                 prefetch
-                className="group inline-flex items-center justify-center gap-2 rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold lowercase text-ink shadow-lift transition-transform duration-fast ease-brand-out hover:-translate-y-0.5 hover:scale-[1.02] active:scale-95"
+                className="group inline-flex items-center justify-center gap-2 rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold lowercase text-on-signal shadow-lift transition-transform duration-fast ease-brand-out hover:-translate-y-0.5 hover:scale-[1.02] active:scale-95"
               >
                 <span className="transition-transform duration-base ease-brand-out group-hover:scale-110">
                   <DrawnCheck size={17} drawn={seen || still} />

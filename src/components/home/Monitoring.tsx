@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import { Search } from "lucide-react";
 import { DrawnCheck, Eyebrow, Lede } from "./ui";
@@ -21,18 +21,6 @@ import { EASE_OUT, MaskedLines, Rise, useSectionPass, useSmoothed, useStillness 
  * and not at all under reduced motion, where the last twelve events are
  * simply listed.
  */
-
-const DEEP: CSSProperties = {
-  "--c-ink": "245 240 232",
-  "--c-cream": "16 14 11",
-  "--c-cream-deep": "31 27 22",
-  "--c-ink-soft": "168 160 149",
-  "--c-line": "56 50 42",
-  "--c-signal": "255 99 64",
-  "--c-surface": "28 25 20",
-  "--logo-check": "#f7f0e5",
-  "--logo-wordmark": "#f7f0e5",
-} as CSSProperties;
 
 type Kind = "auto" | "signed" | "held";
 
@@ -123,8 +111,7 @@ export function Monitoring() {
     <section
       ref={ref}
       aria-labelledby="monitoring-title"
-      style={DEEP}
-      className="relative overflow-hidden bg-cream py-24 text-ink sm:py-32"
+      className="relative overflow-hidden bg-cream-deep/60 py-24 text-ink sm:py-32"
     >
       {/* The mark, lit from a dark room. Its check reads cream here because the
           section overrides --logo-check, and the object reads the same custom

@@ -536,7 +536,7 @@ function ActionCardInner({
               disabled={busy || flagged}
               aria-disabled={flagged || undefined}
               title={flagged ? INJECTION_TOOLTIP : undefined}
-              className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2 text-sm font-extrabold text-on-signal shadow-soft transition-transform hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
             >
               {busy ? (
                 <>

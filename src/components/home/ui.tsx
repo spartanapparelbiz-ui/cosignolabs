@@ -256,7 +256,7 @@ export function ActionCard({
               onClick={onApprove}
               tabIndex={interactive ? 0 : -1}
               aria-hidden={!interactive}
-              className="inline-flex items-center gap-2 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold lowercase text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95"
+              className="inline-flex items-center gap-2 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold lowercase text-on-signal shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px hover:scale-[1.02] active:scale-95"
             >
               <DrawnCheck size={15} />
               {approveLabel}

@@ -261,7 +261,7 @@ export default function LivePreview() {
           <div className="mt-3 flex flex-wrap justify-center gap-2">
             <Link
               href="/sign-up"
-              className="inline-flex min-h-[44px] items-center rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink transition-transform hover:scale-[1.02]"
+              className="inline-flex min-h-[44px] items-center rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-on-signal transition-transform hover:scale-[1.02]"
             >
               start free
             </Link>
@@ -394,7 +394,7 @@ export default function LivePreview() {
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
                             onClick={() => approve(card)}
-                            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink transition-transform hover:scale-[1.03] active:scale-95"
+                            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-on-signal transition-transform hover:scale-[1.03] active:scale-95"
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                               <path

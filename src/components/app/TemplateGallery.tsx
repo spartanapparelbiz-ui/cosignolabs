@@ -239,7 +239,7 @@ function Card({
       <button
         onClick={() => onRun(t)}
         disabled={busy !== null}
-        className="mt-4 w-full rounded-btn bg-ink py-2.5 text-sm font-extrabold lowercase text-cream transition-all duration-fast active:scale-[0.98] group-hover:bg-signal group-hover:text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
+        className="mt-4 w-full rounded-btn bg-ink py-2.5 text-sm font-extrabold lowercase text-cream transition-all duration-fast active:scale-[0.98] group-hover:bg-signal group-hover:text-on-signal disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
       >
         {busy === t.key ? "starting…" : needsSubject ? "start — add your subject" : "run"}
       </button>

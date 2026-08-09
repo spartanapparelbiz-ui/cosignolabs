@@ -55,7 +55,7 @@ export function StickyCta() {
         <Link
           href="/sign-up"
           prefetch
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-btn bg-signal px-5 py-3 text-sm font-extrabold lowercase text-ink shadow-soft transition-transform duration-fast ease-brand-out active:scale-95"
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-btn bg-signal px-5 py-3 text-sm font-extrabold lowercase text-on-signal shadow-soft transition-transform duration-fast ease-brand-out active:scale-95"
         >
           <DrawnCheck size={15} />
           start free

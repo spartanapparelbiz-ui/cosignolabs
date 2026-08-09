@@ -437,7 +437,7 @@ function Segmented({
             className={`rounded-pill px-4 py-2 text-sm font-bold lowercase transition-all duration-fast ease-brand-out disabled:cursor-default ${
               active
                 ? value === "never"
-                  ? "bg-signal text-ink shadow-soft"
+                  ? "bg-signal text-on-signal shadow-soft"
                   : "bg-ink text-cream shadow-soft"
                 : "text-ink-soft hover:text-ink"
             }`}

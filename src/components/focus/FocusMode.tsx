@@ -490,7 +490,7 @@ export function FocusMode() {
               <button
                 onClick={handBack}
                 disabled={busy}
-                className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.98] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-on-signal shadow-soft transition-transform active:scale-[0.98] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
                 {busy ? "Handing back…" : "Cosigno, continue"}
               </button>
@@ -520,7 +520,7 @@ export function FocusMode() {
                   <button
                     onClick={() => approve()}
                     disabled={busy}
-                    className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.98] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-on-signal shadow-soft transition-transform active:scale-[0.98] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                   >
                     <Check size={14} strokeWidth={3} /> {busy ? "Executing…" : "Approve"}
                   </button>
@@ -611,7 +611,7 @@ export function FocusMode() {
               onClick={() => (bundleNeedsSign ? setBundleSignOpen(true) : authorizeBundle())}
               disabled={busy || bundleActions.length === 0}
               className={`inline-flex items-center gap-1.5 rounded-btn px-5 py-2.5 text-sm font-extrabold shadow-soft transition-transform active:scale-[0.98] disabled:opacity-50 ${
-                bundleNeedsSign ? "bg-ink text-cream" : "bg-signal text-ink"
+                bundleNeedsSign ? "bg-ink text-cream" : "bg-signal text-on-signal"
               }`}
             >
               {bundleNeedsSign ? (

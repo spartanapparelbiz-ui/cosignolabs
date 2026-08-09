@@ -123,7 +123,7 @@ export function EmergencyStop() {
           disabled={busy}
           autoFocus
           aria-label="confirm: stop all AI activity"
-          className="inline-flex min-h-[36px] animate-chip-pulse items-center gap-1.5 rounded-btn bg-signal px-3 py-1.5 text-xs font-extrabold text-ink shadow-lift transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-[36px] animate-chip-pulse items-center gap-1.5 rounded-btn bg-signal px-3 py-1.5 text-xs font-extrabold text-on-signal shadow-lift transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <OctagonX size={13} aria-hidden="true" />
           {busy ? "Stopping…" : "Confirm — stop everything"}

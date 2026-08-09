@@ -59,17 +59,21 @@ export function SiteNav() {
           <PricingLink className="hidden rounded-btn px-3 py-2 text-sm font-bold lowercase text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink sm:block">
             pricing
           </PricingLink>
+          {/* Visible at every width. On a phone the rest of the nav collapses,
+              and a returning customer was left with nothing but "start free" —
+              a sign-up button is a poor place to send someone who already has
+              an account. */}
           <Link
             href="/sign-in"
             prefetch
-            className="hidden rounded-btn px-3 py-2 text-sm font-bold lowercase text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink sm:block"
+            className="rounded-btn px-2.5 py-2 text-sm font-bold lowercase text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink sm:px-3"
           >
             sign in
           </Link>
           <Link
             href="/sign-up"
             prefetch
-            className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold lowercase text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
+            className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold lowercase text-on-signal shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
           >
             start free
           </Link>

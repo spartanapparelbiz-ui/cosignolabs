@@ -16,12 +16,17 @@ export const NAME_KEY = "cosigno.name";
 const NAME_EVENT = "cosigno:name";
 
 /**
- * Runs before paint in <head> to set the theme with no flash. Default is
- * LIGHT unless the user has explicitly chosen dark or system — that keeps the
- * public/marketing pages (not audited for dark) pristine for first-time
- * visitors, while the app honors the operator's saved choice everywhere.
+ * Runs before paint in <head> to set the theme with no flash.
+ *
+ * The default is the VISITOR'S OWN setting. It used to be a hard "light",
+ * because the marketing pages had never been audited in dark — which meant
+ * someone whose whole machine is dark got a page that ignored them. The audit
+ * has now been done (the one real defect it found: every solid orange button
+ * rendered its label in the dark-mode ink, cream on orange at 1.7:1, on every
+ * page of the site — see --c-on-signal in globals.css), so the setting is
+ * honoured everywhere. An explicit saved choice still wins over the OS.
  */
-export const THEME_INIT_SCRIPT = `(function(){try{var p=localStorage.getItem('${THEME_KEY}')||'light';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();`;
+export const THEME_INIT_SCRIPT = `(function(){try{var p=localStorage.getItem('${THEME_KEY}')||'system';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();`;
 
 function systemDark(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -40,7 +45,7 @@ export function useTheme() {
   const [pref, setPref] = useState<ThemePref>("system");
 
   useEffect(() => {
-    const saved = (localStorage.getItem(THEME_KEY) as ThemePref | null) ?? "light";
+    const saved = (localStorage.getItem(THEME_KEY) as ThemePref | null) ?? "system";
     setPref(saved);
   }, []);
 

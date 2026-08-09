@@ -119,7 +119,7 @@ export function MissionList() {
         <Link
           href="/app"
           prefetch
-          className="mt-1 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft"
+          className="mt-1 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-on-signal shadow-soft"
         >
           start a mission
         </Link>

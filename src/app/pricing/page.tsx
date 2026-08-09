@@ -54,7 +54,7 @@ export default function PricingPage() {
           </Link>
           <Link
             href="/#beta"
-            className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold lowercase text-ink shadow-soft transition-transform duration-fast hover:-translate-y-px"
+            className="rounded-btn bg-signal px-4 py-2 text-sm font-extrabold lowercase text-on-signal shadow-soft transition-transform duration-fast hover:-translate-y-px"
           >
             apply for the beta
           </Link>

@@ -312,7 +312,7 @@ export function AutomationsPanel() {
           <button
             onClick={create}
             disabled={busy === "create" || !name.trim() || !command.trim()}
-            className="self-start rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+            className="self-start rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-on-signal shadow-soft disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             {busy === "create" ? "creating…" : "create standing order"}
           </button>

@@ -274,7 +274,7 @@ function Editor({
       <button
         onClick={onCheck}
         disabled={busy || !text.trim()}
-        className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-btn bg-signal px-6 text-sm font-extrabold lowercase text-ink shadow-soft transition-transform active:scale-95 disabled:cursor-not-allowed disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none"
+        className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-btn bg-signal px-6 text-sm font-extrabold lowercase text-on-signal shadow-soft transition-transform active:scale-95 disabled:cursor-not-allowed disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none"
       >
         {busy ? (
           <>

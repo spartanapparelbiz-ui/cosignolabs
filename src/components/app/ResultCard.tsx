@@ -35,7 +35,7 @@ import type { ChangeKind, ResultStatus, ResultView } from "@/lib/results/describ
 const STATUS_STYLE: Record<ResultStatus, { label: string; cls: string; Icon: typeof Check }> = {
   completed: { label: "Completed", cls: "bg-signal/15 text-ink ring-1 ring-inset ring-signal/40", Icon: Check },
   running: { label: "Running", cls: "bg-cream-deep text-ink-soft", Icon: Loader2 },
-  needs_approval: { label: "Needs approval", cls: "bg-signal text-ink", Icon: ShieldQuestion },
+  needs_approval: { label: "Needs approval", cls: "bg-signal text-on-signal", Icon: ShieldQuestion },
   queued: { label: "Queued", cls: "bg-cream-deep text-ink-soft", Icon: Loader2 },
   declined: { label: "Declined", cls: "bg-ink text-cream", Icon: Ban },
   failed: { label: "Failed", cls: "bg-ink text-cream", Icon: X },

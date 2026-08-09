@@ -15,7 +15,7 @@ import { missionGuide, missionState, missionSteps, type MissionState } from "@/l
 const STATE_STYLE: Record<MissionState["key"], string> = {
   idle: "bg-cream-deep text-ink-soft",
   planning: "bg-cream-deep text-ink",
-  waiting_approval: "bg-signal text-ink",
+  waiting_approval: "bg-signal text-on-signal",
   executing: "bg-ink text-cream",
   held: "ring-1 ring-inset ring-signal text-signal",
   completed: "bg-signal/20 text-ink",

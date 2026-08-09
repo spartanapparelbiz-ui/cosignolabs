@@ -271,7 +271,7 @@ export function TeamPanel() {
                       }), "approved and executed.")
                   }
                   disabled={busy === d.action.id || d.action.injection_flag}
-                  className="inline-flex items-center gap-1 rounded-btn bg-signal px-3.5 py-1.5 text-xs font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1 rounded-btn bg-signal px-3.5 py-1.5 text-xs font-extrabold text-on-signal disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   <Check size={12} /> approve
                 </button>

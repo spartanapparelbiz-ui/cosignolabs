@@ -162,7 +162,7 @@ export function PricingCards() {
                   based on your estimate
                 </span>
               ) : featured ? (
-                <span className="absolute -top-3 left-6 rounded-pill bg-signal px-3 py-1 text-[11px] font-extrabold lowercase text-ink">
+                <span className="absolute -top-3 left-6 rounded-pill bg-signal px-3 py-1 text-[11px] font-extrabold lowercase text-on-signal">
                   most popular
                 </span>
               ) : null}
@@ -186,7 +186,7 @@ export function PricingCards() {
                 onClick={() => choose(id)}
                 disabled={isLeaving}
                 className={`group relative mt-6 min-h-[44px] overflow-hidden rounded-btn px-5 py-3 text-sm font-extrabold lowercase transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
-                  featured || isCovering ? "bg-signal text-ink" : "bg-ink text-cream"
+                  featured || isCovering ? "bg-signal text-on-signal" : "bg-ink text-cream"
                 }`}
               >
                 {!(featured || isCovering) && (

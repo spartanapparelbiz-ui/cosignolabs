@@ -15,6 +15,11 @@
   --c-line: 228 217 200;
   --c-signal: 251 76 32;
   --c-surface: 255 255 255;
+  /* The foreground for anything sitting ON the orange. It belongs to the
+     orange, not to the theme, so it does NOT flip in dark: `text-ink` on
+     `bg-signal` rendered cream-on-orange at 1.7:1 for every dark-mode
+     visitor, on every button on the site. */
+  --c-on-signal: 20 20 20;
 
   /* Logo identity tokens — exact brand values, independent of the product
      palette so the mark renders identically everywhere and flips with the

@@ -42,7 +42,7 @@ export default async function MissionsPage() {
         <Link
           href="/app"
           prefetch
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform duration-fast hover:-translate-y-px active:scale-95"
+          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-on-signal shadow-soft transition-transform duration-fast hover:-translate-y-px active:scale-95"
         >
           new delegation
         </Link>

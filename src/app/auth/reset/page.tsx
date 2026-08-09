@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
   const field =
     "w-full rounded-btn border border-line/70 bg-surface px-3.5 py-2.5 text-sm font-semibold outline-none focus:border-signal";
   const button =
-    "rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:opacity-40";
+    "rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-on-signal shadow-soft transition-transform active:scale-95 disabled:opacity-40";
 
   return (
     <main className="flex min-h-screen [min-height:100dvh] flex-col items-center justify-center bg-cream px-5 py-12">

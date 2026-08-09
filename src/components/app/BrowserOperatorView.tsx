@@ -73,8 +73,8 @@ const SESSION_TONE: Record<string, string> = {
   Starting: "bg-cream-deep text-ink-soft",
   Active: "bg-ink text-cream",
   Reading: "bg-ink text-cream",
-  "Login required": "bg-signal text-ink",
-  "Waiting for you": "bg-signal text-ink",
+  "Login required": "bg-signal text-on-signal",
+  "Waiting for you": "bg-signal text-on-signal",
   Paused: "bg-cream-deep text-ink-soft",
   Completed: "bg-signal/20 text-ink",
   Blocked: "ring-1 ring-inset ring-ink/40 text-ink",
@@ -246,7 +246,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
               href={rec.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-on-signal shadow-soft transition-transform active:scale-95"
             >
               Open recommended product <ArrowUpRight size={15} />
             </a>
@@ -326,7 +326,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
                 onClick={() => answer(o)}
                 disabled={busy === "answer"}
                 className={`rounded-btn px-3.5 py-1.5 text-xs font-bold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
-                  o === mission.pending_question?.recommended ? "bg-signal text-ink" : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
+                  o === mission.pending_question?.recommended ? "bg-signal text-on-signal" : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                 }`}
               >
                 {o}

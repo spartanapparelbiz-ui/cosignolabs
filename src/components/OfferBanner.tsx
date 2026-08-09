@@ -67,7 +67,7 @@ export function OfferBanner() {
         href={href}
         prefetch
         onClick={() => track(event)}
-        className="shrink-0 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink transition-transform duration-fast hover:-translate-y-px active:scale-95"
+        className="shrink-0 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-on-signal transition-transform duration-fast hover:-translate-y-px active:scale-95"
       >
         see the offer
       </Link>

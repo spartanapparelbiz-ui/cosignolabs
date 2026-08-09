@@ -254,7 +254,7 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
                 <button
                   onClick={signDrawn}
                   disabled={!inked || !name.trim()}
-                  className="mt-3 w-full rounded-btn bg-signal px-5 py-3 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-[0.99] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                  className="mt-3 w-full rounded-btn bg-signal px-5 py-3 text-sm font-extrabold text-on-signal shadow-soft transition-transform active:scale-[0.99] disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   Sign to authorize
                 </button>

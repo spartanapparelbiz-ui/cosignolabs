@@ -82,8 +82,26 @@ export function Primer() {
           ))}
         </div>
 
+        {/* What it is and why it exists, in the fewest words that are still
+            true. It sits here because a reader who has just understood the
+            three steps is the one reader who will actually take a paragraph
+            about the reasoning. */}
+        <div className="mx-auto mt-12 max-w-2xl border-t border-line/70 pt-9 text-center sm:mt-14">
+          <Eyebrow>why we built it</Eyebrow>
+          <p className="mx-auto mt-4 max-w-xl text-pretty text-[15px] font-medium leading-[1.7] text-ink-soft sm:text-[16.5px]">
+            the useful part of an ai assistant and the frightening part are the
+            same part: it can act. most products answer that by making the ai
+            weaker. we answer it by making the moment of action visible. one
+            card, the exact thing it wants to do, and your yes or no.
+          </p>
+          <p className="mx-auto mt-4 max-w-xl text-pretty text-[15px] font-semibold leading-[1.7] text-ink sm:text-[16.5px]">
+            nothing sends, changes or spends without you. that is not a setting
+            you switch on. it is the whole product.
+          </p>
+        </div>
+
         <p className="mt-9 text-center text-[13px] font-medium text-ink-soft">
-          that is the whole product.{" "}
+          ready?{" "}
           <Link
             href="/sign-up"
             prefetch

@@ -198,7 +198,7 @@ export function MemoryPanel() {
                 <button
                   onClick={() => patch(m, { content: editText.trim() })}
                   disabled={!editText.trim() || busy === m.id}
-                  className="rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                  className="rounded-btn bg-signal px-4 py-1.5 text-xs font-extrabold text-on-signal disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   save
                 </button>

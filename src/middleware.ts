@@ -166,6 +166,13 @@ async function buildMiddleware(): Promise<NextMiddleware> {
           { status: 503 }
         );
       }
+      // Checkout is the one gated page a marketing link points straight at, so
+      // it gets a way out rather than a dead end: pricing is public, explains
+      // the same plans, and its free tier still works without billing keys.
+      // This widens nothing — checkout itself stays unreachable.
+      if (path === "/checkout") {
+        return NextResponse.redirect(new URL("/pricing", req.url));
+      }
       // Page navigation (e.g. /app/*): a branded HTML page, not a raw error.
       return new NextResponse(WARMING_HTML, {
         status: 503,

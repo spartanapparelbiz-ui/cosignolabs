@@ -430,7 +430,7 @@ export function AutopilotView() {
                 </span>
                 <p className="min-w-0 flex-1 text-sm font-extrabold">{s.title}</p>
                 {s.status === "new" && (
-                  <span className="rounded-pill bg-signal px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-ink">
+                  <span className="rounded-pill bg-signal px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-on-signal">
                     New
                   </span>
                 )}
@@ -578,7 +578,7 @@ export function AutopilotView() {
                 <button
                   onClick={() => takeAction(answer.action!.command)}
                   disabled={busyKey === answer.action.command}
-                  className="mt-3 inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                  className="mt-3 inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-on-signal shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   {answer.action.label} <ChevronRight size={14} />
                 </button>
@@ -689,7 +689,7 @@ function AttentionCard({
           <button
             onClick={onAct}
             disabled={busy}
-            className="inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-on-signal shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             {busy ? "Preparing…" : "Review action"} <ChevronRight size={14} />
           </button>

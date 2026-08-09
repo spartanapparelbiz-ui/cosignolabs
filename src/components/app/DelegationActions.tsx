@@ -179,7 +179,7 @@ export function DelegationActions({
                         setBriefOpen(false);
                         continueWork(brief.failed > 0 ? "rescue" : "finish", e);
                       }}
-                      className="mt-4 inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft"
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-on-signal shadow-soft"
                     >
                       {brief.failed > 0 ? (
                         <>

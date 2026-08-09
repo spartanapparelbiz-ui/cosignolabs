@@ -15,7 +15,7 @@ export default async function PlanPage({
         your plan, usage, and billing.
       </p>
       {status === "success" && (
-        <div className="mt-4 rounded-card bg-signal px-4 py-3 text-sm font-bold text-ink shadow-soft">
+        <div className="mt-4 rounded-card bg-signal px-4 py-3 text-sm font-bold text-on-signal shadow-soft">
           you&apos;re all set — your plan is active. it may take a moment to
           reflect here.
         </div>

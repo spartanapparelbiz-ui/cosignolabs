@@ -66,7 +66,7 @@ export default function ProductPage() {
           <Link
             href="/sign-up"
             prefetch
-            className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
+            className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-on-signal shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
           >
             start with cosigno
           </Link>
@@ -164,7 +164,7 @@ export default function ProductPage() {
                 gmail.send · to: dana@acme.example · 1 attachment
               </p>
               <div className="mt-3 flex gap-2">
-                <span className="rounded-btn bg-signal px-4 py-2 text-xs font-extrabold text-ink">approve</span>
+                <span className="rounded-btn bg-signal px-4 py-2 text-xs font-extrabold text-on-signal">approve</span>
                 <span className="rounded-btn px-4 py-2 text-xs font-bold lowercase ring-1 ring-inset ring-ink">edit</span>
                 <span className="rounded-btn px-4 py-2 text-xs font-bold lowercase ring-1 ring-inset ring-ink">veto</span>
               </div>
@@ -188,7 +188,7 @@ export default function ProductPage() {
             <Link
               href="/sign-up"
               prefetch
-              className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
+              className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-on-signal shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
             >
               start with cosigno
             </Link>

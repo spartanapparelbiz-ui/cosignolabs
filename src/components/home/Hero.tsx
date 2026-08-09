@@ -198,7 +198,7 @@ export function Hero() {
             <Link
               href="/sign-up"
               prefetch
-              className="rounded-btn bg-signal px-8 py-4 text-base font-extrabold lowercase text-ink shadow-lift transition-transform duration-fast ease-brand-out hover:-translate-y-0.5 hover:scale-[1.02] active:scale-95"
+              className="rounded-btn bg-signal px-8 py-4 text-base font-extrabold lowercase text-on-signal shadow-lift transition-transform duration-fast ease-brand-out hover:-translate-y-0.5 hover:scale-[1.02] active:scale-95"
             >
               start free
             </Link>

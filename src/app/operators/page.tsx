@@ -122,7 +122,7 @@ export default function OperatorsPage() {
             <Link
               href="/sign-up"
               prefetch
-              className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
+              className="rounded-btn bg-signal px-7 py-3.5 text-base font-extrabold text-on-signal shadow-soft transition-transform duration-fast ease-brand-out hover:-translate-y-px active:scale-95"
             >
               give cosigno a mission
             </Link>

@@ -19,6 +19,7 @@ const config: Config = {
         cream: "rgb(var(--c-cream) / <alpha-value>)",
         "cream-deep": "rgb(var(--c-cream-deep) / <alpha-value>)",
         signal: "rgb(var(--c-signal) / <alpha-value>)",
+        "on-signal": "rgb(var(--c-on-signal) / <alpha-value>)",
         "ink-soft": "rgb(var(--c-ink-soft) / <alpha-value>)",
         line: "rgb(var(--c-line) / <alpha-value>)",
         // Raised card surface (was literal white); themed so cards read in dark.
