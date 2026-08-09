@@ -153,19 +153,6 @@ export function specialistFor(operatorKey: string | null | undefined): Specialis
   return SPECIALISTS[operatorKey] ?? SPECIALISTS.chief;
 }
 
-/**
- * "cosigno brought in the research specialist." — the sentence that replaces
- * "sub-agent delegation" everywhere in the interface.
- *
- * Returns null for cosigno's own work: "cosigno brought in cosigno" is the
- * kind of line that makes people stop reading status text altogether.
- */
-export function broughtInLine(operatorKey: string): string | null {
-  const s = specialistFor(operatorKey);
-  if (s.key === "chief") return null;
-  return `cosigno brought in the ${s.name.toLowerCase()}.`;
-}
-
 /** Every specialist that touched a set of steps, in the order they appeared. */
 export function specialistsUsed(
   steps: { operator: string }[]

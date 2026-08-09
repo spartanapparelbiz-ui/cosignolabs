@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { DURATION, EASE, MOTION, transitionFor } from "../src/lib/motion";
+import { deviceIsModest } from "../src/lib/useMotionLevel";
 
 /**
  * ONE MOTION SYSTEM, NOT FORTY.
@@ -129,10 +130,40 @@ describe("motion is switchable off without breaking the product", () => {
     expect(depth).toMatch(/if \(!rich \|\| e\.pointerType !== "mouse"\) return/);
   });
 
-  it("a modest device gets the same treatment as an explicit preference", () => {
-    const level = readFileSync("src/lib/useMotionLevel.ts", "utf8");
-    expect(level).toMatch(/saveData/);
-    expect(level).toMatch(/deviceMemory/);
-    expect(level).toMatch(/hardwareConcurrency/);
+  /**
+   * A modest device gets the same treatment as an explicit preference, for a
+   * different reason: a pointer-tracked 3D tilt that drops frames is worse
+   * than no tilt. The signals are all cheap and static — probing frame timing
+   * to decide whether to animate would itself cost the frames it is measuring.
+   */
+  describe("a modest device is spared the expensive effects", () => {
+    const nav = (over: Record<string, unknown> = {}) =>
+      ({ hardwareConcurrency: 16, ...over }) as Navigator;
+
+    it("respects an explicit data-saver request", () => {
+      expect(deviceIsModest(nav({ connection: { saveData: true } }), false)).toBe(true);
+    });
+
+    it("spares a slow connection", () => {
+      expect(deviceIsModest(nav({ connection: { effectiveType: "2g" } }), false)).toBe(true);
+      expect(deviceIsModest(nav({ connection: { effectiveType: "4g" } }), false)).toBe(false);
+    });
+
+    it("spares a low-memory device", () => {
+      expect(deviceIsModest(nav({ deviceMemory: 2 }), false)).toBe(true);
+      expect(deviceIsModest(nav({ deviceMemory: 8 }), false)).toBe(false);
+    });
+
+    it("treats few cores plus a touch screen as a phone", () => {
+      expect(deviceIsModest(nav({ hardwareConcurrency: 4 }), true)).toBe(true);
+      // Four cores with a mouse is an old desktop, which handles a tilt fine.
+      expect(deviceIsModest(nav({ hardwareConcurrency: 4 }), false)).toBe(false);
+    });
+
+    it("leaves a capable machine alone, and never guesses from absent hints", () => {
+      expect(deviceIsModest(nav(), false)).toBe(false);
+      // A browser that reports nothing must not be assumed to be weak.
+      expect(deviceIsModest({} as Navigator, false)).toBe(false);
+    });
   });
 });

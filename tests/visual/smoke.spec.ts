@@ -61,8 +61,15 @@ for (const vp of VIEWPORTS) {
       // room beyond the default 120s per-test budget.
       test.setTimeout(240_000);
       const errors: string[] = [];
+      // Dev-server noise, each entry earning its place:
+      //   · framework banners and hydration chatter that only exist in dev
+      //   · resource 404s for assets the dev server doesn't serve
+      //   · "Failed to fetch RSC payload … Falling back to browser
+      //     navigation" — Next's own message when a prefetch is cancelled by
+      //     navigating away, which this test does 24 times in a row. It says
+      //     in the message that it recovered.
       const IGNORE =
-        /(React DevTools|ResizeObserver loop|favicon|\/_next\/|hydrat|Extra attributes from the server|Failed to load resource|net::ERR|status of 4|status of 5)/i;
+        /(React DevTools|ResizeObserver loop|favicon|\/_next\/|hydrat|Extra attributes from the server|Failed to load resource|Failed to fetch RSC payload|net::ERR|status of 4|status of 5)/i;
       page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
       page.on("console", (m) => {
         if (m.type() === "error" && !IGNORE.test(m.text())) errors.push(`console: ${m.text()}`);
@@ -344,7 +351,10 @@ for (const vp of VIEWPORTS) {
       });
       expect(res.ok()).toBeTruthy();
       const { mission } = await res.json();
-      await page.goto(`/app/browser/${mission.id}`, { waitUntil: "networkidle" });
+      // NOT networkidle: this page watches a mission that is actively moving,
+      // so it polls for as long as the work runs — the network is never idle
+      // and never should be. The assertions below carry their own timeout.
+      await page.goto(`/app/browser/${mission.id}`, { waitUntil: "domcontentloaded" });
 
       // The two-column truth: what it's doing, what it found, what's next,
       // and the standing read-only statement.

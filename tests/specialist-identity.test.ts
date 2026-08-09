@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import {
-  SPECIALISTS,
-  broughtInLine,
-  specialistFor,
-  specialistsUsed,
-} from "../src/lib/agents/identity";
+import { SPECIALISTS, specialistFor, specialistsUsed } from "../src/lib/agents/identity";
 import { OPERATOR_PROFILES } from "../src/lib/missions/operators";
 
 /**
@@ -45,13 +40,9 @@ describe("an unknown operator is cosigno's responsibility, not a guess", () => {
 });
 
 describe("the words replace the engine's vocabulary", () => {
-  it("says cosigno brought someone in, never 'delegated to a sub-agent'", () => {
-    expect(broughtInLine("research")).toBe("cosigno brought in the research specialist.");
-  });
-
-  it("says nothing at all for cosigno's own work", () => {
+  it("cosigno's own work is attributed to cosigno, not to a specialist", () => {
     // "cosigno brought in cosigno" is how people learn to stop reading status.
-    expect(broughtInLine("chief")).toBeNull();
+    expect(SPECIALISTS.chief.name).toBe("cosigno");
   });
 
   it("no identity leaks the engine's own nouns", () => {

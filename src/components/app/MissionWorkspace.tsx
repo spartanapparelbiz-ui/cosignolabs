@@ -30,7 +30,7 @@ import { heroResult } from "@/lib/missions/today";
 import { missionStatus } from "@/lib/status";
 import { missionBrief } from "@/lib/missions/brief";
 import { specialistsUsed } from "@/lib/agents/identity";
-import { SpecialistMark } from "@/components/agents/SpecialistMark";
+import { SpecialistChip, SpecialistMark } from "@/components/agents/SpecialistMark";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/States";
@@ -374,17 +374,15 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
             </summary>
             <ul className="mt-2.5 flex flex-col gap-2.5">
               {specialists.map((sp) => (
-                <li key={sp.key} className="flex items-start gap-2.5">
-                  <SpecialistMark
+                <li key={sp.key}>
+                  <SpecialistChip
                     operatorKey={sp.key}
-                    size={24}
                     working={workingOperator === sp.key}
+                    detail={sp.does}
                   />
-                  <div className="min-w-0">
-                    <p className="text-xs font-extrabold">{sp.name}</p>
-                    <p className="text-[11px] font-semibold text-ink-soft">{sp.does}</p>
-                    <p className="text-[11px] text-ink-soft">Never: {sp.never.toLowerCase()}</p>
-                  </div>
+                  <p className="ml-8 text-[11px] text-ink-soft">
+                    Never: {sp.never.toLowerCase()}
+                  </p>
                 </li>
               ))}
             </ul>

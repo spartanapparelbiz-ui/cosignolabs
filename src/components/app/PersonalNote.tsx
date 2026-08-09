@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { LearnedPreference } from "@/lib/personalization/preferences";
+import { visibleNote, type LearnedPreference } from "@/lib/personalization/preferences";
 
 /**
  * ONE LINE ABOUT HOW COSIGNO IS ADAPTING TO YOU.
@@ -29,7 +29,9 @@ export function PersonalNote() {
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { preferences?: LearnedPreference[] } | null) => {
         if (!alive || !d?.preferences) return;
-        setNote(d.preferences.find((p) => p.confidence === "high") ?? null);
+        // One rule for "is this worth saying out loud", shared with
+        // everywhere else that has to make the same call.
+        setNote(visibleNote(d.preferences));
       })
       .catch(() => {
         /* a missing note is not a problem worth reporting */
