@@ -1214,7 +1214,109 @@ function ToolRow({
   );
 }
 
+/**
+ * Adding a capability.
+ *
+ * Paste is the default because it matches what people actually have: a URL
+ * someone sent them, or the JSON config block they already use in another
+ * app. The three-field form asked for a transport most people can't answer
+ * and a name the server already knows about itself — so both are now
+ * discovered rather than demanded, and the detailed form stays available for
+ * the cases that genuinely need it (custom headers, a specific transport).
+ */
 function AddMcpForm({ onAdded }: { onAdded: () => Promise<void> }) {
+  const [mode, setMode] = useState<"paste" | "manual">("paste");
+
+  return (
+    <div className="rounded-card bg-surface/70 p-4 shadow-depth">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-bold lowercase tracking-wide text-ink-soft">add a capability</p>
+        <button
+          onClick={() => setMode((m) => (m === "paste" ? "manual" : "paste"))}
+          className="rounded-pill px-2.5 py-1 text-[11px] font-bold lowercase text-ink-soft ring-1 ring-inset ring-ink/20 hover:bg-cream-deep hover:text-ink"
+        >
+          {mode === "paste" ? "enter details manually" : "paste instead"}
+        </button>
+      </div>
+      {mode === "paste" ? <PasteMcp onAdded={onAdded} /> : <ManualMcpForm onAdded={onAdded} />}
+    </div>
+  );
+}
+
+/** One box: a URL, or the config block from another app. */
+function PasteMcp({ onAdded }: { onAdded: () => Promise<void> }) {
+  const [paste, setPaste] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+  const [skipped, setSkipped] = useState<{ name: string; reason: string }[]>([]);
+
+  async function submit() {
+    if (!paste.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    setResult(null);
+    setSkipped([]);
+    try {
+      const r = await api("/api/connections/mcp/import", {
+        method: "POST",
+        body: JSON.stringify({ paste: paste.trim() }),
+      });
+      setResult(r.message ?? "connected.");
+      setSkipped(r.skipped ?? []);
+      const failures = (r.connected ?? []).filter((c: { ok: boolean }) => !c.ok);
+      if (failures.length > 0) {
+        setError(failures.map((f: { name: string; message?: string }) => `${f.name}: ${f.message}`).join(" · "));
+      }
+      if ((r.connected ?? []).some((c: { ok: boolean }) => c.ok)) setPaste("");
+      await onAdded();
+    } catch (e) {
+      setError(readable(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 flex flex-col gap-3">
+      <Labeled label="server URL, or the config from another app">
+        <textarea
+          value={paste}
+          onChange={(e) => setPaste(e.target.value)}
+          rows={4}
+          maxLength={20000}
+          placeholder={'https://mcp.example.com/rpc\n\n…or paste {"mcpServers": { … }}'}
+          className="w-full rounded-btn bg-cream-deep px-3 py-2 font-mono text-xs"
+        />
+      </Labeled>
+      <p className="text-[11px] text-ink-soft">
+        cosigno works out the connection type and reads the server&apos;s own name. every tool it
+        finds stays switched off until you turn it on.
+      </p>
+      {error && <p className="text-xs font-semibold text-signal">{error}</p>}
+      {result && <p className="text-xs font-semibold text-ink">{result}</p>}
+      {/* A config that runs a program locally can't work here — say which and why. */}
+      {skipped.length > 0 && (
+        <div className="flex flex-col gap-1 rounded-btn bg-cream-deep px-3 py-2">
+          {skipped.map((sk, i) => (
+            <p key={i} className="text-[11px] font-semibold text-ink-soft">
+              <span className="font-extrabold text-ink">{sk.name}</span> — {sk.reason}
+            </p>
+          ))}
+        </div>
+      )}
+      <button
+        onClick={submit}
+        disabled={!paste.trim() || busy}
+        className="self-start rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+      >
+        {busy ? "connecting…" : "connect"}
+      </button>
+    </div>
+  );
+}
+
+function ManualMcpForm({ onAdded }: { onAdded: () => Promise<void> }) {
   const [displayName, setDisplayName] = useState("");
   const [url, setUrl] = useState("");
   const [transport, setTransport] = useState<"http" | "sse">("http");
@@ -1253,8 +1355,7 @@ function AddMcpForm({ onAdded }: { onAdded: () => Promise<void> }) {
   }
 
   return (
-    <div className="rounded-card bg-surface/70 p-4 shadow-depth">
-      <p className="text-xs font-bold lowercase tracking-wide text-ink-soft">add a remote MCP server</p>
+    <div>
       <div className="mt-3 flex flex-col gap-3">
         <Labeled label="name">
           <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="my knowledge server" className="w-full rounded-btn bg-cream-deep px-3 py-2 text-sm" />
