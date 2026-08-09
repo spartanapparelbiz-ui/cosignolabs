@@ -83,7 +83,7 @@ export function Missions() {
             <MaskedLines
               as="h2"
               id="missions-title"
-              lines={["a mission runs itself —", "until it needs you."]}
+              lines={["a mission runs itself", "until it needs you."]}
               className="mt-4 font-display text-[clamp(1.9rem,5vw,3.5rem)] font-bold leading-[1] tracking-[-0.03em] text-ink"
             />
             <p className="mx-auto mt-4 max-w-lg text-sm font-semibold leading-relaxed text-ink-soft">
@@ -99,13 +99,13 @@ export function Missions() {
             <div className="overflow-hidden rounded-card bg-surface shadow-depth-lift">
               <div className="flex items-center justify-between gap-3 border-b border-line/50 px-4 py-3">
                 <span className="truncate text-[12px] font-extrabold lowercase text-ink">
-                  mission · sort out the duplicate charges
+                  mission: sort out the duplicate charges
                 </span>
                 {done ? (
-                  <Chip tone="signal">complete · 6 of 6</Chip>
+                  <Chip tone="signal">complete, 6 of 6</Chip>
                 ) : holding ? (
                   <Chip tone="ink" className="motion-safe:animate-chip-pulse">
-                    held · waiting for your signature
+                    held, waiting for your signature
                   </Chip>
                 ) : (
                   <Chip tone="muted">running</Chip>
@@ -132,9 +132,9 @@ export function Missions() {
                   </div>
                   <p className="mt-2 text-[11px] font-bold lowercase text-ink-soft">
                     {done
-                      ? "6 of 6 done · 1 signature · 1 typed confirmation"
+                      ? "6 of 6 done, one signature, one typed confirmation"
                       : holding
-                        ? "3 of 6 done · nothing else moves until you answer"
+                        ? "3 of 6 done, nothing else moves until you answer"
                         : `${Math.min(shown, STEPS.length)} of 6 done`}
                   </p>
                 </div>
@@ -147,8 +147,8 @@ export function Missions() {
                   }`}
                   aria-hidden={!done}
                 >
-                  <ReceiptLine id="r_44c1" what="$96.00 refunded · typed confirmation" />
-                  <ReceiptLine id="r_44c2" what="2 confirmations sent · signed by you" />
+                  <ReceiptLine id="r_44c1" what="$96.00 refunded, typed confirmation" />
+                  <ReceiptLine id="r_44c2" what="2 confirmations sent, signed by you" />
                 </div>
               </div>
             </div>
@@ -181,13 +181,13 @@ export function Missions() {
                       action={{
                         id: "m_gate",
                         title: "refund $96.00 to two customers",
-                        meta: "stripe · irreversible · typed confirmation",
+                        meta: "stripe, cannot be undone, typed confirmation",
                         tier: "locked",
                         payload: (
                           <>
-                            ch_3PmQ1a → $48.00 · dana@northwind.co
+                            charge ch_3PmQ1a &nbsp; $48.00 &nbsp; dana@northwind.co
                             <br />
-                            ch_3PmQ7f → $48.00 · sam@lumen.io
+                            charge ch_3PmQ7f &nbsp; $48.00 &nbsp; sam@lumen.io
                           </>
                         ),
                       }}

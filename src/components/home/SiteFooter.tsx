@@ -103,7 +103,7 @@ export function SiteFooter() {
         </div>
 
         <p className="mt-10 text-[11px] font-semibold lowercase text-ink-soft">
-          © {new Date().getFullYear()} aethric llc · cosigno
+          © {new Date().getFullYear()} aethric llc
         </p>
       </div>
     </footer>

@@ -106,15 +106,15 @@ export function Chaos() {
               className="mt-4 font-display text-[clamp(2rem,5.6vw,4rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
             />
             <p className="mx-auto mt-5 max-w-xl text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
-              email, money, customers, production. it moves at machine speed
-              — faster than the moment you would have said wait.
+              email, money, customers, production. it moves faster than you can
+              say wait.
             </p>
           </motion.header>
 
           <div aria-hidden="true" className="mt-10 flex items-end justify-between gap-4 sm:mt-12">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-soft">
-                actions taken · nobody asked
+                actions taken, nobody asked
               </p>
               <motion.p className="font-display text-4xl font-bold tabular-nums leading-none text-ink sm:text-5xl">
                 {still ? "1,284" : count}

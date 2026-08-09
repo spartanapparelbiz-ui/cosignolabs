@@ -110,7 +110,7 @@ for (const vp of VIEWPORTS) {
         /connect what it may touch/i,
         /you sign the part that matters/i,
         /connect everything\. hand over nothing/i,
-        /a mission runs itself . until it needs you/i,
+        /a mission runs itself until it needs you/i,
         /the approval is the product/i,
         /you can always ask what it is doing/i,
         /built for teams shipping ai into production/i,

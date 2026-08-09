@@ -253,9 +253,11 @@ export function Counter({
   const [value, setValue] = useState(to);
 
   // A countdown from 24 to 0 loses two digits on the way, and the line it sits
-  // on reflows every time. Reserve the widest rendering up front; `ch` is the
-  // digit advance under tabular figures, so this is exact.
-  const widest = Math.max(format(from).length, format(to).length);
+  // on reflows every time. The fix is to reserve the widest rendering — but
+  // reserving it in `ch` guesses at the font's digit advance and left a
+  // visible gap before the "%" suffix. An invisible copy of the widest string,
+  // in the real font, reserves exactly the right box and nothing else.
+  const widest = format(from).length >= format(to).length ? format(from) : format(to);
 
   // Rewind to the start only once we know the element is off-screen.
   useEffect(() => {
@@ -273,12 +275,11 @@ export function Counter({
   }, [armed, inView, from, to, duration]);
 
   return (
-    <span
-      ref={ref}
-      className={`inline-block tabular-nums ${className}`}
-      style={{ minWidth: `${widest}ch` }}
-    >
-      {format(value)}
+    <span ref={ref} className={`relative inline-block tabular-nums ${className}`}>
+      <span aria-hidden="true" className="invisible">
+        {widest}
+      </span>
+      <span className="absolute inset-0">{format(value)}</span>
     </span>
   );
 }

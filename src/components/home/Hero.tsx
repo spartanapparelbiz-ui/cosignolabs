@@ -26,7 +26,7 @@ import { useSectionProgress, useSmoothed, useStillness } from "./primitives";
 const HERO_ACTION: ActionSpec = {
   id: "a_01",
   title: "reply to 3 leads who asked about pricing",
-  meta: "gmail · 3 recipients · drafted, not sent",
+  meta: "gmail, 3 recipients, drafted not sent",
   tier: "sign",
   payload: (
     <>
@@ -34,7 +34,7 @@ const HERO_ACTION: ActionSpec = {
       <br />
       subject: re: pricing for a 12-seat team
       <br />
-      body: &ldquo;happy to walk you through it — here are the three plans…&rdquo;
+      body: happy to walk you through it. here are the three plans.
     </>
   ),
 };
@@ -53,8 +53,8 @@ const ORBIT: { action: ActionSpec; position: string; from: [number, number] }[] 
   {
     action: {
       id: "o1",
-      title: "refund order #4412 — $48.00",
-      meta: "stripe · irreversible",
+      title: "refund order #4412, $48.00",
+      meta: "stripe, cannot be undone",
       tier: "locked",
       payload: null,
     },
@@ -65,7 +65,7 @@ const ORBIT: { action: ActionSpec; position: string; from: [number, number] }[] 
     action: {
       id: "o2",
       title: "post the release note in #launch",
-      meta: "slack · 140 people",
+      meta: "slack, 140 people",
       tier: "sign",
       payload: null,
     },
@@ -76,7 +76,7 @@ const ORBIT: { action: ActionSpec; position: string; from: [number, number] }[] 
     action: {
       id: "o3",
       title: "summarise thursday's calls",
-      meta: "drive · reads only",
+      meta: "drive, reads only",
       tier: "auto",
       payload: null,
     },
@@ -87,7 +87,7 @@ const ORBIT: { action: ActionSpec; position: string; from: [number, number] }[] 
     action: {
       id: "o4",
       title: "merge pull request #218",
-      meta: "github · touches production",
+      meta: "github, touches production",
       tier: "locked",
       payload: null,
     },
@@ -180,8 +180,7 @@ export function Hero() {
             className="mb-1 h-[clamp(128px,19dvh,300px)] w-full max-w-[540px] sm:h-[clamp(168px,26dvh,300px)]"
           />
 
-          <p className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft sm:text-xs">
-            <span className="h-1.5 w-1.5 rounded-pill bg-signal" aria-hidden="true" />
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft sm:text-xs">
             the operating system for trusted ai
           </p>
 
@@ -195,8 +194,8 @@ export function Hero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base font-semibold leading-relaxed text-ink-soft motion-safe:animate-word-in motion-safe:[animation-delay:260ms] sm:text-lg">
-            cosigno runs the work across your tools and stops at the moment that
-            matters — the one where something sends, changes, or spends.
+            cosigno runs the work across your tools. it stops before anything
+            sends, changes, or spends.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 motion-safe:animate-word-in motion-safe:[animation-delay:380ms]">
@@ -215,7 +214,7 @@ export function Hero() {
             </a>
           </div>
           <p className="mt-3 text-[11px] font-semibold lowercase text-ink-soft motion-safe:animate-word-in motion-safe:[animation-delay:440ms]">
-            free forever tier · no card · about two minutes to your first mission
+            free tier, no card, about two minutes to your first mission
           </p>
         </motion.div>
 
@@ -284,7 +283,7 @@ function HeroSurface() {
     <div className="pointer-events-auto overflow-hidden rounded-card bg-surface shadow-depth-lift">
       <div className="flex items-center justify-between gap-3 border-b border-line/50 px-4 py-3 sm:px-5">
         <span className="truncate text-[11px] font-extrabold lowercase text-ink sm:text-[13px]">
-          mission · clear the inbox and answer the leads
+          mission: clear the inbox and answer the leads
         </span>
         <TierChip tier="sign" className="hidden sm:inline-flex" />
       </div>
@@ -299,7 +298,7 @@ function HeroSurface() {
           <div className="mt-4">
             <ProgressRail value={4 / 6} />
             <p className="mt-2 text-[11px] font-bold lowercase text-ink-soft">
-              4 of 6 done · 1 waiting for your signature
+              4 of 6 done, 1 waiting for your signature
             </p>
           </div>
         </div>

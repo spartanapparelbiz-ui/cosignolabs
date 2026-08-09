@@ -38,7 +38,7 @@ const PANELS: {
     id: "plan",
     step: "02",
     title: "it writes the plan before it moves",
-    body: "the goal becomes steps, each naming the tool it will use and the authority it needs — runs on its own, needs your signature, or locked behind a typed confirmation.",
+    body: "the goal becomes steps. each one names the tool it will use and the authority it needs: runs on its own, needs your signature, or locked behind a typed confirmation.",
     scene: <PlanScene />,
   },
   {
@@ -296,7 +296,7 @@ function PlanScene() {
   return (
     <div className="rounded-card bg-surface p-4 shadow-depth">
       <p className="text-[11px] font-extrabold lowercase text-ink-soft">
-        plan · answer everyone waiting since the 1st
+        plan: answer everyone waiting since the 1st
       </p>
       <ul className="mt-3 space-y-1.5">
         {PLAN.map(([label, tier], i) => (
@@ -323,14 +323,14 @@ function SignScene() {
         interactive={false}
         action={{
           id: "s1",
-          title: "refund the two duplicate charges — $96.00",
-          meta: "stripe · 2 customers · cannot be undone",
+          title: "refund the two duplicate charges, $96.00",
+          meta: "stripe, 2 customers, cannot be undone",
           tier: "locked",
           payload: (
             <>
-              ch_3PmQ1a → $48.00 · dana@northwind.co
+              charge ch_3PmQ1a &nbsp; $48.00 &nbsp; dana@northwind.co
               <br />
-              ch_3PmQ7f → $48.00 · sam@lumen.io
+              charge ch_3PmQ7f &nbsp; $48.00 &nbsp; sam@lumen.io
               <br />
               reason: duplicate charge on the same invoice
             </>
@@ -341,7 +341,7 @@ function SignScene() {
       <PayloadWell>
         <span className="text-ink">REFUND</span>
         <span className="ml-0.5 inline-block h-3 w-[2px] translate-y-[2px] bg-ink motion-safe:animate-shimmer" />
-        <span className="ml-2 text-ink-soft">— typed, not clicked</span>
+        <span className="ml-2 text-ink-soft">typed, not clicked</span>
       </PayloadWell>
     </div>
   );
@@ -352,7 +352,7 @@ function DoneScene() {
     <div className="rounded-card bg-surface p-4 shadow-depth">
       <div className="flex items-center justify-between gap-3">
         <span className="text-[11px] font-extrabold lowercase text-ink">
-          mission complete · 6 of 6
+          mission complete, 6 of 6
         </span>
         <Chip tone="signal">
           <Check size={11} strokeWidth={3} aria-hidden="true" />
@@ -360,10 +360,10 @@ function DoneScene() {
         </Chip>
       </div>
       <div className="mt-3 space-y-1">
-        <ReceiptLine id="r_1a90c4" what="4 replies sent · signed by you 10:58" />
-        <ReceiptLine id="r_1a90c5" what="$96.00 refunded · typed confirmation 11:01" />
-        <ReceiptLine id="r_1a90c6" what="summary written to drive · signed by you 11:03" />
-        <ReceiptLine id="r_1a90c7" what="217 messages read · ran on its own" />
+        <ReceiptLine id="r_1a90c4" what="4 replies sent, signed by you 10:58" />
+        <ReceiptLine id="r_1a90c5" what="$96.00 refunded, typed confirmation 11:01" />
+        <ReceiptLine id="r_1a90c6" what="summary written to drive, signed by you 11:03" />
+        <ReceiptLine id="r_1a90c7" what="217 messages read, ran on its own" />
       </div>
       <p className="mt-3 text-[11px] font-semibold leading-relaxed text-ink-soft">
         four steps, two of them yours. the mission closed itself out and left

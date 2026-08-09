@@ -20,7 +20,7 @@ import { EASE_OUT, EASE_SPRING, MaskedLines, useStillness } from "./primitives";
 const THE_ASK: ActionSpec = {
   id: "a_88",
   title: "send 412 emails to all-customers",
-  meta: "gmail · 412 recipients · cannot be unsent",
+  meta: "gmail, 412 recipients, cannot be unsent",
   tier: "sign",
   payload: (
     <>
@@ -28,7 +28,9 @@ const THE_ASK: ActionSpec = {
       <br />
       subject: an important update to your account
       <br />
-      attachments: none · reply-to: you@yourcompany.com
+      attachments: none
+      <br />
+      reply-to: you@yourcompany.com
     </>
   ),
 };
@@ -98,8 +100,7 @@ export function ApprovalMoment() {
 
       <div className="mx-auto w-full max-w-6xl px-4">
         <header className="mx-auto max-w-2xl text-center">
-          <p className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
-            <span className="h-1.5 w-1.5 rounded-pill bg-signal" aria-hidden="true" />
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
             with cosigno
           </p>
           <MaskedLines
@@ -109,8 +110,8 @@ export function ApprovalMoment() {
             className="mt-4 font-display text-[clamp(2.1rem,6vw,4.5rem)] font-bold leading-[0.98] tracking-[-0.03em] text-ink"
           />
           <p className="mx-auto mt-5 max-w-lg text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
-            the queue is still there. it is just not moving — and it will go on
-            not moving for as long as you need it to.
+            the queue is still there. it just is not moving, and it will not
+            move until you answer.
           </p>
         </header>
 
@@ -146,7 +147,7 @@ export function ApprovalMoment() {
                   {row}
                 </span>
                 <span className="ml-auto shrink-0 font-mono text-[10px] text-ink-soft">
-                  {phase === "signed" ? "held · then signed" : phase === "vetoed" ? "held · nothing ran" : "held"}
+                  {phase === "signed" ? "held, then signed" : phase === "vetoed" ? "held, nothing ran" : "held"}
                 </span>
               </li>
             ))}
@@ -208,10 +209,10 @@ export function ApprovalMoment() {
                     transition={{ duration: 0.4, ease: EASE_OUT, delay: 0.25 }}
                   >
                     {phase === "signed"
-                      ? "signed 09:41:12 · receipt r_8f2c41"
-                      : "vetoed 09:41:12 · receipt r_8f2c41"}
+                      ? "signed 09:41:12, receipt r_8f2c41"
+                      : "vetoed 09:41:12, receipt r_8f2c41"}
                     <br />
-                    either way, it is written down and it is yours.
+                    either way it is written down.
                   </motion.p>
                 ) : (
                   <motion.p
@@ -237,7 +238,7 @@ export function ApprovalMoment() {
         >
           {phase === "vetoed"
             ? "nothing continued. that is also an answer."
-            : "everything continued — with your name on it."}
+            : "everything continued, with your name on it."}
         </p>
       </div>
     </section>

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { CosignoMark } from "@/components/brand/Logo";
 import { Counter, MaskedLines, Rise, Stagger, StaggerItem } from "./primitives";
 
 /**
@@ -19,7 +18,7 @@ const FACTS: { value: number; from?: number; suffix?: string; label: string }[] 
     value: 0,
     from: 24,
     label:
-      "outside changes without your signature. reading, summarising and drafting clear on their own — nothing else does.",
+      "outside changes without your signature. reading, summarising and drafting clear on their own. nothing else does.",
   },
   {
     value: 100,
@@ -44,7 +43,7 @@ export function Proof() {
             className="mt-4 font-display text-[clamp(1.9rem,5.2vw,3.75rem)] font-bold leading-[0.99] tracking-[-0.03em] text-ink"
           />
           <p className="mx-auto mt-5 max-w-xl text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
-            the teams who need this are the ones whose agent already works — and
+            the teams who need this are the ones whose agent already works, and
             who now have to answer for what it did.
           </p>
         </header>
@@ -66,46 +65,18 @@ export function Proof() {
           ))}
         </Stagger>
 
-        {/* ------------------------------------------------- the empty seats */}
-        <Rise className="mt-16">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <h3 className="font-display text-xl font-bold tracking-tight text-ink sm:text-2xl">
-              what people say
-            </h3>
-            <p className="text-[11px] font-semibold lowercase text-ink-soft">
-              we don&apos;t publish testimonials we haven&apos;t earned yet.
-            </p>
-          </div>
-        </Rise>
-
-        <Stagger className="mt-5 grid gap-4 md:grid-cols-3" step={0.08}>
-          {["reserved", "reserved", "reserved"].map((_, i) => (
-            <StaggerItem
-              key={i}
-              className="flex min-h-[11rem] flex-col justify-between rounded-card bg-cream-deep/50 p-5 shadow-well"
-            >
-              <p className="font-display text-lg font-bold leading-snug tracking-tight text-ink-soft">
-                &ldquo;&nbsp;&rdquo;
-              </p>
-              <div className="flex items-center gap-2.5">
-                <span className="opacity-40">
-                  <CosignoMark size={20} mono />
-                </span>
-                <span className="text-[11px] font-bold lowercase text-ink-soft">
-                  reserved for the founding cohort
-                </span>
-              </div>
-            </StaggerItem>
-          ))}
-        </Stagger>
-
-        <Rise className="mt-6 text-center">
+        <Rise className="mx-auto mt-14 max-w-xl text-center">
+          <p className="text-sm font-semibold leading-relaxed text-ink-soft">
+            there are no testimonials here yet. cosigno is onboarding its first
+            teams, and quotes from people who have not used it are worth
+            nothing to you.
+          </p>
           <Link
             href="/sign-up"
             prefetch
-            className="text-sm font-bold lowercase text-ink underline decoration-signal decoration-2 underline-offset-4 transition-colors hover:text-signal"
+            className="mt-4 inline-block text-sm font-bold lowercase text-ink underline decoration-signal decoration-2 underline-offset-4 transition-colors hover:text-signal"
           >
-            take one of the seats →
+            be one of the first teams
           </Link>
         </Rise>
       </div>

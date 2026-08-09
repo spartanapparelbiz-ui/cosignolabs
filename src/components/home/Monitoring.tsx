@@ -37,16 +37,16 @@ type Kind = "auto" | "signed" | "held";
 
 const EVENTS: { kind: Kind; text: string }[] = [
   { kind: "auto", text: "read 217 new messages" },
-  { kind: "signed", text: "sent 4 replies · signed by you" },
-  { kind: "held", text: "refund $48.00 · waiting for you" },
+  { kind: "signed", text: "sent 4 replies, signed by you" },
+  { kind: "held", text: "refund $48.00, waiting for you" },
   { kind: "auto", text: "summarised thursday's calls" },
   { kind: "signed", text: "posted the release note in #launch" },
-  { kind: "held", text: "external content tried to direct the agent — held" },
+  { kind: "held", text: "external content tried to direct the agent" },
   { kind: "auto", text: "searched drive for the q3 deck" },
   { kind: "signed", text: "updated 12 records in notion" },
-  { kind: "held", text: "delete 40 files · waiting for you" },
+  { kind: "held", text: "delete 40 files, waiting for you" },
   { kind: "auto", text: "read 9 calendar invites" },
-  { kind: "signed", text: "$96.00 refunded · typed confirmation" },
+  { kind: "signed", text: "$96.00 refunded, typed confirmation" },
   { kind: "auto", text: "drafted 3 follow-ups" },
 ];
 
@@ -136,8 +136,8 @@ export function Monitoring() {
           />
           <p className="mx-auto mt-5 max-w-xl text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
             proposals, approvals, vetoes and executions land in one stream,
-            each with the payload it carried. what did it do, and who said yes
-            — filterable, exportable, and never a reconstruction.
+            each with the payload it carried. what did it do, and who said yes.
+            filterable, exportable, never a reconstruction.
           </p>
         </header>
 

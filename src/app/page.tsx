@@ -75,7 +75,7 @@ const FREE_TERMS = [
   actionLimitLabel(PLANS.free).replace("AI operations", "ai operations"),
   `${PLANS.free.integrationLimit} connected app`,
   "no card",
-].join(" · ");
+].join(", ");
 
 const COMPARISON: ComparisonRow[] = [
   {

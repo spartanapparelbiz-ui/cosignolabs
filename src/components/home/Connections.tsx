@@ -35,9 +35,9 @@ const NODES: { key: string; label: string; x: number; y: number }[] = [
 ];
 
 const RULES = [
-  { tier: "auto" as const, what: "search · summarise · draft" },
-  { tier: "sign" as const, what: "send · post · update · spend" },
-  { tier: "locked" as const, what: "refund · delete · pay" },
+  { tier: "auto" as const, what: "search, summarise, draft" },
+  { tier: "sign" as const, what: "send, post, update, spend" },
+  { tier: "locked" as const, what: "refund, delete, pay" },
 ];
 
 export function Connections() {
@@ -61,8 +61,8 @@ export function Connections() {
           />
           <p className="mx-auto mt-5 max-w-xl text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
             one connection per tool, asking for the narrowest access that still
-            does the job. the rules for what may happen inside it arrive with
-            the connection — you can move them, the agent cannot.
+            does the job. the rules arrive with the connection. you can move
+            them. the agent cannot.
           </p>
         </header>
 
@@ -168,9 +168,9 @@ export function Connections() {
           ))}
         </Rise>
         <p className="mx-auto mt-5 max-w-xl text-center text-[11px] font-semibold leading-relaxed text-ink-soft">
-          the three most consequential categories — refunds, deletions,
-          payments — are pinned to the top tier. they cannot be lowered, and
-          the agent has no way to raise its own authority.
+          refunds, deletions and payments are pinned to the top tier. they
+          cannot be lowered, and the agent has no way to raise its own
+          authority.
         </p>
       </div>
     </section>

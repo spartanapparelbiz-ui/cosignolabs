@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   // A template, so every page reads "<Page> • cosigno" in the tab without
   // each route restating the brand. `default` covers routes that set none.
   title: {
-    default: "cosigno — the AI operator that asks first",
+    default: "cosigno: the AI operator that asks first",
     template: "%s • cosigno",
   },
   description: DESCRIPTION,
@@ -72,7 +72,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   openGraph: {
     type: "website",
-    title: "cosigno — the AI operator that asks first",
+    title: "cosigno: the AI operator that asks first",
     description: DESCRIPTION,
     url: "https://cosignolabs.com",
     siteName: "cosigno",
@@ -80,7 +80,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "cosigno — the AI operator that asks first",
+    title: "cosigno: the AI operator that asks first",
     description: DESCRIPTION,
     images: ["/og.png?v=5"],
   },

@@ -27,9 +27,9 @@ import { EASE_SPRING, MaskedLines, useSectionProgress, useSmoothed, useStillness
  */
 
 const STEPS: [string, string][] = [
-  ["01", "create your account — email and a password, or continue with google"],
-  ["02", "connect one tool — it asks for the narrowest access that does the job"],
-  ["03", "give it a job — it stops at the first card and waits for you"],
+  ["01", "create your account with email and a password, or continue with google"],
+  ["02", "connect one tool. it asks for the narrowest access that does the job"],
+  ["03", "give it a job. it stops at the first card and waits for you"],
 ];
 
 export function FinalCta({ terms }: { terms: string }) {
@@ -84,7 +84,7 @@ export function FinalCta({ terms }: { terms: string }) {
         />
 
         <p className="mx-auto mt-2 max-w-sm text-center font-mono text-[11px] tracking-[0.04em] text-ink-soft">
-          so here is the last card on the page. this one is yours.
+          one card left. this one is yours.
         </p>
 
         {/* --------------------------------------------------- the last card */}
@@ -143,7 +143,7 @@ export function FinalCta({ terms }: { terms: string }) {
 
             <p className="mt-4 text-[11px] font-semibold lowercase leading-relaxed text-ink-soft">
               the free plan never asks for a card. the demo needs no account at
-              all — it runs in your browser against simulated tools.
+              all and runs in your browser against simulated tools.
             </p>
           </div>
         </motion.div>

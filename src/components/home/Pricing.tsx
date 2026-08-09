@@ -61,8 +61,8 @@ export function Pricing({
           />
           <p className="mx-auto mt-5 max-w-lg text-sm font-semibold leading-relaxed text-ink-soft sm:text-base">
             an operation is one piece of thinking or one executed action. the
-            approval model is identical on every plan — it is the product, not
-            a tier.
+            approval model is identical on every plan. it is the product, not a
+            tier.
           </p>
         </header>
 
@@ -132,7 +132,7 @@ export function Pricing({
         </Stagger>
 
         <p className="mt-5 text-center text-[11px] font-semibold lowercase text-ink-soft">
-          {intro} ·{" "}
+          {intro}.{" "}
           <PricingLink className="underline decoration-signal underline-offset-2 hover:text-ink">
             see the full breakdown
           </PricingLink>
@@ -210,7 +210,7 @@ function ComparisonBody({ rows }: { rows: ComparisonRow[] }) {
                     <DrawnCheck size={15} />
                   </span>
                 ) : (
-                  <span className="text-ink-soft">—</span>
+                  <span className="text-ink-soft">no</span>
                 )
               ) : (
                 cell

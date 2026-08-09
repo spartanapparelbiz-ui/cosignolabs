@@ -29,13 +29,13 @@ const CAPTIONS = [
   "the consequential one comes forward.",
   "everything it will do, before it does it.",
   "a locked action asks you to type its name.",
-  "your signature — not a checkbox.",
+  "your signature, not a checkbox.",
   "signed, executed, and written down.",
 ];
 
 /** The four things every card carries, whatever the action is. */
 const CARD_ALWAYS: [string, string][] = [
-  ["the exact payload", "every recipient, every amount, every id — before, not after."],
+  ["the exact payload", "every recipient, every amount, every id, before it runs."],
   ["the tool it will use", "which connection it goes through, and how far that reaches."],
   ["whether it can be undone", "stated on the card, not discovered afterwards."],
   ["two answers", "approve or veto. both are written down and both are yours."],
@@ -103,8 +103,7 @@ export function Approvals() {
       <div className="flex flex-col justify-center px-4 py-24 motion-safe:sticky motion-safe:top-0 motion-safe:h-[100dvh] motion-safe:overflow-hidden motion-safe:py-0">
         <div className="mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] lg:gap-16">
           <div className="text-center lg:text-left">
-            <p className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
-              <span className="h-1.5 w-1.5 rounded-pill bg-signal" aria-hidden="true" />
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft">
               approvals
             </p>
             <MaskedLines
@@ -114,9 +113,9 @@ export function Approvals() {
               className="mt-4 font-display text-[clamp(2.1rem,5.6vw,4.25rem)] font-bold leading-[0.97] tracking-[-0.035em] text-ink"
             />
             <p className="mx-auto mt-5 max-w-md text-sm font-semibold leading-relaxed text-ink-soft sm:text-base lg:mx-0">
-              other products log what their agent did. this is the thing it has
-              to get past first — and it is the same object whether the action
-              costs nothing or ends a customer relationship.
+              other products log what their agent did. this is what it has to
+              get past first. the same card whether the action costs nothing or
+              costs you a customer.
             </p>
 
             {/* the narration, one line at a time, in reserved space */}
@@ -194,7 +193,7 @@ export function Approvals() {
                 refund $96.00 to two customers
               </p>
               <p className="mt-1.5 text-[11px] font-semibold lowercase text-ink-soft">
-                stripe · 2 charges · cannot be undone
+                stripe, 2 charges, cannot be undone
               </p>
 
               {/* slot one: the summary, replaced by the exact payload */}
@@ -202,7 +201,7 @@ export function Approvals() {
                 {!still && (
                   <motion.div className="absolute inset-0" style={{ opacity: summaryOut }}>
                     <PayloadWell className="h-full">
-                      2 charges · $96.00 total · both on invoice 2214
+                      2 charges, $96.00 total, both on invoice 2214
                       <br />
                       <span className="text-ink">every line is shown before you answer.</span>
                     </PayloadWell>
@@ -213,9 +212,9 @@ export function Approvals() {
                   style={still ? undefined : { opacity: payloadIn, y: payloadY }}
                 >
                   <PayloadWell className="h-full">
-                    ch_3PmQ1a → $48.00 · dana@northwind.co
+                    charge ch_3PmQ1a &nbsp; $48.00 &nbsp; dana@northwind.co
                     <br />
-                    ch_3PmQ7f → $48.00 · sam@lumen.io
+                    charge ch_3PmQ7f &nbsp; $48.00 &nbsp; sam@lumen.io
                     <br />
                     reason: duplicate charge on invoice 2214
                   </PayloadWell>
@@ -301,7 +300,7 @@ export function Approvals() {
                     className="absolute inset-x-0 top-3 font-mono text-[10px] text-ink-soft"
                     style={{ opacity: unsignedOut }}
                   >
-                    unsigned · nothing has run · no receipt exists yet
+                    unsigned. nothing has run. no receipt yet.
                   </motion.p>
                 )}
                 <motion.svg
@@ -324,7 +323,7 @@ export function Approvals() {
                   className="absolute inset-x-0 bottom-0 font-mono text-[10px] text-ink-soft"
                   style={still ? undefined : { opacity: receiptIn }}
                 >
-                  r_8f2c41 · signed by you · 11:01:38 · verified
+                  r_8f2c41 signed by you at 11:01:38, verified
                 </motion.p>
               </div>
             </motion.article>

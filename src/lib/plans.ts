@@ -77,9 +77,9 @@ export const PLANS: Record<PlanId, Plan> = {
     canExportCsv: true,
     features: [
       "1,000 AI operations / month",
-      "give cosigno your entire workflow — unlimited connected apps",
-      "connect AI to anything — your own APIs and MCP servers",
-      "never lose what AI accomplished — full history export",
+      "unlimited connected apps",
+      "your own APIs and MCP servers",
+      "full history export",
     ],
     examples: ["run your inbox", "research competitors", "automate follow-ups", "connect every app"],
   },
@@ -103,8 +103,8 @@ export const PLANS: Record<PlanId, Plan> = {
     features: [
       "10,000 AI operations / month",
       "everything in operator",
-      "premium AI routing — a stronger model when work demands it",
-      "webhook / API access",
+      "a stronger model when the work demands it",
+      "webhook and API access",
       "priority support",
     ],
     examples: ["run heavy volume", "premium AI routing", "webhook & API access", "priority support"],

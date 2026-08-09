@@ -22,7 +22,7 @@ export type Tier = "auto" | "sign" | "locked";
 const TIER_COPY: Record<Tier, { label: string; Icon: typeof Zap }> = {
   auto: { label: "runs on its own", Icon: Zap },
   sign: { label: "needs your signature", Icon: PenLine },
-  locked: { label: "locked · typed confirmation", Icon: Lock },
+  locked: { label: "locked, needs typed confirmation", Icon: Lock },
 };
 
 export function TierChip({ tier, className = "" }: { tier: Tier; className?: string }) {
@@ -216,7 +216,7 @@ export function ActionCard({
           </span>
         ) : vetoed ? (
           <span className="inline-flex items-center gap-2 rounded-btn px-3 py-2 text-sm font-extrabold lowercase text-ink ring-1 ring-inset ring-ink">
-            vetoed — nothing ran
+            vetoed, nothing ran
           </span>
         ) : (
           <>
@@ -353,7 +353,7 @@ export function ReceiptLine({
       <span className="mr-1 inline-block translate-y-[2px] text-signal">
         <DrawnCheck size={11} />
       </span>
-      {id} · {what}
+      <span className="text-ink">{id}</span> {what}
     </p>
   );
 }

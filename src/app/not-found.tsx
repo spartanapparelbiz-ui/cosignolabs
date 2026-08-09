@@ -10,7 +10,7 @@ export default function NotFound() {
         <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-ink-soft">404</p>
         <h1 className="mt-1.5 text-2xl font-extrabold lowercase text-ink">that page isn&apos;t here</h1>
         <p className="mx-auto mt-2 max-w-sm text-sm text-ink-soft">
-          the link may be old or mistyped. nothing&apos;s broken — let&apos;s get you back.
+          the link may be old or mistyped. nothing is broken. let&apos;s get you back.
         </p>
       </div>
       <Link
