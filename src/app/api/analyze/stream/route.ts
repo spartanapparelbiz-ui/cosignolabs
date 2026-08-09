@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       throw new ApiError(402, "usage_limit", usageLimitMessage(planId));
     }
 
-    await enforceGlobalPlanningBudget();
+    await enforceGlobalPlanningBudget(userId);
 
     const { sources, media } = await loadSourcesForAnalysis(userId, body.sourceIds ?? []);
     if ((body.sourceIds ?? []).length > 0 && sources.length === 0) {

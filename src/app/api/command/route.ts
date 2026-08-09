@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       throw new ApiError(400, "empty_command", "give the operator a command first.");
     }
 
-    await enforceGlobalPlanningBudget();
+    await enforceGlobalPlanningBudget(userId);
 
     const result = await runCommand(userId, body.command.trim(), {
       sessionId: body.sessionId,

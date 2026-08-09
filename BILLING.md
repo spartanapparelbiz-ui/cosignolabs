@@ -82,6 +82,29 @@ is. `src/lib/owner.ts` is the whole implementation.
 - **Attribution.** Owner activity is still metered and recorded: the
   `ai_usage` ledger stores `plan: "owner"` per planner call, so
   `GET /api/internal/costs` separates internal spend from customer spend.
+- **No id-discovery route.** There is deliberately no endpoint that reports
+  your own user id or owner status. Read the UID from Supabase →
+  Authentication → Users. An endpoint answering "are you an owner?" would be
+  a permanent hint that owners exist, in exchange for a value you need once.
+
+### Every enforcement point an owner bypasses
+
+`getUserPlan` covers everything that reads a plan — but three ceilings are
+enforced *outside* the plan and each needed its own bypass. All four read the
+same `isOwner(userId)`; there is no second owner check anywhere.
+
+| Ceiling | Where | How the owner clears it |
+| --- | --- | --- |
+| AI operations, connected apps, custom MCP, CSV export, model routing | `getUserPlan()` → `src/lib/billing.ts` | resolves to the `owner` plan before any store read: `actionLimit`/`integrationLimit` are `Infinity`, `customMcp`/`canExportCsv`/`strongerModel` are `true` |
+| Per-user rate windows (minute + day) | `enforceLimit()` → `src/lib/ratelimit.ts` | returns before the limiter when the window's key is an owner id |
+| Shared daily planner cap | `enforceGlobalPlanningBudget(userId)` → `src/lib/ratelimit.ts` | returns **before the counter increments**, so owner traffic neither hits the beta cap nor consumes it on behalf of customers |
+| Mission action budget | `missionBudget()` → `src/lib/missions/missionBudget.ts` | limit becomes `UNLIMITED`; the counter still runs, so the receipt stays honest |
+
+Windows keyed by something other than a user id — client IP on the anonymous
+sandbox (`/api/preview`), the beta form, `authz:<org>` on the token routes —
+are **not** bypassable: `ownerIds()` admits only UUID-shaped entries, so an IP
+or an org string can never be in the set. Those surfaces stay limited by
+construction rather than by remembering to exclude them.
 
 Proved by `tests/security/owner.test.ts`.
 

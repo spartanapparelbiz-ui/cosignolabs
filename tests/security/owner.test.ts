@@ -222,17 +222,17 @@ describe("the owner tier is hidden from the UI", () => {
   });
 });
 
-describe("the override is server-side only", () => {
-  function walkTsx(dir: string): string[] {
-    const out: string[] = [];
-    for (const entry of readdirSync(dir)) {
-      const p = join(dir, entry);
-      if (statSync(p).isDirectory()) out.push(...walkTsx(p));
-      else if (/\.(ts|tsx)$/.test(entry)) out.push(p);
-    }
-    return out;
+function walkTsx(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const p = join(dir, entry);
+    if (statSync(p).isDirectory()) out.push(...walkTsx(p));
+    else if (/\.(ts|tsx)$/.test(entry)) out.push(p);
   }
+  return out;
+}
 
+describe("the override is server-side only", () => {
   it("no client component imports the owner module", () => {
     const offenders = walkTsx(join(process.cwd(), "src")).filter((file) => {
       const src = readFileSync(file, "utf8");
@@ -249,32 +249,175 @@ describe("the override is server-side only", () => {
   });
 });
 
-describe("GET /api/whoami — the temporary id-discovery route", () => {
-  it("returns only the caller's own id, and whether it is an owner", async () => {
+/**
+ * THE OTHER THREE CEILINGS.
+ *
+ * getUserPlan() covers everything that reads a plan. These three are enforced
+ * outside the plan, so "unlimited" is only true if each one is bypassed too —
+ * and each must be bypassed from the SAME user-id check, never a second
+ * notion of who an owner is.
+ */
+describe("owner bypass — per-user rate windows (enforceLimit)", () => {
+  it("an owner is never rate limited, however far past the window", async () => {
     vi.stubEnv("OWNER_IDS", OWNER_ID);
-    const { GET } = await import("../../src/app/api/whoami/route");
-    const body = await (await GET()).json();
-    expect(body).toEqual({ user_id: OWNER_ID, owner: true });
+    const { enforceLimit } = await import("../../src/lib/ratelimit");
+    // commandMinute allows 10; 40 consecutive calls must all pass.
+    for (let i = 0; i < 40; i++) {
+      await expect(enforceLimit("commandMinute", OWNER_ID)).resolves.toBeUndefined();
+    }
   });
 
-  it("reports a non-owner honestly, so a bad paste is visible", async () => {
-    vi.stubEnv("OWNER_IDS", SECOND_OWNER_ID);
-    currentUser.id = CUSTOMER_ID;
-    const { GET } = await import("../../src/app/api/whoami/route");
-    const body = await (await GET()).json();
-    expect(body).toEqual({ user_id: CUSTOMER_ID, owner: false });
-  });
-
-  it("names no configuration key in its response", async () => {
+  it("a customer is still limited while an owner is not", async () => {
     vi.stubEnv("OWNER_IDS", OWNER_ID);
-    const { GET } = await import("../../src/app/api/whoami/route");
-    const raw = JSON.stringify(await (await GET()).json());
-    expect(raw).not.toMatch(/[A-Z][A-Z0-9]{2,}(?:_[A-Z0-9]+)+/);
+    const { enforceLimit, RateLimitError } = await import("../../src/lib/ratelimit");
+    let threw: unknown = null;
+    try {
+      for (let i = 0; i < 40; i++) await enforceLimit("commandMinute", CUSTOMER_ID);
+    } catch (err) {
+      threw = err;
+    }
+    expect(threw).toBeInstanceOf(RateLimitError);
   });
 
-  it("401s without a session (also covered by the route enumeration test)", async () => {
-    currentUser.id = null;
-    const { GET } = await import("../../src/app/api/whoami/route");
-    expect((await GET()).status).toBe(401);
+  it("with OWNER_IDS unset the owner id is limited like anyone else", async () => {
+    const { enforceLimit, RateLimitError } = await import("../../src/lib/ratelimit");
+    let threw: unknown = null;
+    try {
+      for (let i = 0; i < 40; i++) await enforceLimit("commandMinute", OWNER_ID);
+    } catch (err) {
+      threw = err;
+    }
+    expect(threw).toBeInstanceOf(RateLimitError);
+  });
+
+  /**
+   * The load-bearing one. Two windows are keyed by client IP and two by
+   * `authz:<org>` — none of them is a user id. Because ownerIds() only ever
+   * admits UUID-shaped entries, those keys cannot be owners even if someone
+   * puts an IP in OWNER_IDS. The anonymous sandbox stays limited.
+   */
+  it("a non-user-id key can never bypass, even if it is listed in OWNER_IDS", async () => {
+    const ip = "203.0.113.7";
+    vi.stubEnv("OWNER_IDS", `${OWNER_ID},${ip},authz:acme`);
+    const { enforceLimit, RateLimitError } = await import("../../src/lib/ratelimit");
+    let threw: unknown = null;
+    try {
+      for (let i = 0; i < 40; i++) await enforceLimit("previewMinute", ip);
+    } catch (err) {
+      threw = err;
+    }
+    expect(threw).toBeInstanceOf(RateLimitError);
+  });
+});
+
+describe("owner bypass — the shared daily planner cap", () => {
+  it("an owner clears the global cap", async () => {
+    vi.stubEnv("OWNER_IDS", OWNER_ID);
+    vi.stubEnv("DAILY_PLAN_CAP", "3");
+    const { enforceGlobalPlanningBudget } = await import("../../src/lib/ratelimit");
+    for (let i = 0; i < 10; i++) {
+      await expect(enforceGlobalPlanningBudget(OWNER_ID)).resolves.toBeUndefined();
+    }
+  });
+
+  /**
+   * Not just "the owner isn't blocked" — the owner must not CONSUME the cap.
+   * Ten owner calls run first; a customer must still get all 3.
+   */
+  it("owner traffic does not consume the cap on customers' behalf", async () => {
+    vi.stubEnv("OWNER_IDS", OWNER_ID);
+    vi.stubEnv("DAILY_PLAN_CAP", "3");
+    const { enforceGlobalPlanningBudget, RateLimitError } = await import(
+      "../../src/lib/ratelimit"
+    );
+    for (let i = 0; i < 10; i++) await enforceGlobalPlanningBudget(OWNER_ID);
+
+    await expect(enforceGlobalPlanningBudget(CUSTOMER_ID)).resolves.toBeUndefined();
+    await expect(enforceGlobalPlanningBudget(CUSTOMER_ID)).resolves.toBeUndefined();
+    await expect(enforceGlobalPlanningBudget(CUSTOMER_ID)).resolves.toBeUndefined();
+    await expect(enforceGlobalPlanningBudget(CUSTOMER_ID)).rejects.toBeInstanceOf(
+      RateLimitError
+    );
+  });
+
+  it("a caller with no user id still gets the ceiling", async () => {
+    vi.stubEnv("OWNER_IDS", OWNER_ID);
+    vi.stubEnv("DAILY_PLAN_CAP", "2");
+    const { enforceGlobalPlanningBudget, RateLimitError } = await import(
+      "../../src/lib/ratelimit"
+    );
+    await enforceGlobalPlanningBudget();
+    await enforceGlobalPlanningBudget();
+    await expect(enforceGlobalPlanningBudget()).rejects.toBeInstanceOf(RateLimitError);
+  });
+});
+
+describe("owner bypass — the mission action budget", () => {
+  function mission(): import("../../src/lib/types").MissionRecord {
+    return {
+      id: "m1",
+      user_id: OWNER_ID,
+      session_id: "s1",
+      goal: "ship it",
+      state: "running",
+      plan_version: 1,
+      pending_question: null,
+      receipt: null,
+      error: null,
+      lease_owner: null,
+      lease_expires_at: null,
+      tool_calls: 0,
+      browser_actions: 0,
+      budget_cents: 0,
+      action_budget: 1,
+    } as import("../../src/lib/types").MissionRecord;
+  }
+
+  it("an owner's mission is unlimited however tight the mission's own budget", async () => {
+    vi.stubEnv("OWNER_IDS", OWNER_ID);
+    const { missionBudget } = await import("../../src/lib/missions/missionBudget");
+    const state = await missionBudget(OWNER_ID, mission());
+    expect(state.unlimited).toBe(true);
+    expect(state.exhausted).toBe(false);
+    expect(state.remaining).toBe(Infinity);
+  });
+
+  it("a customer's mission keeps the limit it was given", async () => {
+    vi.stubEnv("OWNER_IDS", OWNER_ID);
+    const { missionBudget } = await import("../../src/lib/missions/missionBudget");
+    const m = mission();
+    m.user_id = CUSTOMER_ID;
+    const state = await missionBudget(CUSTOMER_ID, m);
+    expect(state.unlimited).toBe(false);
+    expect(state.limit).toBe(1);
+  });
+});
+
+describe("exactly one owner-check implementation", () => {
+  /**
+   * The property that keeps this from rotting: every override site must ask
+   * lib/owner.ts. A second way to decide who an owner is — an env read, an
+   * email compare, a hard-coded id — is how the bypasses drift apart.
+   */
+  it("no module decides ownership for itself", () => {
+    const offenders: string[] = [];
+    for (const file of walkTsx(join(process.cwd(), "src"))) {
+      if (file.endsWith(join("lib", "owner.ts"))) continue;
+      const src = readFileSync(file, "utf8");
+      // Reading OWNER_IDS anywhere but owner.ts is a second implementation.
+      if (/process\.env\.OWNER_IDS/.test(src)) offenders.push(file);
+      // So is any resurrection of the email-keyed mechanism.
+      if (/OWNER_EMAILS|isOwnerEmail|ownerEmails/.test(src)) offenders.push(file);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("owner status is never serialized into a client response", () => {
+    const offenders: string[] = [];
+    for (const file of walkTsx(join(process.cwd(), "src", "app", "api"))) {
+      const src = readFileSync(file, "utf8");
+      if (/isOwner\s*\(/.test(src)) offenders.push(file);
+    }
+    expect(offenders).toEqual([]);
   });
 });
