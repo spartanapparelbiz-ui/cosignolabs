@@ -18,6 +18,7 @@
     "audit:claims": "node scripts/audit-claims.mjs",
     "audit:language": "node scripts/audit-language.mjs",
     "check:env": "node scripts/check-env.mjs",
+    "owner:id": "node scripts/owner-id.mjs",
     "verify:deploy": "node scripts/verify-deploy.mjs"
   },
   "comments": {

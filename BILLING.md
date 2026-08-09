@@ -82,6 +82,13 @@ is. `src/lib/owner.ts` is the whole implementation.
 - **Attribution.** Owner activity is still metered and recorded: the
   `ai_usage` ledger stores `plan: "owner"` per planner call, so
   `GET /api/internal/costs` separates internal spend from customer spend.
+- **No endpoint exposes it.** There is deliberately no route that reports
+  identity or owner status — not even an authenticated one. Read a user id
+  locally with `npm run owner:id` (signs in as one account and prints the id
+  that session resolves to; `-- --list` enumerates users with the service-role
+  key), or from the Supabase Dashboard → Authentication → Users → UID. The
+  build gate (`scripts/check-bundle.mjs`) fails if `OWNER_IDS` ever reaches
+  the client bundle or is renamed to a `NEXT_PUBLIC_` variable.
 
 Proved by `tests/security/owner.test.ts`.
 

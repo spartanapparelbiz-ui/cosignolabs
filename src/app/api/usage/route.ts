@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { errorResponse, requireUser } from "@/lib/api";
 import { getUserPlan } from "@/lib/billing";
-import { getPlan, publicFace } from "@/lib/plans";
+import { publicFace } from "@/lib/owner";
+import { getPlan } from "@/lib/plans";
 import { getStore } from "@/lib/store";
 import { REFUND_WINDOW_DAYS, withinRefundWindow } from "@/lib/promos";
 

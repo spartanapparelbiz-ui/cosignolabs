@@ -69,8 +69,8 @@ export const SERVICES = [
     gatesApp: false,
     note: "optional — internal accounts only",
     breaks:
-      "nobody gets the owner override, so every account (including yours) is billed like a customer. Set it to a comma-separated list of Supabase Auth user ids — sign in and open /api/whoami to read yours",
-    where: "Supabase → Authentication → Users → the UID column",
+      "nobody gets the owner override, so every account (including yours) is billed like a customer. Set it to a comma-separated list of Supabase Auth user ids — run `npm run owner:id` to read one",
+    where: "Supabase → Authentication → Users → the UID column (or `npm run owner:id`)",
   },
   {
     name: "STRIPE",

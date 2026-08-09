@@ -2,7 +2,7 @@ import { logInfo } from "../log";
 import { planWithMock } from "./mockPlanner";
 import { callPlanner, plannerConfigured, PlannerError } from "./provider";
 import { escalationFor, modelFor } from "../ai/routing";
-import { PLANS, type PlanId } from "../plans";
+import { resolvePlan } from "../owner";
 import { ActionCategory, CATEGORIES, Tier } from "../types";
 import { buildSystemPrompt, SYSTEM_PROMPT_VERSION } from "./systemPrompt";
 import { scanUntrusted, wrapUntrusted, type UntrustedBlock } from "./untrusted";
@@ -188,7 +188,7 @@ async function planWithLLM(
     // produce a plan. One retry, on the stronger model only when the user's
     // plan carries it — this is the ONLY path to the premium model, so cost
     // follows demonstrated need rather than guessed complexity.
-    const strongerModel = Boolean(PLANS[opts.planId as PlanId]?.strongerModel);
+    const strongerModel = Boolean(resolvePlan(opts.planId).strongerModel);
     const escalation = escalationFor("plan", { strongerModel, userId: userId ?? "unknown" });
     result = await callPlanner({
       model: escalation.model,

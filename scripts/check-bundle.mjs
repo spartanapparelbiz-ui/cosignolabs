@@ -52,6 +52,18 @@ const FORBIDDEN = [
   { name: "system prompt text", re: /You are the cosigno operator/ },
   { name: "vendor/model name", re: /\b(anthropic|claude|haiku|sonnet|opus|openai|gpt-|gemini|mistral|llama)\b/i },
   // AI vendor / model names — must never be user-facing or in the bundle.
+  // The owner allowlist is a server-side authorization input. Seeing its name
+  // in a client chunk means someone moved the check to the browser or renamed
+  // it into the NEXT_PUBLIC_ namespace; either way the override stopped being
+  // server-only. See src/lib/owner.ts.
+  { name: "owner allowlist", re: /OWNER_IDS/ },
+  // The internal owner tier's own copy. plans.ts is imported by client
+  // components, so anything added to that catalog ships to the browser —
+  // which is why the owner plan lives in the server-only lib/owner.ts. This
+  // sentinel catches it being moved back. Matching the tagline rather than
+  // the word "owner" avoids the workspace membership role, which is a
+  // legitimate client-side string.
+  { name: "owner plan metadata", re: /not a purchasable plan/ },
 ];
 
 
@@ -73,6 +85,16 @@ for (const [key, value] of Object.entries(process.env)) {
       console.error(`FAIL: ${key} contains ${f.name}`);
       failed = true;
     }
+  }
+}
+
+// 1b. The owner allowlist is an authorization input and must stay server-side.
+// A NEXT_PUBLIC_ name is the one way it could be inlined into the bundle by
+// the framework itself, so the NAME is what gets checked here, not the value.
+for (const key of Object.keys(process.env)) {
+  if (key.startsWith("NEXT_PUBLIC_") && /OWNER/.test(key)) {
+    console.error(`FAIL: ${key} would ship the owner allowlist to the browser`);
+    failed = true;
   }
 }
 

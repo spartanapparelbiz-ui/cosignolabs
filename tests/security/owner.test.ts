@@ -3,8 +3,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getUserPlan } from "../../src/lib/billing";
 import { effectiveActionLimit } from "../../src/lib/enforcement";
-import { isOwner, ownerIds } from "../../src/lib/owner";
-import { publicFace } from "../../src/lib/plans";
+import { isOwner, OWNER_PLAN, ownerIds, publicFace } from "../../src/lib/owner";
 import { MemoryStore } from "../../src/lib/store/memory";
 import { resetRateLimitsForTests } from "../../src/lib/ratelimit";
 import type { SubscriptionRecord } from "../../src/lib/types";
@@ -249,32 +248,146 @@ describe("the override is server-side only", () => {
   });
 });
 
-describe("GET /api/whoami — the temporary id-discovery route", () => {
-  it("returns only the caller's own id, and whether it is an owner", async () => {
+describe("owner status never appears in an API response", () => {
+  /**
+   * getUserPlan is the ONLY way owner status can be observed, so the routes
+   * that import it are the complete set that could leak it. The list is
+   * derived from the filesystem and asserted below: a new route that starts
+   * reading plans fails this test until it is checked and added.
+   */
+  const PLAN_AWARE_ROUTES = [
+    "src/app/api/activity/route.ts",
+    "src/app/api/billing/retention/route.ts",
+    "src/app/api/billing/subscription/route.ts",
+    "src/app/api/integrations/route.ts",
+    "src/app/api/offers/route.ts",
+    "src/app/api/usage/route.ts",
+  ];
+
+  function routesImporting(symbol: string): string[] {
+    const found: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir)) {
+        const p = join(dir, entry);
+        if (statSync(p).isDirectory()) walk(p);
+        else if (entry === "route.ts" && readFileSync(p, "utf8").includes(symbol)) {
+          found.push(p.slice(p.indexOf("src/app/api")));
+        }
+      }
+    };
+    walk(join(process.cwd(), "src", "app", "api"));
+    return found.sort();
+  }
+
+  it("the set of plan-aware routes is exactly what this test covers", () => {
+    expect(routesImporting("getUserPlan")).toEqual(PLAN_AWARE_ROUTES);
+  });
+
+  it("no plan-aware GET response mentions the owner tier", async () => {
     vi.stubEnv("OWNER_IDS", OWNER_ID);
-    const { GET } = await import("../../src/app/api/whoami/route");
-    const body = await (await GET()).json();
-    expect(body).toEqual({ user_id: OWNER_ID, owner: true });
-  });
+    const { NextRequest } = await import("next/server");
 
-  it("reports a non-owner honestly, so a bad paste is visible", async () => {
-    vi.stubEnv("OWNER_IDS", SECOND_OWNER_ID);
-    currentUser.id = CUSTOMER_ID;
-    const { GET } = await import("../../src/app/api/whoami/route");
-    const body = await (await GET()).json();
-    expect(body).toEqual({ user_id: CUSTOMER_ID, owner: false });
-  });
+    const bodies: Array<[string, string]> = [
+      ["/api/usage", await (await (await import("../../src/app/api/usage/route")).GET()).text()],
+      ["/api/offers", await (await (await import("../../src/app/api/offers/route")).GET()).text()],
+      [
+        "/api/integrations",
+        await (await (await import("../../src/app/api/integrations/route")).GET()).text(),
+      ],
+      [
+        "/api/activity",
+        await (
+          await (await import("../../src/app/api/activity/route")).GET(
+            new NextRequest("http://localhost/api/activity")
+          )
+        ).text(),
+      ],
+    ];
 
-  it("names no configuration key in its response", async () => {
+    for (const [route, body] of bodies) {
+      expect(body.toLowerCase(), `${route} leaked the owner tier`).not.toContain("owner");
+    }
+  });
+});
+
+describe("every customer surface presents the highest PUBLIC tier", () => {
+  it("checkout refuses the owner tier as a purchase", async () => {
     vi.stubEnv("OWNER_IDS", OWNER_ID);
-    const { GET } = await import("../../src/app/api/whoami/route");
-    const raw = JSON.stringify(await (await GET()).json());
-    expect(raw).not.toMatch(/[A-Z][A-Z0-9]{2,}(?:_[A-Z0-9]+)+/);
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_x");
+    const { NextRequest } = await import("next/server");
+    const { POST } = await import("../../src/app/api/billing/checkout/route");
+    const res = await POST(
+      new NextRequest("http://localhost/api/billing/checkout", {
+        method: "POST",
+        body: JSON.stringify({ plan: "owner", interval: "monthly" }),
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+    expect(res.status).not.toBe(200);
+    expect((await res.text()).toLowerCase()).not.toContain("owner");
   });
 
-  it("401s without a session (also covered by the route enumeration test)", async () => {
-    currentUser.id = null;
-    const { GET } = await import("../../src/app/api/whoami/route");
-    expect((await GET()).status).toBe(401);
+  it("the embedded subscription route refuses it too", async () => {
+    vi.stubEnv("OWNER_IDS", OWNER_ID);
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_x");
+    const { NextRequest } = await import("next/server");
+    const { POST } = await import("../../src/app/api/billing/subscription/route");
+    const res = await POST(
+      new NextRequest("http://localhost/api/billing/subscription", {
+        method: "POST",
+        body: JSON.stringify({ plan: "owner", interval: "monthly" }),
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+    expect(res.status).not.toBe(200);
+    expect((await res.text()).toLowerCase()).not.toContain("owner");
+  });
+
+  it("the checkout page sends ?plan=owner back to pricing", async () => {
+    const { default: CheckoutPage } = await import("../../src/app/checkout/page");
+    // Next signals a redirect by throwing; any other outcome would mean the
+    // hidden tier reached a rendered checkout.
+    await expect(
+      CheckoutPage({ searchParams: Promise.resolve({ plan: "owner" }) })
+    ).rejects.toThrow(/NEXT_REDIRECT/);
+  });
+
+  it("pricing and the landing tier board can only iterate public tiers", async () => {
+    const { PLAN_ORDER, PLANS } = await import("../../src/lib/plans");
+    expect(PLAN_ORDER).toEqual(["free", "pro", "max"]);
+    // The hidden tier exists in PLANS but has no renderable copy, so even a
+    // future surface that reached for it would render nothing to sell.
+    expect("owner" in PLANS).toBe(false);
+    // The tier exists, but only in the server-only module.
+    expect(OWNER_PLAN.features).toEqual([]);
+    expect(OWNER_PLAN.price.monthly).toBe(0);
+  });
+});
+
+describe("no temporary development utilities remain", () => {
+  function apiRouteFiles(dir: string): string[] {
+    const out: string[] = [];
+    for (const entry of readdirSync(dir)) {
+      const p = join(dir, entry);
+      if (statSync(p).isDirectory()) out.push(...apiRouteFiles(p));
+      else if (entry === "route.ts") out.push(p);
+    }
+    return out;
+  }
+
+  it("no route exists whose purpose is exposing identity", () => {
+    const identityRoutes = apiRouteFiles(join(process.cwd(), "src", "app", "api")).filter((f) =>
+      /\/(whoami|me|identity|debug)\/route\.ts$/.test(f)
+    );
+    expect(identityRoutes).toEqual([]);
+  });
+
+  it("no API route is marked temporary", () => {
+    // A route that has to announce its own impermanence should not be
+    // merged. This turns "remember to delete it" into a failing test.
+    const temporary = apiRouteFiles(join(process.cwd(), "src", "app", "api")).filter((f) =>
+      /\b(TEMPORARY|DELETE THIS ROUTE|REMOVE BEFORE)\b/.test(readFileSync(f, "utf8"))
+    );
+    expect(temporary).toEqual([]);
   });
 });

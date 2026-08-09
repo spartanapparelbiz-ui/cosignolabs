@@ -1,5 +1,5 @@
 import { getStore } from "./store";
-import { isOwner } from "./owner";
+import { isOwner, OWNER_PLAN } from "./owner";
 import {
   getPlan,
   PAST_DUE_GRACE_DAYS,
@@ -56,7 +56,7 @@ export async function getUserPlan(userId: string): Promise<ResolvedPlan> {
    */
   if (isOwner(userId)) {
     return {
-      plan: getPlan("owner"),
+      plan: OWNER_PLAN,
       planId: "owner",
       status: "active",
       activeUntil: null,

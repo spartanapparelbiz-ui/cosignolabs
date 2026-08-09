@@ -1,4 +1,4 @@
-import { PLANS, type PlanId } from "./plans";
+import { PLANS, type PlanId, type PublicPlanId } from "./plans";
 
 /**
  * Promotional offer rules. All eligibility is server-validated against the
@@ -39,7 +39,7 @@ export function introEligible(plan: PlanId, interval: string): boolean {
 }
 
 /** Yearly savings vs paying monthly, for the annual nudge copy. */
-export function annualSavings(planId: PlanId): number {
+export function annualSavings(planId: PublicPlanId): number {
   const p = PLANS[planId];
   if (!p || p.price.monthly === 0) return 0;
   return p.price.monthly * 12 - p.price.annual;

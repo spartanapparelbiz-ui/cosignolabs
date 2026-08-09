@@ -3,7 +3,7 @@ import { errorResponse, requireUser } from "@/lib/api";
 import { getUserPlan } from "@/lib/billing";
 import { getStore } from "@/lib/store";
 import { annualSavings, withinUsageWindow } from "@/lib/promos";
-import type { PlanId } from "@/lib/plans";
+import type { PublicPlanId } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,7 +56,7 @@ export async function GET() {
         await store.logAudit(userId, "promo", { offer: "annual_nudge_shown" });
         annualNudge = {
           monthActions: usage.actions_executed,
-          savings: annualSavings(planId as PlanId),
+          savings: annualSavings(planId as PublicPlanId),
         };
       }
     }

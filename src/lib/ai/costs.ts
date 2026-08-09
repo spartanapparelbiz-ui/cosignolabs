@@ -1,6 +1,6 @@
 import { getStore } from "../store";
 import { logError, logInfo, newRequestId } from "../log";
-import { PLANS, type PlanId } from "../plans";
+import { PLANS, type PublicPlanId } from "../plans";
 
 /**
  * Internal AI cost accounting. INTERNAL is the operative word: nothing in
@@ -115,7 +115,10 @@ export async function recordAiUsage(row: AiUsageRow): Promise<void> {
     // margin line means cost > 10% of what the plan charges.
     if (row.est_cost_usd !== null) {
       const monthCost = await store.aiCostForUserMonth(row.user_id);
-      const plan = PLANS[row.plan as PlanId];
+      // An internal (owner) account is not in the public catalog and earns
+      // no revenue, so it falls through to the $0 branch below — which is
+      // the correct margin answer for it, not a lookup failure.
+      const plan = PLANS[row.plan as PublicPlanId];
       const revenue = plan?.price.monthly ?? 0;
       const marginFloor = threshold("COSIGNO_ALERT_MARGIN_FLOOR", 0.9);
       if (revenue > 0 && monthCost > revenue * (1 - marginFloor)) {

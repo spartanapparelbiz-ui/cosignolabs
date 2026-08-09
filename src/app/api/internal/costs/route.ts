@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStore } from "@/lib/store";
-import { PLANS, type PlanId } from "@/lib/plans";
+import { PLANS, type PublicPlanId } from "@/lib/plans";
 import { logSecurity } from "@/lib/log";
 
 export const runtime = "nodejs";
@@ -101,7 +101,8 @@ export async function GET(req: NextRequest) {
     // Gross margin by plan: revenue is (paying users × monthly price),
     // prorated to the window; cost is the window's ledger total for the plan.
     margin_by_plan: [...byPlan.entries()].map(([plan, v]) => {
-      const price = PLANS[plan as PlanId]?.price.monthly ?? 0;
+      // Owner rows are internal: no public price, so $0 revenue.
+      const price = PLANS[plan as PublicPlanId]?.price.monthly ?? 0;
       const revenue = price * v.users.size * (days / 30);
       return {
         plan,

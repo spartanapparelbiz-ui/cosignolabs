@@ -9,7 +9,7 @@
  * with the same amount/interval rather than creating duplicates.)
  */
 import Stripe from "stripe";
-import { PLANS, PAID_PLANS, PlanId } from "../src/lib/plans";
+import { PLANS, PAID_PLANS, PublicPlanId } from "../src/lib/plans";
 
 const key = process.env.STRIPE_SECRET_KEY;
 if (!key) {
@@ -18,7 +18,7 @@ if (!key) {
 }
 const stripe = new Stripe(key, { apiVersion: "2026-06-24.dahlia" });
 
-async function findOrCreateProduct(planId: PlanId) {
+async function findOrCreateProduct(planId: PublicPlanId) {
   const metaKey = `cosigno_plan:${planId}`;
   const existing = await stripe.products.search({ query: `metadata['cosigno_plan']:'${planId}'` });
   if (existing.data[0]) return existing.data[0];
@@ -33,7 +33,7 @@ async function findOrCreatePrice(
   productId: string,
   amountCents: number,
   interval: "month" | "year",
-  planId: PlanId
+  planId: PublicPlanId
 ) {
   const prices = await stripe.prices.list({ product: productId, active: true, limit: 100 });
   const match = prices.data.find(

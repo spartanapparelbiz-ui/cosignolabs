@@ -12,10 +12,11 @@
 /** The tiers a customer can see, compare, and buy. */
 export type PublicPlanId = "free" | "pro" | "max";
 /**
- * Every tier the server can resolve. `owner` is internal — it is granted ONLY
- * by the OWNER_IDS override (see lib/owner.ts) and is deliberately absent from
- * PLAN_ORDER and PAID_PLANS, so it can never render on a pricing surface or
- * get a Stripe price. Use PublicPlanId for anything customer-facing.
+ * Every tier the server can RESOLVE. `owner` is internal, granted only by the
+ * OWNER_IDS override. Note this is a type, not data: the owner plan's contents
+ * live in lib/owner.ts, NOT in PLANS below, because PLANS is imported by
+ * client components and therefore ships to the browser in full. Use
+ * PublicPlanId for anything customer-facing.
  */
 export type PlanId = PublicPlanId | "owner";
 export type Interval = "monthly" | "annual";
@@ -50,7 +51,11 @@ export interface Plan {
   canExportCsv: boolean;
 }
 
-export const PLANS: Record<PlanId, Plan> = {
+/**
+ * The public catalog. Client components import this, so everything in it
+ * ships to the browser — which is exactly why the owner tier is not here.
+ */
+export const PLANS: Record<PublicPlanId, Plan> = {
   free: {
     id: "free",
     name: "free",
@@ -117,56 +122,27 @@ export const PLANS: Record<PlanId, Plan> = {
     ],
     examples: ["run heavy volume", "premium AI routing", "webhook & API access", "priority support"],
   },
-  /**
-   * INTERNAL — the owner override's plan. Not purchasable and not renderable:
-   * it is missing from PLAN_ORDER (so pricing + the landing tier board skip
-   * it) and from PAID_PLANS (so stripe-setup never creates a price), the
-   * checkout routes hard-enumerate ["pro","max"], the Stripe webhook coerces
-   * anything else to "free", and getUserPlan ignores an "owner" value found on
-   * a stored subscription row. The ONLY way to hold it is OWNER_IDS.
-   *
-   * `features`/`examples` stay empty because nothing ever renders this plan —
-   * see publicFace() for what an owner's own account page shows instead.
-   */
-  owner: {
-    id: "owner",
-    name: "owner",
-    tagline: "internal — not a purchasable plan.",
-    price: { monthly: 0, annual: 0 },
-    actionLimit: Infinity,
-    integrationLimit: Infinity,
-    customMcp: true,
-    upgradeTo: null,
-    strongerModel: true,
-    canExportCsv: true,
-    features: [],
-  },
 };
 
 export const PLAN_ORDER: PublicPlanId[] = ["free", "pro", "max"];
 export const PAID_PLANS: PublicPlanId[] = ["pro", "max"];
 
 /**
- * The tier a plan is PRESENTED as in customer-facing payloads.
+ * Resolve a PUBLIC plan, failing closed to free.
  *
- * The owner override is internal, so an owner's own account page must look
- * exactly like the top public tier rather than announce a hidden one. This
- * affects DISPLAY ONLY — every enforcement point keeps using the real
- * resolved plan, which is why the mapping lives here and not in getUserPlan.
+ * `getPlan("owner")` deliberately returns free rather than the owner plan:
+ * this module is client-reachable, so it must not be able to hand out the
+ * internal tier. Owner resolution goes through lib/owner.ts instead.
  */
-export function publicFace(planId: PlanId): PublicPlanId {
-  return planId === "owner" ? "max" : planId;
-}
-
-export function getPlan(id: PlanId | string | null | undefined): Plan {
-  return (id && PLANS[id as PlanId]) || PLANS.free;
+export function getPlan(id: PublicPlanId | string | null | undefined): Plan {
+  return (id && PLANS[id as PublicPlanId]) || PLANS.free;
 }
 
 /** Days a past_due subscription keeps its paid access before dropping to free. */
 export const PAST_DUE_GRACE_DAYS = 7;
 
 /** Resolve the Stripe Price ID for a paid plan + interval from env. */
-export function priceIdFor(plan: PlanId, interval: Interval): string | null {
+export function priceIdFor(plan: PublicPlanId, interval: Interval): string | null {
   const p = PLANS[plan];
   const envName = interval === "annual" ? p.price.annualEnv : p.price.monthlyEnv;
   if (!envName) return null;

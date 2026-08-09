@@ -1,4 +1,5 @@
 import { logSecurity } from "./log";
+import { getPlan, type Plan, type PlanId, type PublicPlanId } from "./plans";
 
 /**
  * The owner override — SERVER ONLY.
@@ -90,4 +91,57 @@ export function ownerIds(): Set<string> {
 export function isOwner(userId: string | null | undefined): boolean {
   if (!userId) return false;
   return ownerIds().has(userId.toLowerCase());
+}
+
+/**
+ * The owner tier itself.
+ *
+ * It lives HERE, not in the PLANS catalog, because plans.ts is imported by
+ * client components and every byte of that catalog is shipped to the browser.
+ * Putting the internal tier there disclosed its name and tagline to anyone
+ * with devtools on /pricing — not exploitable, since a client cannot grant
+ * itself a plan, but it announced a hidden tier for no reason. This module is
+ * server-only and never reaches a bundle, so the tier travels with the check
+ * that grants it.
+ *
+ * `features` is empty because nothing renders this plan; see publicFace() for
+ * what an owner's own account page shows instead.
+ */
+export const OWNER_PLAN: Plan = {
+  id: "owner",
+  name: "owner",
+  tagline: "internal — not a purchasable plan.",
+  price: { monthly: 0, annual: 0 },
+  actionLimit: Infinity,
+  integrationLimit: Infinity,
+  customMcp: true,
+  upgradeTo: null,
+  strongerModel: true,
+  canExportCsv: true,
+  features: [],
+};
+
+/**
+ * The tier a plan is PRESENTED as in customer-facing payloads.
+ *
+ * An owner's account page must look exactly like the top public tier rather
+ * than announce a hidden one. DISPLAY ONLY — every enforcement point keeps
+ * using the real resolved plan, which is why this is a separate step from
+ * getUserPlan rather than folded into it.
+ */
+export function publicFace(planId: PlanId): PublicPlanId {
+  return planId === "owner" ? "max" : planId;
+}
+
+/**
+ * Resolve ANY tier by id, including the internal one — SERVER ONLY.
+ *
+ * `getPlan()` in plans.ts covers the public catalog and deliberately cannot
+ * return the owner tier. Server code that holds a plan id which might be
+ * "owner" (a resolved plan, a row in the ai_usage ledger) uses this instead,
+ * so an owner keeps the capabilities the tier grants rather than silently
+ * degrading to free.
+ */
+export function resolvePlan(id: PlanId | string | null | undefined): Plan {
+  return id === "owner" ? OWNER_PLAN : getPlan(id);
 }

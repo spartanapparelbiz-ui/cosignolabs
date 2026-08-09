@@ -36,6 +36,13 @@ const FORBIDDEN = [
   { name: "stripe live key", re: /sk_live/ },
   { name: "system prompt text", re: /You are the cosigno operator/ },
   { name: "vendor/model name", re: /\b(anthropic|claude|haiku|sonnet|opus|openai|gpt-|gemini|mistral|llama)\b/i },
+  // Server-side authorization input — see src/lib/owner.ts. Its name in a
+  // client chunk means the owner check left the server.
+  { name: "owner allowlist", re: /OWNER_IDS/ },
+  // The internal tier's own copy — it must stay in the server-only
+  // lib/owner.ts and out of the client-bundled PLANS catalog. The tagline is
+  // the sentinel; the bare word "owner" is a legitimate workspace role.
+  { name: "owner plan metadata", re: /not a purchasable plan/ },
 ];
 
 
