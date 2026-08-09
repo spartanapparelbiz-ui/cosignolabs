@@ -15,3 +15,8 @@ playwright-report/
 # Per-run design-review captures (scripts/review-shots.mjs) — regenerable,
 # and one run is 13MB. The curated screenshots/ folders stay tracked.
 screenshots/review/
+
+# Per-run demo reel (scripts/capture-video.mjs) — screen recordings, stills and
+# the generated gallery. Regenerable from the scripts, and one run is ~35MB of
+# video. Same rule as screenshots/review/: the generator is tracked, not its output.
+media/
