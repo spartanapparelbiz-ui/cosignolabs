@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useTransform, type MotionValue } from "framer-motion";
 import { ActionCard, ProgressRail, StepRow, TierChip, type ActionSpec } from "./ui";
+import { Mark3D } from "./Mark3D";
 import { useSectionProgress, useSmoothed, useStillness } from "./primitives";
 
 /**
@@ -105,7 +106,25 @@ export function Hero() {
   const headOpacity = useTransform(p, [0, 0.3], [1, 0]);
   const headScale = useTransform(p, [0, 0.45], [1, 0.95]);
 
-  const panelY = useTransform(p, [0, 0.75], ["52vh", "0vh"]);
+  /**
+   * How far below the fold the surface waits before you scroll.
+   *
+   * A phone's headline block is three times as tall in proportion, so the
+   * same 52vh that leaves a comfortable two-row peek on a laptop puts the
+   * panel's top edge through the reassurance line. The offset is a transform,
+   * never layout, so resolving it after mount costs nothing and shifts
+   * nothing.
+   */
+  const [panelStart, setPanelStart] = useState(52);
+  useEffect(() => {
+    const wide = window.matchMedia("(min-width: 640px)");
+    const update = () => setPanelStart(wide.matches ? 52 : 64);
+    update();
+    wide.addEventListener("change", update);
+    return () => wide.removeEventListener("change", update);
+  }, []);
+
+  const panelY = useTransform(p, [0, 0.75], [`${panelStart}vh`, "0vh"]);
   const panelScale = useTransform(p, [0, 0.75], [0.62, 1]);
   const washOpacity = useTransform(p, [0.12, 0.8], [0, 1]);
   const fieldScale = useTransform(p, [0, 1], [0.7, 1.25]);
@@ -151,6 +170,16 @@ export function Hero() {
           className="relative z-20 mx-auto flex w-full max-w-5xl flex-col items-center text-center motion-safe:absolute motion-safe:inset-x-0 motion-safe:px-5"
           style={still ? undefined : { y: headY, opacity: headOpacity, scale: headScale }}
         >
+          {/* The mark, as an object rather than a picture of one. Its box is
+              sized in CSS, so the canvas mounting inside it moves nothing. */}
+          <Mark3D
+            progress={p}
+            still={still}
+            mode="hero"
+            fallbackSize={128}
+            className="mb-1 h-[clamp(128px,19dvh,300px)] w-full max-w-[540px] sm:h-[clamp(168px,26dvh,300px)]"
+          />
+
           <p className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.22em] text-ink-soft sm:text-xs">
             <span className="h-1.5 w-1.5 rounded-pill bg-signal" aria-hidden="true" />
             the operating system for trusted ai
@@ -170,19 +199,30 @@ export function Hero() {
             matters — the one where something sends, changes, or spends.
           </p>
 
-          <Link
-            href="/sign-up"
-            prefetch
-            className="mt-9 rounded-btn bg-signal px-8 py-4 text-base font-extrabold lowercase text-ink shadow-lift transition-transform duration-fast ease-brand-out hover:-translate-y-0.5 hover:scale-[1.02] active:scale-95 motion-safe:animate-word-in motion-safe:[animation-delay:380ms]"
-          >
-            start free
-          </Link>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 motion-safe:animate-word-in motion-safe:[animation-delay:380ms]">
+            <Link
+              href="/sign-up"
+              prefetch
+              className="rounded-btn bg-signal px-8 py-4 text-base font-extrabold lowercase text-ink shadow-lift transition-transform duration-fast ease-brand-out hover:-translate-y-0.5 hover:scale-[1.02] active:scale-95"
+            >
+              start free
+            </Link>
+            <a
+              href="#pricing"
+              className="text-sm font-bold lowercase text-ink underline decoration-signal decoration-2 underline-offset-4 transition-colors hover:text-signal"
+            >
+              see the plans
+            </a>
+          </div>
+          <p className="mt-3 text-[11px] font-semibold lowercase text-ink-soft motion-safe:animate-word-in motion-safe:[animation-delay:440ms]">
+            free forever tier · no card · about two minutes to your first mission
+          </p>
         </motion.div>
 
         {/* -------------------------------------------- the operator surface */}
         <div className="relative z-10 w-full motion-safe:pointer-events-none motion-safe:absolute motion-safe:inset-0 motion-safe:flex motion-safe:items-center motion-safe:justify-center motion-safe:px-4">
           <motion.div
-            className="relative mx-auto w-full max-w-[1060px] will-change-transform motion-safe:[transform:translateY(52vh)_scale(0.62)]"
+            className="relative mx-auto w-full max-w-[1060px] will-change-transform motion-safe:[transform:translateY(64vh)_scale(0.62)] motion-safe:sm:[transform:translateY(52vh)_scale(0.62)]"
             style={still ? { transform: "none" } : { y: panelY, scale: panelScale }}
           >
             <HeroSurface />

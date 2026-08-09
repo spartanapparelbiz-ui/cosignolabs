@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import { ActionCard, DrawnCheck, type ActionSpec } from "./ui";
+import { Mark3D } from "./Mark3D";
 import { EASE_OUT, EASE_SPRING, MaskedLines, useStillness } from "./primitives";
 
 /**
@@ -185,7 +186,18 @@ export function ApprovalMoment() {
               )}
             </AnimatePresence>
 
-            <div className="mt-4 h-12 text-center">
+            {/* The seal, in three dimensions: while the card is unanswered the
+                check floats out of the C; answering springs it home. Fixed
+                height, so nothing moves when the canvas arrives. */}
+            <Mark3D
+              sealed={answered}
+              still={still}
+              mode="ambient"
+              fallbackSize={80}
+              className="mx-auto mt-5 h-[150px] w-full max-w-[260px]"
+            />
+
+            <div className="mt-2 h-12 text-center">
               <AnimatePresence mode="wait" initial={false}>
                 {answered ? (
                   <motion.p

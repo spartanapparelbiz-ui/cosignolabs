@@ -2,7 +2,7 @@
   "name": "cosigno",
   "version": "0.1.0",
   "private": true,
-  "description": "cosigno \u2014 the AI operator that asks first. cosignolabs.com",
+  "description": "cosigno — the AI operator that asks first. cosignolabs.com",
   "engines": {
     "node": ">=20"
   },
@@ -23,7 +23,7 @@
     "verify:deploy": "node scripts/verify-deploy.mjs"
   },
   "comments": {
-    "dependencies": "Everything `next build` and the Netlify Next runtime need to RUN lives here \u2014 NOT in devDependencies. Netlify (and any host that installs with NODE_ENV=production) skips devDependencies, so build tooling in the wrong bucket makes the whole build fail and every route 500s. Only test-only tools (playwright, vitest) may stay in devDependencies."
+    "dependencies": "Everything `next build` and the Netlify Next runtime need to RUN lives here — NOT in devDependencies. Netlify (and any host that installs with NODE_ENV=production) skips devDependencies, so build tooling in the wrong bucket makes the whole build fail and every route 500s. Only test-only tools (playwright, vitest) may stay in devDependencies."
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
@@ -49,11 +49,13 @@
     "react-dom": "^19.1.0",
     "stripe": "^22.3.0",
     "tailwindcss": "^3.4.17",
+    "three": "^0.185.1",
     "typescript": "^5.8.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
+    "@types/three": "^0.185.4",
     "potrace": "^2.1.8",
     "vitest": "^3.1.4"
   }

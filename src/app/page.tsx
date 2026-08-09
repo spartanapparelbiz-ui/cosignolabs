@@ -3,6 +3,7 @@ import { Hero } from "@/components/home/Hero";
 import { ScrollProgress } from "@/components/home/primitives";
 import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteNav } from "@/components/home/SiteNav";
+import { StickyCta } from "@/components/home/StickyCta";
 import type { ComparisonRow, PlanCard } from "@/components/home/Pricing";
 import {
   actionLimitLabel,
@@ -129,6 +130,7 @@ export default function HomePage() {
       </main>
 
       <SiteFooter />
+      <StickyCta />
     </div>
   );
 }

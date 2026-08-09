@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { motion, useInView, useTransform } from "framer-motion";
 import { CosignoMark, LOGO_C_PATH, LOGO_CHECK_PATH, LOGO_VIEWBOX } from "@/components/brand/Logo";
 import { Chip, DrawnCheck, PayloadWell } from "./ui";
+import { Mark3D } from "./Mark3D";
 import { EASE_SPRING, MaskedLines, useSectionProgress, useSmoothed, useStillness } from "./primitives";
 
 /**
@@ -74,7 +75,15 @@ export function FinalCta({ terms }: { terms: string }) {
           className="text-center font-display text-[clamp(2.3rem,7.2vw,5.25rem)] font-bold leading-[0.94] tracking-[-0.035em] text-ink"
         />
 
-        <p className="mx-auto mt-6 max-w-sm text-center font-mono text-[11px] tracking-[0.04em] text-ink-soft">
+        <Mark3D
+          progress={p}
+          still={still}
+          mode="ambient"
+          fallbackSize={84}
+          className="mx-auto mt-6 h-[150px] w-full max-w-[320px]"
+        />
+
+        <p className="mx-auto mt-2 max-w-sm text-center font-mono text-[11px] tracking-[0.04em] text-ink-soft">
           so here is the last card on the page. this one is yours.
         </p>
 

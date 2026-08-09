@@ -8,7 +8,8 @@ import { LivingLockup } from "@/components/brand/LivingLogo";
 export function SiteFooter() {
   return (
     <footer className="border-t border-line/50 bg-cream-deep/50">
-      <div className="mx-auto w-full max-w-6xl px-4 py-12">
+      {/* Extra bottom padding on phones: the sticky start bar lives there. */}
+      <div className="mx-auto w-full max-w-6xl px-4 pb-28 pt-12 sm:pb-12">
         <div className="flex flex-wrap items-start justify-between gap-8">
           <div>
             <LivingLockup size={22} textClass="text-lg" />
