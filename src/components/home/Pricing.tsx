@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { AnimatePresence, motion, useInView } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { DrawnCheck, Eyebrow, Lede } from "./ui";
 import { Mark3D } from "./Mark3D";
-import { EASE_OUT, MaskedLines, Rise, Stagger, StaggerItem, useArmed, useSectionPass, useSmoothed, useStillness } from "./primitives";
+import { EASE_OUT, MaskedLines, Stagger, StaggerItem, useSectionPass, useSmoothed, useStillness } from "./primitives";
 import { PricingLink } from "@/components/landing/Track";
 
 /**
@@ -40,20 +40,7 @@ export interface PlanCard {
   href: string;
 }
 
-export interface ComparisonRow {
-  label: string;
-  cells: (string | boolean)[];
-}
-
-export function Pricing({
-  plans,
-  rows,
-  intro,
-}: {
-  plans: PlanCard[];
-  rows: ComparisonRow[];
-  intro: string;
-}) {
+export function Pricing({ plans, intro }: { plans: PlanCard[]; intro: string }) {
   const ref = useRef<HTMLElement>(null);
   const still = useStillness();
   const pass = useSmoothed(useSectionPass(ref), 120, 26);
@@ -69,7 +56,7 @@ export function Pricing({
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 hidden h-[40rem] opacity-[0.06] sm:block"
+        className="pointer-events-none absolute inset-x-0 top-0 hidden h-[26rem] opacity-[0.11] sm:block"
       >
         <Mark3D
           progress={pass}
@@ -222,88 +209,7 @@ export function Pricing({
             see the full breakdown
           </PricingLink>
         </p>
-
-        {/* ------------------------------------------------ what differs */}
-        <Rise className="mt-11 overflow-hidden sm:mt-14 rounded-card bg-surface shadow-depth">
-          <table className="w-full border-collapse text-left">
-            <caption className="sr-only">what differs between the plans</caption>
-            <thead>
-              <tr className="border-b border-line/60">
-                <th scope="col" className="px-4 py-3 text-[11px] font-extrabold lowercase text-ink-soft">
-                  what differs
-                </th>
-                {plans.map((p) => (
-                  <th
-                    key={p.id}
-                    scope="col"
-                    className="px-4 py-3 text-center text-[11px] font-extrabold lowercase text-ink"
-                  >
-                    {p.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <ComparisonBody rows={rows} />
-          </table>
-        </Rise>
       </div>
     </section>
-  );
-}
-
-const ROW_HIDDEN = { opacity: 0, y: 10, transition: { duration: 0 } };
-const ROW_SHOWN = { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE_OUT } };
-
-/**
- * The rows stagger in the first time the table is seen — but only if the
- * table was below the fold when the page hydrated, so the comparison is never
- * hidden from someone who simply landed next to it.
- */
-function ComparisonBody({ rows }: { rows: ComparisonRow[] }) {
-  const ref = useRef<HTMLTableSectionElement>(null);
-  const armed = useArmed(ref);
-  const inView = useInView(ref, { once: true, margin: "0px 0px -8% 0px" });
-  const hidden = armed && !inView;
-
-  return (
-    <motion.tbody
-      ref={ref}
-      initial={false}
-      animate={hidden ? "hidden" : "shown"}
-      variants={{
-        hidden: { transition: { duration: 0 } },
-        shown: { transition: { staggerChildren: 0.06 } },
-      }}
-    >
-      {rows.map((row) => (
-        <motion.tr
-          key={row.label}
-          className="border-b border-line/40 last:border-0"
-          variants={{ hidden: ROW_HIDDEN, shown: ROW_SHOWN }}
-        >
-          <th
-            scope="row"
-            className="px-4 py-3 text-left text-[12px] font-semibold lowercase text-ink-soft"
-          >
-            {row.label}
-          </th>
-          {row.cells.map((cell, j) => (
-            <td key={j} className="px-4 py-3 text-center text-[12px] font-bold lowercase text-ink">
-              {typeof cell === "boolean" ? (
-                cell ? (
-                  <span className="inline-flex text-signal">
-                    <DrawnCheck size={15} />
-                  </span>
-                ) : (
-                  <span className="text-ink-soft">no</span>
-                )
-              ) : (
-                cell
-              )}
-            </td>
-          ))}
-        </motion.tr>
-      ))}
-    </motion.tbody>
   );
 }

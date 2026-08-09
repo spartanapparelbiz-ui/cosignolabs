@@ -388,16 +388,27 @@ export function Mark3D({
         // resting point in the scroll is a point it passes through rather than
         // one it stops at, and it lands face-on at both ends.
         if (SPIN) {
-          rig.rotation.y = eased * Math.PI * 2 + Math.sin(drift * 0.3) * 0.05;
-          rig.rotation.x = 0.1 - Math.sin(eased * Math.PI) * 0.22 + Math.sin(drift * 0.33) * 0.04;
-          rig.rotation.z = Math.sin(eased * Math.PI * 2) * 0.14 + Math.sin(drift * 0.27) * 0.03;
+          // A wide sweep, not a revolution.
+          //
+          // A full turn looked like the boldest possible answer and rendered
+          // the brand as a dark vertical slab for the quarter of the scroll
+          // either side of 90°, and as its own mirror image for the half after
+          // that. The mark is not a symmetrical object: there is a front, and
+          // the front is the logo. So spin sweeps ±42° instead, and spends the
+          // motion budget on roll and dolly, which read as depth without ever
+          // turning the C into an edge.
+          rig.rotation.y = Math.sin(eased * Math.PI * 2) * 0.74 + Math.sin(drift * 0.3) * 0.05;
+          rig.rotation.x = 0.1 - Math.sin(eased * Math.PI) * 0.26 + Math.sin(drift * 0.33) * 0.04;
+          rig.rotation.z = Math.sin(eased * Math.PI * 2) * 0.2 + Math.sin(drift * 0.27) * 0.03;
         } else if (SCATTER) {
           // Without a signature the object never settles: it tumbles, and the
-          // check has already left. This is the only mark on the page that is
-          // allowed to look wrong, because it is the one describing the wrong.
-          rig.rotation.y = -0.8 + eased * 2.4 + Math.sin(drift * 0.9) * 0.5;
-          rig.rotation.x = -0.35 + eased * 0.9 + Math.sin(drift * 0.7) * 0.35;
-          rig.rotation.z = -0.5 + eased * 1.1 + Math.sin(drift * 1.1) * 0.4;
+          // check has already left. This is the only mark on the page allowed
+          // to look unsettled — but it is still the logo, so the tumble is
+          // bounded to the same readable window as everything else rather than
+          // rolling through the back of the mark.
+          rig.rotation.y = -0.5 + eased * 1.0 + Math.sin(drift * 0.9) * 0.28;
+          rig.rotation.x = -0.3 + eased * 0.7 + Math.sin(drift * 0.7) * 0.3;
+          rig.rotation.z = -0.45 + eased * 0.95 + Math.sin(drift * 1.1) * 0.35;
         } else {
           rig.rotation.y = AMBIENT
             ? -0.46 + eased * 0.92 + Math.sin(drift * 0.25) * 0.22

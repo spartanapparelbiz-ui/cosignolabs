@@ -79,8 +79,8 @@ export function FinalCta({ terms }: { terms: string }) {
           progress={p}
           still={still}
           mode="ambient"
-          fallbackSize={84}
-          className="mx-auto mt-6 h-[150px] w-full max-w-[320px]"
+          fallbackSize={130}
+          className="mx-auto mt-6 h-[clamp(170px,22dvh,240px)] w-full max-w-[420px]"
         />
 
         <p className="mx-auto mt-2 max-w-sm text-center font-mono text-[11px] tracking-[0.04em] text-ink-soft">

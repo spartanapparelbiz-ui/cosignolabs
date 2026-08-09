@@ -107,14 +107,14 @@ for (const vp of VIEWPORTS) {
         /give ai your accounts and it will use them/i,
         /everything stops right here/i,
         /how cosigno works/i,
-        /connect your apps/i,
+        /it does the work\. you keep the say/i,
         /you approve what matters/i,
         /connect everything\. hand over nothing/i,
-        /a mission runs itself until it needs you/i,
         /the approval is the product/i,
         /you can always ask what it is doing/i,
         /built for teams already running ai at work/i,
         /one signature\. three sizes/i,
+        /ready to hand something over/i,
         /nothing happens until you say so/i,
       ]) {
         await expect(page.getByRole("heading", { name })).toHaveCount(1);

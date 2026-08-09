@@ -4,7 +4,7 @@ import { ScrollProgress } from "@/components/home/primitives";
 import { SiteFooter } from "@/components/home/SiteFooter";
 import { SiteNav } from "@/components/home/SiteNav";
 import { StickyCta } from "@/components/home/StickyCta";
-import type { ComparisonRow, PlanCard } from "@/components/home/Pricing";
+import type { PlanCard } from "@/components/home/Pricing";
 import {
   actionLimitLabel,
   introOfferLabel,
@@ -47,7 +47,6 @@ const HowItWorks = dynamic(() =>
 const Connections = dynamic(() =>
   import("@/components/home/Connections").then((m) => m.Connections)
 );
-const Missions = dynamic(() => import("@/components/home/Missions").then((m) => m.Missions));
 const Approvals = dynamic(() => import("@/components/home/Approvals").then((m) => m.Approvals));
 const MidCta = dynamic(() => import("@/components/home/MidCta").then((m) => m.MidCta));
 const Monitoring = dynamic(() =>
@@ -98,27 +97,6 @@ const FREE_TERMS = [
   "no card",
 ].join(", ");
 
-const COMPARISON: ComparisonRow[] = [
-  {
-    label: "ai operations each month",
-    cells: PLAN_ORDER.map((id) => PLANS[id].actionLimit.toLocaleString()),
-  },
-  {
-    label: "connected apps",
-    cells: PLAN_ORDER.map((id) =>
-      Number.isFinite(PLANS[id].integrationLimit)
-        ? String(PLANS[id].integrationLimit)
-        : "unlimited"
-    ),
-  },
-  { label: "your own apis and connectors", cells: PLAN_ORDER.map((id) => PLANS[id].customMcp) },
-  { label: "full history export", cells: PLAN_ORDER.map((id) => PLANS[id].canExportCsv) },
-  {
-    label: "stronger planning when the work demands it",
-    cells: PLAN_ORDER.map((id) => PLANS[id].strongerModel),
-  },
-  { label: "the approval model", cells: PLAN_ORDER.map(() => "identical") },
-];
 
 export default function HomePage() {
   // `overflow-x-clip`, never `overflow-x-hidden`: `hidden` makes this element a
@@ -143,12 +121,11 @@ export default function HomePage() {
         <ApprovalMoment />
         <HowItWorks />
         <Connections />
-        <Missions />
         <Approvals />
         <MidCta terms={FREE_TERMS} />
         <Monitoring />
         <Proof />
-        <Pricing plans={PLAN_CARDS} rows={COMPARISON} intro={introOfferLabel()} />
+        <Pricing plans={PLAN_CARDS} intro={introOfferLabel()} />
         <FinalCta terms={FREE_TERMS} />
       </main>
 

@@ -134,19 +134,19 @@ export function Connections() {
             })}
           </svg>
 
-          {/* The mark, at the middle of everything it is allowed to touch —
-              and the one object here with depth, turning as you scroll past.
-              The plate stays: it is what separates the hub from the lines. */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <span className="grid h-24 w-24 place-items-center rounded-card bg-surface shadow-depth-lift sm:h-28 sm:w-28">
-              <Mark3D
-                progress={pass}
-                still={still}
-                mode="ambient"
-                fallbackSize={52}
-                className="h-full w-full"
-              />
-            </span>
+          {/* The mark, at the middle of everything it is allowed to touch, at
+              full size and full strength. The plate is gone: a solid object
+              does not need a card behind it to separate it from eight
+              hairlines, and boxing it at 96px was the difference between a
+              logo you notice and a favicon in a frame. */}
+          <div className="absolute left-1/2 top-1/2 h-[42%] w-[42%] -translate-x-1/2 -translate-y-1/2 sm:h-[46%] sm:w-[34%]">
+            <Mark3D
+              progress={pass}
+              still={still}
+              mode="ambient"
+              fallbackSize={120}
+              className="h-full w-full"
+            />
           </div>
 
           {NODES.map((n, i) => (

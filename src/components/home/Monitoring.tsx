@@ -131,7 +131,7 @@ export function Monitoring() {
           properties every flat mark on the site does. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 hidden h-[46rem] opacity-[0.1] sm:block"
+        className="pointer-events-none absolute inset-x-0 top-0 hidden h-[30rem] opacity-[0.16] sm:block"
       >
         <Mark3D
           progress={pass}

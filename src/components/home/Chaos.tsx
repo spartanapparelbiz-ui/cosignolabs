@@ -104,7 +104,7 @@ export function Chaos() {
             look wrong, because it is the section describing the wrong. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 hidden opacity-[0.08] sm:block"
+          className="pointer-events-none absolute inset-0 hidden opacity-[0.13] sm:block"
         >
           <Mark3D
             progress={p}

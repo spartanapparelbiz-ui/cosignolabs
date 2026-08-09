@@ -30,7 +30,11 @@ describe("the mark never depends on WebGL", () => {
 
   it("the flat mark is what renders until — and unless — a scene exists", () => {
     expect(MARK).toMatch(/CosignoMark/);
-    expect(MARK).toMatch(/\{!live && \(/);
+    // The one exception is a `decorative` mark: an 8%-opacity watermark behind
+    // a card is texture, not an appearance of the brand, and shipping two long
+    // path strings for each of them cost real parse time on a phone. Every
+    // mark that stands for the brand still falls back.
+    expect(MARK).toMatch(/\{!live && !decorative && \(/);
     // Losing the GPU context has to fall back too, not leave a dead canvas.
     expect(MARK).toMatch(/webglcontextlost/);
   });
@@ -54,6 +58,19 @@ describe("the scene costs nothing when nothing is happening", () => {
   it("builds only once the mark is near the viewport", () => {
     expect(MARK).toMatch(/gate\.observe\(host\)/);
     expect(MARK).toMatch(/rootMargin: "400px"/);
+  });
+
+  it("releases the scene again once the mark is well past", () => {
+    // Ten marks on one page. A scene that is never torn down holds its context
+    // and its buffers for the rest of the session, so a reader who scrolled the
+    // whole page ended up carrying every one of them at once.
+    expect(MARK).toMatch(/far\.observe\(host\)/);
+    expect(MARK).toMatch(/rootMargin: "1400px"/);
+    expect(MARK).toMatch(/liveScenes = Math\.max\(0, liveScenes - 1\)/);
+    expect(MARK).toMatch(/liveScenes >= MAX_LIVE/);
+    // An in-flight build must be invalidated, or a fast scroll attaches an
+    // orphan scene with no cleanup registered against it.
+    expect(MARK).toMatch(/mine !== token/);
   });
 
   it("renders on damage, and idles only where there is a GPU to spare", () => {
@@ -83,6 +100,15 @@ describe("the scene costs nothing when nothing is happening", () => {
 });
 
 describe("the mark always faces the reader", () => {
+  it("no mode turns the object past the angle where the logo reads", () => {
+    // A full revolution rendered the brand as a dark vertical slab either side
+    // of 90° and as its own mirror image after it. The mark is not symmetrical:
+    // there is a front, and the front is the logo. Every mode's scroll term is
+    // a bounded sweep.
+    expect(MARK).not.toMatch(/eased \* Math\.PI \* 2 \+/);
+    expect(MARK).toMatch(/Math\.sin\(eased \* Math\.PI \* 2\) \* 0\.74/);
+  });
+
   it("every rotation term is bounded", () => {
     // An unbounded `drift * 0.1` once turned the mark edge-on: an orange
     // sliver where the logo should be. Time may only enter through a sine.

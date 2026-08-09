@@ -33,24 +33,21 @@ export function MidCta({ terms }: { terms: string }) {
       aria-labelledby="midcta-title"
       className="relative overflow-hidden bg-cream-deep py-20 sm:py-28"
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 hidden opacity-[0.09] sm:block"
+      <motion.div
+        className="relative mx-auto w-full max-w-3xl px-5 text-center"
+        style={still ? undefined : { y: lift }}
       >
+        {/* The object, at full strength rather than as wallpaper. The check
+            flies home as the band centres, which is the argument of the whole
+            page happening once more in three dimensions. */}
         <Mark3D
           progress={pass}
           seal={seal}
           still={still}
           mode="ambient"
-          decorative
-          className="h-full w-full"
+          fallbackSize={120}
+          className="mx-auto mb-4 h-[clamp(140px,18dvh,210px)] w-full max-w-[380px]"
         />
-      </div>
-
-      <motion.div
-        className="relative mx-auto w-full max-w-3xl px-5 text-center"
-        style={still ? undefined : { y: lift }}
-      >
         <MaskedLines
           as="h2"
           id="midcta-title"

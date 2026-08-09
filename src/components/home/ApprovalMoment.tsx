@@ -192,8 +192,8 @@ export function ApprovalMoment() {
               sealed={answered}
               still={still}
               mode="ambient"
-              fallbackSize={80}
-              className="mx-auto mt-5 h-[150px] w-full max-w-[260px]"
+              fallbackSize={120}
+              className="mx-auto mt-5 h-[190px] w-full max-w-[340px]"
             />
 
             <div className="mt-2 h-12 text-center">

@@ -160,7 +160,7 @@ export function Approvals() {
                 the moment the signature lands. It is positioned out of flow on
                 purpose: this scene is pinned to the viewport height, and a mark
                 that took layout space would push the card off a short screen. */}
-            <div className="pointer-events-none absolute -inset-x-10 -top-24 bottom-0 -z-0 hidden opacity-[0.16] sm:block">
+            <div className="pointer-events-none absolute -inset-x-10 -top-24 bottom-0 -z-0 hidden opacity-[0.2] sm:block">
               <Mark3D
                 progress={p}
                 still={still}

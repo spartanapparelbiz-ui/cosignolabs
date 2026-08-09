@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check } from "lucide-react";
-import { ActionCard, Chip, Lede, PayloadWell, ReceiptLine, TierChip } from "./ui";
+import { ActionCard, Chip, PayloadWell, ReceiptLine, TierChip } from "./ui";
 import { MaskedLines, Rise } from "./primitives";
 
 /**
@@ -28,29 +28,22 @@ const PANELS: {
   scene: ReactNode;
 }[] = [
   {
-    id: "connect",
-    step: "01",
-    title: "connect your apps",
-    body: "cosigno can only reach the apps you connect, with the access you pick. it never assumes more, and you can take an app back in one click.",
-    scene: <ConnectScene />,
-  },
-  {
     id: "plan",
-    step: "02",
+    step: "01",
     title: "it shows you the plan first",
     body: "your goal becomes a list of steps. each step names the app it will use and says whether it can go ahead on its own or has to ask you.",
     scene: <PlanScene />,
   },
   {
     id: "sign",
-    step: "03",
+    step: "02",
     title: "you approve what matters",
     body: "at the step that would change something real, it stops. it will not skip it, guess at it, or carry on until you have answered.",
     scene: <SignScene />,
   },
   {
     id: "done",
-    step: "04",
+    step: "03",
     title: "it finishes and shows its work",
     body: "approved steps run, get checked, and close themselves out. you do not have to come back later to see whether the last one landed.",
     scene: <DoneScene />,
@@ -248,40 +241,6 @@ function PanelBody({
 }
 
 /* ------------------------------------------------------------------ scenes */
-
-const APPS = [
-  ["github", "github"],
-  ["slack", "slack"],
-  ["google", "gmail"],
-  ["google-calendar", "calendar"],
-  ["google-drive", "drive"],
-  ["notion", "notion"],
-  ["outlook", "outlook"],
-  ["mcp", "your own api"],
-] as const;
-
-function ConnectScene() {
-  return (
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-      {APPS.map(([key, label]) => (
-        <div
-          key={key}
-          className="flex flex-col items-start gap-2.5 rounded-card bg-surface p-3 shadow-soft"
-        >
-          <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-btn bg-cream-deep/70">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/logos/${key}.svg`} alt="" width={20} height={20} loading="lazy" decoding="async" />
-          </span>
-          <span className="text-[11px] font-extrabold lowercase text-ink">{label}</span>
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold lowercase text-ink-soft">
-            <Check size={11} strokeWidth={3} className="text-signal" aria-hidden="true" />
-            connected
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 const PLAN = [
   ["read the last 14 days of replies", "auto"],

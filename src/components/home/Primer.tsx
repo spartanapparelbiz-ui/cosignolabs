@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef } from "react";
 import { motion, useTransform } from "framer-motion";
 import { Eyebrow } from "./ui";
+import { Mark3D } from "./Mark3D";
 import {
   EASE_OUT,
   MaskedLines,
@@ -57,6 +58,15 @@ export function Primer() {
     >
       <div className="mx-auto w-full max-w-6xl px-5">
         <header className="mx-auto max-w-2xl text-center">
+          {/* The object again, small and solid, so the reader meets the mark
+              as a thing before they meet it as a favicon. */}
+          <Mark3D
+            progress={pass}
+            still={still}
+            mode="spin"
+            fallbackSize={92}
+            className="mx-auto mb-5 h-[clamp(110px,13dvh,150px)] w-full max-w-[280px]"
+          />
           <Eyebrow>in plain words</Eyebrow>
           <MaskedLines
             as="h2"

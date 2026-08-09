@@ -176,8 +176,8 @@ export function Hero() {
             progress={p}
             still={still}
             mode="hero"
-            fallbackSize={150}
-            className="h-[clamp(120px,17dvh,260px)] w-full max-w-[520px] sm:h-[clamp(150px,22dvh,270px)]"
+            fallbackSize={190}
+            className="h-[clamp(150px,21dvh,300px)] w-full max-w-[620px] sm:h-[clamp(190px,27dvh,340px)]"
           />
 
           {/* The trailing space on the first line is load-bearing: block spans
