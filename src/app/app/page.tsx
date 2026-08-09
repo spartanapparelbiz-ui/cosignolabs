@@ -1,5 +1,4 @@
 import { Dashboard, type DashboardInitial } from "@/components/app/Dashboard";
-import { FirstRunIntro } from "@/components/FirstRunIntro";
 import { getUserId } from "@/lib/auth";
 import { servingAllowed } from "@/lib/env";
 import { loadMissionOverview } from "@/lib/missions/overview";
@@ -34,10 +33,5 @@ export default async function AppPage() {
   } catch {
     // fall through — the Dashboard fetches client-side exactly as before
   }
-  return (
-    <>
-      <FirstRunIntro />
-      <Dashboard initial={initial} />
-    </>
-  );
+  return <Dashboard initial={initial} />;
 }

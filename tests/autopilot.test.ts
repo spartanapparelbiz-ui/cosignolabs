@@ -8,7 +8,7 @@ import {
   computeRecommendations,
 } from "../src/lib/autopilot/insights";
 import { computeMap } from "../src/lib/autopilot/map";
-import { buildOverview } from "../src/lib/autopilot/overview";
+import { answerQuestion, buildOverview } from "../src/lib/autopilot/overview";
 import { sampleSnapshot } from "../src/lib/autopilot/sample";
 import { detectSignals } from "../src/lib/autopilot/signals";
 import { runAutomation } from "../src/lib/automations";
@@ -192,38 +192,64 @@ describe("ask cosigno (grounded Q&A)", () => {
   });
 });
 
-describe("overview assembly + signal dispositions", () => {
-  it("builds the full overview and persists dispositions across visits", async () => {
-    const first = await buildOverview(USER, { now: NOW });
-    expect(first.data_source).toBe("sample");
-    expect(first.attention.length).toBeGreaterThan(0);
-    // Every signal is new on the first visit.
-    expect(first.signals.every((s) => s.status === "new")).toBe(true);
+describe("overview assembly: an empty account stays empty", () => {
+  /* The engine above is exercised against the sample fixture on purpose. The
+     PRODUCT must never serve that fixture: nothing reads live business
+     metrics yet, so a person opening Autopilot gets an honest nothing —
+     no invented history, no health score, no recommended actions. */
 
-    // The page marks the visit; the next build shows them as seen.
-    const second = await buildOverview(USER, { now: NOW, markSeen: true });
-    expect(second.signals.every((s) => s.status === "new")).toBe(true); // computed BEFORE marking
-    const third = await buildOverview(USER, { now: NOW });
-    expect(third.signals.every((s) => s.status === "seen")).toBe(true);
+  it("reports no data rather than standing in a sample business", async () => {
+    const o = await buildOverview(USER, { now: NOW });
+    expect(o.data_source).toBe("none");
   });
 
-  it("marks the source signal actioned when acted on", async () => {
-    const store = (globalThis as unknown as { __cosignoStore: MemoryStore }).__cosignoStore;
-    const first = await buildOverview(USER, { now: NOW });
-    const target = first.attention.find((s) => s.action)!;
-    await store.setSignalStatus(USER, target.key, "actioned");
-    const next = await buildOverview(USER, { now: NOW });
-    expect(next.signals.find((s) => s.key === target.key)?.status).toBe("actioned");
+  it("carries no metrics, signals, or recommendations of any kind", async () => {
+    const o = await buildOverview(USER, { now: NOW });
+    // Nothing beyond the "no data" marker and the timestamp may be present —
+    // a stray field here is a fabricated number reaching a real user.
+    expect(Object.keys(o).sort()).toEqual(["as_of", "data_source"]);
   });
 
-  it("ignoring a signal removes it from the queue but keeps it honest in the feed", async () => {
-    const store = (globalThis as unknown as { __cosignoStore: MemoryStore }).__cosignoStore;
-    const first = await buildOverview(USER, { now: NOW });
-    const target = first.attention[0];
-    await store.setSignalStatus(USER, target.key, "ignored");
+  it("stays empty on every later visit, marked seen or not", async () => {
+    await buildOverview(USER, { now: NOW, markSeen: true });
     const next = await buildOverview(USER, { now: NOW });
-    expect(next.attention.some((s) => s.key === target.key)).toBe(false);
-    expect(next.signals.find((s) => s.key === target.key)?.status).toBe("ignored");
+    expect(next.data_source).toBe("none");
+  });
+
+  it("answers a business question with an honest non-answer", async () => {
+    const a = await answerQuestion(USER, "how is revenue tracking?", NOW);
+    expect(a.evidence).toEqual([]);
+    expect(a.metrics).toEqual([]);
+    expect(a.action).toBeNull();
+    // No number may appear in an answer with no data behind it.
+    expect(a.answer).not.toMatch(/\d/);
+  });
+});
+
+describe("signal dispositions round-trip in the store", () => {
+  /* Autopilot has no signals to disposition today, but the machinery is what
+     live readers will land on — so it stays covered directly. */
+
+  it("persists a status and reports it back", async () => {
+    const store = (globalThis as unknown as { __cosignoStore: MemoryStore }).__cosignoStore;
+    const [state] = await store.ensureSignalStates(USER, ["revenue_drop"]);
+    expect(state.status).toBe("new");
+
+    await store.setSignalStatus(USER, "revenue_drop", "actioned");
+    const [after] = await store.ensureSignalStates(USER, ["revenue_drop"]);
+    expect(after.status).toBe("actioned");
+  });
+
+  it("marks new signals seen without disturbing actioned ones", async () => {
+    const store = (globalThis as unknown as { __cosignoStore: MemoryStore }).__cosignoStore;
+    await store.ensureSignalStates(USER, ["a", "b"]);
+    await store.setSignalStatus(USER, "a", "actioned");
+    await store.markSignalsSeen(USER);
+
+    const states = await store.ensureSignalStates(USER, ["a", "b"]);
+    const byKey = new Map(states.map((s) => [s.signal_key, s.status]));
+    expect(byKey.get("a")).toBe("actioned");
+    expect(byKey.get("b")).toBe("seen");
   });
 });
 

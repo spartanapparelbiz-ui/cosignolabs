@@ -52,7 +52,6 @@ const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 // keep the app in its steady state (skip first-run intro except where captured)
 await ctx.addInitScript(() => {
   try {
-    localStorage.setItem("cosigno_intro_seen", "1");
     localStorage.setItem("cosigno_briefing_seen", String(Date.now() - 3600_000));
     localStorage.setItem("cosigno_name", "Nicholas");
   } catch {}
@@ -260,7 +259,6 @@ console.log("== empty state (fresh delegations) ==");
 {
   // A brand-new context with no data shows empty states cleanly.
   const ec = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  await ec.addInitScript(() => { try { localStorage.setItem("cosigno_intro_seen", "1"); } catch {} });
   const ep = await ec.newPage();
   wireErrors(ep);
   // note: demo store is shared, so this still shows seeded data; capture the
@@ -278,7 +276,6 @@ console.log("== mobile ==");
 const mctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
 await mctx.addInitScript(() => {
   try {
-    localStorage.setItem("cosigno_intro_seen", "1");
     localStorage.setItem("cosigno_briefing_seen", String(Date.now()));
     localStorage.setItem("cosigno_name", "Nicholas");
   } catch {}

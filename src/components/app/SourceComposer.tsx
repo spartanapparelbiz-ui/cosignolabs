@@ -27,13 +27,6 @@ import { useBackgroundExecution } from "./useBackgroundExecution";
  * Nothing starts until the user confirms the goal-understanding screen.
  */
 
-const EXAMPLES = [
-  "prepare tomorrow's meeting",
-  "review my unread emails",
-  "watch for emails from investors",
-  "research the best option",
-];
-
 const ACCEPT = ".pdf,.docx,.txt,.md,.markdown,.csv,.png,.jpg,.jpeg,.webp";
 
 /** Statuses that mean "still working" — the mission can't start yet. */
@@ -154,14 +147,7 @@ function SourceRow({ source, onRemove }: { source: MissionSourceRecord; onRemove
 
 /* ------------------------------------------------------------------ */
 
-export function SourceComposer({
-  onStarted,
-  suggestions,
-}: {
-  onStarted: () => void;
-  /** Contextual delegation prompts (from real connected apps); defaults to the generic set. */
-  suggestions?: string[];
-}) {
+export function SourceComposer({ onStarted }: { onStarted: () => void }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
@@ -177,25 +163,6 @@ export function SourceComposer({
     if (handle) setGoal(handle.slice(0, 2000));
   }, [searchParams]);
 
-  /**
-   * A suggestion elsewhere on the page fills this box rather than starting a
-   * mission behind the user's back. A prompt card is an idea, not an
-   * instruction — they still get to edit it, or change their mind.
-   */
-  useEffect(() => {
-    const onCompose = (e: Event) => {
-      const text = (e as CustomEvent<{ text?: string }>).detail?.text;
-      if (!text) return;
-      setGoal(text.slice(0, 2000));
-      requestAnimationFrame(() => {
-        const el = document.getElementById("cosigno-ask");
-        el?.focus();
-        el?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-    };
-    window.addEventListener("cosigno:compose", onCompose);
-    return () => window.removeEventListener("cosigno:compose", onCompose);
-  }, []);
   const [sources, setSources] = useState<MissionSourceRecord[]>([]);
   // Optimistic placeholders keyed by a temp id, shown while a request is in flight.
   const [pending, setPending] = useState<MissionSourceRecord[]>([]);
@@ -600,18 +567,6 @@ export function SourceComposer({
         </div>
       )}
 
-      {/* examples */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {(suggestions ?? EXAMPLES).map((ex) => (
-          <button
-            key={ex}
-            onClick={() => setGoal(ex)}
-            className="rounded-pill border border-line/70 bg-cream/40 px-3.5 py-1.5 text-sm font-semibold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
-          >
-            {ex}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

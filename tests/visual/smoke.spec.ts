@@ -29,46 +29,41 @@ for (const vp of VIEWPORTS) {
   test.describe(`${vp.name} (${vp.width}px)`, () => {
     test.use({ viewport: { width: vp.width, height: vp.height } });
 
-    // The first-run intro is covered by its own test below; everywhere else
-    // the flag is pre-set so surfaces render in their steady state.
-    test.beforeEach(async ({ page }) => {
-      await page.addInitScript(() => {
-        try {
-          window.localStorage.setItem("cosigno_intro_seen", "1");
-        } catch {
-          /* storage may be unavailable */
-        }
-      });
-    });
-
-    test("first-run onboarding: one question → recommended job → real mission", async ({ page }) => {
-      await page.addInitScript(() => {
-        try {
-          window.localStorage.removeItem("cosigno_intro_seen");
-        } catch {
-          /* ignore */
-        }
-      });
+    /* Arriving at cosigno hands you an empty room and nothing else: no
+       onboarding modal, no suggested prompts, no starter jobs, and no
+       business Autopilot never actually read. Anything that reappears here
+       is something a person did not put there themselves. */
+    test("arrival is a clean slate: no intro, no suggestions, no invented data", async ({
+      page,
+    }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
-      const dialog = page.getByRole("dialog");
-      await expect(
-        dialog.getByRole("heading", { name: "what steals the most time?" })
-      ).toBeVisible();
-      await page.screenshot({ path: join(OUT, `intro-question-${vp.name}.png`) });
-      // Pick inbox → the recommendation spells out the auto/signature split.
-      await dialog.getByRole("button", { name: "my inbox" }).click();
-      await expect(dialog.getByText("runs automatically")).toBeVisible();
-      await expect(dialog.getByText("needs your signature")).toBeVisible();
-      await expect(dialog.getByText(/clearly-labeled sandbox/)).toBeVisible();
-      await page.screenshot({ path: join(OUT, `intro-recommend-${vp.name}.png`) });
-      // Starting creates the REAL template mission and lands in its workspace.
-      await dialog.getByRole("button", { name: "start this job" }).click();
-      await page.waitForURL(/\/app\/missions\/[a-z0-9-]+/i, { timeout: 20_000 });
+
+      // Nothing interrupts the arrival.
       await expect(page.getByRole("dialog")).toHaveCount(0);
-      // The seen flag persisted — future visits skip the intro.
-      expect(
-        await page.evaluate(() => window.localStorage.getItem("cosigno_intro_seen"))
-      ).toBe("1");
+      await expect(
+        page.getByRole("heading", { name: /what would you like cosigno to do/i })
+      ).toBeVisible();
+      await expect(page.locator("#cosigno-ask")).toBeVisible();
+
+      // Nothing is suggested, recommended, or pre-started.
+      for (const ghost of [
+        /try asking/i,
+        /or start a job/i,
+        /clean up my inbox/i,
+        /prepare my follow-ups/i,
+        /build my morning brief/i,
+        /what steals the most time/i,
+      ]) {
+        await expect(page.getByText(ghost)).toHaveCount(0);
+      }
+      await page.screenshot({ path: join(OUT, `home-clean-slate-${vp.name}.png`) });
+
+      // Autopilot reports having nothing to read — never a sample business.
+      await page.goto("/app/autopilot", { waitUntil: "networkidle" });
+      await expect(page.getByText(/nothing to read yet/i)).toBeVisible();
+      await expect(page.getByText(/sample data/i)).toHaveCount(0);
+      await expect(page.getByText(/fleece training hoodie/i)).toHaveCount(0);
+      await page.screenshot({ path: join(OUT, `autopilot-clean-slate-${vp.name}.png`) });
     });
 
     // §5 QA harness: walk the core surfaces and assert nothing threw an

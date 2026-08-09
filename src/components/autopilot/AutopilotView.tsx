@@ -19,6 +19,7 @@ import { useToast } from "@/components/Toast";
 import type {
   AskAnswer,
   AutopilotOverview,
+  BusinessHealth,
   CategoryHealth,
   Recommendation,
   SignalView,
@@ -114,7 +115,7 @@ export function AutopilotView() {
           body: JSON.stringify({ status: "ignored" }),
         });
         setOverview((o) =>
-          o
+          o && o.data_source === "live"
             ? {
                 ...o,
                 attention: o.attention.filter((s) => s.key !== key),
@@ -144,7 +145,7 @@ export function AutopilotView() {
         toast("success", "prepared — nothing runs until you approve it.");
         if (signalKey) {
           setOverview((o) =>
-            o
+            o && o.data_source === "live"
               ? {
                   ...o,
                   signals: o.signals.map((s) =>
@@ -214,32 +215,45 @@ export function AutopilotView() {
 
   const o = overview;
 
+  /* Nothing is reporting business data. Autopilot says that plainly and shows
+     nothing else — no scores, no forecast, no recommendations. An empty
+     account is allowed to look empty. */
+  if (o.data_source === "none") {
+    return (
+      <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-8">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="font-display text-2xl font-bold sm:text-3xl">Autopilot</h1>
+          <Link
+            href="/app/connections"
+            className="ml-auto text-xs font-bold text-ink-soft hover:text-ink"
+          >
+            manage connections
+          </Link>
+        </div>
+        <div className={`${CARD} mt-5`}>
+          <p className="text-sm font-extrabold">Autopilot has nothing to read yet</p>
+          <p className="mt-1 text-sm text-ink-soft">
+            Nothing is reporting your business numbers. When a connected tool starts
+            sending them, what changed, what needs attention, and what to do next will
+            appear here — built from your data and nobody else&apos;s.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-none px-6 lg:px-10 py-8">
-      {/* ---------- header + honest data label ---------- */}
+      {/* ---------- header ---------- */}
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Autopilot</h1>
-        {o.data_source === "sample" && (
-          <span
-            className="rounded-pill bg-cream-deep px-2.5 py-0.5 text-[11px] font-bold text-ink-soft"
-            title="These numbers are the sample business, not your data. Connect your tools to replace them."
-          >
-            Sample data
-          </span>
-        )}
         <Link
           href="/app/connections"
           className="ml-auto text-xs font-bold text-ink-soft hover:text-ink"
         >
-          {o.data_source === "sample" ? "connect your tools" : "manage connections"}
+          manage connections
         </Link>
       </div>
-      {o.data_source === "sample" && (
-        <p className="mt-1 text-sm text-ink-soft">
-          You&apos;re viewing the sample business so you can see how Autopilot thinks. Connect
-          your real tools and these numbers become yours.
-        </p>
-      )}
 
       {/* ---------- daily brief ---------- */}
       <section className={`${CARD} mt-5 p-6`}>
@@ -593,7 +607,7 @@ export function AutopilotView() {
 
 /* ---------------------------------------------------------- subcomponents */
 
-function HealthPanel({ health }: { health: AutopilotOverview["health"] }) {
+function HealthPanel({ health }: { health: BusinessHealth }) {
   const [open, setOpen] = useState<string | null>(null);
   return (
     <div className={`${CARD} mt-3`}>
