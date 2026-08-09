@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, FileDown, FileText, Plus, Trash2 } from "lucide-react";
+import { FORMATS, type ExportFormat } from "@/lib/files/formatList";
+
+/** Formats offered directly on a file row. */
+const EXPORTS: ExportFormat[] = ["pdf", "docx", "xlsx", "pptx"];
 import type { FileRecord } from "@/lib/types";
 import { CosignoMark } from "@/components/brand/Logo";
 import { useToast } from "@/components/Toast";
@@ -44,17 +48,20 @@ async function jsonFetch(url: string, init?: RequestInit) {
 }
 
 /**
- * Download as a PDF. The bytes come from the server, which renders the
- * CURRENT stored text — so a PDF is never a stale snapshot of an older edit.
+ * Export in any format cosigno can produce. The bytes come from the server,
+ * which renders the CURRENT stored text — so an export is never a stale
+ * snapshot of an edit that has since moved on.
  */
-async function downloadPdf(file: FileRecord): Promise<void> {
-  const res = await fetch(`/api/files/${file.id}/export?format=pdf`);
-  if (!res.ok) throw new Error("the PDF couldn't be created.");
+async function exportAs(file: FileRecord, format: ExportFormat): Promise<void> {
+  const def = FORMATS.find((f) => f.id === format);
+  if (!def) throw new Error("that format isn't available.");
+  const res = await fetch(`/api/files/${file.id}/export?format=${format}`);
+  if (!res.ok) throw new Error(`the ${def.label} file couldn't be created.`);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${file.name.replace(/\.[^.]+$/, "") || "document"}.pdf`;
+  a.download = `${file.name.replace(/\.[^.]+$/, "") || "document"}${def.extension}`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -266,22 +273,34 @@ export function FilesPanel() {
             >
               <Download size={11} /> download
             </button>
-            <button
-              onClick={async () => {
-                setBusy(f.id);
-                try {
-                  await downloadPdf(f);
-                } catch (e) {
-                  toast("error", e instanceof Error ? e.message : "the PDF couldn't be created.");
-                } finally {
-                  setBusy(null);
-                }
-              }}
-              disabled={busy === f.id}
-              className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <FileDown size={11} /> pdf
-            </button>
+            {/*
+              Every format is offered on the row itself. Burying "export as a
+              Word file" behind a menu is how people conclude the app can't do
+              it — the capability and its discoverability are the same feature.
+            */}
+            {EXPORTS.map((id) => {
+              const def = FORMATS.find((x) => x.id === id)!;
+              return (
+                <button
+                  key={id}
+                  onClick={async () => {
+                    setBusy(f.id);
+                    try {
+                      await exportAs(f, id);
+                    } catch (e) {
+                      toast("error", e instanceof Error ? e.message : `the ${def.label} file couldn't be created.`);
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                  disabled={busy === f.id}
+                  title={def.description}
+                  className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <FileDown size={11} /> {def.label.toLowerCase()}
+                </button>
+              );
+            })}
           </div>
 
           {open === f.id ? (

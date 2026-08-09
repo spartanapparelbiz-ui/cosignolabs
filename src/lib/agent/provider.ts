@@ -250,6 +250,124 @@ async function plannerClient(apiKey: string): Promise<PlannerSdkClient> {
 }
 
 /**
+ * Build the multimodal message content.
+ *
+ * Images go FIRST: the model reads the picture, then the instruction about
+ * it, which is the ordering the provider recommends and the one that stops an
+ * instruction being answered before the image is seen. An image the provider
+ * would reject is dropped here and the model is TOLD it was dropped — the
+ * alternative is a confident description of something never delivered.
+ *
+ * Shared by the buffered and streaming paths so they can never diverge on
+ * what the model actually receives.
+ */
+function buildContent(call: PlannerCall): unknown[] {
+  const images = (call.images ?? []).slice(0, MAX_VISION_IMAGES);
+  const usable = images.filter(
+    (img) => visionMimeSupported(img.mime) && base64Bytes(img.data) <= MAX_VISION_BYTES
+  );
+  const dropped = images.length - usable.length;
+
+  const content: unknown[] = [];
+  for (const img of usable) {
+    if (img.label) content.push({ type: "text", text: img.label });
+    content.push({
+      type: "image",
+      source: { type: "base64", media_type: img.mime, data: img.data },
+    });
+  }
+  content.push({
+    type: "text",
+    text:
+      dropped > 0
+        ? `${call.userContent}\n\n(${dropped} attached image${dropped === 1 ? "" : "s"} could not be opened and ${dropped === 1 ? "is" : "are"} NOT visible to you. Say so plainly rather than describing ${dropped === 1 ? "it" : "them"}.)`
+        : call.userContent,
+  });
+  return content;
+}
+
+/**
+ * Invoke the planner and STREAM the answer back, token by token.
+ *
+ * This is the single biggest thing that makes cosigno feel fast. A detailed
+ * report is a thousand-odd tokens; buffering it means staring at a spinner
+ * for the whole generation, while streaming puts the first sentence on screen
+ * in well under a second. The total time is the same — the waiting is not.
+ *
+ * Streaming is prose-only by design: a partially-emitted tool call is not
+ * something a caller can act on, so structured planning stays buffered.
+ *
+ * `onText` receives each fragment as it arrives. The full text is returned at
+ * the end so callers can persist it without re-assembling.
+ */
+export async function streamPlanner(
+  call: PlannerCall,
+  onText: (chunk: string) => void
+): Promise<PlannerResult> {
+  const apiKey = plannerApiKey();
+  if (!apiKey) {
+    logError(newRequestId(), new Error("planner_api_key_missing_at_runtime"), {
+      event: "planner_misconfigured",
+    });
+    throw new PlannerError(null, PLANNER_UNAVAILABLE);
+  }
+  if (!call.model) {
+    logError(newRequestId(), new Error("planner_model_missing_at_runtime"), {
+      event: "planner_misconfigured",
+    });
+    throw new PlannerError(null, PLANNER_UNAVAILABLE);
+  }
+
+  // A cached identical answer is delivered instantly, in one piece. Replaying
+  // it token by token would be theater — pretending to work we already did.
+  const cacheKey = plannerCacheKey(call);
+  const cached = plannerCacheGet(cacheKey);
+  if (cached) {
+    logInfo("planner_cache_hit", { task: call.meta?.task ?? "unattributed", streamed: false });
+    if (cached.text) onText(cached.text);
+    return cached;
+  }
+
+  const client = await plannerClient(apiKey);
+  let text = "";
+  let inputTokens: number | undefined;
+  let outputTokens: number | undefined;
+
+  try {
+    const stream = client.messages.stream({
+      model: call.model,
+      max_tokens: call.maxTokens,
+      system: call.system,
+      messages: [{ role: "user", content: buildContent(call) as never }],
+    });
+
+    for await (const event of stream) {
+      if (
+        event.type === "content_block_delta" &&
+        "delta" in event &&
+        event.delta.type === "text_delta"
+      ) {
+        text += event.delta.text;
+        onText(event.delta.text);
+      } else if (event.type === "message_delta" && "usage" in event) {
+        outputTokens = event.usage?.output_tokens ?? outputTokens;
+      } else if (event.type === "message_start" && "message" in event) {
+        inputTokens = event.message?.usage?.input_tokens ?? inputTokens;
+      }
+    }
+  } catch (err) {
+    const { status, detail } = describeFailure(err);
+    logError(newRequestId(), err, { event: "planner_stream_failed", status, model: call.model });
+    throw new PlannerError(status, plannerErrorMessage(status, detail));
+  }
+
+  const result: PlannerResult = { toolInput: null, text: text.trim(), inputTokens, outputTokens };
+  if (result.text) plannerCacheSet(cacheKey, result);
+  recordUsage(call, result);
+  return result;
+}
+
+/**
  * Invoke the planner and return a neutral result. All vendor SDK types and
  * response shapes are handled here and never leak out.
  */
@@ -284,33 +402,7 @@ export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
     return cached;
   }
 
-  // Multimodal content. Images go FIRST: a model reads the picture, then the
-  // instruction about it, which is the ordering the provider recommends and
-  // the one that stops an instruction being answered before the image is
-  // seen. An image that the provider would reject is dropped here, and the
-  // caller is told in the text so the answer can say what it couldn't see —
-  // never silently pretend it looked.
-  const images = (call.images ?? []).slice(0, MAX_VISION_IMAGES);
-  const usable = images.filter(
-    (img) => visionMimeSupported(img.mime) && base64Bytes(img.data) <= MAX_VISION_BYTES
-  );
-  const dropped = images.length - usable.length;
-
-  const content: unknown[] = [];
-  for (const img of usable) {
-    if (img.label) content.push({ type: "text", text: img.label });
-    content.push({
-      type: "image",
-      source: { type: "base64", media_type: img.mime, data: img.data },
-    });
-  }
-  content.push({
-    type: "text",
-    text:
-      dropped > 0
-        ? `${call.userContent}\n\n(${dropped} attached image${dropped === 1 ? "" : "s"} could not be opened and ${dropped === 1 ? "is" : "are"} NOT visible to you. Say so plainly rather than describing ${dropped === 1 ? "it" : "them"}.)`
-        : call.userContent,
-  });
+  const content = buildContent(call);
 
   let response;
   try {
@@ -362,12 +454,24 @@ export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
   // asked for: a tool call needs its input, a prose answer needs its text.
   if (call.tool ? Boolean(toolInput) : text.length > 0) plannerCacheSet(cacheKey, result);
 
-  // Internal cost ledger — fire-and-forget; accounting never delays or fails
-  // the user's request. Dynamic import keeps store code out of this module's
-  // dependency graph for callers that only need types.
-  if (call.meta) {
-    const meta = call.meta;
-    void import("../ai/costs").then(({ recordAiUsage, estimateCost }) =>
+  recordUsage(call, result);
+
+  return result;
+}
+
+/**
+ * Internal cost ledger — fire-and-forget; accounting never delays or fails
+ * the user's request. Dynamic import keeps store code out of this module's
+ * dependency graph for callers that only need types.
+ *
+ * Shared by the buffered and streaming paths: a streamed answer costs exactly
+ * the same money, so it has to land in the ledger the same way.
+ */
+function recordUsage(call: PlannerCall, result: PlannerResult): void {
+  if (!call.meta) return;
+  const meta = call.meta;
+  void import("../ai/costs")
+    .then(({ recordAiUsage, estimateCost }) =>
       recordAiUsage({
         user_id: meta.userId,
         mission_id: meta.missionId ?? null,
@@ -379,10 +483,8 @@ export async function callPlanner(call: PlannerCall): Promise<PlannerResult> {
         est_cost_usd: estimateCost(call.model, result.inputTokens ?? 0, result.outputTokens ?? 0),
         plan: meta.plan,
       })
-    ).catch(() => undefined);
-  }
-
-  return result;
+    )
+    .catch(() => undefined);
 }
 
 /* --------------------------------------------------- identical-work cache */

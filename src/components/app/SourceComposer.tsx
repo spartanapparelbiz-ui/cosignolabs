@@ -22,6 +22,7 @@ import { useToast } from "@/components/Toast";
 import { useBackgroundExecution } from "./useBackgroundExecution";
 import { CameraCapture } from "./CameraCapture";
 import { AnswerCard, type AnswerResult } from "./AnswerCard";
+import { formatOf, type ExportFormat } from "@/lib/files/formatList";
 import {
   cameraSupported,
   extractVideoFrames,
@@ -231,7 +232,9 @@ export function SourceComposer({
   const [busy, setBusy] = useState(false);
 
   /** A question about attached material is answered here, not delegated. */
-  const [answer, setAnswer] = useState<{ question: string; result: AnswerResult } | null>(null);
+  const [answer, setAnswer] = useState<
+    { question: string; result: AnswerResult; streaming: boolean } | null
+  >(null);
   const [savingAnswer, setSavingAnswer] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const cameraRef = useRef<HTMLInputElement | null>(null);
@@ -415,11 +418,7 @@ export function SourceComposer({
       // report on this photo" came back as web research about a picture
       // nobody had opened.
       if (intent.kind === "read") {
-        const data = await jsonFetch("/api/analyze", {
-          method: "POST",
-          body: JSON.stringify({ question: g, sourceIds: sources.map((s) => s.id) }),
-        });
-        setAnswer({ question: g, result: data as AnswerResult });
+        await streamAnswer(g);
         return;
       }
 
@@ -465,12 +464,95 @@ export function SourceComposer({
   }
 
   /**
+   * Read and answer, streamed.
+   *
+   * The answer appears as it is written instead of after it is finished. The
+   * model takes the same few seconds either way — this removes the part where
+   * the user watches a spinner through all of them.
+   */
+  async function streamAnswer(question: string) {
+    setAnswer({
+      question,
+      result: { answer: "", looked_at: [], could_not_read: [], images_seen: 0 },
+      streaming: true,
+    });
+
+    const res = await fetch("/api/analyze/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, sourceIds: sources.map((s) => s.id) }),
+    });
+
+    if (!res.ok || !res.body) {
+      const body = await res.json().catch(() => ({}));
+      setAnswer(null);
+      throw new Error(body.message || "couldn't read that — try again.");
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let failure: string | null = null;
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE frames are separated by a blank line. A partial frame stays in
+      // the buffer until the rest of it arrives.
+      const frames = buffer.split("\n\n");
+      buffer = frames.pop() ?? "";
+
+      for (const frame of frames) {
+        const line = frame.split("\n").find((l) => l.startsWith("data: "));
+        if (!line) continue;
+        let event: { type: string; text?: string; message?: string; looked_at?: string[]; could_not_read?: string[]; images_seen?: number };
+        try {
+          event = JSON.parse(line.slice(6));
+        } catch {
+          continue;
+        }
+
+        if (event.type === "text" && event.text) {
+          const chunk = event.text;
+          setAnswer((prev) =>
+            prev ? { ...prev, result: { ...prev.result, answer: prev.result.answer + chunk } } : prev
+          );
+        } else if (event.type === "meta") {
+          setAnswer((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  result: {
+                    ...prev.result,
+                    looked_at: event.looked_at ?? [],
+                    could_not_read: event.could_not_read ?? [],
+                    images_seen: event.images_seen ?? 0,
+                  },
+                }
+              : prev
+          );
+        } else if (event.type === "error") {
+          failure = event.message ?? "something went wrong reading that.";
+        }
+      }
+    }
+
+    setAnswer((prev) => (prev ? { ...prev, streaming: false } : prev));
+    if (failure) {
+      setAnswer(null);
+      throw new Error(failure);
+    }
+  }
+
+  /**
    * Keep an answer as a real document. It is saved into Files (so it has a
    * home and a version) and the requested format is downloaded — the PDF is
    * rendered from the saved text, so the file on disk and the file in cosigno
    * can never disagree.
    */
-  async function saveAnswer(format: "md" | "pdf") {
+  async function saveAnswer(format: ExportFormat) {
     if (!answer || savingAnswer) return;
     setSavingAnswer(true);
     try {
@@ -489,19 +571,20 @@ export function SourceComposer({
       });
       const file = saved.file as { id: string; name: string };
 
-      if (format === "pdf") {
-        const res = await fetch(`/api/files/${file.id}/export?format=pdf`);
-        if (!res.ok) throw new Error("the PDF couldn't be created.");
+      const def = formatOf(format);
+      if (def && format !== "md") {
+        const res = await fetch(`/api/files/${file.id}/export?format=${format}`);
+        if (!res.ok) throw new Error(`the ${def.label} file couldn't be created.`);
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${title}.pdf`;
+        a.download = `${title}${def.extension}`;
         a.click();
         URL.revokeObjectURL(url);
       }
       // Say WHERE it went. A saved file the user can't find is a lost file.
-      toast("success", `saved to Files as "${file.name}" — open Files to edit or re-download it.`);
+      toast("success", `saved to Files as "${file.name}" — open Files to edit or export it again.`);
     } catch (e) {
       toast("error", e instanceof Error ? e.message : "that couldn't be saved.");
     } finally {
@@ -537,6 +620,7 @@ export function SourceComposer({
       <AnswerCard
         question={answer.question}
         result={answer.result}
+        streaming={answer.streaming}
         saving={savingAnswer}
         onSave={saveAnswer}
         onAskAgain={() => {

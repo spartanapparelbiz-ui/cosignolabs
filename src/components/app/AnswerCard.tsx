@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Copy, Eye, EyeOff, FileDown, RotateCcw } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import { FORMATS, type ExportFormat } from "@/lib/files/formatList";
 
 /**
  * The answer to a question about attached material.
@@ -69,22 +70,29 @@ function AnswerBody({ text }: { text: string }) {
   );
 }
 
+/** The formats offered up front; the rest live behind "more formats". */
+const PRIMARY: ExportFormat[] = ["pdf", "docx", "xlsx", "pptx"];
+
 export function AnswerCard({
   question,
   result,
   onAskAgain,
   onSave,
   saving,
+  streaming = false,
 }: {
   question: string;
   result: AnswerResult;
   onAskAgain: () => void;
-  onSave: (format: "md" | "pdf") => void;
+  onSave: (format: ExportFormat) => void;
   saving: boolean;
+  /** True while the answer is still being written. */
+  streaming?: boolean;
 }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
   const [showSources, setShowSources] = useState(false);
+  const [moreFormats, setMoreFormats] = useState(false);
 
   async function copy() {
     try {
@@ -108,7 +116,24 @@ export function AnswerCard({
         <p className="mt-0.5 text-[11px] font-semibold text-ink-soft">{question}</p>
       </div>
 
-      <AnswerBody text={result.answer} />
+      {result.answer ? (
+        <div>
+          <AnswerBody text={result.answer} />
+          {/* A caret while writing: the answer is arriving, not stalled. */}
+          {streaming && (
+            <span
+              aria-hidden="true"
+              className="ml-0.5 inline-block h-4 w-[2px] animate-pulse bg-ink align-text-bottom"
+            />
+          )}
+        </div>
+      ) : (
+        <p className="text-sm font-semibold text-ink-soft" aria-live="polite">
+          {result.images_seen > 0
+            ? `reading ${result.images_seen} image${result.images_seen === 1 ? "" : "s"}…`
+            : "reading…"}
+        </p>
+      )}
 
       {/* Anything that could not be read is stated up front, never buried. */}
       {result.could_not_read.length > 0 && (
@@ -122,34 +147,69 @@ export function AnswerCard({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => onSave("pdf")}
-          disabled={saving}
-          className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:cursor-not-allowed disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none"
-        >
-          <FileDown size={14} /> {saving ? "Saving…" : "Save as PDF"}
-        </button>
-        <button
-          onClick={() => onSave("md")}
-          disabled={saving}
-          className="inline-flex items-center gap-1.5 rounded-btn border border-line/70 px-3 py-2 text-xs font-bold text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink disabled:cursor-not-allowed"
-        >
-          <FileDown size={13} /> Save as text
-        </button>
-        <button
-          onClick={copy}
-          className="inline-flex items-center gap-1.5 rounded-btn border border-line/70 px-3 py-2 text-xs font-bold text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink"
-        >
-          {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "Copied" : "Copy"}
-        </button>
-        <button
-          onClick={onAskAgain}
-          className="inline-flex items-center gap-1.5 rounded-btn border border-line/70 px-3 py-2 text-xs font-bold text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink"
-        >
-          <RotateCcw size={13} /> Ask something else
-        </button>
-      </div>
+      {/*
+        Exporting is offered only once the answer is complete — a PDF of half
+        a report is worse than no PDF.
+      */}
+      {!streaming && result.answer && (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Save as</span>
+            {PRIMARY.map((id) => {
+              const def = FORMATS.find((f) => f.id === id)!;
+              return (
+                <button
+                  key={id}
+                  onClick={() => onSave(id)}
+                  disabled={saving}
+                  title={def.description}
+                  className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-3.5 py-2 text-xs font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:cursor-not-allowed disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none"
+                >
+                  <FileDown size={13} /> {def.label}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setMoreFormats((v) => !v)}
+              aria-expanded={moreFormats}
+              className="rounded-btn border border-line/70 px-3 py-2 text-xs font-bold text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink"
+            >
+              {moreFormats ? "Fewer" : "More formats"}
+            </button>
+          </div>
+
+          {moreFormats && (
+            <div className="flex flex-wrap items-center gap-2">
+              {FORMATS.filter((f) => !PRIMARY.includes(f.id)).map((def) => (
+                <button
+                  key={def.id}
+                  onClick={() => onSave(def.id)}
+                  disabled={saving}
+                  title={def.description}
+                  className="inline-flex items-center gap-1.5 rounded-btn border border-line/70 px-3 py-1.5 text-xs font-bold text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink disabled:cursor-not-allowed"
+                >
+                  {def.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={copy}
+              className="inline-flex items-center gap-1.5 rounded-btn border border-line/70 px-3 py-2 text-xs font-bold text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink"
+            >
+              {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "Copied" : "Copy"}
+            </button>
+            <button
+              onClick={onAskAgain}
+              className="inline-flex items-center gap-1.5 rounded-btn border border-line/70 px-3 py-2 text-xs font-bold text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink"
+            >
+              <RotateCcw size={13} /> Ask something else
+            </button>
+          </div>
+        </div>
+      )}
 
       {result.looked_at.length > 0 && (
         <div>

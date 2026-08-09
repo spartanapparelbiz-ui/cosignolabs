@@ -1,4 +1,10 @@
-import { callPlanner, PlannerError, plannerConfigured, type PlannerImage } from "./provider";
+import {
+  callPlanner,
+  PlannerError,
+  plannerConfigured,
+  streamPlanner,
+  type PlannerImage,
+} from "./provider";
 import { modelFor } from "../ai/routing";
 import { getStore } from "../store";
 import { logInfo } from "../log";
@@ -70,25 +76,22 @@ Ground rules, in priority order:
 7. If you are asked to do something you cannot do from reading alone — send it, buy it, post it — answer what you can from the material, then say in one sentence what would need to be approved to go further. Do not pretend to have done it.`;
 }
 
+interface PreparedRead {
+  images: PlannerImage[];
+  looked_at: string[];
+  could_not_read: string[];
+  userContent: string;
+}
+
 /**
- * Read the attached material and answer. `sources` describes everything the
- * user attached (including what failed), and `media` carries the actual
- * pixels, keyed by source id.
+ * Assemble everything the model needs for one read. Shared by the buffered
+ * and streaming paths so the two can never diverge on what was sent.
  */
-export async function analyze(
-  userId: string,
+function prepare(
   question: string,
   sources: AnalyzeSource[],
-  media: Map<string, { mime: string; data: string; label: string }[]>,
-  opts: { planId?: string; sessionId?: string | null; missionId?: string | null } = {}
-): Promise<AnalyzeResult> {
-  if (!plannerConfigured()) {
-    throw new PlannerError(
-      null,
-      "the AI operator is temporarily unavailable. we've been notified — please try again shortly."
-    );
-  }
-
+  media: Map<string, { mime: string; data: string; label: string }[]>
+): PreparedRead {
   const images: PlannerImage[] = [];
   const looked_at: string[] = [];
   const could_not_read: string[] = [];
@@ -138,12 +141,39 @@ export async function analyze(
   if (textParts.length > 0) parts.push(textParts.join("\n\n"));
   parts.push(`The person asked: ${question}`);
 
+  return { images, looked_at, could_not_read, userContent: parts.join("\n\n") };
+}
+
+function assertReady(): void {
+  if (!plannerConfigured()) {
+    throw new PlannerError(
+      null,
+      "the AI operator is temporarily unavailable. we've been notified — please try again shortly."
+    );
+  }
+}
+
+/**
+ * Read the attached material and answer. `sources` describes everything the
+ * user attached (including what failed), and `media` carries the actual
+ * pixels, keyed by source id.
+ */
+export async function analyze(
+  userId: string,
+  question: string,
+  sources: AnalyzeSource[],
+  media: Map<string, { mime: string; data: string; label: string }[]>,
+  opts: { planId?: string; sessionId?: string | null; missionId?: string | null } = {}
+): Promise<AnalyzeResult> {
+  assertReady();
+  const prepared = prepare(question, sources, media);
+
   const result = await callPlanner({
     model: modelFor("plan"),
     maxTokens: ANSWER_MAX_TOKENS,
     system: buildAnalystPrompt(),
-    userContent: parts.join("\n\n"),
-    images,
+    userContent: prepared.userContent,
+    images: prepared.images,
     // No tool. This is the whole point: the model answers in its own words
     // instead of being forced to emit action cards.
     meta: {
@@ -157,18 +187,90 @@ export async function analyze(
 
   logInfo("analyze_complete", {
     userId,
-    images: images.length,
+    images: prepared.images.length,
     sources: sources.length,
-    unread: could_not_read.length,
+    unread: prepared.could_not_read.length,
     input_tokens: result.inputTokens,
     output_tokens: result.outputTokens,
   });
 
   return {
     answer: result.text.trim(),
-    looked_at,
-    could_not_read,
-    imagesSeen: images.length,
+    looked_at: prepared.looked_at,
+    could_not_read: prepared.could_not_read,
+    imagesSeen: prepared.images.length,
+  };
+}
+
+/**
+ * The same read, streamed.
+ *
+ * Identical inputs and identical prompt — the only difference is that the
+ * answer arrives as it is written. For a detailed report that is the
+ * difference between a first sentence in under a second and a spinner for the
+ * whole generation.
+ */
+export async function analyzeStream(
+  userId: string,
+  question: string,
+  sources: AnalyzeSource[],
+  media: Map<string, { mime: string; data: string; label: string }[]>,
+  onText: (chunk: string) => void,
+  opts: {
+    planId?: string;
+    sessionId?: string | null;
+    missionId?: string | null;
+    /**
+     * Fires BEFORE the model call, as soon as it is known what will and won't
+     * be read. The UI can then say "reading 3 frames, couldn't open notes.bin"
+     * while the answer is still being written — rather than revealing at the
+     * end that something was skipped.
+     */
+    onMeta?: (meta: { looked_at: string[]; could_not_read: string[]; imagesSeen: number }) => void;
+  } = {}
+): Promise<AnalyzeResult> {
+  assertReady();
+  const prepared = prepare(question, sources, media);
+
+  opts.onMeta?.({
+    looked_at: prepared.looked_at,
+    could_not_read: prepared.could_not_read,
+    imagesSeen: prepared.images.length,
+  });
+
+  const result = await streamPlanner(
+    {
+      model: modelFor("plan"),
+      maxTokens: ANSWER_MAX_TOKENS,
+      system: buildAnalystPrompt(),
+      userContent: prepared.userContent,
+      images: prepared.images,
+      meta: {
+        userId,
+        plan: opts.planId ?? "free",
+        task: "analyze",
+        sessionId: opts.sessionId ?? null,
+        missionId: opts.missionId ?? null,
+      },
+    },
+    onText
+  );
+
+  logInfo("analyze_complete", {
+    userId,
+    streamed: true,
+    images: prepared.images.length,
+    sources: sources.length,
+    unread: prepared.could_not_read.length,
+    input_tokens: result.inputTokens,
+    output_tokens: result.outputTokens,
+  });
+
+  return {
+    answer: result.text.trim(),
+    looked_at: prepared.looked_at,
+    could_not_read: prepared.could_not_read,
+    imagesSeen: prepared.images.length,
   };
 }
 
