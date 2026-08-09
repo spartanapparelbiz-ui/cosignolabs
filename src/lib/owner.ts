@@ -1,5 +1,5 @@
 import { logSecurity } from "./log";
-import { getPlan, type Plan, type PlanId, type PublicPlanId } from "./plans";
+import type { Plan, PlanId, PublicPlanId } from "./plans";
 
 /**
  * The owner override — SERVER ONLY.
@@ -131,17 +131,4 @@ export const OWNER_PLAN: Plan = {
  */
 export function publicFace(planId: PlanId): PublicPlanId {
   return planId === "owner" ? "max" : planId;
-}
-
-/**
- * Resolve ANY tier by id, including the internal one — SERVER ONLY.
- *
- * `getPlan()` in plans.ts covers the public catalog and deliberately cannot
- * return the owner tier. Server code that holds a plan id which might be
- * "owner" (a resolved plan, a row in the ai_usage ledger) uses this instead,
- * so an owner keeps the capabilities the tier grants rather than silently
- * degrading to free.
- */
-export function resolvePlan(id: PlanId | string | null | undefined): Plan {
-  return id === "owner" ? OWNER_PLAN : getPlan(id);
 }

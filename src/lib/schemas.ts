@@ -18,6 +18,12 @@ const PRIVILEGED_FIELDS = new Set([
   "tier",
   "user_id",
   "userId",
+  // Never a legitimate input on any route. Every schema is .strict(), so this
+  // would be rejected anyway — listing it turns a generic "unrecognized key"
+  // into a named attack signal in the security log. `plan` and `role` are
+  // deliberately NOT here: both are valid client input somewhere (a checkout
+  // intent, a workspace invite), and neither grants anything on its own.
+  "owner",
   "result",
   "injection_flag",
   "tier_note",

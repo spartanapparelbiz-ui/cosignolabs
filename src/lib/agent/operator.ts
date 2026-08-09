@@ -2,7 +2,6 @@ import { logInfo } from "../log";
 import { planWithMock } from "./mockPlanner";
 import { callPlanner, plannerConfigured, PlannerError } from "./provider";
 import { escalationFor, modelFor } from "../ai/routing";
-import { resolvePlan } from "../owner";
 import { ActionCategory, CATEGORIES, Tier } from "../types";
 import { buildSystemPrompt, SYSTEM_PROMPT_VERSION } from "./systemPrompt";
 import { scanUntrusted, wrapUntrusted, type UntrustedBlock } from "./untrusted";
@@ -47,8 +46,18 @@ const MAX_TOKENS = 1024;
  */
 export interface PlanCommandOpts {
   model?: string;
-  /** Plan id, for evidence-based escalation + the internal cost ledger. */
+  /**
+   * Plan id — a LABEL for the internal cost ledger and nothing else. It must
+   * never be turned back into a capability here: mapping this string to a plan
+   * would create a second place that decides what a tier may do, and the whole
+   * point is that getUserPlan is the only one. Pass the decision, not the id.
+   */
   planId?: string;
+  /**
+   * Whether the caller's already-resolved plan carries the premium model.
+   * Decided once by getUserPlan (see pipeline.ts) and handed down as a fact.
+   */
+  strongerModel?: boolean;
   sessionId?: string | null;
 }
 
@@ -188,7 +197,7 @@ async function planWithLLM(
     // produce a plan. One retry, on the stronger model only when the user's
     // plan carries it — this is the ONLY path to the premium model, so cost
     // follows demonstrated need rather than guessed complexity.
-    const strongerModel = Boolean(resolvePlan(opts.planId).strongerModel);
+    const strongerModel = Boolean(opts.strongerModel);
     const escalation = escalationFor("plan", { strongerModel, userId: userId ?? "unknown" });
     result = await callPlanner({
       model: escalation.model,

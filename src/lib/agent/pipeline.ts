@@ -71,7 +71,12 @@ export async function runCommand(
   // categories) don't depend on the plan, so their latency hides entirely
   // behind the multi-second planner call.
   const [plan, settings, grants] = await Promise.all([
-    planCommand(command, opts.externalContent ?? [], userId, { model, planId, sessionId }),
+    planCommand(command, opts.externalContent ?? [], userId, {
+      model,
+      planId,
+      strongerModel: userPlan.strongerModel,
+      sessionId,
+    }),
     store.getTierSettings(userId),
     store.listTemporaryAuthority(userId),
   ]);
