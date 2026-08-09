@@ -519,7 +519,12 @@ export function SourceComposer({
           Drop it — cosigno will take it from here.
         </p>
       )}
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+      {/* The ask box is ONE object, not a field sitting next to a button.
+          Two separate controls read as a form; a single bordered well with the
+          action inside it reads as the place you talk to the product — and it
+          is the most important control in cosigno, so it is worth the care.
+          The whole thing lights up together on focus (`field-glow`). */}
+      <div className="field-glow mt-5 flex items-center gap-2 rounded-card border border-line/70 bg-surface py-2 pl-4 pr-2 shadow-soft transition-shadow duration-base ease-brand-out focus-within:border-signal/50">
         <input
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
@@ -528,14 +533,14 @@ export function SourceComposer({
           id="cosigno-ask"
           placeholder="Ask cosigno anything…"
           aria-label="what do you need handled"
-          className="w-full rounded-btn border border-line/70 bg-cream/40 px-4 py-3.5 text-base font-semibold shadow-well placeholder:font-medium placeholder:text-ink-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
+          className="min-h-[44px] w-full min-w-0 bg-transparent text-base font-semibold outline-none placeholder:font-medium placeholder:text-ink-soft/60 focus-visible:shadow-none focus-visible:outline-none"
         />
         <button
           onClick={review}
           disabled={busy || !goal.trim()}
-          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-btn bg-signal px-6 py-3.5 text-base font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-ink transition-all duration-fast ease-brand-out hover:brightness-105 disabled:cursor-not-allowed disabled:bg-cream-deep disabled:text-ink-soft/70"
         >
-          <Sparkles size={16} /> {busy ? "Reading…" : "Delegate"}
+          <Sparkles size={15} /> {busy ? "Reading…" : "Delegate"}
         </button>
       </div>
 

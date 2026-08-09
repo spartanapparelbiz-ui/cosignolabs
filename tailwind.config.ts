@@ -29,17 +29,24 @@ const config: Config = {
         btn: "10px",
         pill: "999px",
       },
+      /**
+       * Elevation, defined in globals.css and referenced here.
+       *
+       * Every level begins with a HAIRLINE — a 1px spread ring — and adds
+       * shadow only in proportion to how far off the page the thing actually
+       * is. A diffuse cloud under every card is what makes an interface read
+       * as soft and approximate; an edge is what makes it read as made. The
+       * values live in CSS variables so the dark theme can define its own
+       * (a white inset highlight, correct on a cream card, is a bright scratch
+       * across a dark one).
+       */
       boxShadow: {
-        soft: "0 2px 16px rgba(20, 20, 20, 0.06)",
-        lift: "0 10px 32px rgba(20, 20, 20, 0.10)",
-        // Layered card depth: a 1px inset top highlight over two stacked
-        // ambient shadows — reads as a physical, lifted surface.
-        depth:
-          "inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(20,20,20,0.05), 0 8px 24px rgba(20,20,20,0.09)",
-        "depth-lift":
-          "inset 0 1px 0 rgba(255,255,255,0.75), 0 2px 4px rgba(20,20,20,0.06), 0 16px 40px rgba(20,20,20,0.13)",
-        // Recessed payload well — content sits *inside* the card.
-        well: "inset 0 2px 5px rgba(20,20,20,0.10), inset 0 0 0 1px rgba(20,20,20,0.04)",
+        soft: "var(--shadow-soft)",
+        lift: "var(--shadow-lift)",
+        depth: "var(--shadow-depth)",
+        "depth-lift": "var(--shadow-depth-lift)",
+        /** Recessed payload well — content sits *inside* the card. */
+        well: "var(--shadow-well)",
       },
       fontFamily: {
         sans: ["var(--font-nunito)", "system-ui", "sans-serif"],

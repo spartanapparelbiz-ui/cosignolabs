@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -12,13 +12,14 @@ import {
 import { PENDING_APPROVALS_KEY } from "@/lib/client/keys";
 
 /**
- * The workspace asks each question once.
+ * The shared request cache, as it behaves ON THE SERVER — which is to say, not
+ * at all. Its browser behaviour (dedupe, seeding, optimistic writes) lives in
+ * shared-requests-browser.test.ts, where a `window` is installed before the
+ * module loads.
  *
- * Every duplicate request is a round trip somebody waits through for an answer
- * the app already had in flight — and worse, two independent reads of one fact
- * can disagree, which is how a "Stop" button ends up claiming work is flowing
- * while everything is frozen. These tests pin the three properties that make
- * that impossible: dedupe, instant-on-return, and seedability.
+ * This file also pins the naming discipline that makes sharing possible: a
+ * cache key is a string, so two components share a request only if they spell
+ * the URL identically.
  */
 
 const src = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
@@ -30,94 +31,62 @@ function mockFetch(body: unknown, calls: { n: number }) {
   });
 }
 
-describe("the shared request cache", () => {
+describe("the cache never crosses a request boundary on the server", () => {
+  /**
+   * A "use client" module still runs on the server to produce the SSR HTML,
+   * and a module-level Map there is ONE map shared by every request — so a
+   * write during a server render puts the first user's data where the next
+   * user's render will read it. That is a cross-user leak, and it showed up as
+   * a hydration mismatch before it showed up as anything worse.
+   *
+   * These run in the default vitest environment, which has no `window` — the
+   * same condition as a server render.
+   */
   beforeEach(() => {
     clearResources();
   });
-  afterEach(() => {
+
+  it("has no window here, which is the condition being tested", () => {
+    expect(typeof window).toBe("undefined");
+  });
+
+  it("refuses to seed", () => {
+    seedResource(PENDING_APPROVALS_KEY, { actions: [{ id: "user-a" }] });
+    expect(readResource(PENDING_APPROVALS_KEY)).toBeUndefined();
+  });
+
+  it("refuses to write optimistically", () => {
+    setResource("/api/hold", { hold: { scope: "all" } });
+    expect(readResource("/api/hold")).toBeUndefined();
+  });
+
+  it("refuses to fetch", async () => {
+    const calls = { n: 0 };
+    vi.stubGlobal("fetch", mockFetch({ ok: true }, calls));
+    await loadResource("/api/usage");
+    expect(calls.n).toBe(0);
     vi.unstubAllGlobals();
   });
 
-  it("collapses concurrent readers of one key into a single request", async () => {
-    const calls = { n: 0 };
-    vi.stubGlobal("fetch", mockFetch({ ok: true }, calls));
-
-    // Five components mounting in the same tick, all wanting the same fact.
-    await Promise.all([
-      loadResource("/api/hold"),
-      loadResource("/api/hold"),
-      loadResource("/api/hold"),
-      loadResource("/api/hold"),
-      loadResource("/api/hold"),
-    ]);
-
-    expect(calls.n).toBe(1);
+  it("so one request can never read what another one rendered", () => {
+    // Request A renders and tries to seed its own approvals…
+    seedResource(PENDING_APPROVALS_KEY, { actions: [{ id: "belongs-to-user-a" }] });
+    // …and request B, rendering next in the same process, sees nothing.
+    expect(readResource(PENDING_APPROVALS_KEY)).toBeUndefined();
   });
+});
 
-  it("keeps different keys separate", async () => {
-    const calls = { n: 0 };
-    vi.stubGlobal("fetch", mockFetch({ ok: true }, calls));
-    await Promise.all([loadResource("/api/hold"), loadResource("/api/usage")]);
-    expect(calls.n).toBe(2);
-  });
-
-  it("serves what the server already sent without asking again", async () => {
-    const calls = { n: 0 };
-    vi.stubGlobal("fetch", mockFetch({ actions: [] }, calls));
-
-    seedResource(PENDING_APPROVALS_KEY, { actions: [{ id: "a1" }] });
-    expect(readResource<{ actions: unknown[] }>(PENDING_APPROVALS_KEY)?.actions).toHaveLength(1);
-    expect(calls.n).toBe(0);
-  });
-
-  it("never lets a seed overwrite something the client fetched since", async () => {
-    const calls = { n: 0 };
-    vi.stubGlobal("fetch", mockFetch({ actions: [{ id: "fresh" }] }, calls));
-
-    await loadResource(PENDING_APPROVALS_KEY);
-    // A remount re-seeds from stale server props — that must not win.
-    seedResource(PENDING_APPROVALS_KEY, { actions: [{ id: "stale" }] });
-
-    const held = readResource<{ actions: { id: string }[] }>(PENDING_APPROVALS_KEY);
-    expect(held?.actions[0].id).toBe("fresh");
-  });
-
-  it("applies an optimistic write immediately, before any round trip", () => {
-    setResource("/api/hold", { hold: { scope: "all" } });
-    expect(readResource<{ hold: { scope: string } }>("/api/hold")?.hold.scope).toBe("all");
-  });
-
-  it("keeps the last good value when a refresh fails", async () => {
-    const calls = { n: 0 };
-    vi.stubGlobal("fetch", mockFetch({ rules: [{ id: "r1" }] }, calls));
-    await loadResource("/api/rules");
-
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => {
-        throw new Error("network down");
-      })
-    );
-    await loadResource("/api/rules").catch(() => undefined);
-
-    // A failed refresh must not blank a page that was showing something true.
-    expect(readResource<{ rules: unknown[] }>("/api/rules")?.rules).toHaveLength(1);
-  });
-
-  it("invalidates a whole family from one prefix", async () => {
-    const calls = { n: 0 };
-    vi.stubGlobal("fetch", mockFetch({ actions: [] }, calls));
-    await loadResource("/api/actions?status=proposed&limit=200");
-    await loadResource("/api/actions?limit=10");
-    const before = calls.n;
-
-    // Nothing is subscribed, so this marks stale rather than refetching —
-    // the next reader pays for the request, and only if there is one.
-    invalidate("/api/actions");
-    expect(calls.n).toBe(before);
-
-    await loadResource("/api/actions?status=proposed&limit=200");
-    expect(calls.n).toBe(before + 1);
+describe("components fall back to their server-fetched props", () => {
+  /**
+   * With the cache inert on the server, the ONLY thing keeping the server
+   * render and the client's hydration render identical is that both fall
+   * through to the `initial` prop. Drop that fallback and the page hydrates
+   * into a mismatch.
+   */
+  it("renders from `initial` while the cache is empty", () => {
+    expect(src("src/components/app/Dashboard.tsx")).toMatch(/initial\?\.missions/);
+    expect(src("src/components/app/Dashboard.tsx")).toMatch(/initial\?\.approvals/);
+    expect(src("src/components/app/DecisionInbox.tsx")).toMatch(/\?\? initial \?\?/);
   });
 });
 

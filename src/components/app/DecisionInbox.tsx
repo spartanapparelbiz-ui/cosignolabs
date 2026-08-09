@@ -60,7 +60,9 @@ export function DecisionInbox({
   });
   const signature = useResource<{ signature?: SignatureRecord | null }>("/api/signature");
 
-  const actions = queue.data?.actions ?? (queue.loading ? null : []);
+  // Server render and hydration render both fall through to `initial`; see
+  // the note in Dashboard and in lib/client/resource.ts.
+  const actions = queue.data?.actions ?? initial ?? (queue.loading ? null : []);
   const saved = signature.data?.signature ?? null;
   const error = queue.error ?? null;
   const [displayName] = useDisplayName();

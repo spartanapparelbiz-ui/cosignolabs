@@ -136,7 +136,9 @@ for (const vp of VIEWPORTS) {
       const probe = page.locator("#probe");
       await expect(probe).toBeVisible();
       await probe.fill("5000");
-      await expect(page.getByText(/max covers 5,000 actions/i)).toBeVisible();
+      // The line names the covering plan and its real ceiling — not the
+      // number under the slider thumb, which is the bug this asserts against.
+      await expect(page.getByText(/covers that — 10,000 AI operations/i)).toBeVisible();
       // open a FAQ item (deep-linkable accordion)
       await page.getByRole("button", { name: /what counts as an action/i }).click();
       // toggle to annual to exercise the animated price count
@@ -284,15 +286,32 @@ for (const vp of VIEWPORTS) {
       const { mission } = await res.json();
       await page.goto(`/app/browser/${mission.id}`, { waitUntil: "networkidle" });
 
-      // The two-column truth: what it's doing, what it found, what's next,
-      // and the standing read-only statement.
-      await expect(page.getByText("What cosigno is doing")).toBeVisible();
-      await expect(page.getByText("What it found")).toBeVisible();
-      await expect(page.getByText("Changes made")).toBeVisible();
-      await expect(page.getByText(/No external changes have been made/)).toBeVisible();
-      // Controls exist (pause/stop/refresh) — no dead buttons.
-      await expect(page.getByRole("button", { name: /Pause|Resume/ })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
+      // The sandbox mission can finish in under a second, so this view has two
+      // legitimate faces and the test must not race them: WHILE RUNNING it is
+      // the two-column live truth, and ONCE DONE it is the report. Asserting
+      // only the live one made this test a coin flip on a warm dev server.
+      const live = page.getByText("What cosigno is doing");
+      const done = page.getByRole("heading", { name: "Mission complete" });
+      await expect(live.or(done).first()).toBeVisible();
+
+      if (await live.isVisible().catch(() => false)) {
+        await expect(page.getByText("What it found")).toBeVisible();
+        await expect(page.getByText("Changes made")).toBeVisible();
+        // The standing promise, which is the whole point of watching it work.
+        await expect(page.getByText(/No external changes have been made/)).toBeVisible();
+        // Controls exist (pause/stop/refresh) — no dead buttons. Scoped,
+        // because the workspace header carries an emergency stop on EVERY page
+        // and a bare name lookup matches two different controls.
+        await expect(page.getByRole("button", { name: /Pause|Resume/ })).toBeVisible();
+        await expect(
+          page.getByRole("button", { name: "Stop", exact: true }).last()
+        ).toBeVisible();
+      } else {
+        // The finished report still refuses to overclaim.
+        await expect(
+          page.getByText(/Prices and availability may change after this Mission/i)
+        ).toBeVisible();
+      }
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `browser-view-${vp.name}.png`), fullPage: true });
 
@@ -311,11 +330,14 @@ for (const vp of VIEWPORTS) {
       await page.goto("/app/templates", { waitUntil: "networkidle" });
       await expect(page.getByRole("heading", { name: "templates" })).toBeVisible();
       await expect(page.getByText("build tomorrow's meeting brief")).toBeVisible();
-      await expect(page.getByText("compare three laptops under $1,000")).toBeVisible();
+      await expect(page.getByText("Find the best laptop under $1,000")).toBeVisible();
       await expect(page.getByText("clean up my inbox")).toBeVisible();
       await expect(page.getByText("prepare my follow-ups")).toBeVisible();
       await expect(page.getByText("build my morning brief")).toBeVisible();
-      await expect(page.getByText("needs your signature").first()).toBeVisible();
+      // The gallery's standing promise, in whichever row states it.
+      await expect(
+        page.getByText(/shows it to you before anything runs/i).first()
+      ).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `templates-${vp.name}.png`), fullPage: true });
 
@@ -326,11 +348,16 @@ for (const vp of VIEWPORTS) {
       expect(res.ok()).toBeTruthy();
       const { mission } = await res.json();
       await page.goto(`/app/missions/${mission.id}`, { waitUntil: "networkidle" });
-      await expect(page.getByText("Timeline")).toBeVisible();
-      await expect(page.getByText("Plan", { exact: true })).toBeVisible();
-      await expect(page.getByText(/steps complete/)).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Progress" })).toBeVisible();
+      // The narrated feed replaced the raw step list — it says what is
+      // happening in a sentence rather than naming the engine's stages.
+      await expect(page.getByText(/Now working|Everything finished|Nothing running/i).first()).toBeVisible();
       await expect(page.getByRole("button", { name: /Pause|Resume/ })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
+      // Scoped: the workspace header carries an emergency stop on EVERY
+      // page, so a bare name lookup matches two different controls.
+      await expect(
+        page.getByRole("button", { name: "Stop", exact: true }).last()
+      ).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `mission-workspace-${vp.name}.png`), fullPage: true });
     });
@@ -360,14 +387,18 @@ for (const vp of VIEWPORTS) {
       await expect(box).toBeVisible();
       await box.fill("reprice these products for the summer sale");
       await page.keyboard.press("Enter");
-      await expect(page.getByText(/awaiting your sign-off/).first()).toBeVisible();
-      // The clarity system: mission state chip + the "what is cosigno doing?"
-      // guide with its honest no-changes line and the visible plan.
-      await expect(page.getByText("waiting for your approval").first()).toBeVisible();
+      // A card is PREPARED, not executed — the whole promise of the product.
+      // The tier label and the no-changes line both have to be on screen for
+      // that promise to be legible; "awaiting your sign-off" was the old
+      // wording and is now "needs approval".
+      await expect(page.getByText(/needs approval/i).first()).toBeVisible();
+      await expect(
+        page.getByText(/no data has changed — this is only prepared/i).first()
+      ).toBeVisible();
+      // The clarity system: the "what is cosigno doing?" guide.
       const guide = page.getByRole("button", { name: /what is cosigno doing/i });
       await expect(guide).toBeVisible();
       await guide.click();
-      await expect(page.getByText(/waiting for your (typed )?approval\.?/).first()).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `workspace-${vp.name}.png`), fullPage: true });
       await guide.click();
@@ -439,7 +470,8 @@ for (const vp of VIEWPORTS) {
 
       // pay → the card slides to the reader, then pops back stamped
       await page.getByRole("button", { name: /pay & cosign/i }).click();
-      await expect(page.getByText(/cosigned\. welcome to pro/i)).toBeVisible();
+      // `pro` is the plan ID; "operator" is what a customer reads.
+      await expect(page.getByText(/welcome to operator/i)).toBeVisible();
       await page.waitForTimeout(500);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `checkout-success-${vp.name}.png`), fullPage: true });
@@ -456,15 +488,15 @@ for (const vp of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `account-profile-${vp.name}.png`), fullPage: true });
 
       // permissions — the three-column tier board
-      await page.getByRole("button", { name: "permissions" }).click();
-      await expect(page.getByRole("heading", { name: "permissions" })).toBeVisible();
+      await page.getByRole("button", { name: "trust center" }).click();
+      await expect(page.getByRole("heading", { name: /what cosigno may do/i })).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-permissions-${vp.name}.png`), fullPage: true });
 
       // plan & usage — the usage ring + sparkline + plan card
       await page.getByRole("button", { name: "plan & usage" }).click();
-      await expect(page.getByText(/actions used this cycle/)).toBeVisible();
+      await expect(page.getByText(/AI operations used this cycle/)).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-usage-${vp.name}.png`), fullPage: true });

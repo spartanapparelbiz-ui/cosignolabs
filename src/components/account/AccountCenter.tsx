@@ -634,7 +634,17 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
  * in ConnectionsPanel; this keeps the existing tab wiring stable.
  */
 function IntegrationsPanel() {
-  return <ConnectionsPanel />;
+  // Every other tab in this centre is titled; this one was not, because the
+  // panel deliberately renders no heading of its own (on /app/connections the
+  // page's h1 already says the word, and saying it twice reads as the page
+  // apologising for itself). Inside the account centre there is no such h1, so
+  // the heading belongs here — same component as its four siblings.
+  return (
+    <>
+      <PanelHeading title="connections" sub="the apps cosigno can work with, and what governs each one." />
+      <ConnectionsPanel />
+    </>
+  );
 }
 
 const AUDIT_LABEL: Record<string, string> = {

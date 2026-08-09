@@ -45,12 +45,12 @@ export function AccountChip() {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="inline-flex items-center gap-2 rounded-pill bg-cream-deep/80 py-1 pl-1 pr-3 ring-1 ring-inset ring-transparent transition-all duration-fast ease-brand-out hover:bg-cream-deep hover:shadow-soft hover:ring-line"
+        className="inline-flex items-center gap-2 rounded-pill ring-1 ring-inset ring-transparent transition-all duration-fast ease-brand-out hover:bg-cream-deep hover:ring-line/70 py-1 pl-1 pr-3"
       >
         <span className="flex h-7 w-7 items-center justify-center rounded-pill bg-ink text-xs font-extrabold uppercase text-cream">
           {initialsFor(display)}
         </span>
-        <span className="max-w-[9rem] truncate text-sm font-bold lowercase text-ink">{display}</span>
+        <span className="hidden max-w-[9rem] truncate text-sm font-semibold lowercase text-ink sm:block">{display}</span>
       </button>
 
       {open && (

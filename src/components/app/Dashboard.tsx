@@ -93,9 +93,17 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   const connectionsRes = useResource<{ connections?: ConnectionView[] }>("/api/connections");
   const usageRes = useResource<{ usage?: { actions_executed?: number } }>("/api/usage");
 
-  const missions = missionsRes.data?.missions ?? (missionsRes.loading ? null : []);
-  const steps = missionsRes.data?.steps ?? {};
-  const approvals = (approvalsRes.data?.actions ?? []).filter((a) => a.status === "proposed");
+  // The cache is empty on the server AND during the client's hydration render,
+  // so both fall through to `initial` and produce identical markup. Once the
+  // browser has mounted, the cache takes over and this prop is never read
+  // again. (See lib/client/resource.ts — the cache is deliberately inert on
+  // the server, because a module-level Map there is shared across users.)
+  const missions =
+    missionsRes.data?.missions ?? initial?.missions ?? (missionsRes.loading ? null : []);
+  const steps = missionsRes.data?.steps ?? initial?.steps ?? {};
+  const approvals = (approvalsRes.data?.actions ?? initial?.approvals ?? []).filter(
+    (a) => a.status === "proposed"
+  );
   const connections = (connectionsRes.data?.connections ?? []).filter((c) => c.kind === "app");
   const opsThisMonth = Number(usageRes.data?.usage?.actions_executed) || 0;
 
@@ -151,7 +159,7 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   );
 
   return (
-    <div className="page">
+    <div className={`page ${busy ? "" : "flex min-h-[72vh] flex-col justify-center"}`}>
       {/* --------------------- who, and what today is --------------------- */}
       <header className={busy ? "" : "text-center"}>
         <h1
@@ -180,8 +188,8 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           it. For someone with nothing waiting, this is the whole page. */}
       {!busy && (
         <>
-          <div className="mx-auto mt-8 max-w-2xl">{composer}</div>
-          <section className="mx-auto mt-8 max-w-2xl">
+          <div className="mx-auto mt-8 w-full max-w-2xl">{composer}</div>
+          <section className="mx-auto mt-8 w-full max-w-2xl">
             <p className="section-title">Try asking</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {promptsFor(connections).map((p) => (

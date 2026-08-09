@@ -99,10 +99,10 @@ export function EmergencyStop() {
           onClick={() => setArmed(true)}
           aria-label="emergency stop"
           title="Pause every AI action immediately"
-          className="inline-flex min-h-[36px] items-center gap-1.5 rounded-btn border border-line bg-surface px-3 py-1.5 text-xs font-bold text-ink transition-colors duration-fast hover:border-signal hover:text-signal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+          className="inline-flex items-center gap-2 rounded-pill ring-1 ring-inset ring-transparent transition-all duration-fast ease-brand-out hover:bg-cream-deep hover:ring-line/70 min-h-[34px] px-3 py-1.5 text-sm font-medium text-ink-soft hover:text-signal"
         >
-          <OctagonX size={13} aria-hidden="true" />
-          Stop
+          <OctagonX size={14} aria-hidden="true" />
+          <span className="hidden sm:inline">Stop</span>
         </button>
       )}
 

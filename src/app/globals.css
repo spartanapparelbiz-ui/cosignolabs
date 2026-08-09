@@ -24,6 +24,22 @@
   --logo-check: #171512;
   --logo-wordmark: #171512;
   --logo-dot: #fb4c20;
+
+  /* --- Elevation -------------------------------------------------------
+     Four levels, and every one of them starts with a hairline: a 1px spread
+     ring that gives the surface an edge. Shadow is added only in proportion
+     to how far off the page the thing really is — resting cards barely cast
+     one, overlays cast a real one. A soft cloud under everything is what
+     makes an interface look approximate; an edge is what makes it look made.
+     Mirrored into Tailwind's boxShadow scale (see tailwind.config.ts). */
+  --shadow-soft: 0 1px 2px rgb(20 20 20 / 0.05), 0 0 0 1px rgb(20 20 20 / 0.055);
+  --shadow-depth: 0 1px 2px rgb(20 20 20 / 0.05), 0 6px 20px rgb(20 20 20 / 0.06),
+    0 0 0 1px rgb(20 20 20 / 0.06);
+  --shadow-lift: 0 2px 4px rgb(20 20 20 / 0.05), 0 12px 30px rgb(20 20 20 / 0.09),
+    0 0 0 1px rgb(20 20 20 / 0.065);
+  --shadow-depth-lift: 0 2px 6px rgb(20 20 20 / 0.06), 0 24px 56px rgb(20 20 20 / 0.15),
+    0 0 0 1px rgb(20 20 20 / 0.07);
+  --shadow-well: inset 0 1px 3px rgb(20 20 20 / 0.06), inset 0 0 0 1px rgb(20 20 20 / 0.045);
 }
 
 :root[data-theme="dark"] {
@@ -39,6 +55,19 @@
   /* Dark: orange C, CREAM check + wordmark, orange i-dot. */
   --logo-check: #f7f0e5;
   --logo-wordmark: #f7f0e5;
+
+  /* On a dark page the hairline is light, not dark — a black ring around a
+     near-black card is invisible, and the white top-highlight that reads as
+     a lit edge on cream reads as a scratch here. Shadows go deeper and the
+     rings carry most of the separation. */
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --shadow-depth: 0 1px 2px rgb(0 0 0 / 0.45), 0 6px 20px rgb(0 0 0 / 0.35),
+    0 0 0 1px rgb(255 255 255 / 0.07);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.45), 0 12px 30px rgb(0 0 0 / 0.45),
+    0 0 0 1px rgb(255 255 255 / 0.08);
+  --shadow-depth-lift: 0 2px 6px rgb(0 0 0 / 0.5), 0 24px 56px rgb(0 0 0 / 0.55),
+    0 0 0 1px rgb(255 255 255 / 0.09);
+  --shadow-well: inset 0 1px 3px rgb(0 0 0 / 0.4), inset 0 0 0 1px rgb(255 255 255 / 0.05);
 }
 
 /* Wordmark i-dot: the dotless "ı" carries an orange dot positioned above it. */
@@ -74,15 +103,36 @@ body {
 
 body {
   @apply bg-cream text-ink font-sans antialiased;
+  /* Proportional figures read better in prose; the app is full of counts,
+     times and budgets that sit in columns and must not jitter as they tick.
+     `tnum` on the body gives every number the same advance width, so a
+     progress figure counting up never nudges the text beside it. */
+  font-variant-numeric: tabular-nums;
+  /* Kerning and standard ligatures — on by default in most browsers, stated
+     here so a future reset cannot quietly turn them off. Deliberately NOT
+     `text-rendering: optimizeLegibility`: it buys the same two features and
+     charges a measurable layout cost on text-heavy pages, which is not a
+     trade worth making right after a pass spent on speed. */
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+/* Headlines are set tight; the display face is drawn for it. */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+  text-wrap: balance;
 }
 
 ::selection {
   background: rgba(251, 76, 32, 0.2);
 }
 
-/* Focus is always the signal ring — one of the few sanctioned uses of orange. */
+/* Focus is always the signal ring — one of the few sanctioned uses of orange.
+   Drawn from the theme token, so the ring lifts with the palette in dark mode
+   instead of staying at the light-mode orange against a near-black page. */
 *:focus-visible {
-  outline: 2px solid #fb4c20;
+  outline: 2px solid rgb(var(--c-signal));
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -123,6 +173,9 @@ body {
   line-height: 1.15;
   letter-spacing: -0.02em;
   text-transform: lowercase;
+  /* A heading that breaks into an orphaned last word is the difference
+     between typeset and merely rendered. Silently ignored where unsupported. */
+  text-wrap: balance;
 }
 
 /* The one line under a title. It is a lede, not documentation: if it needs a
@@ -134,6 +187,7 @@ body {
   font-size: 0.9375rem;
   line-height: 1.5;
   color: rgb(var(--c-ink-soft));
+  text-wrap: pretty;
 }
 
 /* The label above a band of content. Never a heading — it is a signpost. */
@@ -201,7 +255,7 @@ select:focus-visible {
 }
 .card-lift:hover {
   transform: translateY(-2px);
-  box-shadow: 0 2px 4px rgba(20, 20, 20, 0.06), 0 16px 40px rgba(20, 20, 20, 0.13);
+  box-shadow: var(--shadow-lift);
 }
 
 /* Scrollbars, quietly. The default chrome-grey bar is the loudest thing on an

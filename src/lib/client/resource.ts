@@ -36,6 +36,23 @@ interface Entry {
   subscribers: Set<() => void>;
 }
 
+/**
+ * THE CACHE IS A BROWSER CACHE, AND IT MUST STAY ONE.
+ *
+ * A "use client" module still executes on the server to produce the SSR HTML,
+ * and this Map lives in the Node process — one Map, shared by every request
+ * and therefore by every user. Writing to it during a server render is a
+ * cross-user data leak: the first request would fill it, and every later
+ * request would render the FIRST user's approvals into a different person's
+ * HTML. (It also causes a hydration mismatch, which is how it was caught.)
+ *
+ * So every entry point below is inert on the server. Components pass their
+ * server-fetched data as an `initial` prop and fall back to it while the cache
+ * is empty — which is exactly the state on the server and during the client's
+ * hydration render, so both produce identical markup.
+ */
+const isBrowser = typeof window !== "undefined";
+
 const cache = new Map<string, Entry>();
 
 /** How long a value is served without a background refresh. */
@@ -73,6 +90,7 @@ async function fetchJson(key: string): Promise<unknown> {
  * that the client has since fetched.
  */
 export function seedResource(key: string, data: unknown): void {
+  if (!isBrowser) return;
   const entry = entryFor(key);
   if (entry.at !== 0) return;
   entry.data = data;
@@ -81,6 +99,7 @@ export function seedResource(key: string, data: unknown): void {
 
 /** Read the current cached value without subscribing. */
 export function readResource<T>(key: string): T | undefined {
+  if (!isBrowser) return undefined;
   return cache.get(key)?.data as T | undefined;
 }
 
@@ -92,6 +111,7 @@ export function readResource<T>(key: string): T | undefined {
  * when they want the server's version to confirm.
  */
 export function setResource(key: string, data: unknown): void {
+  if (!isBrowser) return;
   const entry = entryFor(key);
   entry.data = data;
   entry.error = undefined;
@@ -101,6 +121,7 @@ export function setResource(key: string, data: unknown): void {
 
 /** Start (or join) a request for `key`, returning the shared promise. */
 export function loadResource(key: string): Promise<unknown> {
+  if (!isBrowser) return Promise.resolve(undefined);
   const entry = entryFor(key);
   if (entry.inflight) return entry.inflight;
   const p = fetchJson(key)
@@ -130,6 +151,7 @@ export function loadResource(key: string): Promise<unknown> {
  * queue, the rail badge and the dashboard from one call.
  */
 export function invalidate(prefix: string): void {
+  if (!isBrowser) return;
   for (const [key, entry] of cache) {
     if (!key.startsWith(prefix)) continue;
     entry.at = 0;
@@ -208,7 +230,10 @@ export function useResource<T = unknown>(
     }
   }, [key]);
 
-  const entry = key ? cache.get(key) : undefined;
+  // On the server this is always empty (see `isBrowser` above), so the caller
+  // falls back to its `initial` prop — and the client's hydration render takes
+  // the same path, which is what keeps the two renders identical.
+  const entry = key && isBrowser ? cache.get(key) : undefined;
   return {
     data: entry?.data as T | undefined,
     error: entry?.error,
