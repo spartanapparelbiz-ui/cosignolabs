@@ -89,7 +89,13 @@ for (const vp of VIEWPORTS) {
      * rather than half-faded.
      */
     test("keyboard, landmarks, and reduced motion", async ({ page }) => {
-      await page.goto("/app", { waitUntil: "networkidle" });
+      // NOT networkidle: home polls for live work while anyone is looking at
+      // it, so "the network went quiet" is not a signal that the page is
+      // ready — and pressing Tab mid-hydration lands on the document body.
+      // Waiting for the ask box is waiting for the thing that matters: React
+      // has run and the page is interactive.
+      await page.goto("/app", { waitUntil: "domcontentloaded" });
+      await expect(page.getByPlaceholder(/Ask cosigno anything/i)).toBeVisible();
 
       // The very first tab stop skips the rail. Without it, reaching the page
       // content means tabbing through eleven navigation items, every time.
@@ -104,7 +110,8 @@ for (const vp of VIEWPORTS) {
       // Reduced motion: nothing may be left invisible by an animation that
       // never ran. This is the failure mode of "collapse everything to 0ms".
       await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.reload({ waitUntil: "networkidle" });
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(page.getByPlaceholder(/Ask cosigno anything/i)).toBeVisible();
       await page.waitForTimeout(600);
       const invisible = await page.evaluate(() =>
         [...document.querySelectorAll("main [class*='animate-']")]

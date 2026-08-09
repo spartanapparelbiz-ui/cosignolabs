@@ -8,6 +8,11 @@ import { defineConfig } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./tests/visual",
+  // Compile every route once before the first test. `next dev` builds a route
+  // on first request, which on a loaded machine can exceed a navigation
+  // timeout — so without this the suite intermittently reports webpack's cold
+  // start as a product failure, on whichever surface happened to go first.
+  globalSetup: "./tests/visual/warm.ts",
   timeout: 120_000,
   // Dev server compiles each route on first hit — give assertions room.
   expect: { timeout: 20_000 },
