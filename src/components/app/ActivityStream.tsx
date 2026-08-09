@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { EventStream, type ActivityEvent, type ActivityKind } from "@/components/app/EventCard";
-import { SkeletonRows } from "@/components/Skeleton";
+import { ErrorState, LoadingState } from "@/components/ui/States";
 
 // The signed receipt — loaded the first time one is opened, not in this
 // route's initial chunk.
@@ -51,19 +51,24 @@ export function ActivityStream() {
 
   if (error) {
     return (
-      <div className="mt-6 rounded-card border border-line bg-surface p-6">
-        <p className="text-sm font-semibold">{error}</p>
-        <button
-          onClick={load}
-          className="mt-3 rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
-        >
-          Retry
-        </button>
+      <div className="mt-6">
+        <ErrorState
+          what="cosigno couldn't load your activity."
+          tried="It was reading the record of everything that has happened here."
+          next="The record itself is intact — this is only the view of it."
+          retry={() => void load()}
+        />
       </div>
     );
   }
 
-  if (events === null) return <SkeletonRows />;
+  if (events === null) {
+    return (
+      <div className="mt-6">
+        <LoadingState label="Reading what has happened" rows={4} />
+      </div>
+    );
+  }
 
   const kinds = FILTERS[active].kinds;
   const visible = kinds.length === 0 ? events : events.filter((e) => kinds.includes(e.kind));

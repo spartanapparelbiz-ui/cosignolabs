@@ -105,7 +105,11 @@ export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }
           setTab(next.id);
           document.getElementById(`tab-${next.id}`)?.focus();
         }}
-        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:w-48 md:flex-col md:overflow-visible md:px-0 md:pb-0"
+        /* The strip scrolls on a phone, and a strip that scrolls with no sign
+           that it scrolls is a strip whose last two sections nobody finds. The
+           right edge fades so there is visibly more to reach; at md every tab
+           fits in the column and the fade is removed. */
+        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)] md:mx-0 md:w-48 md:flex-col md:overflow-visible md:px-0 md:pb-0 md:[mask-image:none]"
       >
         {TABS.map((t) => {
           const Icon = t.icon;
@@ -683,8 +687,22 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
  * apps + custom MCP servers + the add-MCP flow). The panel is self-contained
  * in ConnectionsPanel; this keeps the existing tab wiring stable.
  */
+/**
+ * The connections tab was the only one of the five with no heading at all —
+ * it dropped straight into the panel. Four sections announcing themselves and
+ * one not is a hole in the page's outline: a screen reader jumping by heading
+ * lands nowhere, and a sighted reader loses the thread of where they are.
+ */
 function IntegrationsPanel() {
-  return <ConnectionsPanel />;
+  return (
+    <section>
+      <PanelHeading
+        title="Connections"
+        sub="The apps cosigno can work with. It can only touch an app after you connect it, and only in the ways you allow."
+      />
+      <ConnectionsPanel />
+    </section>
+  );
 }
 
 const AUDIT_LABEL: Record<string, string> = {

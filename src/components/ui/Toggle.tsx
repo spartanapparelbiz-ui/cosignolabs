@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 /**
  * A switch.
  *
@@ -8,15 +10,17 @@
  * and — the part that actually matters — whether a screen reader could tell
  * what it was or what state it was in.
  *
- * The properties this one guarantees:
- *  · it is a real `role="switch"` with `aria-checked`, so it is announced as
- *    a switch and its state is spoken, not inferred from a colour
- *  · the whole row is the target, not just the 44×24 track, because a switch
- *    you have to aim at is a switch people mis-tap
- *  · the knob's travel is exactly the free space inside the track, so it can
- *    never overflow at either end
- *  · `busy` keeps it interactive while a save is in flight rather than
- *    disabling it and throwing focus to the top of the document
+ * THE WHOLE ROW IS THE CONTROL. Not a label wrapping a button: a `<label>`
+ * around a `<button>` does not forward its clicks, so the "big target" that
+ * shape appears to give you is a lie that only shows up when someone with
+ * shaky hands tries to hit the 44×24 track. One `<button role="switch">`
+ * containing everything means the target is the row, there is exactly one
+ * accessible name, and the state is announced once rather than twice.
+ *
+ * The knob's travel is exactly the free space inside the track, so it can
+ * never overflow at either end. `busy` keeps it interactive while a save is
+ * in flight rather than disabling it and throwing focus to the top of the
+ * document.
  */
 export function Toggle({
   checked,
@@ -28,14 +32,26 @@ export function Toggle({
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
-  /** The visible label. Also the accessible name. */
+  /** The visible label, and the switch's accessible name. */
   label: string;
   description?: React.ReactNode;
   busy?: boolean;
   icon?: React.ReactNode;
 }) {
+  const labelId = useId();
+  const descId = useId();
+
   return (
-    <label className="flex cursor-pointer items-center gap-4 rounded-card bg-surface/60 p-4 shadow-soft transition-[box-shadow] duration-fast hover:shadow-depth">
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-busy={busy || undefined}
+      aria-labelledby={labelId}
+      aria-describedby={description ? descId : undefined}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center gap-4 rounded-card bg-surface/60 p-4 text-left shadow-soft transition-[box-shadow,transform] duration-fast ease-brand-out hover:shadow-depth active:scale-[0.995]"
+    >
       {icon && (
         <span
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-btn bg-cream-deep text-ink-soft"
@@ -45,28 +61,27 @@ export function Toggle({
         </span>
       )}
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold">{label}</span>
+        <span id={labelId} className="block text-sm font-bold">
+          {label}
+        </span>
         {description && (
-          <span className="mt-1 block text-xs text-ink-soft">{description}</span>
+          <span id={descId} className="mt-1 block text-xs text-ink-soft">
+            {description}
+          </span>
         )}
       </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        aria-busy={busy || undefined}
-        onClick={() => onChange(!checked)}
+      <span
+        aria-hidden="true"
         className={`inline-flex h-6 w-11 shrink-0 items-center rounded-pill p-0.5 transition-colors duration-fast ease-brand-out ${
           checked ? "bg-signal" : "bg-line"
         }`}
       >
-        <span className="sr-only">{label}</span>
         <span
           className={`h-5 w-5 rounded-pill bg-surface shadow-soft transition-transform duration-base ease-brand-out ${
             checked ? "translate-x-5" : "translate-x-0"
           }`}
         />
-      </button>
-    </label>
+      </span>
+    </button>
   );
 }

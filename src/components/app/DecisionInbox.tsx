@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ActionRecord, SignatureRecord } from "@/lib/types";
 import { ActionCard, type ApproveOpts } from "@/components/ActionCard";
 import { SkeletonCard } from "@/components/Skeleton";
-import { EmptyIllustration } from "@/components/EmptyIllustration";
+import { EmptyState, ErrorState } from "@/components/ui/States";
 import { useToast } from "@/components/Toast";
 import { useDisplayName } from "@/lib/theme";
 
@@ -140,21 +140,23 @@ export function DecisionInbox({
 
   if (error) {
     return (
-      <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
-        <p className="text-sm font-semibold text-ink-soft">{error}</p>
-        <button
-          onClick={load}
-          className="mt-3 rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep"
-        >
-          try again
-        </button>
-      </div>
+      <ErrorState
+        what="cosigno couldn't load what's waiting for you."
+        tried="It was reading the queue of decisions across your missions."
+        next="Nothing was approved or declined — every card is still exactly where it was."
+        retry={() => void load()}
+        compact={compact}
+      />
     );
   }
 
   if (actions === null) {
     return (
-      <div className="flex flex-col gap-3" aria-busy="true" aria-label="loading decisions">
+      <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
+        <p className="flex items-center gap-2 text-xs font-bold text-ink-soft">
+          <span className="h-1.5 w-1.5 animate-orb-pulse rounded-pill bg-signal" aria-hidden="true" />
+          Checking what needs you
+        </p>
         <SkeletonCard />
         {!compact && <SkeletonCard />}
       </div>
@@ -169,14 +171,10 @@ export function DecisionInbox({
   if (visible.length === 0) {
     if (emptyFallback !== undefined) return <>{emptyFallback}</>;
     return (
-      <div className="flex flex-col items-center gap-3 rounded-card bg-surface/40 px-6 py-12 text-center shadow-soft">
-        <EmptyIllustration kind="workspace" />
-        <p className="text-sm font-extrabold lowercase">nothing needs your decision.</p>
-        <p className="max-w-sm text-xs text-ink-soft">
-          when the operator prepares an action that needs your sign-off, it
-          lands here — and nothing moves until you decide.
-        </p>
-      </div>
+      <EmptyState
+        headline="Nothing needs your decision."
+        body="When cosigno prepares something consequential, it lands here and waits. Nothing moves until you decide."
+      />
     );
   }
 

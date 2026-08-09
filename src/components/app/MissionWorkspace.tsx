@@ -220,8 +220,12 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* ------------------------------ header ------------------------------ */}
-      <div className="flex flex-wrap items-start gap-3">
+      {/* ------------------------------ header ------------------------------
+          Stacks on a phone. Side by side, the three controls are shrink-0 and
+          the goal is flex-1, so on a 390px screen the title was squeezed into
+          a ~90px column and wrapped one word per line — the most important
+          sentence on the page, rendered as a vertical list of words. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-bold text-ink-soft">
             <Link href="/app/missions" className="hover:text-ink">missions</Link> / this mission
@@ -231,7 +235,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
             started {elapsed(mission.created_at)} ago
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
           <StatusPill status={label} />
           {!TERMINAL.has(mission.state) &&
             (mission.state === "paused" ? (

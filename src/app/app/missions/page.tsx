@@ -35,19 +35,17 @@ export default async function MissionsPage() {
   }
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8">
-      <div className="flex flex-wrap items-start gap-3">
-        {/* The "start something" control lives in the list itself, which knows
-            whether the page is empty — an empty page already has one in the
-            middle of it, and two identical orange buttons split the attention
-            they exist to focus. */}
-        <div className="min-w-0 flex-1">
-          <h1 className="font-display text-2xl font-bold">Missions</h1>
-          <p className="mt-1 text-sm font-semibold text-ink-soft">
-            Everything you&apos;ve asked cosigno to get done. You tell it the
-            outcome; it works out the steps and asks you before anything that
-            matters.
-          </p>
-        </div>
+      {/* The "start something" control lives in the list itself, which knows
+          whether the page is empty — an empty page already has one in the
+          middle of it, and two identical orange buttons split the attention
+          they exist to focus. */}
+      <div>
+        <h1 className="font-display text-2xl font-bold">Missions</h1>
+        <p className="mt-1 text-sm font-semibold text-ink-soft">
+          Everything you&apos;ve asked cosigno to get done. You tell it the
+          outcome; it works out the steps and asks you before anything that
+          matters.
+        </p>
       </div>
       <div className="mt-6 flex-1">
         <MissionRunner initial={initial} />

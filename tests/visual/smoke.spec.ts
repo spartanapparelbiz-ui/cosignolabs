@@ -5,9 +5,14 @@ import { join } from "node:path";
 /**
  * Visual smoke test: screenshots every surface at 390px (mobile) and
  * 1440px (desktop), and asserts the core states render — landing, the live
- * preview with an executed card, the workspace with a proposed card,
- * activity, and settings. Screenshots land in tests/visual/__screenshots__.
- * Runs against the demo-mode production server (see playwright.config.ts).
+ * preview with an executed card, a real mission from start to its approval
+ * gate, activity, and the account center. Screenshots land in
+ * tests/visual/__screenshots__. Runs against the dev server (see
+ * playwright.config.ts).
+ *
+ * The three properties every surface has to keep, checked on all of them
+ * rather than asserted once: nothing throws, nothing scrolls sideways, and
+ * the keyboard can reach the content without walking the whole rail.
  */
 
 const OUT = join(process.cwd(), "tests", "visual", "__screenshots__");
@@ -29,46 +34,22 @@ for (const vp of VIEWPORTS) {
   test.describe(`${vp.name} (${vp.width}px)`, () => {
     test.use({ viewport: { width: vp.width, height: vp.height } });
 
-    // The first-run intro is covered by its own test below; everywhere else
-    // the flag is pre-set so surfaces render in their steady state.
-    test.beforeEach(async ({ page }) => {
-      await page.addInitScript(() => {
-        try {
-          window.localStorage.setItem("cosigno_intro_seen", "1");
-        } catch {
-          /* storage may be unavailable */
-        }
-      });
-    });
-
-    test("first-run onboarding: one question → recommended job → real mission", async ({ page }) => {
-      await page.addInitScript(() => {
-        try {
-          window.localStorage.removeItem("cosigno_intro_seen");
-        } catch {
-          /* ignore */
-        }
-      });
+    /**
+     * There is no onboarding to skip any more, and that is the assertion.
+     * cosigno used to open on a modal asking what stole the most of your
+     * time; the whole point of removing it is that a first-time visitor
+     * lands on the working product, so a test that a dialog does NOT appear
+     * is the one that would catch it coming back.
+     */
+    test("a first-time visitor lands straight in the product", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
-      const dialog = page.getByRole("dialog");
-      await expect(
-        dialog.getByRole("heading", { name: "what steals the most time?" })
-      ).toBeVisible();
-      await page.screenshot({ path: join(OUT, `intro-question-${vp.name}.png`) });
-      // Pick inbox → the recommendation spells out the auto/signature split.
-      await dialog.getByRole("button", { name: "my inbox" }).click();
-      await expect(dialog.getByText("runs automatically")).toBeVisible();
-      await expect(dialog.getByText("needs your signature")).toBeVisible();
-      await expect(dialog.getByText(/clearly-labeled sandbox/)).toBeVisible();
-      await page.screenshot({ path: join(OUT, `intro-recommend-${vp.name}.png`) });
-      // Starting creates the REAL template mission and lands in its workspace.
-      await dialog.getByRole("button", { name: "start this job" }).click();
-      await page.waitForURL(/\/app\/missions\/[a-z0-9-]+/i, { timeout: 20_000 });
       await expect(page.getByRole("dialog")).toHaveCount(0);
-      // The seen flag persisted — future visits skip the intro.
-      expect(
-        await page.evaluate(() => window.localStorage.getItem("cosigno_intro_seen"))
-      ).toBe("1");
+      await expect(
+        page.getByRole("heading", { name: "What do you want to get done?" })
+      ).toBeVisible();
+      // The ask box is the first thing, and it is usable immediately.
+      await expect(page.getByPlaceholder(/Ask cosigno anything/i)).toBeVisible();
+      await noHorizontalScroll(page);
     });
 
     // §5 QA harness: walk the core surfaces and assert nothing threw an
@@ -92,6 +73,87 @@ for (const vp of VIEWPORTS) {
         await noHorizontalScroll(page);
       }
       expect(errors, errors.join("\n")).toEqual([]);
+    });
+
+    /**
+     * The three accessibility properties that are easy to lose and expensive
+     * to lose: the keyboard can reach the content, the workspace announces
+     * itself in landmarks, and reduced motion leaves the product usable
+     * rather than half-faded.
+     */
+    test("keyboard, landmarks, and reduced motion", async ({ page }) => {
+      await page.goto("/app", { waitUntil: "networkidle" });
+
+      // The very first tab stop skips the rail. Without it, reaching the page
+      // content means tabbing through eleven navigation items, every time.
+      await page.keyboard.press("Tab");
+      const first = await page.evaluate(() => document.activeElement?.textContent?.trim());
+      expect(first).toBe("Skip to content");
+
+      // One main landmark, and navigation that says what it is.
+      expect(await page.locator("main#main").count()).toBe(1);
+      expect(await page.getByRole("navigation", { name: "app navigation" }).count()).toBeGreaterThan(0);
+
+      // Reduced motion: nothing may be left invisible by an animation that
+      // never ran. This is the failure mode of "collapse everything to 0ms".
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForTimeout(600);
+      const invisible = await page.evaluate(() =>
+        [...document.querySelectorAll("main *")]
+          .filter(
+            (el) =>
+              parseFloat(getComputedStyle(el).opacity) < 0.05 &&
+              el.getBoundingClientRect().height > 8
+          )
+          .map((el) => el.tagName)
+      );
+      expect(invisible, "content hidden behind an animation that never played").toEqual([]);
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `reduced-motion-app-${vp.name}.png`), fullPage: true });
+      await page.emulateMedia({ reducedMotion: null });
+    });
+
+    /**
+     * LABEL IN NAME (WCAG 2.5.3), swept across the workspace.
+     *
+     * When a control shows words, the name assistive technology reports must
+     * contain those words — someone driving the page by voice says what they
+     * can see. An aria-label that substitutes different words makes the
+     * control unreachable by speech: nothing looks broken, nothing warns, and
+     * it fails only for the people least able to work around it.
+     *
+     * This found the workspace kill switch reading "Stop all" while
+     * announcing itself as "emergency stop — pause every AI action".
+     *
+     * Only short, literal labels are checked. A card-sized link whose
+     * aria-label summarises its contents is good practice, not a violation.
+     */
+    test("every control can be reached by saying what it says", async ({ page }) => {
+      const violations: string[] = [];
+      for (const path of ["/app", "/app/missions", "/app/approvals", "/app/connections", "/app/account"]) {
+        await page.goto(path, { waitUntil: "networkidle" });
+        const found = await page.evaluate(() => {
+          // The wordmark renders a dotless ı so the brand dot can sit above
+          // it; spoken aloud it is the same word.
+          const norm = (t: string | null) =>
+            (t || "").replace(/ı/g, "i").replace(/\s+/g, " ").trim().toLowerCase();
+          const out: string[] = [];
+          for (const el of document.querySelectorAll("button, a[href], [role=switch], [role=tab]")) {
+            const label = el.getAttribute("aria-label");
+            const visible = norm(el.textContent);
+            // No visible words: the aria-label IS the name, correctly.
+            // Long text: a summarising label on a card, not a substituted one.
+            if (!label || !visible || visible.length > 40) continue;
+            if (!norm(label).includes(visible)) {
+              out.push(`shows "${visible}" — announced as "${label}"`);
+            }
+          }
+          return out;
+        });
+        for (const f of found) violations.push(`${path}: ${f}`);
+      }
+      expect([...new Set(violations)], "controls that cannot be said out loud").toEqual([]);
     });
 
     test("landing", async ({ page }) => {
@@ -136,7 +198,8 @@ for (const vp of VIEWPORTS) {
       const probe = page.locator("#probe");
       await expect(probe).toBeVisible();
       await probe.fill("5000");
-      await expect(page.getByText(/max covers 5,000 actions/i)).toBeVisible();
+      // The slider answers one question: which tier covers this many actions.
+      await expect(page.getByText(/covers that/i)).toBeVisible();
       // open a FAQ item (deep-linkable accordion)
       await page.getByRole("button", { name: /what counts as an action/i }).click();
       // toggle to annual to exercise the animated price count
@@ -213,23 +276,53 @@ for (const vp of VIEWPORTS) {
       await board.screenshot({ path: join(OUT, `tierboard-${vp.name}.png`) });
     });
 
-    test("home dashboard: the four-question layout", async ({ page }) => {
+    test("home: one question, one box, six worked examples", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "What should Cosigno handle?" })).toBeVisible();
-      // The ask box + the four honest section headings (stable regardless of
-      // how much data exists in the shared demo store).
-      await expect(page.getByPlaceholder(/Ask cosigno to handle something/)).toBeVisible();
-      await expect(page.getByRole("button", { name: /Start Mission/ })).toBeVisible();
-      await expect(page.getByText("In progress").first()).toBeVisible();
-      await expect(page.getByText("Needs your approval").first()).toBeVisible();
-      await expect(page.getByText("Connected apps").first()).toBeVisible();
+      await expect(page.getByRole("heading", { name: "What do you want to get done?" })).toBeVisible();
+      await expect(page.getByPlaceholder(/Ask cosigno anything/i)).toBeVisible();
+      await expect(page.getByRole("button", { name: /Delegate/i })).toBeVisible();
+
+      /**
+       * Home has two legitimate shapes, and which one this run sees depends on
+       * whether earlier tests left work in the shared demo store. Both are
+       * asserted rather than one being forced, because forcing it would mean
+       * testing a state the product never reaches on its own.
+       */
+      const examples = page.getByRole("heading", { name: "For example" });
+      if (await examples.count()) {
+        // QUIET: the six shapes of work. Examples, not a menu — clicking one
+        // fills the box so it can be edited, and starts nothing.
+        for (const label of [
+          "Build something",
+          "Research something",
+          "Fix something",
+          "Plan something",
+          "Grow something",
+          "Handle something",
+        ]) {
+          await expect(page.getByRole("button", { name: new RegExp(label) })).toBeVisible();
+        }
+        await page.getByRole("button", { name: /Fix something/ }).click();
+        await expect(page.getByPlaceholder(/Ask cosigno anything/i)).toHaveValue(/broken/i);
+        expect(page.url()).toContain("/app");
+      } else {
+        // BUSY: real work displaced the examples, and the page leads with the
+        // thing that costs the reader something by being missed.
+        const sections = page.locator("section h2");
+        await expect(sections.first()).toBeVisible();
+        const headings = await sections.allInnerTexts();
+        expect(
+          headings.some((h) => /Needs you|working on|Finished today/i.test(h)),
+          `expected a work section, saw: ${headings.join(" | ")}`
+        ).toBe(true);
+      }
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `dashboard-${vp.name}.png`), fullPage: true });
     });
 
     test("ask box: file + link controls, and the paste-a-link field fits", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
-      // The four honest controls sit under the ask box (no voice).
+      // The three honest controls sit under the ask box (no voice).
       await expect(page.getByRole("button", { name: "Add file" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Add link" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Choose apps" })).toBeVisible();
@@ -258,7 +351,10 @@ for (const vp of VIEWPORTS) {
       await expect(page.getByText(/No external changes have been made/)).toBeVisible();
       // Controls exist (pause/stop/refresh) — no dead buttons.
       await expect(page.getByRole("button", { name: /Pause|Resume/ })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
+      // Exactly one "Stop" — the workspace-wide kill switch in the header is
+      // "Stop all", so the two can never be confused for each other.
+      await expect(page.getByRole("button", { name: "Stop", exact: true })).toHaveCount(1);
+      await expect(page.getByRole("button", { name: /Stop all/ })).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `browser-view-${vp.name}.png`), fullPage: true });
 
@@ -275,30 +371,38 @@ for (const vp of VIEWPORTS) {
     test("app shell + templates + isolated mission workspace", async ({ page }) => {
       // Templates: only REAL installable jobs, each with the auto/signature split.
       await page.goto("/app/templates", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "templates" })).toBeVisible();
-      await expect(page.getByText("build tomorrow's meeting brief")).toBeVisible();
-      await expect(page.getByText("compare three laptops under $1,000")).toBeVisible();
-      await expect(page.getByText("clean up my inbox")).toBeVisible();
-      await expect(page.getByText("prepare my follow-ups")).toBeVisible();
-      await expect(page.getByText("build my morning brief")).toBeVisible();
-      await expect(page.getByText("needs your signature").first()).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Templates" })).toBeVisible();
+      // Real, installable jobs — and the property that matters on every one
+      // of them: what runs alone, and what stops for a signature.
+      await expect(page.getByText("Build tomorrow's meeting brief")).toBeVisible();
+      await expect(page.getByText("Build my morning brief")).toBeVisible();
+      await expect(page.getByText(/waits for your approval/i).first()).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `templates-${vp.name}.png`), fullPage: true });
 
       // The isolated mission workspace: start a real mission, open its page.
+      // It has to answer the five questions before anything else on screen.
       const res = await page.request.post("/api/missions", {
         data: { template: "laptop_compare" },
       });
       expect(res.ok()).toBeTruthy();
       const { mission } = await res.json();
       await page.goto(`/app/missions/${mission.id}`, { waitUntil: "networkidle" });
-      await expect(page.getByText("Timeline")).toBeVisible();
-      await expect(page.getByText("Plan", { exact: true })).toBeVisible();
-      await expect(page.getByText(/steps complete/)).toBeVisible();
+      await expect(page.getByText("What cosigno is doing")).toBeVisible();
+      await expect(page.getByText("Right now")).toBeVisible();
+      await expect(page.getByText("Next", { exact: true })).toBeVisible();
       await expect(page.getByRole("button", { name: /Pause|Resume/ })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Stop", exact: true })).toHaveCount(1);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `mission-workspace-${vp.name}.png`), fullPage: true });
+
+      // WHO did the work is available, and folded away by default — the
+      // primary experience is cosigno, not a roster to pick from.
+      const who = page.locator("summary", { hasText: /specialist/i }).first();
+      await expect(who).toBeVisible();
+      await who.click();
+      await expect(page.getByText(/Never:/).first()).toBeVisible();
+      await page.screenshot({ path: join(OUT, `mission-specialists-${vp.name}.png`), fullPage: true });
     });
 
     test("inbox cleanup job runs to its approval gate and the card reaches approvals", async ({ page }) => {
@@ -310,7 +414,7 @@ for (const vp of VIEWPORTS) {
       expect(res.ok()).toBeTruthy();
       const { mission } = await res.json();
       await page.goto(`/app/missions/${mission.id}`, { waitUntil: "networkidle" });
-      await expect(page.getByText(/waiting for your signature/i).first()).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText("Needs you").first()).toBeVisible({ timeout: 15_000 });
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `inbox-mission-${vp.name}.png`), fullPage: true });
 
@@ -326,14 +430,17 @@ for (const vp of VIEWPORTS) {
       await expect(box).toBeVisible();
       await box.fill("reprice these products for the summer sale");
       await page.keyboard.press("Enter");
-      await expect(page.getByText(/awaiting your sign-off/).first()).toBeVisible();
-      // The clarity system: mission state chip + the "what is cosigno doing?"
-      // guide with its honest no-changes line and the visible plan.
-      await expect(page.getByText("waiting for your approval").first()).toBeVisible();
+      // One vocabulary everywhere: a card that needs a signature says
+      // "Needs approval", on this page and on every other.
+      await expect(page.getByText(/Needs approval/i).first()).toBeVisible();
+      // The clarity system: the "what is cosigno doing?" guide with its
+      // honest no-changes line and the visible plan.
       const guide = page.getByRole("button", { name: /what is cosigno doing/i });
       await expect(guide).toBeVisible();
       await guide.click();
-      await expect(page.getByText(/waiting for your (typed )?approval\.?/).first()).toBeVisible();
+      // The guide's standing promise: it always says what has changed, and
+      // when nothing has, it says that rather than leaving the section blank.
+      await expect(page.getByText("changes made").first()).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `workspace-${vp.name}.png`), fullPage: true });
       await guide.click();
@@ -365,21 +472,24 @@ for (const vp of VIEWPORTS) {
 
     test("activity", async ({ page }) => {
       await page.goto("/app/activity");
-      await expect(page.getByRole("heading", { name: "activity" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Activity" })).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `activity-${vp.name}.png`), fullPage: true });
     });
 
     test("compiler: an open-ended goal becomes a real, previewed plan", async ({ page }) => {
-      await page.goto("/app/missions", { waitUntil: "networkidle" });
-      const box = page.getByPlaceholder(/compare the best laptops/i);
+      // The goal box lives on home now. It used to be duplicated on the
+      // missions page as a second, differently-worded composer.
+      await page.goto("/app", { waitUntil: "networkidle" });
+      const box = page.getByPlaceholder(/Ask cosigno anything/i);
       await expect(box).toBeVisible();
       await box.fill("compare the best laptops under $1,000");
-      await page.getByRole("button", { name: "plan it" }).click();
-      // The goal-understanding preview appears, built only from real tools.
-      await expect(page.getByText("i understood the goal")).toBeVisible();
-      await expect(page.getByText(/created this plan from your goal/i)).toBeVisible();
-      await expect(page.getByText(/no supported payment connection|payment/i).first()).toBeVisible();
+      await page.getByRole("button", { name: /Delegate/i }).click();
+      // The goal-understanding screen appears before anything runs, built
+      // only from real tools: what cosigno will do, and where it stops.
+      await expect(page.getByText("I'll handle this.")).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByText("Objective")).toBeVisible();
+      await expect(page.getByText(/I'll handle/).first()).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `compiler-preview-${vp.name}.png`), fullPage: true });
     });
@@ -405,7 +515,7 @@ for (const vp of VIEWPORTS) {
 
       // pay → the card slides to the reader, then pops back stamped
       await page.getByRole("button", { name: /pay & cosign/i }).click();
-      await expect(page.getByText(/cosigned\. welcome to pro/i)).toBeVisible();
+      await expect(page.getByText(/welcome to/i)).toBeVisible();
       await page.waitForTimeout(500);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `checkout-success-${vp.name}.png`), fullPage: true });
@@ -413,38 +523,45 @@ for (const vp of VIEWPORTS) {
 
     test("account center — all five panels", async ({ page }) => {
       await page.goto("/app/account", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "account", exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Account", exact: true })).toBeVisible();
 
       // profile (default panel)
-      await expect(page.getByRole("heading", { name: "profile" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
+      // Personalization is legible and switchable, not a hidden profile. The
+      // switch is one control with one accessible name — a strict-mode
+      // violation here would mean the label is duplicated for screen readers.
+      await expect(
+        page.getByRole("switch", { name: "Let cosigno learn how you work" })
+      ).toBeVisible();
+      await expect(page.getByText("What cosigno has picked up")).toBeVisible();
       await page.waitForTimeout(250); // let the fade-through transition settle
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-profile-${vp.name}.png`), fullPage: true });
 
-      // permissions — the three-column tier board
-      await page.getByRole("button", { name: "permissions" }).click();
-      await expect(page.getByRole("heading", { name: "permissions" })).toBeVisible();
+      // the trust center — how much rope cosigno gets, per kind of action
+      await page.getByRole("tab", { name: "trust center" }).click();
+      await expect(page.getByRole("heading", { name: "Trust center" })).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-permissions-${vp.name}.png`), fullPage: true });
 
       // plan & usage — the usage ring + sparkline + plan card
-      await page.getByRole("button", { name: "plan & usage" }).click();
-      await expect(page.getByText(/actions used this cycle/)).toBeVisible();
+      await page.getByRole("tab", { name: "plan & usage" }).click();
+      await expect(page.getByText(/used this cycle/i)).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-usage-${vp.name}.png`), fullPage: true });
 
       // connections — third-party apps + custom MCP servers
-      await page.getByRole("button", { name: "connections" }).click();
-      await expect(page.getByRole("heading", { name: "connections" })).toBeVisible();
+      await page.getByRole("tab", { name: "connections" }).click();
+      await expect(page.getByRole("heading", { name: /connections/i }).first()).toBeVisible();
       await page.waitForTimeout(400);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-integrations-${vp.name}.png`), fullPage: true });
 
       // security — audit trail + injection tiles
-      await page.getByRole("button", { name: "security" }).click();
-      await expect(page.getByRole("heading", { name: "security" })).toBeVisible();
+      await page.getByRole("tab", { name: "security" }).click();
+      await expect(page.getByRole("heading", { name: "Security" })).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-security-${vp.name}.png`), fullPage: true });

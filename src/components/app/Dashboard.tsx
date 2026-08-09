@@ -19,6 +19,7 @@ import { MissionCard } from "@/components/app/MissionCard";
 import { ProactiveFindings } from "@/components/app/ProactiveFindings";
 import { PersonalNote } from "@/components/app/PersonalNote";
 import { LoadingState } from "@/components/ui/States";
+import Link from "next/link";
 
 /**
  * HOME — one screen that answers, in this order:
@@ -92,6 +93,20 @@ const ACTIVE_STATES = new Set([
 
 /** Anything that is sitting on the person rather than moving on its own. */
 const NEEDS_YOU_STATES = new Set(["awaiting_input", "awaiting_approval", "paused", "blocked"]);
+
+/**
+ * How much of each section home will show before handing off to the page that
+ * owns it.
+ *
+ * Home is a summary, and a summary that renders everything is just the list
+ * with a different heading. With a dozen decisions waiting, an uncapped home
+ * became several screens of full-height approval cards — so the one thing the
+ * page exists to do (tell you what state your work is in) was below all of
+ * them. The cap is what keeps "what needs me / what's happening / what
+ * changed" visible in one screen; the counts and the links make the rest
+ * one click away rather than hidden.
+ */
+const HOME_LIMIT = { approvals: 3, needsYou: 3, working: 4, finished: 3 } as const;
 
 /** Same calendar day, in the reader's timezone. */
 function isToday(iso: string | null | undefined): boolean {
@@ -283,19 +298,36 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           cost, and it is the one cosigno cannot resolve by itself. */}
       {(approvals.length > 0 || needsYou.length > 0) && (
         <Section title="Needs you" tone="attention" count={approvals.length + needsYou.length}>
-          {approvals.length > 0 && <DecisionInbox initial={approvals} compact emptyFallback={null} />}
-          {needsYou.map((m, i) => (
+          {approvals.length > 0 && (
+            <DecisionInbox
+              initial={approvals.slice(0, HOME_LIMIT.approvals)}
+              only={approvals.slice(0, HOME_LIMIT.approvals).map((a) => a.id)}
+              compact
+              emptyFallback={null}
+            />
+          )}
+          {needsYou.slice(0, HOME_LIMIT.needsYou).map((m, i) => (
             <MissionCard key={m.id} mission={m} steps={steps[m.id] ?? []} index={i} />
           ))}
+          <MoreLink
+            hidden={approvals.length + needsYou.length <= HOME_LIMIT.approvals + HOME_LIMIT.needsYou}
+            href="/app/approvals"
+            label={`Review all ${approvals.length} decision${approvals.length === 1 ? "" : "s"}`}
+          />
         </Section>
       )}
 
       {/* --------------------------- what's happening --------------------------- */}
       {working.length > 0 && (
         <Section title="cosigno is working on" tone="live" count={working.length}>
-          {working.map((m, i) => (
+          {working.slice(0, HOME_LIMIT.working).map((m, i) => (
             <MissionCard key={m.id} mission={m} steps={steps[m.id] ?? []} index={i} />
           ))}
+          <MoreLink
+            hidden={working.length <= HOME_LIMIT.working}
+            href="/app/missions"
+            label={`See all ${working.length} in progress`}
+          />
         </Section>
       )}
 
@@ -306,9 +338,14 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
       {/* ----------------------------- what changed ----------------------------- */}
       {finishedToday.length > 0 && (
         <Section title="Finished today" count={finishedToday.length}>
-          {finishedToday.slice(0, 4).map((m, i) => (
+          {finishedToday.slice(0, HOME_LIMIT.finished).map((m, i) => (
             <MissionCard key={m.id} mission={m} steps={steps[m.id] ?? []} index={i} />
           ))}
+          <MoreLink
+            hidden={finishedToday.length <= HOME_LIMIT.finished}
+            href="/app/missions"
+            label={`See all ${finishedToday.length} finished today`}
+          />
         </Section>
       )}
 
@@ -317,6 +354,25 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
       <PersonalNote />
 
     </div>
+  );
+}
+
+/**
+ * The handoff from a summary to the page that owns the full list. Renders
+ * nothing when the section was already showing everything — a "see all 3 of 3"
+ * is a link that punishes the person who follows it.
+ */
+function MoreLink({ hidden, href, label }: { hidden: boolean; href: string; label: string }) {
+  if (hidden) return null;
+  return (
+    <Link
+      href={href}
+      prefetch={false}
+      className="inline-flex min-h-[36px] items-center gap-1 self-start rounded-btn px-2 text-xs font-bold text-ink-soft underline underline-offset-2 transition-colors duration-fast hover:text-ink"
+    >
+      {label}
+      <ArrowRight size={12} aria-hidden="true" />
+    </Link>
   );
 }
 

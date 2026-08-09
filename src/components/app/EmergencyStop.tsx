@@ -122,21 +122,30 @@ export function EmergencyStop() {
           onClick={stop}
           disabled={busy}
           autoFocus
-          aria-label="confirm: stop all AI activity"
+          // The accessible name has to CONTAIN the visible label: someone
+          // driving the page by voice says the words they can see, and an
+          // aria-label that replaces them with different words makes the
+          // control unreachable by speech (WCAG 2.5.3, "Label in Name").
+          aria-label="Confirm — stop everything: pause every AI action now"
           className="inline-flex min-h-[36px] animate-chip-pulse items-center gap-1.5 rounded-btn bg-signal px-3 py-1.5 text-xs font-extrabold text-ink shadow-lift transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <OctagonX size={13} aria-hidden="true" />
           {busy ? "Stopping…" : "Confirm — stop everything"}
         </button>
       ) : (
+        // "Stop all", not "Stop". This control sits in the header of every
+        // page, and a mission page has its own Stop button for that one
+        // mission. Two identical labels a few inches apart, one of which
+        // freezes the entire workspace, is exactly the ambiguity you do not
+        // want in front of someone who is already in a hurry.
         <button
           onClick={() => setArmed(true)}
-          aria-label="emergency stop"
+          aria-label="Stop all — pause every AI action immediately"
           title="Pause every AI action immediately"
           className="inline-flex min-h-[36px] items-center gap-1.5 rounded-btn border border-line bg-surface px-3 py-1.5 text-xs font-bold text-ink transition-colors duration-fast hover:border-signal hover:text-signal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
         >
           <OctagonX size={13} aria-hidden="true" />
-          Stop
+          Stop all
         </button>
       )}
 

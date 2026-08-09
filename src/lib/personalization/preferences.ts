@@ -84,8 +84,18 @@ const STYLE_PATTERNS: {
   behavior: string;
 }[] = [
   {
+    /**
+     * Only phrasings that are unambiguously about HOW to answer.
+     *
+     * "summarize" was in this list, and it was wrong in a way worth
+     * remembering: someone who delegates "summarize my inbox" every morning
+     * is describing the task, not asking for terse updates — and cosigno
+     * confidently told them it had learned they prefer short answers, ten
+     * times over. A preference inferred from the wrong signal is worse than
+     * no preference, because the product states it out loud.
+     */
     id: "style_brief",
-    re: /\b(keep it (short|brief)|be brief|concise|short(er)? version|tl;?dr|just the|summari[sz]e|one (line|paragraph)|bullet points?)\b/i,
+    re: /\b(keep it (short|brief)|be brief|concise|short(er)? version|tl;?dr|one (line|paragraph)|bullet points?|no (preamble|fluff))\b/i,
     statement: "You prefer short answers.",
     behavior: "Lead with the outcome and keep updates to a few lines unless you ask for more.",
   },

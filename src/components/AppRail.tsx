@@ -218,7 +218,10 @@ export function AppRail() {
   const pending = usePendingCount();
   const isFree = useIsFreePlan();
   return (
-    <aside
+    // A <nav>, not an <aside>: an aside labelled "app navigation" exposes
+    // role="complementary", so assistive technology offers it as a sidebar of
+    // extra material rather than as the way around the product.
+    <nav
       className="sticky top-0 hidden h-screen w-[76px] shrink-0 flex-col items-center gap-1 border-r border-line/60 bg-cream/80 py-4 lg:flex"
       aria-label="app navigation"
     >
@@ -258,7 +261,7 @@ export function AppRail() {
           badge={0}
         />
       )}
-    </aside>
+    </nav>
   );
 }
 
