@@ -41,17 +41,28 @@
   --logo-wordmark: #f7f0e5;
 }
 
-/* Wordmark i-dot: the dotless "ı" carries an orange dot positioned above it. */
+/* Wordmark i-dot: the dotless "ı" carries an orange dot positioned above it.
+   `line-height: 1` is load-bearing. The dot is placed from the top of this
+   inline-block, whose height is the inherited line-height — so without it the
+   dot drifts against the letter every time the lockup changes size (the nav
+   sets text-lg/1.556, the hero text-4xl/1.111). Pinned to 1, the offset is
+   purely em-proportional and the dot sits identically at every size. */
 .cosigno-i {
   position: relative;
   display: inline-block;
+  line-height: 1;
 }
+/* Sized and placed against the real geometry of the wordmark face: Manrope 800
+   draws its own i-dot from 0.62em to 0.735em above the baseline, and the
+   baseline sits 0.88em down this box. The brand dot is a little larger than the
+   one it stands in for (0.15em against 0.115em) and centred on the same band,
+   which leaves the 0.06em gap the letter would have had. */
 .cosigno-dot {
   position: absolute;
   left: 50%;
-  top: 0.22em;
-  height: 0.16em;
-  width: 0.16em;
+  top: 0.127em;
+  height: 0.15em;
+  width: 0.15em;
   transform: translateX(-50%);
   border-radius: 9999px;
   background: var(--logo-dot);

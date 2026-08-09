@@ -255,11 +255,14 @@ export function StepRow({
   index,
   label,
   state,
+  gated = false,
   className = "",
 }: {
   index: number;
   label: string;
   state: StepState;
+  /** True for the step that can hold the mission — it reserves room for words. */
+  gated?: boolean;
   className?: string;
 }) {
   return (
@@ -276,31 +279,46 @@ export function StepRow({
       >
         {state === "done" ? <Check size={12} strokeWidth={3.2} /> : index}
       </span>
+      {/* The active step lifts in weight only from `sm` up. A heavier label is
+          a wider label, and on a phone that is one wrap away from a taller
+          row — so the row would grow at the exact moment the mission holds and
+          shift the scene under the reader. Below `sm`, colour alone carries the
+          emphasis and every state measures the same. */}
       <span
         className={`text-[13px] lowercase transition-colors duration-base ${
           state === "running" || state === "waiting"
-            ? "font-extrabold text-ink"
+            ? "font-semibold text-ink sm:font-extrabold"
             : "font-semibold text-ink-soft"
         }`}
       >
         {label}
       </span>
-      {state === "waiting" && (
-        <span className="ml-auto text-[10px] font-extrabold lowercase text-ink">
-          waiting for you
-        </span>
-      )}
-      {state === "running" && (
-        <span className="ml-auto flex items-center gap-1" aria-hidden="true">
-          {[0, 1, 2].map((i) => (
+      {/* The indicator slot is always in the layout, even with nothing to show.
+          Letting it appear only while a step runs or waits changed how much
+          room the label had, so on a narrow screen the label rewrapped and the
+          row grew mid-scrub — which the reader sees as the scene jumping. The
+          gated step reserves the width of the words (73.9px at 10/800); every
+          other row reserves the width of the three dots. */}
+      <span
+        className={`ml-auto flex shrink-0 items-center justify-end gap-1 ${
+          gated ? "min-w-[4.75rem]" : "min-w-5"
+        }`}
+      >
+        {state === "waiting" && (
+          <span className="whitespace-nowrap text-[10px] font-extrabold lowercase text-ink">
+            waiting for you
+          </span>
+        )}
+        {state === "running" &&
+          [0, 1, 2].map((i) => (
             <span
               key={i}
+              aria-hidden="true"
               className="h-1 w-1 animate-shimmer rounded-pill bg-ink-soft"
               style={{ animationDelay: `${i * 180}ms` }}
             />
           ))}
-        </span>
-      )}
+      </span>
     </li>
   );
 }

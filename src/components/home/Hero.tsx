@@ -292,7 +292,13 @@ function HeroSurface() {
         <div>
           <ul>
             {STEPS.map((s, i) => (
-              <StepRow key={s.label} index={i + 1} label={s.label} state={s.state} />
+              <StepRow
+                key={s.label}
+                index={i + 1}
+                label={s.label}
+                state={s.state}
+                gated={s.state === "waiting"}
+              />
             ))}
           </ul>
           <div className="mt-4">

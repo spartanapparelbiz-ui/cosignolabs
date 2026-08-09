@@ -1,43 +1,71 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Nunito_Sans, Poppins } from "next/font/google";
+import { IBM_Plex_Mono, Inter, Manrope, Source_Serif_4 } from "next/font/google";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-// Self-hosted by next/font (no external request at runtime), display: swap,
-// with size-adjust fallback metrics so the swap causes no layout shift.
-const nunito = Nunito_Sans({
+/**
+ * The type system: four voices, each with one job (see BRAND.md).
+ *
+ *   interface  Inter            everything you read to operate the product
+ *   display    Source Serif 4   headlines, prices, counters — the stated word
+ *   wordmark   Manrope 800      the logotype, and nothing else
+ *   record     IBM Plex Mono    payloads, ids, timestamps — the exact word
+ *
+ * All four are self-hosted by next/font (no runtime request to Google, nothing
+ * for a third party to log), `display: "swap"` with `adjustFontFallback` so the
+ * fallback is metric-matched and the swap costs no layout shift. The two faces
+ * that carry many weights ship as one variable file each, and the two that
+ * carry one or two ship only those, which is why a four-face system costs less
+ * on the wire (133 KB of latin) than the three-face one it replaces (236 KB).
+ */
+
+// Interface. The workhorse: this UI leans hard on 10–13px labels, tabular
+// figures and tight lowercase, which is exactly what Inter was drawn for.
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-nunito",
-  weight: ["400", "600", "700", "800", "900"],
+  variable: "--font-sans",
   display: "swap",
   fallback: ["system-ui", "sans-serif"],
   adjustFontFallback: true,
 });
 
-// Display face for headlines — a characterful soft-serif that differentiates
-// cosigno from the sans-everything indie-AI-SaaS default. Payloads stay in mono
-// (the product's exact, auditable voice); body stays in the sans above.
-const fraunces = Fraunces({
+// Display. A sober text serif: institutional rather than expressive, because
+// this page is asking to be trusted with a signature. The face also carries an
+// optical-size axis, but shipping it costs 71 KB on the latin subset for a
+// refinement nobody would name, so only the weight axis is requested.
+const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["600", "700"],
   display: "swap",
   fallback: ["Georgia", "serif"],
   adjustFontFallback: true,
 });
 
-// Wordmark face — a geometric sans (perfect-circle bowls, single-story g) that
-// matches the cosigno logo identity. Used ONLY by the wordmark, not body text.
-// The wordmark renders exclusively at font-bold, so 700 is the only weight
-// shipped — every page used to download two extra unused font files.
-const poppins = Poppins({
+// Wordmark. Round, near-geometric bowls to answer the circular C of the mark,
+// but drawn with enough tension to read as a logotype instead of a template.
+// Used ONLY by the wordmark, and only at 800, so that is the only weight shipped.
+const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-wordmark",
-  weight: ["700"],
+  weight: ["800"],
   display: "swap",
   fallback: ["system-ui", "sans-serif"],
   adjustFontFallback: true,
 });
+
+// The record. Every payload, id, amount and timestamp in the product is set in
+// mono, and until now that meant Menlo on one machine and Consolas on the next.
+// Naming the face makes the audit trail look the same everywhere it is read.
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  weight: ["400", "700"],
+  display: "swap",
+  fallback: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+  adjustFontFallback: true,
+});
+
+const FONT_VARS = [inter, sourceSerif, manrope, plexMono].map((f) => f.variable).join(" ");
 
 const DESCRIPTION =
   "give cosigno a task, review the important actions, and let it handle the work across your connected tools. nothing sends, changes, or spends until you approve it.";
@@ -101,7 +129,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${nunito.variable} ${fraunces.variable} ${poppins.variable}`} suppressHydrationWarning>
+    <html lang="en" className={FONT_VARS} suppressHydrationWarning>
       <head>
         {/* Set the theme before first paint so there's no flash of the wrong
             palette. Reads the saved preference (or the OS setting). */}

@@ -115,7 +115,13 @@ export function Missions() {
               <div className="p-4 sm:p-5">
                 <ul>
                   {STEPS.map((s, i) => (
-                    <StepRow key={s.label} index={i + 1} label={s.label} state={stepState(i)} />
+                    <StepRow
+                      key={s.label}
+                      index={i + 1}
+                      label={s.label}
+                      state={stepState(i)}
+                      gated={s.gate}
+                    />
                   ))}
                 </ul>
 
@@ -130,7 +136,11 @@ export function Missions() {
                       className="[&>div]:transition-transform [&>div]:duration-slow [&>div]:ease-brand-out"
                     />
                   </div>
-                  <p className="mt-2 text-[11px] font-bold lowercase text-ink-soft">
+                  {/* Two lines are reserved on a phone, where the held and
+                      finished captions wrap and the short running one does
+                      not. Letting the line count change mid-scrub moved
+                      everything below it. */}
+                  <p className="mt-2 min-h-[2.125rem] text-[11px] font-bold lowercase text-ink-soft sm:min-h-0">
                     {done
                       ? "6 of 6 done, one signature, one typed confirmation"
                       : holding

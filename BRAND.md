@@ -48,11 +48,29 @@ Rules:
 
 ## Typography
 
-- **Nunito Sans** via `next/font/google`, self-hosted, `display: "swap"`,
-  `adjustFontFallback` on → no FOUT, no CLS.
-- The wordmark is always lowercase **cosigno**, with the signal i-dot.
+Four voices, each with exactly one job. All self-hosted by `next/font/google`
+(no runtime request to Google), `display: "swap"` with `adjustFontFallback` on
+→ no FOUT, no CLS. Wired once in `src/app/layout.tsx`; never import a face in
+a component.
+
+| Role | Face | Utility | Used for |
+| --- | --- | --- | --- |
+| Interface | **Inter** (variable) | `font-sans` | everything you read to operate the product |
+| Display | **Source Serif 4** (variable, `opsz`) | `font-display` | headlines, prices, counters |
+| Wordmark | **Manrope 800** | `--font-wordmark` | the logotype, and nothing else |
+| Record | **IBM Plex Mono** 400/700 | `font-mono` | payloads, ids, amounts, timestamps |
+
+- The display face carries a real optical-size axis, so a 96px headline gets the
+  display cut and a 24px price gets the text cut with no code. Leave
+  `font-optical-sizing` alone.
+- Everything the product asserts as fact — an id, an amount, a recipient, a
+  timestamp — is set in the mono. That is the difference between prose and a
+  record, and it is why `font-mono` is a declared token rather than Tailwind's
+  OS-dependent default stack.
+- The wordmark is always lowercase **cosigno**, with the signal i-dot, at 800.
+  It is the only place the wordmark face may appear.
 - Product name is lowercase everywhere — UI, titles, metadata.
-- Weights: 800/900 for headings and the wordmark, 600/700 for body emphasis.
+- Weights: 700/800 for headings, 600/700 for body emphasis, 400 for prose.
 
 ## Shape & depth
 

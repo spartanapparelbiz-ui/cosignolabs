@@ -52,7 +52,7 @@ function adaptiveIconSvg({ size = 100, pad = 20 }) {
 
 /** "cosigno" wordmark with the orange i-dot, at (x,y) baseline. */
 function wordmark(x, y, fs, dotR, dotDx, dotDy, fill = INK) {
-  return `<text x="${x}" y="${y}" font-family="Poppins, DejaVu Sans, sans-serif" font-weight="700" font-size="${fs}" letter-spacing="-1.5" fill="${fill}">cos<tspan>ı</tspan>gno</text>
+  return `<text x="${x}" y="${y}" font-family="Manrope, DejaVu Sans, sans-serif" font-weight="800" font-size="${fs}" letter-spacing="-1.5" fill="${fill}">cos<tspan>ı</tspan>gno</text>
   <circle cx="${x + dotDx}" cy="${y - dotDy}" r="${dotR}" fill="${SIGNAL}"/>`;
 }
 

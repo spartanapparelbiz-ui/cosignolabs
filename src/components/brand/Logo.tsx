@@ -68,12 +68,15 @@ export function CosignoWordmark({ className = "" }: { className?: string }) {
   return (
     <span
       aria-hidden="true"
-      className={`whitespace-nowrap font-bold lowercase ${className}`}
+      className={`whitespace-nowrap lowercase ${className}`}
       style={{
         color: "var(--logo-wordmark)",
         fontFamily: "var(--font-wordmark), system-ui, sans-serif",
-        fontWeight: 700,
-        letterSpacing: "-0.01em",
+        // 800 is the only wordmark weight shipped; naming it here rather than
+        // via a utility class keeps the lockup identical wherever it lands,
+        // including inside prose that sets its own weight.
+        fontWeight: 800,
+        letterSpacing: "-0.025em",
       }}
     >
       cos

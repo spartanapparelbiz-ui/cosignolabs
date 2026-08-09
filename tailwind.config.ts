@@ -42,8 +42,13 @@ const config: Config = {
         well: "inset 0 2px 5px rgba(20,20,20,0.10), inset 0 0 0 1px rgba(20,20,20,0.04)",
       },
       fontFamily: {
-        sans: ["var(--font-nunito)", "system-ui", "sans-serif"],
+        // Four voices, wired in src/app/layout.tsx. `mono` is declared here on
+        // purpose: the product sets every payload, id and timestamp in it, and
+        // leaving it to Tailwind's default stack meant the audit trail rendered
+        // in a different typeface on every operating system.
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         display: ["var(--font-display)", "Georgia", "serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       transitionTimingFunction: {
         "brand-out": "cubic-bezier(0.22, 1, 0.36, 1)",

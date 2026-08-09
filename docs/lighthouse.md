@@ -50,8 +50,10 @@ The 2.0 s figure is Lighthouse's *simulated* mobile model timing the
 
 - Landing stays **static / prerendered** (`○` in the build output); the hero
   and headline are in the initial HTML, so FCP and real LCP are near-instant.
-- **`next/font`** self-hosts Nunito Sans with `display: swap` +
-  `adjustFontFallback` → no FOUT-driven CLS, no external font request.
+- **`next/font`** self-hosts the four brand faces with `display: swap` +
+  `adjustFontFallback` → no FOUT-driven CLS, no external font request. Three of
+  the four are single variable files, so the whole system is fewer bytes than
+  the five static weights it replaced.
 - The interactive **live preview is `dynamic()`-imported** and below the fold,
   so its JS never touches the landing LCP/TBT budget.
 - No heavyweight client deps; lucide icons are tree-shaken per-icon.
