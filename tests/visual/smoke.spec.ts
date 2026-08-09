@@ -57,9 +57,12 @@ for (const vp of VIEWPORTS) {
     // (React DevTools banner, favicon/resource 404s, source maps, dev-only
     // hydration warnings) is filtered; real app errors + pageerrors are not.
     test("no uncaught errors + no overflow across surfaces", async ({ page }) => {
-      // A long walk (20+ surfaces, each waiting for networkidle) — give it
-      // room beyond the default 120s per-test budget.
-      test.setTimeout(240_000);
+      // 24 full page loads in one test, each waiting for the navigation to
+      // actually finish. On a loaded machine that is minutes of honest work,
+      // so the budget is the sum of the walk rather than the default 120s for
+      // a single interaction — a timeout here would report the machine, not
+      // the product.
+      test.setTimeout(600_000);
       const errors: string[] = [];
       // Dev-server noise, each entry earning its place:
       //   · framework banners and hydration chatter that only exist in dev
