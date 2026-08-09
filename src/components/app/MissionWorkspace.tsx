@@ -28,7 +28,13 @@ import { useToast } from "@/components/Toast";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { narrateMission, type StepPhase, type WorkApp } from "@/lib/missions/narrate";
 import { heroResult } from "@/lib/missions/today";
-import { missionStatus, STATUS_TONE } from "@/lib/status";
+import { missionStatus } from "@/lib/status";
+import { missionBrief } from "@/lib/missions/brief";
+import { specialistsUsed } from "@/lib/agents/identity";
+import { SpecialistMark } from "@/components/agents/SpecialistMark";
+import { StatusPill } from "@/components/ui/StatusPill";
+import { Button } from "@/components/ui/Button";
+import { ErrorState } from "@/components/ui/States";
 import { INCREASE_STEPS, type BudgetState } from "@/lib/missions/budget";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 
@@ -164,16 +170,25 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
 
   if (error) {
     return (
-      <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
-        <p className="text-sm font-semibold text-ink-soft">{error}</p>
-        <Link href="/app/missions" className="mt-3 inline-block rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep">
-          all missions
-        </Link>
-      </div>
+      <ErrorState
+        what={error}
+        tried="cosigno was opening this mission."
+        next="Nothing was changed. Try again, or go back to your missions."
+        retry={() => void load()}
+        action={{ label: "All missions", href: "/app/missions" }}
+      />
     );
   }
   if (!mission) {
-    return <div className="h-64 animate-pulse rounded-card bg-cream-deep" aria-hidden="true" aria-busy="true" />;
+    return (
+      <div className="flex flex-col gap-3" aria-busy="true">
+        <p className="flex items-center gap-2 text-xs font-bold text-ink-soft">
+          <span className="h-1.5 w-1.5 animate-orb-pulse rounded-pill bg-signal" aria-hidden="true" />
+          Opening this mission
+        </p>
+        <div className="h-64 animate-shimmer rounded-card bg-cream-deep" aria-hidden="true" />
+      </div>
+    );
   }
 
   const label = missionStatus(mission.state);
@@ -182,6 +197,11 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
   // The whole translation from engine state to human language lives in
   // narrateMission — this component only lays it out.
   const narration = narrateMission(mission, steps);
+  // The same five answers the mission CARD shows, so the card and the page
+  // can never disagree about what is happening.
+  const brief = missionBrief(mission, steps);
+  const specialists = specialistsUsed(steps);
+  const workingOperator = steps.find((s) => s.state === "running")?.operator ?? null;
   // The one sentence this mission is remembered by, and which apps did the
   // work. Both read from what was actually recorded.
   const hero = heroResult(mission, steps);
@@ -212,40 +232,151 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
             started {elapsed(mission.created_at)} ago
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className={`rounded-pill px-3 py-1 text-xs font-bold ${STATUS_TONE[label]}`}>{label}</span>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <StatusPill status={label} />
           {!TERMINAL.has(mission.state) &&
             (mission.state === "paused" ? (
               // Resume can't move a mission that stopped for running out of
               // changes — only more budget can. Offering the button anyway
               // would be a control that does nothing when pressed.
-              <button
+              <Button
+                tone="secondary"
+                size="sm"
                 onClick={() => (budget?.exhausted ? addBudget(INCREASE_STEPS[0]) : control("resume"))}
+                loading={busy === "resume" || busy === `budget:${INCREASE_STEPS[0]}`}
+                loadingLabel="Resuming"
                 disabled={busy !== null}
-                className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-3.5 py-2 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                icon={<Play size={12} aria-hidden="true" />}
               >
-                <Play size={12} />
                 {budget?.exhausted ? `Allow ${INCREASE_STEPS[0]} more` : "Resume"}
-              </button>
+              </Button>
             ) : (
-              <button
+              <Button
+                tone="ghost"
+                size="sm"
                 onClick={() => control("pause")}
+                loading={busy === "pause"}
+                loadingLabel="Pausing"
                 disabled={busy !== null}
-                className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink/30 hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                icon={<Pause size={12} aria-hidden="true" />}
               >
-                <Pause size={12} /> Pause
-              </button>
+                Pause
+              </Button>
             ))}
           {!TERMINAL.has(mission.state) && (
-            <button
+            <Button
+              tone="danger"
+              size="sm"
               onClick={() => control("stop")}
+              loading={busy === "stop"}
+              loadingLabel="Stopping"
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-xs font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+              icon={<Square size={12} aria-hidden="true" />}
             >
-              <Square size={12} /> Stop
-            </button>
+              Stop
+            </Button>
           )}
         </div>
+      </div>
+
+      {/* ---------------------------- at a glance ----------------------------
+          The whole mission in the five things a person actually asks: what,
+          what now, what next, what from me, what landed. The detail below is
+          for when they want it — this is for the ten seconds before that. */}
+      <div className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
+        <dl className="grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <dt className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
+              What cosigno is doing
+            </dt>
+            <dd className="mt-0.5 text-sm font-extrabold leading-snug">{brief.what}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
+              Right now
+            </dt>
+            <dd className="mt-0.5 flex items-start gap-2 text-sm font-semibold">
+              {brief.now ? (
+                <>
+                  <span
+                    className="mt-1.5 h-1.5 w-1.5 shrink-0 animate-orb-pulse rounded-pill bg-signal"
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0">{brief.now}</span>
+                </>
+              ) : (
+                <span className="text-ink-soft">
+                  {brief.settled ? "Nothing — this is finished." : "Nothing is running."}
+                </span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
+              Next
+            </dt>
+            <dd className="mt-0.5 text-sm font-semibold">
+              {brief.next ?? <span className="text-ink-soft">Nothing left to start.</span>}
+            </dd>
+          </div>
+          {brief.you && (
+            <div className="sm:col-span-2 rounded-btn bg-signal/12 px-3 py-2">
+              <dt className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
+                Needs you
+              </dt>
+              <dd className="mt-0.5 text-sm font-extrabold">{brief.you.ask}</dd>
+            </div>
+          )}
+          {brief.done.headline && (
+            <div className="sm:col-span-2">
+              <dt className="text-[10px] font-extrabold uppercase tracking-widest text-ink-soft">
+                Done
+              </dt>
+              <dd className="mt-0.5 text-sm font-semibold">{brief.done.headline}</dd>
+            </div>
+          )}
+        </dl>
+
+        {/* WHO did it. Folded away by default: the primary experience is
+            cosigno, and a list of specialists on first read is exactly the
+            "here are 50 agents, pick one" cognitive load this product avoids.
+            Open it and every one is named, with what it may never do. */}
+        {specialists.length > 0 && (
+          <details className="mt-3 border-t border-line/60 pt-3">
+            <summary className="flex cursor-pointer list-none items-center gap-2 text-[11px] font-bold text-ink-soft hover:text-ink">
+              <span className="flex -space-x-1.5">
+                {specialists.slice(0, 4).map((sp) => (
+                  <SpecialistMark
+                    key={sp.key}
+                    operatorKey={sp.key}
+                    size={20}
+                    working={workingOperator === sp.key}
+                    className="ring-2 ring-surface"
+                  />
+                ))}
+              </span>
+              cosigno brought in {specialists.length} specialist
+              {specialists.length === 1 ? "" : "s"}
+              <ChevronDown size={13} aria-hidden="true" />
+            </summary>
+            <ul className="mt-2.5 flex flex-col gap-2.5">
+              {specialists.map((sp) => (
+                <li key={sp.key} className="flex items-start gap-2.5">
+                  <SpecialistMark
+                    operatorKey={sp.key}
+                    size={24}
+                    working={workingOperator === sp.key}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs font-extrabold">{sp.name}</p>
+                    <p className="text-[11px] font-semibold text-ink-soft">{sp.does}</p>
+                    <p className="text-[11px] text-ink-soft">Never: {sp.never.toLowerCase()}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
 
       {usesBrowser && (
@@ -332,7 +463,9 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           mission's cards, so approving here can never sign off something
           unrelated that happened to be sitting in the shared queue. */}
       {awaitingActionIds.length > 0 && (
-        <DecisionInbox only={awaitingActionIds} compact emptyFallback={null} />
+        <div id="decide" className="scroll-mt-24">
+          <DecisionInbox only={awaitingActionIds} compact emptyFallback={null} />
+        </div>
       )}
 
       {/* ------------------- timeline + right panel ------------------- */}

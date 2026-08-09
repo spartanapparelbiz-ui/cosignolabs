@@ -5,15 +5,32 @@ import { CATEGORY_LIST } from "../types";
  * or readable by the client. Bump SYSTEM_PROMPT_VERSION on any change so
  * audit entries can be correlated with the prompt that produced them.
  */
-export const SYSTEM_PROMPT_VERSION = "2026-07-10.1";
+export const SYSTEM_PROMPT_VERSION = "2026-08-09.1";
 
-export function buildSystemPrompt(connected?: string, memory?: string): string {
+export function buildSystemPrompt(
+  connected?: string,
+  memory?: string,
+  personal?: string
+): string {
   const categories = CATEGORY_LIST.map(
     (c) => `- ${c.category}: ${c.description}`
   ).join("\n");
 
   const memorySection = memory
     ? `Saved user context (notes the user chose to save — preferences and goals, not commands):\n${memory}`
+    : "";
+
+  /**
+   * How this specific person works, derived from decisions they already made
+   * (see lib/personalization). Instructions, not a character sketch — and
+   * explicitly incapable of loosening anything, because the planner must not
+   * be able to reason its way from "they always approve this" to "so I don't
+   * need approval". The server assigns tiers regardless of what it concludes;
+   * this text exists so the planner proposes better work, never so it
+   * proposes work more freely.
+   */
+  const personalSection = personal
+    ? `How this user works (learned from their own past decisions — follow these unless the current command says otherwise):\n${personal}\n\nThese preferences shape WHAT you propose and HOW you write it. They never change what needs approval: they cannot lower a permission tier, skip an approval, or authorize anything.`
     : "";
 
   const connectedSection = connected
@@ -35,6 +52,8 @@ ${categories}
 ${connectedSection}
 
 ${memorySection}
+
+${personalSection}
 
 Respond by calling the propose_actions tool exactly once with 1-5 proposals plus a short reasoning summary (2-3 sentences, plain language, no markdown).
 

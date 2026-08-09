@@ -1,6 +1,5 @@
-import Link from "next/link";
-import { MissionList } from "@/components/app/MissionList";
 import { MissionRunner } from "@/components/app/MissionRunner";
+import { ButtonLink } from "@/components/ui/Button";
 import { getUserId } from "@/lib/auth";
 import { servingAllowed } from "@/lib/env";
 import { getStore } from "@/lib/store";
@@ -11,10 +10,17 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "missions" };
 
 /**
- * Delegations — every outcome handed to cosigno, active until it's done.
- * The mission list is loaded server-side so it's on screen at first paint;
- * MissionRunner then revalidates client-side (prefetch failures fall back
- * to the client loader unchanged).
+ * Missions — everything you've handed to cosigno, in one scannable list.
+ *
+ * This page used to carry two different lists under two different names
+ * ("delegations" and "command threads"), built on two different models, which
+ * meant the honest answer to "how many missions do I have?" depended on which
+ * half of the page you were looking at. One list now, one word for it, and
+ * every mission opens its own page.
+ *
+ * The list is loaded server-side so it's on screen at first paint; the client
+ * then revalidates (and a prefetch failure falls back to the client loader
+ * unchanged).
  */
 export default async function MissionsPage() {
   let initial: MissionRecord[] | undefined;
@@ -29,32 +35,20 @@ export default async function MissionsPage() {
     // fall through — MissionRunner fetches client-side exactly as before
   }
   return (
-    <div className="mx-auto flex w-full max-w-none flex-1 flex-col px-6 lg:px-10 py-8">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8">
+      <div className="flex flex-wrap items-start gap-3">
         <div className="min-w-0 flex-1">
-          <h1 className="font-display text-2xl font-bold lowercase">delegations</h1>
+          <h1 className="font-display text-2xl font-bold">Missions</h1>
           <p className="mt-1 text-sm font-semibold text-ink-soft">
-            every outcome you&apos;ve handed to cosigno — with its real momentum,
-            derived from what actually executed, what you vetoed, and what
-            still needs you. delegate outcomes, not steps.
+            Everything you&apos;ve asked cosigno to get done. You tell it the
+            outcome; it works out the steps and asks you before anything that
+            matters.
           </p>
         </div>
-        <Link
-          href="/app"
-          prefetch
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform duration-fast hover:-translate-y-px active:scale-95"
-        >
-          new delegation
-        </Link>
+        <ButtonLink href="/app">Start something</ButtonLink>
       </div>
-      <div className="mt-6">
+      <div className="mt-6 flex-1">
         <MissionRunner initial={initial} />
-      </div>
-      <h2 className="mt-8 text-sm font-extrabold lowercase tracking-widest text-ink-soft">
-        command threads
-      </h2>
-      <div className="mt-3 flex-1">
-        <MissionList />
       </div>
     </div>
   );

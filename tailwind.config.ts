@@ -217,6 +217,53 @@ const config: Config = {
           "60%": { transform: "scale(0.997)" },
           "100%": { transform: "scale(1)" },
         },
+        // --- SPECIALIST MOTION SIGNATURES ---
+        // Each specialist's mark moves the way its work moves, and ONLY while
+        // that work is genuinely in flight. It is a second, non-verbal channel
+        // for "who is doing this" — which matters because the name is small
+        // and the mark is what you catch out of the corner of your eye.
+        // Precise work snaps; research sweeps; documents shuffle.
+        "sig-snap": {
+          "0%, 55%, 100%": { transform: "translateY(0)" },
+          "62%": { transform: "translateY(-2px)" },
+          "70%": { transform: "translateY(0)" },
+        },
+        "sig-sweep": {
+          "0%, 100%": { transform: "translateX(-1.5px)" },
+          "50%": { transform: "translateX(1.5px)" },
+        },
+        "sig-shuffle": {
+          "0%, 100%": { transform: "translate(0,0)" },
+          "35%": { transform: "translate(1px,-1.5px)" },
+          "70%": { transform: "translate(-1px,1px)" },
+        },
+        // --- STATE MOTION: movement that IS the information ---
+        // A status changing is the most important event on a mission card
+        // (Working → Needs approval means the work stopped and is waiting on
+        // a person). It plays ONCE, on the change, and then stops — a badge
+        // that pulses forever is wallpaper, and wallpaper gets ignored.
+        "status-swap": {
+          "0%": { opacity: "0.4", transform: "translateY(-3px) scale(0.96)" },
+          "60%": { transform: "translateY(0) scale(1.03)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        // The one celebration in the product: a mission actually finished.
+        // A brief lift and a settling ring — no confetti, no bounce.
+        "complete-seal": {
+          "0%": { transform: "scale(1)", boxShadow: "0 0 0 0 rgba(251, 76, 32,0.45)" },
+          "45%": { transform: "scale(1.008)", boxShadow: "0 0 0 6px rgba(251, 76, 32,0.16)" },
+          "100%": { transform: "scale(1)", boxShadow: "0 0 0 0 rgba(251, 76, 32,0)" },
+        },
+        // The 3D signature stack coming to rest on the desk, once, on arrival.
+        "desk-settle": {
+          "0%": { opacity: "0", transform: "rotateX(58deg) rotateZ(-38deg) translateY(14px)" },
+          "100%": { opacity: "1", transform: "rotateX(52deg) rotateZ(-32deg) translateY(0)" },
+        },
+        // A panel arriving from the edge (sheets, drawers, detail panes).
+        "panel-in": {
+          "0%": { opacity: "0", transform: "translateX(18px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
         // --- the handshake: responsibility physically transfers ---
         // Work arrives from cosigno's side (left), and after authorization
         // it returns to cosigno (slides right, fades). Meaningful motion
@@ -257,6 +304,13 @@ const config: Config = {
         "sig-reveal": "sig-reveal 700ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "sig-underline": "sig-underline 450ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both",
         "sig-seal": "sig-seal 380ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "sig-snap": "sig-snap 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite",
+        "sig-sweep": "sig-sweep 2.8s ease-in-out infinite",
+        "sig-shuffle": "sig-shuffle 3.2s ease-in-out infinite",
+        "status-swap": "status-swap 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both",
+        "complete-seal": "complete-seal 700ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "desk-settle": "desk-settle 620ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "panel-in": "panel-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "handoff-in": "handoff-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "handoff-return": "handoff-return 380ms cubic-bezier(0.22, 1, 0.36, 1) both",
         settle: "settle 500ms cubic-bezier(0.22, 1, 0.36, 1) both",

@@ -1,48 +1,73 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useDisplayName } from "@/lib/theme";
-import { ArrowRight, Check, Loader2, ShieldQuestion, X } from "lucide-react";
-import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
-import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
+import {
+  ArrowRight,
+  Hammer,
+  LineChart,
+  ListTodo,
+  Search,
+  Sparkles,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
+import type { ActionRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
 import { SourceComposer } from "@/components/app/SourceComposer";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
-import { todayDigest } from "@/lib/missions/today";
+import { MissionCard } from "@/components/app/MissionCard";
+import { ProactiveFindings } from "@/components/app/ProactiveFindings";
+import { PersonalNote } from "@/components/app/PersonalNote";
+import { SignatureStack } from "@/components/motion/Depth";
+import { LoadingState } from "@/components/ui/States";
 
 /**
- * The home dashboard — one calm place that answers four questions:
- *   1. what can I ask cosigno to do?   (the ask box + examples)
- *   2. what is cosigno working on?     (in progress)
- *   3. what needs my approval?         (needs your approval)
- *   4. what has cosigno finished?      (recently completed)
- * Everything is read from real data (missions, approvals, automations,
- * connections). No charts, no fake progress, no technical words.
+ * HOME — one screen that answers, in this order:
+ *
+ *   1. what do I want done?      the ask box, and nothing above it
+ *   2. what needs me?            approvals and questions, first because they
+ *                                are the only things that cost you by waiting
+ *   3. what is happening?        work in flight, as living cards
+ *   4. what changed?             what actually landed today
+ *   5. what should I do next?    only when cosigno has a real finding
+ *
+ * The ordering is the design. Everything else on the page is a consequence of
+ * what you type at the top, so the top is where the page opens — and the one
+ * thing that can go wrong (cosigno stopped and is waiting on a human) is never
+ * below the fold.
+ *
+ * Nothing here is invented. Every line comes from a persisted mission, step,
+ * or decision; there are no charts, no fake progress, and no metric that is
+ * really a zero standing in for "not connected".
  */
 
-
-/**
- * Time-of-day greeting. Uses the browser's clock, which is the user's own —
- * a server-side hour would greet someone in Sydney with "good evening" at
- * breakfast.
- */
+/** Time-of-day greeting, from the reader's own clock (not the server's). */
 function greeting(name: string): string {
   const h = new Date().getHours();
-  const part = h < 12 ? "good morning" : h < 18 ? "good afternoon" : "good evening";
-  return name.trim() ? `${part}, ${name.trim()}` : `${part}`;
+  const part = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  return name.trim() ? `${part}, ${name.trim()}` : part;
 }
 
 /**
- * Starting points, phrased as things a person would actually say. Shown only
- * when nothing is running — once there is real work on the page, suggestions
- * are noise competing with it.
+ * THE SIX STARTING POINTS.
+ *
+ * Not required flows, not a menu, and emphatically not a setup step — six
+ * shapes of work with one real sentence each, so someone who has never used
+ * an operator before can see what "anything" actually means. They put the
+ * sentence in the ask box rather than starting it, because the first thing a
+ * new person needs is to see that they can edit it.
+ *
+ * They disappear the moment there is real work on the page: a suggestion
+ * competing with a live mission is noise.
  */
-const PROMPTS = [
-  "Prepare tomorrow's meeting",
-  "Review my unread email",
-  "Research the best option",
-  "Follow up on unanswered threads",
-] as const;
+const STARTING_POINTS: { icon: LucideIcon; label: string; example: string }[] = [
+  { icon: Hammer, label: "Build something", example: "Build me a simple landing page for my business" },
+  { icon: Search, label: "Research something", example: "Research the best option and compare the top three" },
+  { icon: Wrench, label: "Fix something", example: "Find what's broken on my website and fix it" },
+  { icon: ListTodo, label: "Plan something", example: "Prepare tomorrow's meeting" },
+  { icon: LineChart, label: "Grow something", example: "Find out why my sales are dropping" },
+  { icon: Sparkles, label: "Handle something", example: "Review my unread email and handle what you can" },
+];
 
 async function jsonFetch(url: string, init?: RequestInit) {
   const res = await fetch(url, {
@@ -54,7 +79,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
   return body;
 }
 
-/* --------- plain-language status (never technical words) --------- */
+/** States in which a mission is still cosigno's problem or the user's. */
 const ACTIVE_STATES = new Set([
   "queued",
   "running",
@@ -66,21 +91,20 @@ const ACTIVE_STATES = new Set([
   "blocked",
 ]);
 
-/** The connected apps a mission touches, derived from its step tools. */
-const TOOL_PROVIDER: Record<string, string> = {
-  "calendar.find_event": "google-calendar",
-  "gmail.search_related": "google",
-  "drive.search_files": "google-drive",
-};
+/** Anything that is sitting on the person rather than moving on its own. */
+const NEEDS_YOU_STATES = new Set(["awaiting_input", "awaiting_approval", "paused", "blocked"]);
 
-function timeUntil(iso: string): string {
-  const mins = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
-  if (mins <= 0) return "due now";
-  if (mins < 60) return `in ${mins} minute${mins === 1 ? "" : "s"}`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `in ${hrs} hour${hrs === 1 ? "" : "s"}`;
-  const days = Math.round(hrs / 24);
-  return `in ${days} day${days === 1 ? "" : "s"}`;
+/** Same calendar day, in the reader's timezone. */
+function isToday(iso: string | null | undefined): boolean {
+  if (!iso) return false;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return false;
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
 }
 
 interface ConnectionView {
@@ -89,9 +113,6 @@ interface ConnectionView {
   kind: "app" | "mcp" | "custom";
   status: string;
 }
-
-/* ------------------------------------------------------------------ */
-
 
 /** Data the server page prefetches so the first paint already has content. */
 export interface DashboardInitial {
@@ -105,26 +126,13 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>(initial?.steps ?? {});
   const [approvals, setApprovals] = useState<ActionRecord[]>(initial?.approvals ?? []);
   const [displayName] = useDisplayName();
-  const [automation, setAutomation] = useState<AutomationRecord | null>(null);
   const [connections, setConnections] = useState<ConnectionView[]>([]);
-  // The quiet value line under the greeting — the real usage-meter count.
-  // Rendered only when it's non-zero; a zero reinforces nothing.
-  const [opsThisMonth, setOpsThisMonth] = useState(0);
-
 
   const loadSide = useCallback(async () => {
-    // The right-column extras (next automation, connected apps).
-    const [au, c, u] = await Promise.all([
-      jsonFetch("/api/automations").catch(() => ({ automations: [] })),
-      jsonFetch("/api/connections").catch(() => ({ connections: [] })),
-      jsonFetch("/api/usage").catch(() => ({})),
-    ]);
-    setOpsThisMonth(Number(u.usage?.actions_executed) || 0);
-    const enabled: AutomationRecord[] = (au.automations ?? []).filter((x: AutomationRecord) => x.enabled);
-    enabled.sort((x, y) => new Date(x.next_run_at).getTime() - new Date(y.next_run_at).getTime());
-    setAutomation(enabled[0] ?? null);
-    const appConns = (c.connections ?? []).filter((x: ConnectionView) => x.kind === "app");
-    setConnections(appConns.filter((x: ConnectionView) => x.status === "connected"));
+    const c = await jsonFetch("/api/connections").catch(() => ({ connections: [] }));
+    setConnections(
+      (c.connections ?? []).filter((x: ConnectionView) => x.kind === "app" && x.status === "connected")
+    );
   }, []);
 
   const load = useCallback(async () => {
@@ -136,8 +144,7 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
         jsonFetch("/api/actions?status=proposed&limit=20").catch(() => ({ actions: [] })),
         loadSide(),
       ]);
-      const ms: MissionRecord[] = m.missions ?? [];
-      setMissions(ms);
+      setMissions(m.missions ?? []);
       setSteps((m.steps ?? {}) as Record<string, MissionStepRecord[]>);
       setApprovals((a.actions ?? []).filter((x: ActionRecord) => x.status === "proposed"));
     } catch {
@@ -146,42 +153,52 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   }, [loadSide]);
 
   useEffect(() => {
-    // SWR: when the server prefetched missions/steps/approvals, they're
-    // already on screen — this load() is a background revalidate (also
-    // covers a router-cache restore). Without prefetch it's the first load.
+    // SWR: when the server prefetched, this is a background revalidate.
     load();
   }, [load]);
 
-  const active = (missions ?? []).filter((m) => ACTIVE_STATES.has(m.state)).slice(0, 4);
-  const completed = (missions ?? []).filter((m) => m.state === "completed" || m.state === "partial").slice(0, 3);
+  // Work in flight keeps moving without the tab, but while someone IS looking
+  // the page should not go stale under them.
+  useEffect(() => {
+    const tick = setInterval(() => {
+      if (document.visibilityState === "visible") load();
+    }, 12_000);
+    return () => clearInterval(tick);
+  }, [load]);
 
-  const digest = todayDigest(missions ?? [], steps);
+  const all = missions ?? [];
+  const active = all.filter((m) => ACTIVE_STATES.has(m.state));
+  const needsYou = active.filter((m) => NEEDS_YOU_STATES.has(m.state));
+  const working = active.filter((m) => !NEEDS_YOU_STATES.has(m.state));
+  const finishedToday = all.filter(
+    (m) =>
+      ["completed", "partial", "failed"].includes(m.state) &&
+      isToday(m.completed_at ?? m.updated_at)
+  );
+
+  const loading = missions === null;
+  const nothingAtAll =
+    !loading && active.length === 0 && finishedToday.length === 0 && approvals.length === 0;
 
   /** Put a suggestion into the ask box rather than starting it silently. */
   function askFor(text: string) {
     window.dispatchEvent(new CustomEvent("cosigno:compose", { detail: { text } }));
+    document.querySelector<HTMLTextAreaElement>("textarea")?.focus();
   }
 
-  const working = digest.lines.filter((l) => l.kind === "doing");
-  const waiting = digest.lines.filter((l) => l.kind === "waiting");
-  const finished = digest.lines.filter((l) => l.kind === "done" || l.kind === "failed");
-
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-10 sm:pt-16">
+    <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-8 sm:pt-14">
       {/* ------------------------------ the ask ------------------------------ */}
-      {/* The page opens on the thing it is for. Everything else is a
-          consequence of what you type here, so it comes after. */}
       <header className="text-center">
         <p className="text-sm font-bold text-ink-soft">{greeting(displayName)}</p>
         <h1 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          what would you like cosigno to do?
+          What do you want to get done?
         </h1>
-        {opsThisMonth > 0 && (
-          <p className="mt-2 text-xs font-bold text-ink-soft">
-            {opsThisMonth.toLocaleString()} AI operation{opsThisMonth === 1 ? "" : "s"} completed
-            this month
-          </p>
-        )}
+        <p className="mx-auto mt-2 max-w-md text-sm font-semibold text-ink-soft">
+          Say it the way you&apos;d say it to a colleague. cosigno works out what
+          it needs, does the parts it&apos;s allowed to, and asks you before
+          anything that matters.
+        </p>
       </header>
 
       <div className="mt-6">
@@ -189,111 +206,142 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           onStarted={load}
           suggestions={
             connections.some((c) => c.provider_key.startsWith("google"))
-              ? ["prepare tomorrow's meeting", "review my unread emails", "follow up on unanswered threads", "research the best option"]
+              ? [
+                  "prepare tomorrow's meeting",
+                  "review my unread emails",
+                  "follow up on unanswered threads",
+                  "research the best option",
+                ]
               : undefined
           }
         />
       </div>
 
-      {/* Prompt cards, not chips — something you actually want to click. */}
-      {working.length === 0 && waiting.length === 0 && (
-        <section className="mt-6">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
-            Try asking
-          </p>
-          <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
-            {PROMPTS.map((p) => (
-              <button
-                key={p}
-                onClick={() => askFor(p)}
-                className="group rounded-card border border-line bg-surface px-4 py-3 text-left text-sm font-semibold shadow-soft transition-all hover:-translate-y-0.5 hover:border-signal hover:shadow-depth"
-              >
-                {p}
-                <ArrowRight
-                  size={13}
-                  className="ml-1.5 inline text-ink-soft transition-transform group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </button>
+      {/* --------------------------- starting points --------------------------- */}
+      {/* Only while the page is otherwise quiet. Once real work is here, an
+          example is a suggestion competing with the thing it suggested. */}
+      {!loading && active.length === 0 && approvals.length === 0 && (
+        <section className="mt-8" aria-labelledby="starting-points">
+          <h2
+            id="starting-points"
+            className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft"
+          >
+            For example
+          </h2>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {STARTING_POINTS.map(({ icon: Icon, label, example }, i) => (
+              <li key={label}>
+                <button
+                  onClick={() => askFor(example)}
+                  style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
+                  className="group flex w-full animate-card-in items-start gap-3 rounded-card border border-line bg-surface px-4 py-3 text-left shadow-soft transition-[transform,box-shadow,border-color] duration-fast ease-brand-out hover:-translate-y-px hover:border-signal/60 hover:shadow-depth active:translate-y-0 active:scale-[0.99]"
+                >
+                  <span
+                    className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-btn bg-cream-deep text-ink-soft transition-colors duration-fast group-hover:bg-signal/15 group-hover:text-signal"
+                    aria-hidden="true"
+                  >
+                    <Icon size={15} strokeWidth={2.3} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-extrabold">{label}</span>
+                    <span className="mt-0.5 block text-xs font-semibold text-ink-soft">
+                      “{example}”
+                    </span>
+                  </span>
+                  <ArrowRight
+                    size={13}
+                    aria-hidden="true"
+                    className="ml-auto mt-1 shrink-0 text-ink-soft opacity-0 transition-[opacity,transform] duration-fast group-hover:translate-x-0.5 group-hover:opacity-100"
+                  />
+                </button>
+              </li>
             ))}
-          </div>
+          </ul>
+          <p className="mt-3 text-center text-xs font-semibold text-ink-soft">
+            Or type anything at all — these are examples, not a menu.
+          </p>
         </section>
       )}
 
-      {/* --------------------------- working now --------------------------- */}
+      {loading && (
+        <div className="mt-10">
+          <LoadingState label="Gathering your work" rows={2} />
+        </div>
+      )}
+
+      {/* --------------------------- what needs you --------------------------- */}
+      {/* First on the page, always. It is the only section where waiting has a
+          cost, and it is the one cosigno cannot resolve by itself. */}
+      {(approvals.length > 0 || needsYou.length > 0) && (
+        <Section title="Needs you" tone="attention" count={approvals.length + needsYou.length}>
+          {approvals.length > 0 && <DecisionInbox initial={approvals} compact emptyFallback={null} />}
+          {needsYou.map((m, i) => (
+            <MissionCard key={m.id} mission={m} steps={steps[m.id] ?? []} index={i} />
+          ))}
+        </Section>
+      )}
+
+      {/* --------------------------- what's happening --------------------------- */}
       {working.length > 0 && (
-        <Section title="Working right now" tone="live">
-          {working.map((l) => (
-            <Row key={l.missionId} href={`/app/missions/${l.missionId}`} icon={<Loader2 size={14} className="animate-spin text-ink" />}>
-              {l.text}
-            </Row>
+        <Section title="cosigno is working on" tone="live" count={working.length}>
+          {working.map((m, i) => (
+            <MissionCard key={m.id} mission={m} steps={steps[m.id] ?? []} index={i} />
           ))}
         </Section>
       )}
 
-      {/* ------------------------- needs your approval ------------------------- */}
-      {/* Only ever rendered when something is genuinely waiting. An empty
-          "nothing is waiting" panel is a row of furniture that says nothing. */}
-      {approvals.length > 0 && (
-        <Section title="Needs your approval" tone="attention">
-          <DecisionInbox initial={approvals} compact emptyFallback={null} />
-        </Section>
-      )}
-      {approvals.length === 0 && waiting.length > 0 && (
-        <Section title="Needs your approval" tone="attention">
-          {waiting.map((l) => (
-            <Row key={l.missionId} href={`/app/missions/${l.missionId}`} icon={<ShieldQuestion size={14} className="text-signal" />}>
-              {l.text}
-            </Row>
+      {/* ------------------------- what cosigno noticed ------------------------- */}
+      {/* Renders nothing unless there is a real, live finding. */}
+      <ProactiveFindings />
+
+      {/* ----------------------------- what changed ----------------------------- */}
+      {finishedToday.length > 0 && (
+        <Section title="Finished today" count={finishedToday.length}>
+          {finishedToday.slice(0, 4).map((m, i) => (
+            <MissionCard key={m.id} mission={m} steps={steps[m.id] ?? []} index={i} />
           ))}
         </Section>
       )}
 
-      {/* --------------------------- completed today --------------------------- */}
-      {finished.length > 0 && (
-        <Section title="Completed today">
-          {finished.map((l) => (
-            <Row
-              key={l.missionId}
-              href={`/app/missions/${l.missionId}`}
-              icon={
-                l.kind === "failed" ? (
-                  <X size={14} className="text-ink-soft" />
-                ) : (
-                  <Check size={14} className="text-signal" />
-                )
-              }
-            >
-              {l.text}
-            </Row>
-          ))}
-        </Section>
-      )}
+      {/* How cosigno is adapting to this person. Renders nothing until it has
+          actually learned something from real decisions. */}
+      <PersonalNote />
 
-      {/* Nothing running, nothing waiting, nothing finished today. Say what
-          the product is for rather than reporting an absence. */}
-      {working.length === 0 && waiting.length === 0 && finished.length === 0 && missions !== null && (
-        <p className="mt-10 text-center text-sm font-semibold text-ink-soft">
-          cosigno is ready.
-        </p>
+      {/* Nothing running, nothing waiting, nothing finished. Say what this
+          place is for rather than reporting an absence. */}
+      {nothingAtAll && (
+        <div className="mt-12 flex flex-col items-center text-center">
+          <SignatureStack size={124} />
+          <p className="mt-2 font-display text-lg font-bold">Your workspace is clear.</p>
+          <p className="mt-1 max-w-xs text-sm font-semibold text-ink-soft">
+            Nothing is waiting and nothing is running. Give cosigno something to
+            work on and it&apos;ll show up here.
+          </p>
+        </div>
       )}
     </div>
   );
 }
 
-/** A titled band of rows. The only section shape on this page. */
+/**
+ * A titled band. The count is part of the heading rather than a badge because
+ * "Needs you 3" is a sentence someone can act on, and a floating number is a
+ * decoration you have to go and interpret.
+ */
 function Section({
   title,
   tone,
+  count,
   children,
 }: {
   title: string;
   tone?: "live" | "attention";
+  count?: number;
   children: React.ReactNode;
 }) {
   return (
     <section className="mt-8 animate-rise-in border-t border-line/60 pt-5">
-      <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
+      <h2 className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
         {tone === "live" && (
           <span className="h-1.5 w-1.5 animate-orb-pulse rounded-pill bg-signal" aria-hidden="true" />
         )}
@@ -301,38 +349,11 @@ function Section({
           <span className="h-1.5 w-1.5 rounded-pill bg-signal" aria-hidden="true" />
         )}
         {title}
-      </p>
-      <div className="mt-2.5 flex flex-col gap-1">{children}</div>
+        {typeof count === "number" && count > 0 && (
+          <span className="tabular-nums text-ink-soft/70">· {count}</span>
+        )}
+      </h2>
+      <div className="mt-3 flex flex-col gap-2.5">{children}</div>
     </section>
-  );
-}
-
-/** One line of work. Compact, clickable, nothing you cannot act on. */
-function Row({
-  href,
-  icon,
-  children,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-start gap-2.5 rounded-btn px-2 py-2 transition-colors hover:bg-cream-deep/50"
-    >
-      <span className="mt-0.5 shrink-0" aria-hidden="true">
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1 text-sm font-semibold leading-snug group-hover:underline underline-offset-2">
-        {children}
-      </span>
-      <ArrowRight
-        size={13}
-        className="mt-1 shrink-0 text-ink-soft opacity-0 transition-opacity group-hover:opacity-100"
-        aria-hidden="true"
-      />
-    </Link>
   );
 }
