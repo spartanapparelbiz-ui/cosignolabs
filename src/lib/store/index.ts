@@ -237,6 +237,18 @@ export type ActionHead = Pick<
 /** Minimal per-session action status, for momentum roll-ups. */
 export type ActionStatusRow = Pick<ActionRecord, "id" | "session_id" | "status">;
 
+/**
+ * A card the user has already decided — the projection learning reads.
+ *
+ * `resolved_at` is only stamped on terminal states (executed / failed /
+ * vetoed), so a card that is approved but not yet executed carries a null. Any
+ * consumer wanting "when was this decided" must fall back to `created_at`.
+ */
+export type DecisionHead = Pick<
+  ActionRecord,
+  "id" | "category" | "status" | "veto_reason" | "created_at" | "resolved_at"
+>;
+
 /** A persisted AI-usage row (ledger insert + created_at). */
 export type StoredAiUsage = import("../ai/costs").AiUsageRow & { created_at: string };
 
@@ -266,6 +278,16 @@ export interface Store {
   listActions(userId: string, filter?: ActivityFilter): Promise<ActionRecord[]>;
   /** Narrow projection of the newest actions — no payload/result transfer. */
   listActionHeads(userId: string, limit: number): Promise<ActionHead[]>;
+  /**
+   * The newest actions the user has ALREADY DECIDED, with the veto reason.
+   *
+   * The "already decided" filter belongs in the query, not after it: applying
+   * `limit` to all actions and filtering afterwards means a user sitting on a
+   * pile of pending cards silently gets a shorter history than one who isn't.
+   * Ordered by `created_at` rather than `resolved_at` because the latter is
+   * null for approved-but-not-yet-executed cards, which are decisions too.
+   */
+  listDecisionHeads(userId: string, limit: number): Promise<DecisionHead[]>;
   /** Per-session action statuses for the given sessions only. */
   listActionStatusesForSessions(
     userId: string,

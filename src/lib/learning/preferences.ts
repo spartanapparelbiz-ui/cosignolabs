@@ -58,6 +58,7 @@ export interface Decision {
   outcome: "approved" | "edited" | "vetoed";
   /** The user's own words when they turned it down. */
   reason: string | null;
+  /** When the user decided, falling back to when the card was put to them. */
   at: string;
 }
 

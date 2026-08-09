@@ -62,17 +62,30 @@ destroying your own audit trail.
 
 ## Reads
 
-Three narrow reads, gathered with the other planner context behind the one
+Two narrow reads, gathered with the other planner context behind the one
 multi-second model call:
 
-1. `listActionHeads` — categories and statuses, no payloads;
-2. `listActions({ status: "vetoed" })` — reason text, for the small slice that
-   has one;
-3. `listUserEditedActionIds` — ids only. An approval event's `detail` carries
+1. `listDecisionHeads` — id, category, status, veto reason and timestamps for
+   the newest *already decided* cards. Both the projection and the "decided"
+   predicate are pushed to the database. The predicate has to run before the
+   limit: filter afterwards and a user sitting on a pile of pending cards
+   silently learns from a shorter history than one who isn't.
+2. `listUserEditedActionIds` — ids only. An approval event's `detail` carries
    the authorization record, which can include a drawn signature image;
    fetching a hundred of those to count corrections would be a large transfer
-   for one boolean per action, so the predicate and the projection are pushed
-   to the database.
+   for one boolean per action.
+
+Both are covered by the existing `actions (user_id, created_at desc)` and
+`action_events` indexes, so this adds no migration beyond the mute column.
+
+### Why the window is ordered by `created_at`
+
+`resolved_at` is only stamped on terminal states — `executed`, `failed`,
+`vetoed`. A card that is approved but not yet executed carries a null, and
+those are decisions too. Ordering by `resolved_at` would sort or drop exactly
+the rows the approval signal lives in. So the window is ordered by proposal
+time, and each decision's own timestamp is `resolved_at ?? created_at`: when
+the user decided, falling back to when the card was put to them.
 
 ## The boundary
 

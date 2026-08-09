@@ -180,6 +180,23 @@ export class SupabaseStore implements Store {
     return data ?? [];
   }
 
+  async listDecisionHeads(
+    userId: string,
+    limit: number
+  ): Promise<import("./index").DecisionHead[]> {
+    // Both the projection and the "decided" predicate are pushed down, so a
+    // pile of pending cards can't shrink the window and no payload moves.
+    const { data, error } = await this.client
+      .from("actions")
+      .select("id, category, status, veto_reason, created_at, resolved_at")
+      .eq("user_id", userId)
+      .neq("status", "proposed")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as import("./index").DecisionHead[];
+  }
+
   async listActionHeads(userId: string, limit: number): Promise<ActionHead[]> {
     // Projection only — payload/result JSON never leaves the database.
     const { data, error } = await this.client

@@ -43,45 +43,32 @@ export {
  */
 const DECISION_WINDOW = 100;
 
-/** Vetoes read in full (for their reasons). Vetoes are a small slice of the window. */
-const VETO_WINDOW = 40;
-
-/** Statuses that mean the user said yes at the approval door. */
-const APPROVED_STATUSES = new Set(["approved", "executing", "executed", "failed"]);
-
 /**
- * The user's resolved decisions, newest first. Three narrow reads rather than
- * one wide one: action payloads and results are never transferred, and the
- * reason text is fetched only for the vetoes that actually have one.
+ * The user's decided cards, newest first. Two narrow reads: the decision
+ * projection (no payloads, no results, pending cards excluded by the query so
+ * they can't shrink the window), then ids-only for which of those the user
+ * edited.
  */
 export async function observeDecisions(userId: string): Promise<Decision[]> {
   const store = getStore();
-  const [heads, vetoed] = await Promise.all([
-    store.listActionHeads(userId, DECISION_WINDOW),
-    store.listActions(userId, { status: "vetoed", limit: VETO_WINDOW }),
-  ]);
+  const decided = await store.listDecisionHeads(userId, DECISION_WINDOW);
+  if (decided.length === 0) return [];
 
-  const resolved = heads.filter(
-    (h) => h.status === "vetoed" || APPROVED_STATUSES.has(h.status)
-  );
-  if (resolved.length === 0) return [];
-
-  // Edits are only meaningful on cards the user went on to approve: an edited
-  // card that was vetoed anyway is a veto, not a correction.
-  const approvedIds = resolved
-    .filter((h) => APPROVED_STATUSES.has(h.status))
-    .map((h) => h.id);
+  // Edits only count on cards the user went on to approve: a card they edited
+  // and then vetoed anyway is a veto, not a correction.
+  const approvedIds = decided.filter((d) => d.status !== "vetoed").map((d) => d.id);
   const corrected = new Set(await store.listUserEditedActionIds(userId, approvedIds));
 
-  const reasons = new Map(vetoed.map((a) => [a.id, a.veto_reason]));
-
-  return resolved.map((h) => ({
-    id: h.id,
-    category: h.category as ActionCategory,
+  return decided.map((d) => ({
+    id: d.id,
+    category: d.category as ActionCategory,
     outcome:
-      h.status === "vetoed" ? "vetoed" : corrected.has(h.id) ? "edited" : "approved",
-    reason: h.status === "vetoed" ? (reasons.get(h.id) ?? null) : null,
-    at: h.created_at,
+      d.status === "vetoed" ? "vetoed" : corrected.has(d.id) ? "edited" : "approved",
+    reason: d.status === "vetoed" ? d.veto_reason : null,
+    // When the user decided. `resolved_at` is only stamped on terminal states,
+    // so an approved-but-not-yet-executed card falls back to when it was put
+    // in front of them — the closest true thing available.
+    at: d.resolved_at ?? d.created_at,
   }));
 }
 
