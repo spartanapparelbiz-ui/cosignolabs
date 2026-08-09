@@ -2,28 +2,39 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileText, Plus, Trash2 } from "lucide-react";
+import { Download, FileDown, FileText, Plus, Trash2 } from "lucide-react";
+import { FORMATS, type ExportFormat } from "@/lib/files/formatList";
+
+/** Formats offered directly on a file row. */
+const EXPORTS: ExportFormat[] = ["pdf", "docx", "xlsx", "pptx"];
 import type { FileRecord } from "@/lib/types";
 import { CosignoMark } from "@/components/brand/Logo";
 import { useToast } from "@/components/Toast";
 
 /**
- * Files — text deliverables and documents that live inside cosigno. Create,
- * open, edit (each save bumps the version), download, delete. Text-only v1
- * (plain / markdown / csv); binary uploads are a later phase and are not
- * pretended here. Full loading / error / empty states.
+ * Files — documents that live inside cosigno. Create, open, edit (each save
+ * bumps the version), download, delete.
+ *
+ * Documents are authored and stored as TEXT, and binary formats are rendered
+ * on download. That is what lets a report be exported as a PDF without
+ * freezing a copy: the PDF is generated from the current version every time,
+ * so the download and the document can never drift apart.
  */
 
 const MIME_LABEL: Record<FileRecord["mime"], string> = {
   "text/plain": "text",
   "text/markdown": "markdown",
   "text/csv": "csv",
+  "text/html": "html",
+  "image/svg+xml": "svg",
 };
 
 const MIME_EXT: Record<FileRecord["mime"], string> = {
   "text/plain": ".txt",
   "text/markdown": ".md",
   "text/csv": ".csv",
+  "text/html": ".html",
+  "image/svg+xml": ".svg",
 };
 
 async function jsonFetch(url: string, init?: RequestInit) {
@@ -34,6 +45,25 @@ async function jsonFetch(url: string, init?: RequestInit) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
   return body;
+}
+
+/**
+ * Export in any format cosigno can produce. The bytes come from the server,
+ * which renders the CURRENT stored text — so an export is never a stale
+ * snapshot of an edit that has since moved on.
+ */
+async function exportAs(file: FileRecord, format: ExportFormat): Promise<void> {
+  const def = FORMATS.find((f) => f.id === format);
+  if (!def) throw new Error("that format isn't available.");
+  const res = await fetch(`/api/files/${file.id}/export?format=${format}`);
+  if (!res.ok) throw new Error(`the ${def.label} file couldn't be created.`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${file.name.replace(/\.[^.]+$/, "") || "document"}${def.extension}`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function download(file: FileRecord) {
@@ -243,6 +273,34 @@ export function FilesPanel() {
             >
               <Download size={11} /> download
             </button>
+            {/*
+              Every format is offered on the row itself. Burying "export as a
+              Word file" behind a menu is how people conclude the app can't do
+              it — the capability and its discoverability are the same feature.
+            */}
+            {EXPORTS.map((id) => {
+              const def = FORMATS.find((x) => x.id === id)!;
+              return (
+                <button
+                  key={id}
+                  onClick={async () => {
+                    setBusy(f.id);
+                    try {
+                      await exportAs(f, id);
+                    } catch (e) {
+                      toast("error", e instanceof Error ? e.message : `the ${def.label} file couldn't be created.`);
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                  disabled={busy === f.id}
+                  title={def.description}
+                  className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-pill px-3 py-1 text-[11px] font-bold lowercase text-ink-soft hover:bg-cream-deep disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <FileDown size={11} /> {def.label.toLowerCase()}
+                </button>
+              );
+            })}
           </div>
 
           {open === f.id ? (

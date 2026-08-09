@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryStore } from "../src/lib/store/memory";
-import { extractFile, MAX_FILE_BYTES } from "../src/lib/sources/extract";
+import { extractFile, MAX_FILE_BYTES, validateImagePayload } from "../src/lib/sources/extract";
+import { MAX_VISION_BYTES } from "../src/lib/agent/provider";
 import { validateLinkUrl } from "../src/lib/sources/link";
 import { compileMission } from "../src/lib/missions/compiler";
 import { instantiateCompiledMission } from "../src/lib/missions/create";
@@ -53,14 +54,15 @@ describe("extractFile — the server decides support from content", () => {
     expect(String(r.detail.reason)).toMatch(/archive/i);
   });
 
-  it("refuses GIF as unsupported (honest, not silently ignored)", async () => {
+  it("reads a GIF — it is a format the operator can genuinely see", async () => {
     const gif = Buffer.concat([Buffer.from("GIF89a"), Buffer.alloc(20)]);
     const r = await extractFile(gif, "anim.gif", "image/gif");
-    expect(r.status).toBe("unsupported");
+    expect(r.status).toBe("ready");
     expect(r.mime).toBe("image/gif");
+    expect(r.images).toHaveLength(1);
   });
 
-  it("validates a PNG by magic bytes and attaches it as a visual reference (no OCR claim)", async () => {
+  it("KEEPS THE PIXELS of a PNG, so the operator looks at the image itself", async () => {
     // 8-byte PNG signature + IHDR width/height (2x3)
     const png = Buffer.alloc(24);
     Buffer.from("89504e470d0a1a0a", "hex").copy(png, 0);
@@ -70,7 +72,42 @@ describe("extractFile — the server decides support from content", () => {
     expect(r.status).toBe("ready");
     expect(r.mime).toBe("image/png");
     expect(r.detail.image).toBe(true);
-    expect(r.summary).toMatch(/does not read text from images/i);
+
+    // The whole point: the bytes survive, unchanged. This is what stops the
+    // operator describing a photo from its filename — the failure that had
+    // it reporting on a phone model instead of the picture.
+    expect(r.images).toHaveLength(1);
+    expect(r.images[0].mime).toBe("image/png");
+    expect(Buffer.from(r.images[0].data, "base64").equals(png)).toBe(true);
+    expect(r.images[0].label).toBe("shot.png");
+
+    // The summary is a LABEL, never a stand-in description. It must not claim
+    // the image can't be read, and must not describe its contents.
+    expect(r.summary).toBe("[image: shot.png · 2×3 · image/png]");
+    expect(r.summary).not.toMatch(/does not read/i);
+  });
+
+  it("recognizes video containers and says frames are how video is read", async () => {
+    const mp4 = Buffer.concat([Buffer.from([0, 0, 0, 0x20]), Buffer.from("ftypisom"), Buffer.alloc(32)]);
+    const r = await extractFile(mp4, "clip.mp4", "video/mp4");
+    // Not "unrecognized file type" — the server knows exactly what this is,
+    // and says how it gets read rather than shrugging.
+    expect(r.status).toBe("unsupported");
+    expect(String(r.detail.message)).toMatch(/frames/i);
+    expect(r.images).toHaveLength(0);
+  });
+
+  it("refuses an image too large for the operator to read, instead of degrading it to a filename", async () => {
+    // A valid PNG header, but past the per-image ceiling. The dangerous
+    // behavior would be accepting it and passing only the name along.
+    const huge = Buffer.alloc(Math.ceil(MAX_VISION_BYTES) + 1024);
+    Buffer.from("89504e470d0a1a0a", "hex").copy(huge, 0);
+    huge.writeUInt32BE(8000, 16);
+    huge.writeUInt32BE(8000, 20);
+    const r = await extractFile(huge, "huge.png", "image/png");
+    expect(r.status).toBe("unsupported");
+    expect(r.images).toHaveLength(0);
+    expect(String(r.detail.message)).toMatch(/too large/i);
   });
 
   it("rejects an oversize file and an empty file", async () => {

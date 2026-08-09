@@ -31,6 +31,7 @@ import {
   BrowserActionRecord,
   BrowserProductRecord,
   MissionSourceRecord,
+  SourceMediaImage,
   SignalStateRecord,
   SignalStateStatus,
   SignatureRecord,
@@ -1685,6 +1686,7 @@ export class SupabaseStore implements Store {
         size_bytes: input.size_bytes ?? 0,
         status: input.status,
         summary: input.summary ?? "",
+        media: input.media ?? [],
         injection_flag: input.injection_flag ?? false,
         detail: input.detail ?? {},
       })
@@ -1702,29 +1704,59 @@ export class SupabaseStore implements Store {
       .eq("id", id)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return (data as MissionSourceRecord) ?? null;
+    if (!data) return null;
+    const rec = data as MissionSourceRecord;
+    return { ...rec, media: rec.media ?? [] };
   }
+
+  /**
+   * Columns for a LIST of sources. `media` is deliberately absent: a chip in
+   * the ask box needs a name and a status, not several megabytes of base64.
+   * Media is read separately, only when a model call is actually being built.
+   */
+  private static readonly SOURCE_LIST_COLUMNS =
+    "id, user_id, mission_id, kind, name, subtype, size_bytes, status, summary, injection_flag, detail, created_at, updated_at";
 
   async listStagedSources(userId: string): Promise<MissionSourceRecord[]> {
     const { data, error } = await this.client
       .from("mission_sources")
-      .select("*")
+      .select(SupabaseStore.SOURCE_LIST_COLUMNS)
       .eq("user_id", userId)
       .is("mission_id", null)
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
-    return (data ?? []) as MissionSourceRecord[];
+    return ((data ?? []) as unknown as MissionSourceRecord[]).map((s) => ({ ...s, media: [] }));
   }
 
   async listMissionSources(userId: string, missionId: string): Promise<MissionSourceRecord[]> {
     const { data, error } = await this.client
       .from("mission_sources")
-      .select("*")
+      .select(SupabaseStore.SOURCE_LIST_COLUMNS)
       .eq("user_id", userId)
       .eq("mission_id", missionId)
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
-    return (data ?? []) as MissionSourceRecord[];
+    return ((data ?? []) as unknown as MissionSourceRecord[]).map((s) => ({ ...s, media: [] }));
+  }
+
+  /**
+   * The pixels for specific sources, fetched only when a model call needs
+   * them. Ownership is enforced in the query, so an id belonging to someone
+   * else returns nothing rather than another account's image.
+   */
+  async listSourceMedia(userId: string, ids: string[]): Promise<Map<string, SourceMediaImage[]>> {
+    if (ids.length === 0) return new Map();
+    const { data, error } = await this.client
+      .from("mission_sources")
+      .select("id, media")
+      .eq("user_id", userId)
+      .in("id", ids);
+    if (error) throw new Error(error.message);
+    const out = new Map<string, SourceMediaImage[]>();
+    for (const row of (data ?? []) as unknown as { id: string; media: SourceMediaImage[] | null }[]) {
+      out.set(row.id, row.media ?? []);
+    }
+    return out;
   }
 
   async deleteMissionSource(userId: string, id: string): Promise<void> {

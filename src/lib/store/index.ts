@@ -23,6 +23,7 @@ import type {
   MissionSourceRecord,
   MissionSourceKind,
   MissionSourceStatus,
+  SourceMediaImage,
   AccountAuditRecord,
   ActionEventRecord,
   ActionEventType,
@@ -191,6 +192,8 @@ export interface MissionSourceInsert {
   size_bytes?: number;
   status: MissionSourceStatus;
   summary?: string;
+  /** The real pixels for an image source, or the sampled frames of a video. */
+  media?: SourceMediaImage[];
   injection_flag?: boolean;
   detail?: Record<string, unknown>;
 }
@@ -607,6 +610,12 @@ export interface Store {
   /** Staged sources (not yet attached to a mission) for the ask box. */
   listStagedSources(userId: string): Promise<MissionSourceRecord[]>;
   listMissionSources(userId: string, missionId: string): Promise<MissionSourceRecord[]>;
+  /**
+   * The pixels for specific sources. Kept out of the list methods on purpose:
+   * a list renders chips, and dragging megabytes of base64 through it would
+   * make every page load pay for images nobody is looking at yet.
+   */
+  listSourceMedia(userId: string, ids: string[]): Promise<Map<string, SourceMediaImage[]>>;
   deleteMissionSource(userId: string, id: string): Promise<void>;
   /** Attach staged sources to a mission (sets mission_id) — returns the count attached. */
   attachSourcesToMission(userId: string, sourceIds: string[], missionId: string): Promise<number>;

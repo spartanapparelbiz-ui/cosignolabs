@@ -522,7 +522,13 @@ export interface FileRecord {
   user_id: string;
   session_id: string | null;
   name: string;
-  mime: "text/plain" | "text/markdown" | "text/csv";
+  /**
+   * Files are authored and stored as TEXT. Anything binary a user wants —
+   * a PDF, most obviously — is rendered from this text on download, so the
+   * stored document stays editable and versioned instead of freezing into a
+   * blob nobody can revise.
+   */
+  mime: "text/plain" | "text/markdown" | "text/csv" | "text/html" | "image/svg+xml";
   content: string;
   version: number;
   created_at: string;
@@ -796,8 +802,16 @@ export interface BrowserActionRecord {
 
 /* ------------------------------------------------------ mission sources */
 
-/** A file or link the user attaches to a mission from the ask box. */
-export type MissionSourceKind = "file" | "link";
+/** One picture the operator can genuinely see. `data` is raw base64. */
+export interface SourceMediaImage {
+  mime: string;
+  data: string;
+  /** Caption the operator sees, e.g. "receipt.jpg" or "frame at 0:12". */
+  label: string;
+}
+
+/** A file, link, or video the user attaches to a mission from the ask box. */
+export type MissionSourceKind = "file" | "link" | "video";
 
 export type MissionSourceStatus =
   | "uploading"
@@ -825,6 +839,13 @@ export interface MissionSourceRecord {
   status: MissionSourceStatus;
   /** extracted, bounded text summary (untrusted content — data only). */
   summary: string;
+  /**
+   * The actual pictures for this source: the image itself, or the frames
+   * sampled from a video. These are what the operator LOOKS AT. A source that
+   * should be seen and has none here was not seen — the operator is told so
+   * rather than left to guess from the filename.
+   */
+  media: SourceMediaImage[];
   injection_flag: boolean;
   detail: Record<string, unknown>;
   created_at: string;

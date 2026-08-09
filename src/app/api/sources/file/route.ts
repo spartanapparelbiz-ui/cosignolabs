@@ -66,6 +66,10 @@ export async function POST(req: NextRequest) {
       size_bytes: entry.size,
       status: result.status === "ready" ? "ready" : result.status === "unsupported" ? "unsupported" : "failed",
       summary: result.summary,
+      // The pixels themselves, for anything meant to be looked at. Without
+      // this an image reaches the operator as a filename, and a filename is
+      // all it can then describe.
+      media: result.images,
       injection_flag: result.injection,
       detail: {
         ...result.detail,
