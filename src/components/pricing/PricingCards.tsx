@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
-import { PLAN_ORDER, PLANS, type Interval, type PlanId } from "@/lib/plans";
+import { PLAN_ORDER, PLANS, type Interval, type PublicPlanId } from "@/lib/plans";
 import { useCountUp } from "@/lib/useCountUp";
 import { track } from "@/lib/analytics";
 
@@ -19,9 +19,9 @@ import { track } from "@/lib/analytics";
  */
 
 /** A representative monthly volume that lands squarely inside each plan. */
-const PLAN_PROBE: Record<PlanId, number> = { free: 20, pro: 500, max: 4000 };
+const PLAN_PROBE: Record<PublicPlanId, number> = { free: 20, pro: 500, max: 4000 };
 
-function coveringPlan(actions: number): PlanId {
+function coveringPlan(actions: number): PublicPlanId {
   for (const id of PLAN_ORDER) {
     if (actions <= PLANS[id].actionLimit) return id;
   }
@@ -29,7 +29,7 @@ function coveringPlan(actions: number): PlanId {
 }
 
 /** One card's price number, animated between monthly/annual values. */
-function PriceNumber({ plan, interval }: { plan: (typeof PLANS)[PlanId]; interval: Interval }) {
+function PriceNumber({ plan, interval }: { plan: (typeof PLANS)[PublicPlanId]; interval: Interval }) {
   const target = plan.price.monthly === 0 ? 0 : interval === "annual" ? plan.price.annual : plan.price.monthly;
   const shown = useCountUp(target, 420);
   const suffix = plan.price.monthly === 0 ? "" : interval === "annual" ? "/yr" : "/mo";
@@ -48,9 +48,9 @@ function PriceNumber({ plan, interval }: { plan: (typeof PLANS)[PlanId]; interva
 
 export function PricingCards() {
   const [interval, setInterval] = useState<Interval>("monthly");
-  const [recommended, setRecommended] = useState<PlanId | null>(null);
+  const [recommended, setRecommended] = useState<PublicPlanId | null>(null);
   const [probe, setProbe] = useState<number>(300);
-  const [leaving, setLeaving] = useState<PlanId | null>(null);
+  const [leaving, setLeaving] = useState<PublicPlanId | null>(null);
   const router = useRouter();
 
   // Read the ?plan= handoff from the calculator AFTER mount (not via
@@ -59,15 +59,15 @@ export function PricingCards() {
   // this only adds the recommendation badge + repositions the slider.
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("plan");
-    if (p && PLAN_ORDER.includes(p as PlanId)) {
-      setRecommended(p as PlanId);
-      setProbe(PLAN_PROBE[p as PlanId]);
+    if (p && PLAN_ORDER.includes(p as PublicPlanId)) {
+      setRecommended(p as PublicPlanId);
+      setProbe(PLAN_PROBE[p as PublicPlanId]);
     }
   }, []);
 
   const covering = coveringPlan(probe);
 
-  function choose(plan: PlanId) {
+  function choose(plan: PublicPlanId) {
     track("pricing_choose", { plan, interval });
     if (plan === "free") {
       router.push("/app");

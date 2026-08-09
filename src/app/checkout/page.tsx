@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LogoLockup } from "@/components/brand/Logo";
 import { CheckoutClient } from "@/components/checkout/CheckoutClient";
-import type { Interval, PlanId } from "@/lib/plans";
+import type { Interval, PublicPlanId } from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "checkout — cosigno",
@@ -19,7 +19,7 @@ export default async function CheckoutPage({
 }) {
   const { plan: planParam, interval: intervalParam } = await searchParams;
   // Only paid plans check out; anything else goes back to pricing.
-  const plan: PlanId = planParam === "max" ? "max" : planParam === "pro" ? "pro" : "free";
+  const plan: PublicPlanId = planParam === "max" ? "max" : planParam === "pro" ? "pro" : "free";
   if (plan === "free") redirect("/pricing");
   const interval: Interval = intervalParam === "annual" ? "annual" : "monthly";
 

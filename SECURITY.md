@@ -31,6 +31,17 @@ build + bundle secret scan, `npm audit --audit-level=critical`, then
   one is added, it must verify svix signatures (`svix` package) before
   reading the body — the route-enumeration test will force it through the
   401-or-allowlisted decision automatically.
+- **Owner override is identity-bound, server-side, and fails closed.**
+  `OWNER_IDS` (`src/lib/owner.ts`) lists Supabase Auth user ids that get full
+  access without a subscription. It is checked inside `getUserPlan`, never at
+  a route, and never reaches a client bundle. The match is on the immutable
+  user id only: a non-user-id entry (email, legacy Clerk `user_...`, or a
+  reserved id like `demo-user` / `guest_...`) is dropped at parse time rather
+  than compared, so an email can never grant it. Unset = no owners. The `owner`
+  tier cannot be bought or written to the `subscriptions` table; a stored row
+  claiming it resolves to `free`. Not constant-time on purpose — a user id is
+  an identifier, and the credential is the already-verified session that
+  produced it. **Proved by**: `tests/security/owner.test.ts`.
 
 **Proved by**: `tests/security/auth-routes.test.ts` — enumerates every
 `route.ts` under `src/app/api` from the filesystem (new routes are covered

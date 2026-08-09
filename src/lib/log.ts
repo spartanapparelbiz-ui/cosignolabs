@@ -24,6 +24,8 @@ export type SecurityEvent =
   | "ssrf_blocked"
   | "usage_limit_hit"
   | "upgrade_required"
+  /** An OWNER_IDS entry was not a Supabase user id and was dropped, not compared. */
+  | "owner_id_rejected"
   | "global_budget_hit"
   | "turnstile_failed"
   | "invalid_input"

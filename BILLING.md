@@ -51,6 +51,40 @@ continues to `current_period_end`, then free.
 Plan is never read from client input. The `subscriptions` table has no client
 write policy; RLS lets a user read only their own row.
 
+## Owner override (`OWNER_IDS`)
+
+Internal accounts get full access with no Stripe subscription. `getUserPlan`
+checks it **first**, before any store read (`src/lib/billing.ts`), so all the
+enforcement points above inherit it and none can disagree about who an owner
+is. `src/lib/owner.ts` is the whole implementation.
+
+- **Keyed on the Supabase Auth user id, never an email.** `OWNER_IDS` is a
+  comma-separated list of UUIDs. An entry that is not a user id — an email, a
+  leftover Clerk `user_...` id, `demo-user`, a `guest_...` id — is **dropped
+  during parsing rather than compared**, and logged as `owner_id_rejected` by
+  position (never by value). An address therefore cannot match even if the
+  signed-in user's address is exactly that string.
+  Why: this app deliberately frees an email for re-signup on account deletion
+  (`src/app/api/account/route.ts`) and supports email change
+  (`src/app/auth/confirm/route.ts`) — both silently move an email-keyed
+  override to a different person. A user id is minted once and never reissued.
+- **Unset = no owners.** Fails closed in the same direction as everything else.
+- **Not purchasable, not storable.** The `owner` tier is absent from
+  `PLAN_ORDER` and `PAID_PLANS`, the checkout routes hard-enumerate
+  `["pro","max"]`, the Stripe webhook coerces anything else to `free`, and a
+  subscription row claiming `plan: "owner"` resolves to **free**. `OWNER_IDS`
+  is the only grant.
+- **Hidden from the UI.** `publicFace()` (`src/lib/plans.ts`) maps `owner` →
+  `max` in `GET /api/usage`, the only payload that carries a plan id to a
+  browser, so an owner's account page is identical to a max subscriber's. This
+  also keeps the response serializable — the owner plan's `actionLimit` is
+  `Infinity`, which `JSON.stringify` would emit as `null`.
+- **Attribution.** Owner activity is still metered and recorded: the
+  `ai_usage` ledger stores `plan: "owner"` per planner call, so
+  `GET /api/internal/costs` separates internal spend from customer spend.
+
+Proved by `tests/security/owner.test.ts`.
+
 ## Data model
 
 `subscriptions(user_id PK, stripe_customer_id, stripe_subscription_id, plan,
