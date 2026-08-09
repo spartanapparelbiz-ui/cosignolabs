@@ -58,6 +58,26 @@ for (const vp of VIEWPORTS) {
       }
       await page.screenshot({ path: join(OUT, `home-clean-slate-${vp.name}.png`) });
 
+      // The workspace offers no canned commands to fire off.
+      await page.goto("/app/workspace", { waitUntil: "networkidle" });
+      for (const ghost of [
+        /try one of these/i,
+        /clear my inbox of newsletters/i,
+        /draft replies to these 3 leads/i,
+      ]) {
+        await expect(page.getByText(ghost)).toHaveCount(0);
+      }
+
+      // Delegations offers no pre-baked mission to start.
+      await page.goto("/app/missions", { waitUntil: "networkidle" });
+      for (const ghost of [
+        /prepare everything for tomorrow's meeting/i,
+        /compare three laptops under \$1,000/i,
+      ]) {
+        await expect(page.getByText(ghost)).toHaveCount(0);
+      }
+      await expect(page.getByRole("button", { name: /^start mission$/i })).toHaveCount(0);
+
       // Autopilot reports having nothing to read — never a sample business.
       await page.goto("/app/autopilot", { waitUntil: "networkidle" });
       await expect(page.getByText(/nothing to read yet/i)).toBeVisible();

@@ -15,7 +15,6 @@ import {
   OctagonX,
   Pause,
   Play,
-  Rocket,
   Square,
   XCircle,
 } from "lucide-react";
@@ -204,7 +203,7 @@ function GoalComposer({ onStarted }: { onStarted: (id: string) => void }) {
           onChange={(e) => setGoal(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && compile()}
           maxLength={500}
-          placeholder="e.g. compare the best laptops under $1,000"
+          placeholder="what do you want done?"
           className={inputCls}
           aria-label="mission goal"
         />
@@ -286,46 +285,6 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
     };
   }, [openId, openActive]);
 
-  async function start() {
-    setBusy("start");
-    try {
-      const data = await jsonFetch("/api/missions", {
-        method: "POST",
-        body: JSON.stringify({ template: "meeting_prep" }),
-      });
-      toast(
-        "success",
-        bgActive === true
-          ? "mission started — it keeps working even if you close this tab."
-          : bgActive === false
-            ? "mission started — keep this mission open; it pauses when you close it."
-            : "mission started — keep it open until we can confirm it runs in the background."
-      );
-      setSteps((s) => ({ ...s, [data.mission.id]: data.steps ?? [] }));
-      await load();
-      setOpenId(data.mission.id);
-    } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't start the mission.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function startLaptop() {
-    setBusy("laptop");
-    try {
-      const data = await jsonFetch("/api/missions", {
-        method: "POST",
-        body: JSON.stringify({ template: "laptop_compare" }),
-      });
-      toast("success", "browser mission started — opening the browser view.");
-      window.location.href = `/app/browser/${data.mission.id}`;
-    } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't start the mission.");
-      setBusy(null);
-    }
-  }
-
   async function control(id: string, op: "pause" | "resume" | "stop") {
     setBusy(id);
     try {
@@ -396,53 +355,6 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
           await loadSteps(id);
         }}
       />
-
-      {/* start the reference (suggested) mission */}
-      <div className="flex flex-wrap items-center gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
-        <Rocket size={18} className="shrink-0 text-ink-soft" aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold lowercase">prepare everything for tomorrow&apos;s meeting</p>
-          <p className="text-xs text-ink-soft">
-            finds the event, reviews related mail and files, builds a brief +
-            agenda, and drafts the follow-up.{" "}
-            {bgActive === true
-              ? "keeps going even if you close this tab."
-              : bgActive === false
-                ? "keep it open while it runs — it pauses when closed."
-                : "keep it open while it runs until background running is confirmed."}{" "}
-            uses your connected apps — or a clearly-marked sandbox until you
-            connect them.
-          </p>
-        </div>
-        <button
-          onClick={start}
-          disabled={busy === "start"}
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-        >
-          {busy === "start" ? "starting…" : "start mission"}
-        </button>
-      </div>
-
-      {/* the browser-operator reference mission */}
-      <div className="flex flex-wrap items-center gap-3 rounded-card bg-surface/60 p-4 shadow-soft">
-        <Globe size={18} className="shrink-0 text-ink-soft" aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold lowercase">compare three laptops under $1,000</p>
-          <p className="text-xs text-ink-soft">
-            cosigno opens real product pages, records what they actually show,
-            compares three options, and stops at the recommended product page —
-            watch every page it reads. entirely read-only: no purchase is ever
-            attempted.
-          </p>
-        </div>
-        <button
-          onClick={startLaptop}
-          disabled={busy === "laptop"}
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-ink shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-        >
-          {busy === "laptop" ? "starting…" : "start mission"}
-        </button>
-      </div>
 
       {missions === null && (
         <div className="flex flex-col gap-3" aria-busy="true" aria-label="loading missions">
