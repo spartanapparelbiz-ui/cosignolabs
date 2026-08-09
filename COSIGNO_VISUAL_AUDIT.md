@@ -108,10 +108,17 @@ email/password, "create an account". **Inconsistent**: the "sign in" button
 renders in the disabled-looking peach tone at rest, reading as inactive.
 **Next**: give the primary auth button its solid active state.
 
-### 4 · Onboarding
-`/app` (first-run intro, 3 screens) — `screenshots/02-auth/onboarding-1-desktop.png`, `-2-`, `-3-`
-**Polished**: calm 3-step first-run intro ("see how it works" → "one more
-thing"). Sets the product's tone well.
+### 4 · Onboarding — REMOVED
+`/app` (first-run intro) — `screenshots/02-auth/onboarding-1-desktop.png`, `-2-`, `-3-`
+**Superseded.** There is no onboarding any more, and the screenshots above are
+a record of what used to be here rather than what is. The intro asked a
+first-time visitor which part of their week stole the most time — a reasonable
+question, asked at the one moment nobody can answer it, because they have not
+yet seen what the answers do. It stood between someone and the only thing that
+teaches this product anything: typing a sentence and watching something happen.
+Home now opens on the ask box with six worked examples underneath, which
+carries the same lesson with no gate in front of it. The Playwright suite
+asserts the absence: `a first-time visitor lands straight in the product`.
 
 ### 5 · Home / Now
 `/app` — `screenshots/03-now/now-home-desktop.png` · mobile `screenshots/mobile/now-home-mobile.png`
