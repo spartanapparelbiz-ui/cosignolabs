@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useTransform } from "framer-motion";
 import { Eyebrow, Lede, TierChip } from "./ui";
 import { Mark3D } from "./Mark3D";
 import {
@@ -56,6 +56,19 @@ export function Connections() {
   // The hub turns as the section crosses the window, so the thing every line
   // points at is the one object on the page with real depth.
   const pass = useSmoothed(useSectionPass(sectionRef), 130, 26);
+  // One draw progress per line, each staggered behind the last. Hooks at the
+  // top level, never inside the map: eight fixed calls, in the same order on
+  // every render.
+  const draw = [
+    useTransform(pass, [0.16, 0.44], [0, 1]),
+    useTransform(pass, [0.18, 0.46], [0, 1]),
+    useTransform(pass, [0.2, 0.48], [0, 1]),
+    useTransform(pass, [0.22, 0.5], [0, 1]),
+    useTransform(pass, [0.24, 0.52], [0, 1]),
+    useTransform(pass, [0.26, 0.54], [0, 1]),
+    useTransform(pass, [0.28, 0.56], [0, 1]),
+    useTransform(pass, [0.3, 0.58], [0, 1]),
+  ];
 
   return (
     <section
@@ -111,9 +124,11 @@ export function Connections() {
                   className="text-ink/25"
                   strokeWidth={1.8}
                   strokeLinecap="round"
-                  initial={{ pathLength: still ? 1 : 0, opacity: still ? 1 : 0 }}
-                  animate={on ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                  transition={{ duration: 0.85, ease: EASE_OUT, delay: still ? 0 : 0.1 + i * 0.09 }}
+                  // Drawn by the scrollbar rather than by a timer: each line
+                  // starts a little later than the one before it, so scrolling
+                  // slowly draws them slowly and scrolling back rubs them out.
+                  style={still ? { pathLength: 1, opacity: 1 } : { pathLength: draw[i], opacity: 1 }}
+                  initial={false}
                 />
               );
             })}

@@ -36,6 +36,7 @@ import {
 
 // Below-the-fold sections load as separate chunks. They still server-render,
 // so the page is complete and readable before any of them arrive.
+const Primer = dynamic(() => import("@/components/home/Primer").then((m) => m.Primer));
 const Chaos = dynamic(() => import("@/components/home/Chaos").then((m) => m.Chaos));
 const ApprovalMoment = dynamic(() =>
   import("@/components/home/ApprovalMoment").then((m) => m.ApprovalMoment)
@@ -48,6 +49,7 @@ const Connections = dynamic(() =>
 );
 const Missions = dynamic(() => import("@/components/home/Missions").then((m) => m.Missions));
 const Approvals = dynamic(() => import("@/components/home/Approvals").then((m) => m.Approvals));
+const MidCta = dynamic(() => import("@/components/home/MidCta").then((m) => m.MidCta));
 const Monitoring = dynamic(() =>
   import("@/components/home/Monitoring").then((m) => m.Monitoring)
 );
@@ -55,18 +57,37 @@ const Proof = dynamic(() => import("@/components/home/Proof").then((m) => m.Proo
 const Pricing = dynamic(() => import("@/components/home/Pricing").then((m) => m.Pricing));
 const FinalCta = dynamic(() => import("@/components/home/FinalCta").then((m) => m.FinalCta));
 
-/** Plan cards, derived from the enforced plan definitions — never retyped. */
+/**
+ * Plan cards, derived from the enforced plan definitions — never retyped.
+ *
+ * Both intervals travel with the card so the toggle is a client-side switch
+ * between two numbers the server already vouched for, rather than arithmetic
+ * done in the browser. `annualPerMonth` is what the reader actually wants to
+ * compare against the monthly price, and `saving` is the months-free claim
+ * computed from the two, so it cannot drift from what Stripe charges.
+ */
 const PLAN_CARDS: PlanCard[] = PLAN_ORDER.map((id) => {
   const plan = PLANS[id];
+  const monthly = plan.price.monthly;
+  const annual = plan.price.annual;
+  const perMonth = annual > 0 ? annual / 12 : 0;
   return {
     id,
     name: plan.name,
     tagline: plan.tagline,
-    price: `$${moneyLabel(plan.price.monthly)}`,
-    cadence: plan.price.monthly === 0 ? "" : "/mo",
+    price: `$${moneyLabel(monthly)}`,
+    annualPrice: `$${moneyLabel(Number(perMonth.toFixed(2)))}`,
+    annualTotal: `$${annual.toLocaleString(undefined, {
+      minimumFractionDigits: Number.isInteger(annual) ? 0 : 2,
+    })}`,
+    saving:
+      monthly > 0 ? `${Math.round(((monthly * 12 - annual) / monthly) * 10) / 10} months free` : "",
+    cadence: monthly === 0 ? "" : "/mo",
     features: plan.features,
-    cta: id === "free" ? "start free" : `start with ${plan.name}`,
+    cta: id === "free" ? "start free" : `get ${plan.name}`,
     featured: id === "pro",
+    /** Free needs an account; a paid plan can go straight to the card form. */
+    href: id === "free" ? "/sign-up" : `/checkout?plan=${id}`,
   };
 });
 
@@ -117,12 +138,14 @@ export default function HomePage() {
 
       <main id="content" className="flex-1">
         <Hero />
+        <Primer />
         <Chaos />
         <ApprovalMoment />
         <HowItWorks />
         <Connections />
         <Missions />
         <Approvals />
+        <MidCta terms={FREE_TERMS} />
         <Monitoring />
         <Proof />
         <Pricing plans={PLAN_CARDS} rows={COMPARISON} intro={introOfferLabel()} />

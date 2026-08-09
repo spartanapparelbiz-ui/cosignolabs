@@ -30,7 +30,7 @@ import { CosignoMark, LOGO_C_PATH, LOGO_CHECK_PATH } from "@/components/brand/Lo
  * cannot leak a WebGL context.
  */
 
-export type MarkMode = "hero" | "ambient";
+export type MarkMode = "hero" | "ambient" | "spin" | "scatter";
 
 export interface Mark3DProps {
   className?: string;
@@ -41,9 +41,28 @@ export interface Mark3DProps {
    * flipping to `true` springs it back — the signature landing, in space.
    */
   sealed?: boolean;
+  /**
+   * The same idea, scrubbed: 0 keeps the check out at arm's length and 1 has
+   * it home. Given a motion value the seal follows the scrollbar frame by
+   * frame instead of springing on a state change, which is what lets the mark
+   * assemble itself as you read rather than snapping when you arrive.
+   */
+  seal?: MotionValue<number>;
   mode?: MarkMode;
   /** Size of the SSR fallback mark, in px. */
   fallbackSize?: number;
+  /**
+   * A watermark rather than an appearance of the brand.
+   *
+   * The flat fallback exists so that a visitor with no WebGL still sees a
+   * correct cosigno mark wherever the page shows one. A mark sitting at 8%
+   * opacity behind a card is not one of those places: it is texture, and
+   * shipping its two long path strings in the document for each of seven
+   * sections cost real parse and hydration time on a phone for something
+   * nobody would notice missing. Decorative marks render nothing until their
+   * scene exists.
+   */
+  decorative?: boolean;
   /** Honour the reduced-motion setting by holding still. */
   still?: boolean;
 }
@@ -64,6 +83,19 @@ export interface Mark3DProps {
  * complete rendering of the brand rather than a placeholder for one.
  */
 let capable: boolean | null = null;
+
+/**
+ * How many scenes may be alive at once.
+ *
+ * The page carries nine marks now. Contexts are not free — a browser will
+ * start dropping the oldest once a page holds too many, and a phone pays in
+ * memory long before that — so a scene is torn down as soon as its mark is a
+ * screen and a half away and rebuilt when it comes back. In practice two or
+ * three are ever live at a time; this counter is the backstop for a fast
+ * scroll that outruns the release observer.
+ */
+const MAX_LIVE = typeof window !== "undefined" && window.innerWidth < 640 ? 3 : 6;
+let liveScenes = 0;
 
 function canRender3D(): boolean {
   if (capable !== null) return capable;
@@ -94,8 +126,10 @@ export function Mark3D({
   className = "",
   progress,
   sealed = true,
+  seal,
   mode = "hero",
   fallbackSize = 160,
+  decorative = false,
   still = false,
 }: Mark3DProps) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -103,9 +137,11 @@ export function Mark3D({
 
   // Values the render loop reads every frame without re-rendering React.
   const sealedRef = useRef(sealed);
+  const sealRef = useRef(seal);
   const stillRef = useRef(still);
   const wakeRef = useRef<(() => void) | null>(null);
   sealedRef.current = sealed;
+  sealRef.current = seal;
   stillRef.current = still;
 
   // Answering the card is a React state change, not a scroll or a pointer
@@ -123,11 +159,19 @@ export function Mark3D({
     let cleanup: (() => void) | null = null;
     let idle = 0;
     let timer = 0;
+    // A build already scheduled or in flight. Without it a fast scroll that
+    // re-crosses the gate twice would start two scenes for one host.
+    let pending = false;
+    // Bumped whenever a build is started or released. `build` captures the
+    // value and checks it after every await: a scroll fast enough to leave the
+    // release margin while three.js is still loading would otherwise attach a
+    // scene nobody is looking at, with no cleanup registered for it yet.
+    let token = 0;
 
-    async function build() {
+    async function build(mine: number) {
       const THREE = await import("three");
       const { SVGLoader } = await import("three/examples/jsm/loaders/SVGLoader.js");
-      if (disposed || !hostRef.current) return;
+      if (disposed || mine !== token || !hostRef.current) return;
 
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
@@ -238,11 +282,14 @@ export function Mark3D({
       rim.position.set(-4.2, -1.4, -3.6);
       scene.add(rim);
       hostRef.current.appendChild(renderer.domElement);
+      liveScenes += 1;
       setLive(true);
 
       /* ---------------------------------------------------------- the loop */
 
       const AMBIENT = mode === "ambient";
+      const SPIN = mode === "spin";
+      const SCATTER = mode === "scatter";
       /**
        * The idle drift — the slow turn that keeps the object feeling alive —
        * is a desktop luxury. On a phone it would mean rendering a lit solid
@@ -331,16 +378,36 @@ export function Mark3D({
         // both still read and the extrusion is at its most legible.
         const drift = stillRef.current || !drifts ? 0 : (t - clock) / 1000;
         const turn = eased - 0.5; // -0.5 → 0.5, so the middle of the scroll is level
+
         // Each mode is centred on the moment the reader is actually looking at
-        // the mark: the hero's is the top of the page, so it rests near
+        // the mark. The hero's is the top of the page, so it rests near
         // face-on and turns away as you leave; an ambient mark is most visible
-        // halfway through its section, so face-on lands at 0.5.
-        rig.rotation.y = AMBIENT
-          ? -0.46 + eased * 0.92 + Math.sin(drift * 0.25) * 0.22
-          : -0.16 + eased * 1.05 + Math.sin(drift * 0.42) * 0.16;
-        rig.rotation.x =
-          (AMBIENT ? 0.06 : 0.13) + Math.sin(drift * 0.33) * 0.05 - eased * (AMBIENT ? 0.3 : 0.34);
-        rig.rotation.z = Math.sin(drift * 0.27) * 0.035 + turn * (AMBIENT ? 0.2 : 0.28);
+        // halfway through its section, so face-on lands at 0.5. SPIN is the
+        // exception and the only place the mark is allowed past the readable
+        // window: it turns a whole revolution across its section, so every
+        // resting point in the scroll is a point it passes through rather than
+        // one it stops at, and it lands face-on at both ends.
+        if (SPIN) {
+          rig.rotation.y = eased * Math.PI * 2 + Math.sin(drift * 0.3) * 0.05;
+          rig.rotation.x = 0.1 - Math.sin(eased * Math.PI) * 0.22 + Math.sin(drift * 0.33) * 0.04;
+          rig.rotation.z = Math.sin(eased * Math.PI * 2) * 0.14 + Math.sin(drift * 0.27) * 0.03;
+        } else if (SCATTER) {
+          // Without a signature the object never settles: it tumbles, and the
+          // check has already left. This is the only mark on the page that is
+          // allowed to look wrong, because it is the one describing the wrong.
+          rig.rotation.y = -0.8 + eased * 2.4 + Math.sin(drift * 0.9) * 0.5;
+          rig.rotation.x = -0.35 + eased * 0.9 + Math.sin(drift * 0.7) * 0.35;
+          rig.rotation.z = -0.5 + eased * 1.1 + Math.sin(drift * 1.1) * 0.4;
+        } else {
+          rig.rotation.y = AMBIENT
+            ? -0.46 + eased * 0.92 + Math.sin(drift * 0.25) * 0.22
+            : -0.16 + eased * 1.05 + Math.sin(drift * 0.42) * 0.16;
+          rig.rotation.x =
+            (AMBIENT ? 0.06 : 0.13) +
+            Math.sin(drift * 0.33) * 0.05 -
+            eased * (AMBIENT ? 0.3 : 0.34);
+          rig.rotation.z = Math.sin(drift * 0.27) * 0.035 + turn * (AMBIENT ? 0.2 : 0.28);
+        }
 
         // Pointer parallax, critically damped so it never overshoots.
         pointerX += (targetX - pointerX) * 0.045;
@@ -356,12 +423,21 @@ export function Mark3D({
         // lens than the ambient ones, which have to stay clear of the surfaces
         // they sit behind or inside.
         camera.position.z =
-          (AMBIENT ? 7.4 : 6.5) + eased * (AMBIENT ? 1.5 : 3.2) - Math.sin(eased * Math.PI) * 0.6;
+          (AMBIENT || SPIN || SCATTER ? 7.4 : 6.5) +
+          eased * (AMBIENT || SPIN || SCATTER ? 1.5 : 3.2) -
+          Math.sin(eased * Math.PI) * 0.6;
 
         // The check leaves and returns along its own axis, never through the C.
-        const want = sealedRef.current ? 0 : 1;
-        apart += (want - apart) * 0.09;
-        if (Math.abs(want - apart) < 0.001) apart = want;
+        // A scrubbed seal is read straight off the scrollbar; a boolean one is
+        // eased, so answering a card still springs rather than snaps.
+        const scrub = sealRef.current?.get();
+        if (typeof scrub === "number" && Number.isFinite(scrub)) {
+          apart = 1 - Math.max(0, Math.min(1, scrub));
+        } else {
+          const want = sealedRef.current ? 0 : 1;
+          apart += (want - apart) * 0.09;
+          if (Math.abs(want - apart) < 0.001) apart = want;
+        }
         checkMesh.position.set(apart * 15, apart * -11, apart * 30);
         checkMesh.rotation.set(apart * 0.34, apart * -0.46, apart * 0.24);
 
@@ -375,7 +451,7 @@ export function Mark3D({
         const easing =
           Math.abs(targetX - pointerX) > 0.001 ||
           Math.abs(targetY - pointerY) > 0.001 ||
-          apart !== (sealedRef.current ? 0 : 1);
+          (!sealRef.current && apart !== (sealedRef.current ? 0 : 1));
         if (drifts || dirty || easing) {
           dirty = false;
           draw(t);
@@ -428,62 +504,113 @@ export function Mark3D({
      * looking at a hole while we wait. The timeout is the ceiling: on a busy
      * page it still arrives, just politely.
      */
-    const start = () => {
-      void build().catch(() => {
-        // Any failure at all — a blocked chunk, an exotic GPU driver — simply
-        // leaves the flat mark in place.
-        setLive(false);
-      });
+    const start = (mine: number) => {
+      idle = 0;
+      timer = 0;
+      void build(mine)
+        .catch(() => {
+          // Any failure at all — a blocked chunk, an exotic GPU driver —
+          // simply leaves the flat mark in place.
+          setLive(false);
+        })
+        .finally(() => {
+          pending = false;
+        });
     };
     const schedule = () => {
+      pending = true;
+      token += 1;
+      const mine = token;
+      const run = () => start(mine);
       const ric = (
         window as Window & {
           requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
         }
       ).requestIdleCallback;
-      if (typeof ric === "function") idle = ric(start, { timeout: 1800 });
-      else timer = window.setTimeout(start, 200);
+      if (typeof ric === "function") idle = ric(run, { timeout: 1800 });
+      else timer = window.setTimeout(run, 200);
     };
 
     /**
-     * Nothing is built until the mark is nearly on screen.
+     * Nothing is built until the mark is nearly on screen, and nothing stays
+     * built once it is well past.
      *
-     * This page mounts three of these. Building all three at load cost 3.5
+     * This page mounts nine of these. Building them all at load cost 3.5
      * seconds of blocking time on a throttled phone — a WebGL context, a
-     * shader compile and two extruded glyphs each, for two objects the visitor
+     * shader compile and two extruded glyphs each, for objects the visitor
      * would not reach for another fifteen screens. Gating the *build* (not
      * just the render loop) on proximity means a phone pays for exactly the
      * marks it is about to look at.
+     *
+     * The release half matters just as much once there are this many. A scene
+     * that is never torn down holds its context and its buffers for the rest
+     * of the session, so a reader who scrolls the whole page ends up carrying
+     * every mark at once. Here the gate builds at 400px and the release
+     * observer tears down at 1400px, which keeps two or three alive at a time
+     * however far you scroll, and rebuilding on the way back up costs the same
+     * idle callback it cost the first time.
      */
+    const release = () => {
+      token += 1;
+      if (!cleanup) return;
+      cleanup();
+      cleanup = null;
+      liveScenes = Math.max(0, liveScenes - 1);
+      setLive(false);
+    };
+
     const gate = new IntersectionObserver(
       (entries) => {
         if (!entries.some((e) => e.isIntersecting)) return;
-        gate.disconnect();
+        if (cleanup || pending) return;
         if (!canRender3D()) return;
+        if (liveScenes >= MAX_LIVE) return;
         schedule();
       },
       { rootMargin: "400px" }
     );
     gate.observe(host);
 
+    const far = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) return;
+        if (idle) {
+          (
+            window as Window & { cancelIdleCallback?: (h: number) => void }
+          ).cancelIdleCallback?.(idle);
+          idle = 0;
+        }
+        if (timer) {
+          window.clearTimeout(timer);
+          timer = 0;
+        }
+        pending = false;
+        release();
+      },
+      { rootMargin: "1400px" }
+    );
+    far.observe(host);
+
     return () => {
       disposed = true;
       gate.disconnect();
+      far.disconnect();
       if (idle) {
         (
           window as Window & { cancelIdleCallback?: (h: number) => void }
         ).cancelIdleCallback?.(idle);
       }
       if (timer) window.clearTimeout(timer);
-      cleanup?.();
+      release();
       setLive(false);
     };
   }, [mode, progress]);
 
   return (
     <div ref={hostRef} className={`relative ${className}`} aria-hidden="true">
-      {/* The flat mark holds the frame until — and unless — the scene arrives. */}
-      {!live && (
+      {/* The flat mark holds the frame until — and unless — the scene arrives.
+          Decorative marks skip it: see `decorative` above. */}
+      {!live && !decorative && (
         <span className="absolute inset-0 grid place-items-center">
           <CosignoMark size={fallbackSize} />
         </span>

@@ -3,7 +3,14 @@
 import { useRef } from "react";
 import { motion, useTransform, type MotionValue } from "framer-motion";
 import { Chip, Eyebrow, Lede } from "./ui";
-import { MaskedLines, useSectionProgress, useSmoothed, useStillness } from "./primitives";
+import { Mark3D } from "./Mark3D";
+import {
+  MaskedLines,
+  useSectionProgress,
+  useSmoothed,
+  useStillness,
+  useWide,
+} from "./primitives";
 
 /**
  * Without cosigno.
@@ -75,6 +82,7 @@ type Row = readonly [string, string, string | null];
 export function Chaos() {
   const ref = useRef<HTMLElement>(null);
   const still = useStillness();
+  const wide = useWide();
   const raw = useSectionProgress(ref);
   const p = useSmoothed(raw, 150, 30);
 
@@ -90,8 +98,24 @@ export function Chaos() {
       aria-labelledby="chaos-title"
       className="relative bg-cream-deep motion-safe:h-[220vh]"
     >
-      <div className="flex flex-col justify-center px-4 py-24 motion-safe:sticky motion-safe:top-0 motion-safe:h-[100dvh] motion-safe:overflow-hidden motion-safe:py-0">
-        <div className="mx-auto w-full max-w-6xl">
+      <div className="relative flex flex-col justify-center px-4 py-24 motion-safe:sticky motion-safe:top-0 motion-safe:h-[100dvh] motion-safe:overflow-hidden motion-safe:py-0">
+        {/* The mark without a signature: tumbling, and with the check already
+            gone. It is the only place on the page the object is allowed to
+            look wrong, because it is the section describing the wrong. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 hidden opacity-[0.08] sm:block"
+        >
+          <Mark3D
+            progress={p}
+            still={still}
+            sealed={false}
+            mode="scatter"
+            decorative
+            className="h-full w-full"
+          />
+        </div>
+        <div className="relative z-10 mx-auto w-full max-w-6xl">
           <motion.header
             className="mx-auto max-w-3xl text-center"
             style={still ? undefined : { y: headY }}
@@ -126,20 +150,15 @@ export function Chaos() {
 
           <div className="mt-6 grid gap-3 md:grid-cols-3">
             <Lane rows={LANE_A} progress={p} speed={1} still={still} />
-            <Lane
-              rows={LANE_B}
-              progress={p}
-              speed={1.35}
-              still={still}
-              className="hidden md:block"
-            />
-            <Lane
-              rows={LANE_C}
-              progress={p}
-              speed={1.7}
-              still={still}
-              className="hidden md:block"
-            />
+            {/* Two more lanes, only where they are visible. `hidden md:block`
+                would still ship, hydrate and animate 44 rows a phone never
+                shows. */}
+            {wide && (
+              <>
+                <Lane rows={LANE_B} progress={p} speed={1.35} still={still} />
+                <Lane rows={LANE_C} progress={p} speed={1.7} still={still} />
+              </>
+            )}
           </div>
         </div>
       </div>

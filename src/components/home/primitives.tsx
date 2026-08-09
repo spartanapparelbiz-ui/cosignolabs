@@ -297,6 +297,34 @@ export function useSectionProgress(ref: React.RefObject<HTMLElement | null>) {
   return scrollYProgress;
 }
 
+const WIDE = "(min-width: 768px)";
+
+function subscribeWide(onChange: () => void): () => void {
+  if (typeof window === "undefined" || !window.matchMedia) return () => {};
+  const mq = window.matchMedia(WIDE);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+/**
+ * True on `md` and up, read hydration-safely (false on the server and for the
+ * hydrating render, then correct).
+ *
+ * For decoration that a phone never shows. `hidden md:block` still ships the
+ * markup, still hydrates it and still gives every node inside it a motion
+ * value — which on a phone is work done entirely for something behind
+ * `display: none`. Gating the render on this hook means the small screen never
+ * builds it at all; the wide one gets it a frame after hydration, which for a
+ * decorative layer nobody can perceive.
+ */
+export function useWide(): boolean {
+  return useSyncExternalStore(
+    subscribeWide,
+    () => typeof window !== "undefined" && window.matchMedia?.(WIDE).matches === true,
+    () => false
+  );
+}
+
 /**
  * Progress as a section *passes* the window: 0 when its top reaches the bottom
  * of the viewport, 1 when its bottom leaves the top. `useSectionProgress`

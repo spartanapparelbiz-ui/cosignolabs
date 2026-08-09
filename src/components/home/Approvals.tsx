@@ -166,7 +166,7 @@ export function Approvals() {
                 still={still}
                 sealed={shown >= 4}
                 mode="ambient"
-                fallbackSize={220}
+                decorative
                 className="h-full w-full"
               />
             </div>

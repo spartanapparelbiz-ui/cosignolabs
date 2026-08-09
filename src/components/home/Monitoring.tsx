@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import { Search } from "lucide-react";
 import { DrawnCheck, Eyebrow, Lede } from "./ui";
-import { EASE_OUT, MaskedLines, Rise, useStillness } from "./primitives";
+import { Mark3D } from "./Mark3D";
+import { EASE_OUT, MaskedLines, Rise, useSectionPass, useSmoothed, useStillness } from "./primitives";
 
 /**
  * Monitoring — the room gets darker.
@@ -85,6 +86,8 @@ export function Monitoring() {
   const still = useStillness();
   const live = useInView(ref, { margin: "0px 0px -15% 0px" });
   const [cursor, setCursor] = useState(WINDOW);
+  // Drives the mark's revolution as the section crosses the window.
+  const pass = useSmoothed(useSectionPass(ref), 120, 26);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [query, setQuery] = useState("");
 
@@ -121,9 +124,24 @@ export function Monitoring() {
       ref={ref}
       aria-labelledby="monitoring-title"
       style={DEEP}
-      className="bg-cream py-24 text-ink sm:py-32"
+      className="relative overflow-hidden bg-cream py-24 text-ink sm:py-32"
     >
-      <div className="mx-auto w-full max-w-6xl px-5">
+      {/* The mark, lit from a dark room. Its check reads cream here because the
+          section overrides --logo-check, and the object reads the same custom
+          properties every flat mark on the site does. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 hidden h-[46rem] opacity-[0.1] sm:block"
+      >
+        <Mark3D
+          progress={pass}
+          still={still}
+          mode="spin"
+          decorative
+          className="h-full w-full"
+        />
+      </div>
+      <div className="relative mx-auto w-full max-w-6xl px-5">
         <header className="mx-auto max-w-2xl text-center">
           <Eyebrow>the record</Eyebrow>
           <MaskedLines

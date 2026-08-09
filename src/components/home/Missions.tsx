@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { motion, useMotionValueEvent, useTransform } from "framer-motion";
 import { ActionCard, Chip, Eyebrow, Lede, ProgressRail, ReceiptLine, StepRow, type StepState } from "./ui";
+import { Mark3D } from "./Mark3D";
 import { MaskedLines, useSectionProgress, useSmoothed, useStillness } from "./primitives";
 
 /**
@@ -75,7 +76,7 @@ export function Missions() {
       className="relative bg-cream motion-safe:h-[250vh]"
     >
       <div className="flex flex-col justify-center px-4 py-24 motion-safe:sticky motion-safe:top-0 motion-safe:h-[100dvh] motion-safe:overflow-hidden motion-safe:py-0">
-        <div className="mx-auto w-full max-w-5xl">
+        <div className="relative mx-auto w-full max-w-5xl">
           <header className="mx-auto max-w-2xl text-center">
             <Eyebrow>missions</Eyebrow>
             <MaskedLines
@@ -89,6 +90,24 @@ export function Missions() {
               something real, the whole job stops and waits for you.
             </Lede>
           </header>
+
+          {/* The mark behind the mission, sealing at the moment the signature
+              lands. Out of flow: this scene is pinned to the viewport height,
+              so anything that took layout space would push the card off a
+              short screen. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 -z-0 hidden opacity-[0.07] sm:block"
+          >
+            <Mark3D
+              progress={p}
+              still={still}
+              sealed={done}
+              mode="ambient"
+              decorative
+              className="h-full w-full"
+            />
+          </div>
 
           {/* The card that arrives at the hold gets its own column rather than
               floating over the panel — an overlay would sit on top of the very
