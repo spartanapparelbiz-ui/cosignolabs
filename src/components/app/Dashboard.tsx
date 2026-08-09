@@ -19,6 +19,7 @@ import { MissionCard } from "@/components/app/MissionCard";
 import { ProactiveFindings } from "@/components/app/ProactiveFindings";
 import { PersonalNote } from "@/components/app/PersonalNote";
 import { LoadingState } from "@/components/ui/States";
+import { CardEnter } from "@/components/motion/Enter";
 import Link from "next/link";
 
 /**
@@ -254,11 +255,10 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           </h2>
           <ul className="mt-3 grid gap-2 sm:grid-cols-2">
             {STARTING_POINTS.map(({ icon: Icon, label, example }, i) => (
-              <li key={label}>
+              <CardEnter as="li" key={label} index={i}>
                 <button
                   onClick={() => askFor(example)}
-                  style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
-                  className="group flex w-full animate-card-in items-start gap-3 rounded-card border border-line bg-surface px-4 py-3 text-left shadow-soft transition-[transform,box-shadow,border-color] duration-fast ease-brand-out hover:-translate-y-px hover:border-signal/60 hover:shadow-depth active:translate-y-0 active:scale-[0.99]"
+                  className="group flex w-full items-start gap-3 rounded-card border border-line bg-surface px-4 py-3 text-left shadow-soft transition-[transform,box-shadow,border-color] duration-fast ease-brand-out hover:-translate-y-px hover:border-signal/60 hover:shadow-depth active:translate-y-0 active:scale-[0.99]"
                 >
                   <span
                     className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-btn bg-cream-deep text-ink-soft transition-colors duration-fast group-hover:bg-signal/15 group-hover:text-signal"
@@ -278,11 +278,11 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
                     className="ml-auto mt-1 shrink-0 text-ink-soft opacity-0 transition-[opacity,transform] duration-fast group-hover:translate-x-0.5 group-hover:opacity-100"
                   />
                 </button>
-              </li>
+              </CardEnter>
             ))}
           </ul>
-          <p className="mt-3 flex flex-wrap items-center justify-center gap-x-2 text-center text-xs font-semibold text-ink-soft">
-            <span>Or type anything at all — these are examples, not a menu.</span>
+          <p className="mt-3 text-center text-xs font-semibold text-ink-soft">
+            Or type anything at all — these are examples, not a menu.
           </p>
         </section>
       )}
@@ -309,10 +309,21 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           {needsYou.slice(0, HOME_LIMIT.needsYou).map((m, i) => (
             <MissionCard key={m.id} mission={m} steps={steps[m.id] ?? []} index={i} />
           ))}
+          {/* Where "see the rest" goes depends on what the rest IS: waiting
+              signatures live in the approvals queue, waiting missions in the
+              mission list. Sending someone to a queue of nought decisions
+              because three missions were paused is the kind of small lie that
+              stops people trusting the links. */}
           <MoreLink
-            hidden={approvals.length + needsYou.length <= HOME_LIMIT.approvals + HOME_LIMIT.needsYou}
-            href="/app/approvals"
-            label={`Review all ${approvals.length} decision${approvals.length === 1 ? "" : "s"}`}
+            hidden={
+              approvals.length <= HOME_LIMIT.approvals && needsYou.length <= HOME_LIMIT.needsYou
+            }
+            href={approvals.length > HOME_LIMIT.approvals ? "/app/approvals" : "/app/missions"}
+            label={
+              approvals.length > HOME_LIMIT.approvals
+                ? `Review all ${approvals.length} decisions`
+                : `See all ${needsYou.length} waiting on you`
+            }
           />
         </Section>
       )}

@@ -100,14 +100,17 @@ for (const vp of VIEWPORTS) {
       await page.reload({ waitUntil: "networkidle" });
       await page.waitForTimeout(600);
       const invisible = await page.evaluate(() =>
-        [...document.querySelectorAll("main *")]
+        [...document.querySelectorAll("main [class*='animate-']")]
           .filter(
             (el) =>
               parseFloat(getComputedStyle(el).opacity) < 0.05 &&
               el.getBoundingClientRect().height > 8
           )
-          .map((el) => el.tagName)
+          .map((el) => el.className?.toString().slice(0, 80))
       );
+      // Scoped to elements that CARRY an entrance animation. A wider sweep
+      // catches hover-reveal affordances, which are transparent on purpose
+      // and stay reachable — flagging those trains people to ignore this.
       expect(invisible, "content hidden behind an animation that never played").toEqual([]);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `reduced-motion-app-${vp.name}.png`), fullPage: true });

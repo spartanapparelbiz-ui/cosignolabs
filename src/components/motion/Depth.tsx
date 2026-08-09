@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEPTH } from "@/lib/motion";
+import { DEPTH, transitionFor } from "@/lib/motion";
 import { useRichMotion } from "@/lib/useMotionLevel";
 import { SIGNAL } from "@/lib/brand";
 
@@ -89,7 +89,9 @@ export function Tilt3D({
       style={{
         transformStyle: "preserve-3d",
         willChange: active ? "transform" : undefined,
-        transition: active ? "none" : "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+        // Tracking the pointer must not be eased (it would lag behind the
+        // cursor); releasing it settles back on the exploration timing.
+        transition: active ? "none" : transitionFor("exploration", "transform"),
       }}
       className={className}
     >

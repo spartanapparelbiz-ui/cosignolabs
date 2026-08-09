@@ -20,8 +20,17 @@ export const DASHBOARD_STEP_STATES = new Set([
   "blocked",
 ]);
 
-/** How many active missions the dashboard details at once. */
-const DASHBOARD_ACTIVE_LIMIT = 4;
+/**
+ * How many active missions the dashboard details at once.
+ *
+ * This has to be at least as many as home actually renders, or the page shows
+ * two cards side by side where one has a live line and a progress bar and the
+ * other has neither — for no reason the reader can see, since both missions
+ * are equally alive. Home caps its sections at three waiting plus four
+ * working, so eight covers every card it can put on screen with one left
+ * over.
+ */
+const DASHBOARD_ACTIVE_LIMIT = 8;
 
 export interface MissionOverview {
   missions: MissionRecord[];

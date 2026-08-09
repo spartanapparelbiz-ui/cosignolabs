@@ -213,7 +213,12 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
             <MissionCard mission={m} steps={mySteps} index={i} />
             {/* Decide right here, scoped to THIS mission's cards. */}
             {missionStatus(m.state) === "Needs approval" && waitingIds.length > 0 && (
-              <div className="pl-3">
+              // Indented and rule-joined so it reads as belonging to the card
+              // above it. Rendered flush, a decision card is the same width as
+              // a mission card and there is nothing to say which mission it
+              // came from — which is the one thing you must be sure of before
+              // you sign anything.
+              <div className="ml-4 border-l-2 border-signal/30 pl-4">
                 <DecisionInbox only={waitingIds} compact emptyFallback={null} />
               </div>
             )}

@@ -5,6 +5,7 @@ import { ArrowRight, Check } from "lucide-react";
 import type { MissionRecord, MissionStepRecord } from "@/lib/types";
 import { missionBrief } from "@/lib/missions/brief";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { CardEnter } from "@/components/motion/Enter";
 import { useChangeFlash } from "@/components/motion/StateChange";
 
 /**
@@ -41,9 +42,10 @@ export function MissionCard({
   const pct = brief.progress === null ? null : Math.round(brief.progress * 100);
 
   return (
-    <article
-      style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
-      className={`group relative animate-card-in rounded-card border bg-surface p-4 shadow-soft transition-[box-shadow,border-color,transform] duration-base ease-brand-out hover:-translate-y-px hover:shadow-depth ${
+    <CardEnter
+      as="article"
+      index={index}
+      className={`group relative rounded-card border bg-surface p-4 shadow-soft transition-[box-shadow,border-color,transform] duration-base ease-brand-out hover:-translate-y-px hover:shadow-depth ${
         brief.you ? "border-signal/50" : "border-line/70"
       } ${justFinished ? "animate-complete-seal" : ""}`}
     >
@@ -129,6 +131,6 @@ export function MissionCard({
           </span>
         </div>
       )}
-    </article>
+    </CardEnter>
   );
 }

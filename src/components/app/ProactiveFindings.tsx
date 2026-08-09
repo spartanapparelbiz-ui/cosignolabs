@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import type { SignalView } from "@/lib/autopilot/types";
 import { Button } from "@/components/ui/Button";
+import { CardEnter } from "@/components/motion/Enter";
 import { useToast } from "@/components/Toast";
 
 /**
@@ -108,10 +109,11 @@ export function ProactiveFindings() {
         {findings.map((s, i) => {
           const open = expanded === s.key;
           return (
-            <article
+            <CardEnter
+              as="article"
               key={s.key}
-              style={{ animationDelay: `${Math.min(i, 8) * 60}ms` }}
-              className="animate-card-in rounded-card border border-line/70 bg-surface p-4 shadow-soft"
+              index={i}
+              className="rounded-card border border-line/70 bg-surface p-4 shadow-soft"
             >
               <div className="flex items-start gap-3">
                 <h3 className="min-w-0 flex-1 text-sm font-extrabold leading-snug">{s.title}</h3>
@@ -179,7 +181,7 @@ export function ProactiveFindings() {
                   )}
                 </div>
               )}
-            </article>
+            </CardEnter>
           );
         })}
       </div>
