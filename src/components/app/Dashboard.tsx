@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useDisplayName } from "@/lib/theme";
 import { ArrowRight, Check, Loader2, ShieldQuestion, X } from "lucide-react";
-import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
-import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
+import type { ActionRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
 import { SourceComposer } from "@/components/app/SourceComposer";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { todayDigest } from "@/lib/missions/today";
@@ -16,8 +15,9 @@ import { todayDigest } from "@/lib/missions/today";
  *   2. what is cosigno working on?     (in progress)
  *   3. what needs my approval?         (needs your approval)
  *   4. what has cosigno finished?      (recently completed)
- * Everything is read from real data (missions, approvals, automations,
- * connections). No charts, no fake progress, no technical words.
+ * Everything is read from real data (missions, approvals). No charts, no fake
+ * progress, no technical words — and nothing suggested. An account with no
+ * work in it shows no work; the page never invents a starting point.
  */
 
 
@@ -31,18 +31,6 @@ function greeting(name: string): string {
   const part = h < 12 ? "good morning" : h < 18 ? "good afternoon" : "good evening";
   return name.trim() ? `${part}, ${name.trim()}` : `${part}`;
 }
-
-/**
- * Starting points, phrased as things a person would actually say. Shown only
- * when nothing is running — once there is real work on the page, suggestions
- * are noise competing with it.
- */
-const PROMPTS = [
-  "Prepare tomorrow's meeting",
-  "Review my unread email",
-  "Research the best option",
-  "Follow up on unanswered threads",
-] as const;
 
 async function jsonFetch(url: string, init?: RequestInit) {
   const res = await fetch(url, {
@@ -66,30 +54,6 @@ const ACTIVE_STATES = new Set([
   "blocked",
 ]);
 
-/** The connected apps a mission touches, derived from its step tools. */
-const TOOL_PROVIDER: Record<string, string> = {
-  "calendar.find_event": "google-calendar",
-  "gmail.search_related": "google",
-  "drive.search_files": "google-drive",
-};
-
-function timeUntil(iso: string): string {
-  const mins = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
-  if (mins <= 0) return "due now";
-  if (mins < 60) return `in ${mins} minute${mins === 1 ? "" : "s"}`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `in ${hrs} hour${hrs === 1 ? "" : "s"}`;
-  const days = Math.round(hrs / 24);
-  return `in ${days} day${days === 1 ? "" : "s"}`;
-}
-
-interface ConnectionView {
-  provider_key: string;
-  display_name: string;
-  kind: "app" | "mcp" | "custom";
-  status: string;
-}
-
 /* ------------------------------------------------------------------ */
 
 
@@ -105,26 +69,13 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   const [steps, setSteps] = useState<Record<string, MissionStepRecord[]>>(initial?.steps ?? {});
   const [approvals, setApprovals] = useState<ActionRecord[]>(initial?.approvals ?? []);
   const [displayName] = useDisplayName();
-  const [automation, setAutomation] = useState<AutomationRecord | null>(null);
-  const [connections, setConnections] = useState<ConnectionView[]>([]);
   // The quiet value line under the greeting — the real usage-meter count.
   // Rendered only when it's non-zero; a zero reinforces nothing.
   const [opsThisMonth, setOpsThisMonth] = useState(0);
 
-
   const loadSide = useCallback(async () => {
-    // The right-column extras (next automation, connected apps).
-    const [au, c, u] = await Promise.all([
-      jsonFetch("/api/automations").catch(() => ({ automations: [] })),
-      jsonFetch("/api/connections").catch(() => ({ connections: [] })),
-      jsonFetch("/api/usage").catch(() => ({})),
-    ]);
+    const u = await jsonFetch("/api/usage").catch(() => ({}));
     setOpsThisMonth(Number(u.usage?.actions_executed) || 0);
-    const enabled: AutomationRecord[] = (au.automations ?? []).filter((x: AutomationRecord) => x.enabled);
-    enabled.sort((x, y) => new Date(x.next_run_at).getTime() - new Date(y.next_run_at).getTime());
-    setAutomation(enabled[0] ?? null);
-    const appConns = (c.connections ?? []).filter((x: ConnectionView) => x.kind === "app");
-    setConnections(appConns.filter((x: ConnectionView) => x.status === "connected"));
   }, []);
 
   const load = useCallback(async () => {
@@ -157,11 +108,6 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
 
   const digest = todayDigest(missions ?? [], steps);
 
-  /** Put a suggestion into the ask box rather than starting it silently. */
-  function askFor(text: string) {
-    window.dispatchEvent(new CustomEvent("cosigno:compose", { detail: { text } }));
-  }
-
   const working = digest.lines.filter((l) => l.kind === "doing");
   const waiting = digest.lines.filter((l) => l.kind === "waiting");
   const finished = digest.lines.filter((l) => l.kind === "done" || l.kind === "failed");
@@ -185,40 +131,8 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
       </header>
 
       <div className="mt-6">
-        <SourceComposer
-          onStarted={load}
-          suggestions={
-            connections.some((c) => c.provider_key.startsWith("google"))
-              ? ["prepare tomorrow's meeting", "review my unread emails", "follow up on unanswered threads", "research the best option"]
-              : undefined
-          }
-        />
+        <SourceComposer onStarted={load} />
       </div>
-
-      {/* Prompt cards, not chips — something you actually want to click. */}
-      {working.length === 0 && waiting.length === 0 && (
-        <section className="mt-6">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
-            Try asking
-          </p>
-          <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
-            {PROMPTS.map((p) => (
-              <button
-                key={p}
-                onClick={() => askFor(p)}
-                className="group rounded-card border border-line bg-surface px-4 py-3 text-left text-sm font-semibold shadow-soft transition-all hover:-translate-y-0.5 hover:border-signal hover:shadow-depth"
-              >
-                {p}
-                <ArrowRight
-                  size={13}
-                  className="ml-1.5 inline text-ink-soft transition-transform group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* --------------------------- working now --------------------------- */}
       {working.length > 0 && (

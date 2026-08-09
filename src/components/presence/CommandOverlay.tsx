@@ -16,14 +16,6 @@ import type { CosignoState } from "@/lib/state";
  * understand→plan pipeline. Routing is deterministic (src/lib/intent.ts).
  */
 
-const SUGGESTIONS = [
-  "What's waiting on me?",
-  "What's happening?",
-  "What did you finish today?",
-  "What's blocked?",
-  "Show my missions",
-];
-
 export function CommandOverlay({
   state,
   onClose,
@@ -98,18 +90,6 @@ export function CommandOverlay({
             {state.blocked} blocked
           </p>
         )}
-
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {SUGGESTIONS.map((s) => (
-            <button
-              key={s}
-              onClick={() => go(s)}
-              className="rounded-pill bg-cream-deep px-3 py-1 text-xs font-bold text-ink-soft transition-colors hover:text-ink"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
 
         <p className="mt-3 text-[10px] font-semibold text-ink-soft/70">
           Anything else becomes a delegation — cosigno shows you its plan before it starts.
