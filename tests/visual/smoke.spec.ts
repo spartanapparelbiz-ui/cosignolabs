@@ -112,36 +112,48 @@ for (const vp of VIEWPORTS) {
     test("landing", async ({ page }) => {
       await page.goto("/", { waitUntil: "networkidle" });
       await expect(
-        page.getByRole("heading", { name: "give cosigno the work. keep the final say." })
+        page.getByRole("heading", { level: 1, name: /ai that cannot act without you/i })
       ).toBeVisible();
-      // The rebuilt section order: outcomes, launch jobs, comparison,
-      // templates, pricing preview — each pinned by its anchor copy.
-      await expect(page.getByText("inbox cleared")).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: "three real jobs, working today" })
-      ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: "why not another chatbot?" })
-      ).toBeVisible();
-      await expect(page.getByRole("heading", { name: "start from a template" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "simple pricing" })).toBeVisible();
-      // Hero viewport capture FIRST, while the composed scene is pristine at
-      // the top of the page — its floating cards use scroll-driven parallax,
-      // which the fullPage tiling below would otherwise disturb.
+
+      // The scroll story, pinned by the heading of every chapter in order.
+      // Attachment rather than visibility: several of these live inside pinned
+      // stages that are legitimately off-screen until you scroll to them.
+      for (const name of [
+        /give ai your accounts and it will use them/i,
+        /everything stops right here/i,
+        /how cosigno works/i,
+        /connect what it may touch/i,
+        /you sign the part that matters/i,
+        /connect everything\. hand over nothing/i,
+        /a mission runs itself . until it needs you/i,
+        /the approval is the product/i,
+        /you can always ask what it is doing/i,
+        /built for teams shipping ai into production/i,
+        /one signature\. three sizes/i,
+        /nothing happens until you say so/i,
+      ]) {
+        await expect(page.getByRole("heading", { name })).toHaveCount(1);
+      }
+
+      // Hero capture FIRST, while the opening frame is pristine: the surface
+      // and its cards are scroll-driven, so any scrolling disturbs them.
       await page.waitForTimeout(700);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `landing-${vp.name}.png`) });
-      // Then scroll through so on-reveal sections animate in, and capture the
-      // full page as a layout reference.
-      await page.evaluate(async () => {
-        for (let y = 0; y <= document.body.scrollHeight; y += 400) {
-          window.scrollTo(0, y);
-          await new Promise((r) => setTimeout(r, 60));
-        }
-        window.scrollTo(0, 0);
-      });
-      await page.waitForTimeout(400);
-      await page.screenshot({ path: join(OUT, `landing-full-${vp.name}.png`), fullPage: true });
+
+      // Then walk the page in viewport-sized steps. A fullPage capture is
+      // meaningless here — pinned sections would tile the same frame a dozen
+      // times — so each chapter is sampled where it actually settles.
+      const total = await page.evaluate(() => document.body.scrollHeight);
+      const height = vp.height;
+      for (let i = 1; i <= 8; i++) {
+        const y = Math.round(((total - height) * i) / 8);
+        await page.evaluate((to) => window.scrollTo(0, to), y);
+        await page.waitForTimeout(500);
+        await noHorizontalScroll(page);
+        await page.screenshot({ path: join(OUT, `landing-${vp.name}-${i}.png`) });
+      }
+      await page.evaluate(() => window.scrollTo(0, 0));
     });
 
     test("pricing", async ({ page }) => {
@@ -168,9 +180,11 @@ for (const vp of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `pricing-${vp.name}.png`), fullPage: true });
     });
 
+    // The sandbox lives on /demo now — the home page tells the story, the demo
+    // page is where you drive it.
     test("live preview: starter mission + isolation + honest unsupported answer", async ({ page }) => {
-      await page.goto("/", { waitUntil: "networkidle" });
-      const preview = page.locator("#sandbox");
+      await page.goto("/demo", { waitUntil: "networkidle" });
+      const preview = page.locator("main");
       await preview.scrollIntoViewIfNeeded();
       // Wait for the lazy-loaded sandbox to hydrate.
       await expect(preview.getByText(/sandbox — simulated tools/)).toBeVisible();
@@ -201,31 +215,69 @@ for (const vp of VIEWPORTS) {
     test("landing interactive widgets", async ({ page }) => {
       await page.goto("/", { waitUntil: "networkidle" });
 
-      // --- approval story (§3 script): approve card 1, then the tier-3 refund
-      // (typed-confirm) card slides in — a stable, filmable mid-story state.
-      const story = page.locator("section", {
-        hasText: "one command. one signature. done.",
-      });
-      await story.scrollIntoViewIfNeeded();
-      await expect(story.getByText(/draft replies to your 3 most recent leads/i)).toBeVisible();
-      const approve = story.getByRole("button", { name: "approve" });
-      await expect(approve).toBeVisible();
-      await approve.click();
-      // the locked tier-3 refund card appears and asks for typed confirmation
-      await expect(story.getByText(/refund \$48\.00/i)).toBeVisible();
-      await expect(story.getByText(/type .*confirm.* to authorize/i)).toBeVisible();
+      // --- the approval moment: the one place on the page with real buttons.
+      // Approving resolves the frozen queue and swaps in the payoff line.
+      const moment = page.locator("section", { has: page.locator("#moment-title") });
+      await moment.scrollIntoViewIfNeeded();
+      await expect(moment.getByText(/send 412 emails to all-customers/i)).toBeVisible();
+      // The scene presses its own button after a beat if nobody else does, so
+      // the click is best-effort and the assertion is on where it lands.
+      const approve = moment.getByRole("button", { name: "approve" });
+      if (await approve.count()) await approve.click({ timeout: 5_000 }).catch(() => {});
+      await expect(moment.getByText(/signed & executed/i)).toBeVisible();
+      await expect(moment.getByText(/with your name on it/i)).toBeVisible();
       await noHorizontalScroll(page);
-      await story.screenshot({ path: join(OUT, `story-${vp.name}.png`) });
+      await moment.screenshot({ path: join(OUT, `moment-${vp.name}.png`) });
 
-      // --- tier board: move "send email" into Auto → consequence warning
-      const board = page.locator("section", { hasText: "you set the rope" });
-      await board.scrollIntoViewIfNeeded();
-      await expect(board.getByRole("button", { name: "send email" })).toBeVisible();
-      await board.getByRole("button", { name: "send email" }).click();
-      await board.getByRole("button", { name: "move here" }).first().click();
-      await expect(board.getByText(/emails would now send without asking/i)).toBeVisible();
+      // --- monitoring: the filters and the search box really do filter and
+      // search, over the stream's recent history rather than the visible rows.
+      const monitoring = page.locator("section", { has: page.locator("#monitoring-title") });
+      await monitoring.scrollIntoViewIfNeeded();
+      const stream = monitoring.locator("ul").first();
+      await expect(stream.locator("li").first()).toBeVisible();
+      // Polled, not read once: filtered-out rows animate out, so they are
+      // briefly still in the DOM after the click.
+      const everyRowMatches = async (re: RegExp) => {
+        const texts = await stream.locator("li").allInnerTexts();
+        return texts.length > 0 && texts.every((t) => re.test(t));
+      };
+      await monitoring.getByRole("button", { name: "held" }).click();
+      await expect.poll(() => everyRowMatches(/held/i), { timeout: 10_000 }).toBe(true);
+      await monitoring.getByRole("button", { name: "everything" }).click();
+      await monitoring.getByLabel("search activity").fill("refund");
+      await expect.poll(() => everyRowMatches(/refund/i), { timeout: 10_000 }).toBe(true);
       await noHorizontalScroll(page);
-      await board.screenshot({ path: join(OUT, `tierboard-${vp.name}.png`) });
+      await monitoring.screenshot({ path: join(OUT, `monitoring-${vp.name}.png`) });
+    });
+
+    test("the close: the last card spells out what happens after the click", async ({
+      page,
+    }) => {
+      await page.goto("/", { waitUntil: "networkidle" });
+      const cta = page.locator("section", { has: page.locator("#cta-title") });
+      await cta.scrollIntoViewIfNeeded();
+      await expect(cta.getByText("hand you the operator.")).toBeVisible();
+
+      // The three steps are the promise; if the onboarding changes, this fails
+      // before a visitor discovers the difference.
+      await expect(cta.getByText(/what happens after you click/i)).toBeVisible();
+      await expect(cta.getByText(/create your account/i)).toBeVisible();
+      await expect(cta.getByText(/connect one tool/i)).toBeVisible();
+      await expect(cta.getByText(/stops at the first card/i)).toBeVisible();
+
+      // Two exits, and the no-account one is right beside the primary.
+      await expect(cta.getByRole("link", { name: "start free" })).toHaveAttribute(
+        "href",
+        "/sign-up"
+      );
+      await expect(cta.getByRole("link", { name: "watch it run first" })).toHaveAttribute(
+        "href",
+        "/demo"
+      );
+      await expect(cta.getByRole("link", { name: "sign in" })).toHaveAttribute("href", "/sign-in");
+
+      await noHorizontalScroll(page);
+      await cta.screenshot({ path: join(OUT, `close-${vp.name}.png`) });
     });
 
     test("home dashboard: the four-question layout", async ({ page }) => {

@@ -147,13 +147,16 @@ export function CosignoLogo({
 
   if (href) {
     return (
-      <Link
-        href={href}
-        aria-label={`${label} home`}
-        prefetch
-        className={`${shell} ${className}`}
-        style={style}
-      >
+      <Link href={href} prefetch className={`${shell} ${className}`} style={style}>
+        {/*
+         * The accessible name comes from this text node, not from an
+         * aria-label. The wordmark renders a dotless "ı" so the orange dot can
+         * sit above it, and an aria-label whose text can never match that
+         * rendered glyph trips axe's label-content-name-mismatch rule. Naming
+         * the link from hidden content sidesteps the rule entirely and
+         * announces exactly the same thing it did before.
+         */}
+        <span className="sr-only">{`${label} home`}</span>
         {inner}
       </Link>
     );
