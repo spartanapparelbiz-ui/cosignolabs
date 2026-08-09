@@ -19,15 +19,15 @@ const MAX_BATCH = 25;
 
 /** Launch capabilities, each tagged with its risk class (→ server tier). */
 const GMAIL_ACTIONS: ProviderAction[] = [
-  { id: "search_messages", summary: "search your inbox and list matches (read-only).", mutates: false, risk: "read" },
-  { id: "read_message", summary: "read one message's subject and sender (read-only).", mutates: false, risk: "read" },
+  { id: "search_messages", summary: "Search your inbox and list matches (read-only).", mutates: false, risk: "read" },
+  { id: "read_message", summary: "Read one message's subject and sender (read-only).", mutates: false, risk: "read" },
   // Drafting never sends — nothing leaves the account, so it's auto-safe.
-  { id: "create_draft", summary: "save a draft reply (nothing is sent).", mutates: true, risk: "read" },
-  { id: "send_message", summary: "send an email (waits for your signature).", mutates: true, risk: "write" },
-  { id: "archive", summary: "archive messages out of the inbox.", mutates: true, risk: "write" },
-  { id: "label", summary: "add a label to messages.", mutates: true, risk: "write" },
-  { id: "mark_read", summary: "mark messages as read.", mutates: true, risk: "write" },
-  { id: "trash", summary: "move messages to trash (destructive — typed confirmation).", mutates: true, risk: "destructive" },
+  { id: "create_draft", summary: "Save a draft reply (nothing is sent).", mutates: true, risk: "read" },
+  { id: "send_message", summary: "Send an email (waits for your signature).", mutates: true, risk: "write" },
+  { id: "archive", summary: "Archive messages out of the inbox.", mutates: true, risk: "write" },
+  { id: "label", summary: "Add a label to messages.", mutates: true, risk: "write" },
+  { id: "mark_read", summary: "Mark messages as read.", mutates: true, risk: "write" },
+  { id: "trash", summary: "Move messages to trash (destructive — typed confirmation).", mutates: true, risk: "destructive" },
 ];
 
 function bearer(creds: OAuthCredentials) {
@@ -87,11 +87,11 @@ async function gmailExecute(
       // Message ids let a mission read individual matches (bounded); ids are
       // opaque references, but the result set as a whole stays untrusted.
       const ids = (res.messages ?? []).map((m) => m.id).slice(0, MAX_BATCH);
-      return { ok: true, summary: `found ${n} message${n === 1 ? "" : "s"}${q ? ` matching “${q}”` : ""}.`, detail: { count: n, ids, untrusted: true } };
+      return { ok: true, summary: `Found ${n} message${n === 1 ? "" : "s"}${q ? ` matching “${q}”` : ""}.`, detail: { count: n, ids, untrusted: true } };
     }
     case "read_message": {
       const id = str(payload.id);
-      if (!id) return { ok: false, summary: "no message id given." };
+      if (!id) return { ok: false, summary: "No message id given." };
       const res = await requestJson<{ payload?: { headers?: { name: string; value: string }[] } }>(
         `${API}/messages/${encodeURIComponent(id)}?format=metadata&metadataHeaders=Subject&metadataHeaders=From`,
         { headers: bearer(creds) }
@@ -100,7 +100,7 @@ async function gmailExecute(
       const subject = headers.find((h) => h.name === "Subject")?.value ?? "(no subject)";
       const from = headers.find((h) => h.name === "From")?.value ?? "";
       // The subject/sender are UNTRUSTED content — carried as data, never instructions.
-      return { ok: true, summary: `read message: “${subject}”.`, detail: { id, subject, from, untrusted: true } };
+      return { ok: true, summary: `Read message: “${subject}”.`, detail: { id, subject, from, untrusted: true } };
     }
     case "create_draft": {
       const to = str(payload.to) ?? "";
@@ -111,11 +111,11 @@ async function gmailExecute(
         headers: bearer(creds),
         body: { message: { raw: rawMessage(to, subject, body) } },
       });
-      return { ok: true, summary: `saved a draft to ${to || "(no recipient)"} — nothing was sent.` };
+      return { ok: true, summary: `Saved a draft to ${to || "(no recipient)"} — nothing was sent.` };
     }
     case "send_message": {
       const to = str(payload.to);
-      if (!to) return { ok: false, summary: "no recipient given." };
+      if (!to) return { ok: false, summary: "No recipient given." };
       const subject = str(payload.subject) ?? "(no subject)";
       const body = str(payload.body) ?? "";
       await requestJson(`${API}/messages/send`, {
@@ -123,24 +123,24 @@ async function gmailExecute(
         headers: bearer(creds),
         body: { raw: rawMessage(to, subject, body) },
       });
-      return { ok: true, summary: `sent an email to ${to}.` };
+      return { ok: true, summary: `Sent an email to ${to}.` };
     }
     case "archive": {
       const ids = await resolveIds(payload, creds);
       const n = await modify(ids, { removeLabelIds: ["INBOX"] }, creds);
-      return { ok: true, summary: `archived ${n} message${n === 1 ? "" : "s"}.` };
+      return { ok: true, summary: `Archived ${n} message${n === 1 ? "" : "s"}.` };
     }
     case "mark_read": {
       const ids = await resolveIds(payload, creds);
       const n = await modify(ids, { removeLabelIds: ["UNREAD"] }, creds);
-      return { ok: true, summary: `marked ${n} message${n === 1 ? "" : "s"} as read.` };
+      return { ok: true, summary: `Marked ${n} message${n === 1 ? "" : "s"} as read.` };
     }
     case "label": {
       const ids = await resolveIds(payload, creds);
       const label = str(payload.label_id) ?? str(payload.label);
-      if (!label) return { ok: false, summary: "no label given." };
+      if (!label) return { ok: false, summary: "No label given." };
       const n = await modify(ids, { addLabelIds: [label] }, creds);
-      return { ok: true, summary: `labelled ${n} message${n === 1 ? "" : "s"}.` };
+      return { ok: true, summary: `Labelled ${n} message${n === 1 ? "" : "s"}.` };
     }
     case "trash": {
       const ids = await resolveIds(payload, creds);
@@ -149,18 +149,18 @@ async function gmailExecute(
         await requestJson(`${API}/messages/${encodeURIComponent(id)}/trash`, { method: "POST", headers: bearer(creds) });
         n++;
       }
-      return { ok: true, summary: `moved ${n} message${n === 1 ? "" : "s"} to trash.` };
+      return { ok: true, summary: `Moved ${n} message${n === 1 ? "" : "s"} to trash.` };
     }
     default:
-      return { ok: false, summary: "unknown Gmail action." };
+      return { ok: false, summary: "Unknown Gmail action." };
   }
 }
 
 export const gmailProvider = makeOAuthProvider({
   key: "google",
   name: "Gmail",
-  detail: "search, read, draft, and (with your signature) send, archive, or trash mail.",
-  scopeSummary: "gmail: read · draft · send · modify",
+  detail: "Search, read, draft, and (with your signature) send, archive, or trash mail.",
+  scopeSummary: "Your whole mailbox — read, draft, send and organise",
   homeUrl: "https://mail.google.com",
   tracks: ["unread mail", "threads waiting on a reply", "drafts"],
   authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",

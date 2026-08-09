@@ -99,7 +99,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         }
         const updated = await store.updateBrowserSession(userId, session.id, {
           status: "stopped",
-          stop_reason: "stopped by you. everything found so far was kept.",
+          stop_reason: "Stopped by you. Everything found so far was kept.",
           last_action: "Stopped by you.",
         });
         return NextResponse.json({ session: updated });

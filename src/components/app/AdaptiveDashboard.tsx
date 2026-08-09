@@ -95,7 +95,7 @@ export function AdaptiveDashboard() {
                 {p.providerKey && (
                   <ConnectorLogo kind="app" providerKey={p.providerKey} displayName={p.name} size={16} />
                 )}
-                <p className="text-[0.875rem] font-semibold">{p.name}</p>
+                <p className="text-[0.9375rem] font-semibold">{p.name}</p>
               </div>
 
               {p.facts.length > 0 ? (
@@ -111,7 +111,7 @@ export function AdaptiveDashboard() {
                 // A panel shows facts OR the reason there are none. Never a zero
                 // standing in for an unknown.
                 <p className="t-caption mt-3">
-                  {p.note ?? "cosigno can't read counts from this one yet."}
+                  {p.note ?? "Cosigno can't read counts from this one yet."}
                 </p>
               )}
 
@@ -122,7 +122,7 @@ export function AdaptiveDashboard() {
               {p.activity && (
                 <Link
                   href={p.activity.href}
-                  className="mt-4 flex items-center gap-2 border-t border-line/40 pt-3 text-[0.8125rem] underline-offset-2 hover:underline"
+                  className="mt-4 flex items-center gap-2 border-t border-line/40 pt-3 text-[0.875rem] underline-offset-2 hover:underline"
                 >
                   <span className={`${dot("signal")} animate-orb-pulse`} aria-hidden="true" />
                   {p.activity.text}
@@ -139,7 +139,7 @@ export function AdaptiveDashboard() {
             >
               <div className="flex items-center gap-2.5">
                 <ConnectorLogo kind="app" providerKey={i.providerKey} displayName={i.name} size={16} />
-                <p className="text-[0.875rem] font-semibold">Connect {i.name}</p>
+                <p className="text-[0.9375rem] font-semibold">Connect {i.name}</p>
                 <Plus size={13} strokeWidth={1.9} className="ml-auto text-ink-soft" aria-hidden="true" />
               </div>
               <p className="t-caption mt-3">Track {i.tracks} here.</p>

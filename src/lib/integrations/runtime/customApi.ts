@@ -59,12 +59,12 @@ export async function runCustomApiAction(
 ): Promise<ActionResult> {
   const store = getStore();
   const c: ConnectionRecord | null = await store.getConnection(userId, connectionId);
-  if (!c || c.kind !== "custom") return { ok: false, summary: "connection not found." };
-  if (c.status === "revoked") return { ok: false, summary: "this connection was disconnected." };
+  if (!c || c.kind !== "custom") return { ok: false, summary: "Connection not found." };
+  if (c.status === "revoked") return { ok: false, summary: "This connection was disconnected." };
 
   const cfg = c.metadata as unknown as CustomApiConfig;
   const action = cfg.actions?.find((a) => a.id === actionId);
-  if (!action) return { ok: false, summary: "that action isn't on this connection." };
+  if (!action) return { ok: false, summary: "That action isn't on this connection." };
 
   // Build the final URL and SSRF-check it FRESH (base_url was checked at add
   // time, but path + a re-resolve here defeats time-of-check/rebinding).
@@ -76,8 +76,8 @@ export async function runCustomApiAction(
   try {
     url = await assertPublicUrl(rawUrl);
   } catch (err) {
-    if (err instanceof SsrfError) return { ok: false, summary: "that endpoint isn't allowed." };
-    return { ok: false, summary: "couldn't reach that endpoint." };
+    if (err instanceof SsrfError) return { ok: false, summary: "That endpoint isn't allowed." };
+    return { ok: false, summary: "Couldn't reach that endpoint." };
   }
 
   // Inject the API key server-side per the connection's auth placement.
@@ -125,7 +125,7 @@ export async function runCustomApiAction(
       connectionId: c.id,
       action: actionId,
     });
-    return { ok: false, summary: "the tool call didn't go through." };
+    return { ok: false, summary: "The tool call didn't go through." };
   } finally {
     clearTimeout(timer);
   }

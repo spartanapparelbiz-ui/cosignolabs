@@ -70,12 +70,12 @@ const WINDOWS = {
 
 const LIMIT_MESSAGES: Record<LimitName, string> = {
   commandMinute:
-    "you're moving fast — planning is limited to 10 commands a minute.",
-  commandDay: "you've hit today's command limit. it resets tomorrow.",
-  transitionMinute: "you're moving fast — try that again in a few seconds.",
+    "You're moving fast — planning is limited to 10 commands a minute.",
+  commandDay: "You've hit today's command limit. It resets tomorrow.",
+  transitionMinute: "You're moving fast — try that again in a few seconds.",
   betaHour:
-    "a few applications already came from this connection — try again in an hour.",
-  previewMinute: "the sandbox needs a breather — try again in a minute.",
+    "A few applications already came from this connection — try again in an hour.",
+  previewMinute: "The sandbox needs a breather — try again in a minute.",
   trackMinute: "", // beacon is silent — this message is never surfaced.
 };
 
@@ -193,7 +193,7 @@ export async function enforceGlobalPlanningBudget(): Promise<void> {
     throw new RateLimitError(
       "global_budget",
       3600,
-      "cosigno reached today's beta capacity. your commands are safe — try again tomorrow."
+      "cosigno reached today's beta capacity. Your commands are safe — try again tomorrow."
     );
   }
 }

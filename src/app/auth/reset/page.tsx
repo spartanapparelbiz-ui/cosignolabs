@@ -39,7 +39,7 @@ export default function ResetPasswordPage() {
     setError(null);
     try {
       if (!configured) {
-        setError("password reset isn't available in the demo workspace.");
+        setError("Password reset isn't available in the demo workspace.");
         return;
       }
       const { error: err } = await supabaseBrowser().auth.resetPasswordForEmail(email.trim(), {

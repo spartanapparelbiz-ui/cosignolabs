@@ -3,7 +3,7 @@ export const AVAILABLE_INTEGRATIONS = [
   {
     key: "gmail",
     name: "Gmail",
-    detail: "read, draft, send — sends always wait for approval.",
+    detail: "Read, draft, send — sends always wait for approval.",
     scopes: "read · draft · send",
   },
   {

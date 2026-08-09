@@ -175,7 +175,7 @@ export async function approveAction(
     });
     throw new EngineError(
       "injection_blocked",
-      "this card was held: external content attempted to direct the agent. it can't be executed — re-issue the command yourself if you want this done."
+      "this card was held: external content attempted to direct the agent. It can't be executed — re-issue the command yourself if you want this done."
     );
   }
 

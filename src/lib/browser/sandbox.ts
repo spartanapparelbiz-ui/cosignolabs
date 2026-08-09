@@ -97,7 +97,7 @@ function searchObservation(): PageObservation {
   return {
     url: SANDBOX_SEARCH_URL,
     title: "laptops under $1,000 — search results (sandbox)",
-    summary: "sandbox search results: three laptops under $1,000.",
+    summary: "Sandbox search results: three laptops under $1,000.",
     headings: ["results"],
     links: SANDBOX_PRODUCT_URLS.map((u) => ({ text: CATALOG[u].product, href: u })),
     buttons: [],
@@ -114,7 +114,7 @@ function genericObservation(url: string): PageObservation {
   return {
     url,
     title: "sandbox page",
-    summary: `a sandbox page at ${url}. no live content is fetched in the sandbox provider.`,
+    summary: `A sandbox page at ${url}. no live content is fetched in the sandbox provider.`,
     headings: ["sandbox"],
     links: [],
     buttons: [],
@@ -160,35 +160,35 @@ export class SandboxBrowserProvider implements BrowserProvider {
       case "openLink":
       case "inspect": {
         const obs = observationFor(target ?? SANDBOX_SEARCH_URL);
-        return { ok: true, summary: `read ${obs.title}.`, observation: obs, simulated: true };
+        return { ok: true, summary: `Read ${obs.title}.`, observation: obs, simulated: true };
       }
       case "searchWithinPage": {
         const obs = searchObservation();
-        return { ok: true, summary: `searched for “${target ?? ""}” — ${obs.links.length} results.`, observation: obs, simulated: true };
+        return { ok: true, summary: `Searched for “${target ?? ""}” — ${obs.links.length} results.`, observation: obs, simulated: true };
       }
       case "captureScreenshot":
-        return { ok: true, summary: "captured a screenshot (sandbox placeholder).", simulated: true };
+        return { ok: true, summary: "Captured a screenshot (sandbox placeholder).", simulated: true };
       case "typeDraftValue":
       case "selectDraftValue":
-        return { ok: true, summary: `staged ${target ?? "field"} = “${value ?? ""}” (draft only — not submitted).`, form: { [target ?? "field"]: value ?? "" }, simulated: true };
+        return { ok: true, summary: `Staged ${target ?? "field"} = “${value ?? ""}” (draft only — not submitted).`, form: { [target ?? "field"]: value ?? "" }, simulated: true };
       case "prepareFormSubmission":
-        return { ok: true, summary: "form prepared — nothing submitted.", simulated: true };
+        return { ok: true, summary: "Form prepared — nothing submitted.", simulated: true };
       case "submitApprovedForm":
         // Only ever reached AFTER an approval card executed. The sandbox
         // returns a labeled confirmation so verification can run.
         return {
           ok: true,
-          summary: "submitted the prepared form (sandbox).",
+          summary: "Submitted the prepared form (sandbox).",
           confirmation: { confirmation_number: `SBX-${ref(target ?? "form")}`, page: "confirmation (sandbox)", simulated: true },
           simulated: true,
         };
       case "downloadPublicFile":
-        return { ok: true, summary: "downloaded a public file (sandbox placeholder).", download: { name: target ?? "file.pdf", size: 1024, ref: ref(target ?? "dl") }, simulated: true };
+        return { ok: true, summary: "Downloaded a public file (sandbox placeholder).", download: { name: target ?? "file.pdf", size: 1024, ref: ref(target ?? "dl") }, simulated: true };
       case "clickReadOnlyControl":
       case "scroll":
         return { ok: true, summary: `${kind} (sandbox).`, simulated: true };
       default:
-        return { ok: false, summary: "unknown browser action.", simulated: true };
+        return { ok: false, summary: "Unknown browser action.", simulated: true };
     }
   }
 

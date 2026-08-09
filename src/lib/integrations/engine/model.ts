@@ -153,7 +153,7 @@ export function capabilitiesFromMcp(tools: McpToolRecord[]): ConnectorCapability
       // MCP descriptions come from a third-party server and are UNTRUSTED
       // text. Bounded here so a long or hostile description can't take over
       // the surface a person reads before approving.
-      summary: (t.description || "no description supplied by the server.").slice(0, 300),
+      summary: (t.description || "No description supplied by the server.").slice(0, 300),
       risk,
       tier: RISK_TIER[risk],
       available,

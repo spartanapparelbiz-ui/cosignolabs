@@ -26,6 +26,11 @@ const config: Config = {
         // Two meanings, never decoration: connected/done, and destructive/failed.
         positive: "rgb(var(--c-positive) / <alpha-value>)",
         danger: "rgb(var(--c-danger) / <alpha-value>)",
+        // The readable half of the signal orange (see globals.css). Use
+        // `text-signal-ink` for words, `bg-signal` for fills, and
+        // `text-on-signal` for whatever sits on top of a fill.
+        "signal-ink": "rgb(var(--c-signal-text) / <alpha-value>)",
+        "on-signal": "rgb(var(--c-on-signal) / <alpha-value>)",
       },
       borderRadius: {
         card: "14px",

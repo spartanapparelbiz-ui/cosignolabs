@@ -7,12 +7,12 @@ const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 // §8 — three fields, each earning its place by doubling as customer discovery.
 const FIELDS = {
-  email: { label: "email", hint: "that email doesn't look right — check for typos." },
+  email: { label: "email", hint: "That email doesn't look right — check for typos." },
   workflow: {
     label: "the one task",
     hint: "one sentence is enough — what eats your week?",
   },
-  tools: { label: "tools", hint: "pick or name at least one tool it would touch." },
+  tools: { label: "tools", hint: "Pick or name at least one tool it would touch." },
 } as const;
 
 type FieldName = keyof typeof FIELDS;
@@ -86,7 +86,7 @@ export function BetaForm() {
         }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.message || "that didn't go through — try again in a moment.");
+      if (!res.ok) throw new Error(body.message || "That didn't go through — try again in a moment.");
       track("apply_submitted");
       setState("done");
       setMessage(body.message);
@@ -94,7 +94,7 @@ export function BetaForm() {
       // Error state keeps the form (and the visitor's input) intact.
       setState("error");
       setMessage(
-        err instanceof Error ? err.message : "that didn't go through — try again in a moment."
+        err instanceof Error ? err.message : "That didn't go through — try again in a moment."
       );
     }
   }

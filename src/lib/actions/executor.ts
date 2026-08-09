@@ -78,20 +78,20 @@ const HANDLERS: Readonly<Record<ActionCategory, Handler>> = Object.freeze({
   // consented to — re-checked again inside runMcpTool / runProviderAction.
   // Still gated by the same tier/approval flow as everything else.
   connection_call: async (payload, ctx) => {
-    if (!ctx.userId) return { ok: false, summary: "no user context for this call." };
+    if (!ctx.userId) return { ok: false, summary: "No user context for this call." };
     const connectionId = str(payload.connection_id);
-    if (!connectionId) return { ok: false, summary: "missing connection." };
+    if (!connectionId) return { ok: false, summary: "Missing connection." };
     const args =
       payload.args && typeof payload.args === "object" && !Array.isArray(payload.args)
         ? (payload.args as Record<string, unknown>)
         : {};
     if (payload.kind === "mcp") {
       const tool = str(payload.tool);
-      if (!tool) return { ok: false, summary: "missing tool name." };
+      if (!tool) return { ok: false, summary: "Missing tool name." };
       return runMcpTool(ctx.userId, connectionId, tool, args);
     }
     const action = str(payload.action);
-    if (!action) return { ok: false, summary: "missing action id." };
+    if (!action) return { ok: false, summary: "Missing action id." };
     if (payload.kind === "custom") {
       return runCustomApiAction(ctx.userId, connectionId, action, args);
     }
@@ -109,7 +109,7 @@ export async function executeAction(
     : undefined;
   if (!handler) {
     logSecurity("executor_category_denied", { category });
-    return { ok: false, summary: "action category is not in the executor allowlist." };
+    return { ok: false, summary: "Action category is not in the executor allowlist." };
   }
   const safePayload =
     payload && typeof payload === "object" && !Array.isArray(payload)

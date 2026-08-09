@@ -127,17 +127,17 @@ const laptopConfirm: MissionTool = {
         kind: "question",
         question: {
           question: "Which country's prices should I use?",
-          why: "prices and availability differ by region.",
+          why: "Prices and availability differ by region.",
           options: ["United States", "United Kingdom", "Canada"],
           recommended: "United States",
-          effect: "search results and prices are read for the country you pick.",
+          effect: "Search results and prices are read for the country you pick.",
         },
       };
     }
     const country = answer ?? "United States";
     return {
       kind: "ok",
-      summary: `requirements confirmed: under $${budget}, for ${reqs.join(", ")} — prices in ${country}.`,
+      summary: `Requirements confirmed: under $${budget}, for ${reqs.join(", ")} — prices in ${country}.`,
       output: { budget, requirements: reqs, country },
       sources: [],
     };
@@ -209,7 +209,7 @@ const laptopSearch: MissionTool = {
 
     return {
       kind: "ok",
-      summary: `found ${candidates.length} possible product${candidates.length === 1 ? "" : "s"}${blocked.length > 0 ? ` — ${blocked.join(", ")} could not be read (blocked automated access)` : ""}.`,
+      summary: `Found ${candidates.length} possible product${candidates.length === 1 ? "" : "s"}${blocked.length > 0 ? ` — ${blocked.join(", ")} could not be read (blocked automated access)` : ""}.`,
       output: { candidates, blocked, simulated: !live },
       sources: [
         {
@@ -298,7 +298,7 @@ const laptopReview: MissionTool = {
       await updatePreview(ctx.userId, session.id, candidate.url, product.name);
       return {
         kind: "ok",
-        summary: `reviewed ${product.name}${product.current_price !== null ? ` — $${product.current_price.toFixed(2)}` : " — no price confirmed"}${skipped.length > 0 ? ` (skipped ${skipped.length} unreadable page${skipped.length === 1 ? "" : "s"})` : ""}.`,
+        summary: `Reviewed ${product.name}${product.current_price !== null ? ` — $${product.current_price.toFixed(2)}` : " — no price confirmed"}${skipped.length > 0 ? ` (skipped ${skipped.length} unreadable page${skipped.length === 1 ? "" : "s"})` : ""}.`,
         output: {
           product_id: product.id,
           name: product.name,
@@ -353,7 +353,7 @@ const laptopCompare: MissionTool = {
       : "";
     return {
       kind: "ok",
-      summary: `compared ${scored.length} product${scored.length === 1 ? "" : "s"} against your requirements (${reqs.join(", ")}).${shortfall}`,
+      summary: `Compared ${scored.length} product${scored.length === 1 ? "" : "s"} against your requirements (${reqs.join(", ")}).${shortfall}`,
       output: {
         comparison: scored.map((s) => ({
           product_id: s.product.id,
@@ -390,7 +390,7 @@ const laptopRecommend: MissionTool = {
     if (!pick) {
       return {
         kind: "ok",
-        summary: "no product had a confirmed price, so cosigno is not making a recommendation.",
+        summary: "No product had a confirmed price, so cosigno is not making a recommendation.",
         output: { recommendation: null, reason: "no confirmed prices" },
         sources: [],
       };
@@ -415,7 +415,7 @@ const laptopRecommend: MissionTool = {
 
     return {
       kind: "ok",
-      summary: `recommended ${pick.name}${pick.price !== null ? ` at $${pick.price.toFixed(2)}` : ""} — stopped at the product page; no purchase was attempted.`,
+      summary: `Recommended ${pick.name}${pick.price !== null ? ` at $${pick.price.toFixed(2)}` : ""} — stopped at the product page; no purchase was attempted.`,
       output: {
         recommendation: {
           product_id: pick.product_id,
@@ -523,7 +523,7 @@ const laptopReport: MissionTool = {
 
     return {
       kind: "ok",
-      summary: `comparison report saved${recommendation ? ` — recommending ${recommendation.name}` : ""} (${products.length} product${products.length === 1 ? "" : "s"} reviewed, no external changes made).`,
+      summary: `Comparison report saved${recommendation ? ` — recommending ${recommendation.name}` : ""} (${products.length} product${products.length === 1 ? "" : "s"} reviewed, no external changes made).`,
       output: { file_id: file.id, file_name: file.name, deliverable: "comparison", recommendation },
       sources: [{ name: "files", detail: `deliverable “${file.name}” saved (v1)`, simulated }],
     };

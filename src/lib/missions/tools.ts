@@ -147,10 +147,10 @@ const calendarFindEvent: MissionTool = {
           kind: "question",
           question: {
             question: "I found more than one upcoming event. Which one should I prepare?",
-            why: "the brief, agenda, and follow-up are built around one meeting.",
+            why: "The brief, agenda, and follow-up are built around one meeting.",
             options: titles.slice(0, 4),
             recommended: titles[0],
-            effect: "everything else in this mission is scoped to the event you pick.",
+            effect: "Everything else in this mission is scoped to the event you pick.",
           },
         };
       }
@@ -159,7 +159,7 @@ const calendarFindEvent: MissionTool = {
         const event: EventInfo = { title, when: "upcoming", attendees: [], simulated: false };
         return {
           kind: "ok",
-          summary: `found the upcoming event “${title}” on your Google Calendar.`,
+          summary: `Found the upcoming event “${title}” on your Google Calendar.`,
           output: { event },
           sources: [{ name: "Google Calendar", detail: `event “${title}”` }],
         };
@@ -169,7 +169,7 @@ const calendarFindEvent: MissionTool = {
       const event = SANDBOX.event();
       return {
         kind: "ok",
-        summary: "no upcoming events on your calendar — continuing with a clearly-marked sandbox example.",
+        summary: "No upcoming events on your calendar — continuing with a clearly-marked sandbox example.",
         output: { event },
         sources: [{ name: "workspace sandbox", detail: "example event (no real calendar event found)", simulated: true }],
       };
@@ -177,7 +177,7 @@ const calendarFindEvent: MissionTool = {
     const event = answer ? { ...SANDBOX.event(), title: answer } : SANDBOX.event();
     return {
       kind: "ok",
-      summary: `using the sandbox event “${event.title}” — connect Google Calendar to use your real schedule.`,
+      summary: `Using the sandbox event “${event.title}” — connect Google Calendar to use your real schedule.`,
       output: { event },
       sources: [{ name: "workspace sandbox", detail: "example event (calendar not connected)", simulated: true }],
     };
@@ -198,7 +198,7 @@ const gmailSearchRelated: MissionTool = {
       const count = typeof res.detail?.count === "number" ? (res.detail.count as number) : 0;
       return {
         kind: "ok",
-        summary: `searched your Gmail for “${event.title}” — ${count} related message${count === 1 ? "" : "s"} found.`,
+        summary: `Searched your Gmail for “${event.title}” — ${count} related message${count === 1 ? "" : "s"} found.`,
         output: { messages: count, excerpts: [], simulated: false },
         sources: [{ name: "Gmail", detail: `${count} messages matching “${event.title}”` }],
         ...(count > 0 ? {} : {}),
@@ -206,7 +206,7 @@ const gmailSearchRelated: MissionTool = {
     }
     return {
       kind: "ok",
-      summary: `reviewed ${SANDBOX.messages.length} sandbox messages related to “${event.title}”.`,
+      summary: `Reviewed ${SANDBOX.messages.length} sandbox messages related to “${event.title}”.`,
       output: { messages: SANDBOX.messages.length, excerpts: SANDBOX.messages, simulated: true },
       sources: [
         { name: "workspace sandbox", detail: `${SANDBOX.messages.length} example messages (Gmail not connected or sandbox event)`, simulated: true },
@@ -229,14 +229,14 @@ const driveSearchFiles: MissionTool = {
         : [];
       return {
         kind: "ok",
-        summary: `checked your Drive — ${files.length} file${files.length === 1 ? "" : "s"} cosigno can see.`,
+        summary: `Checked your Drive — ${files.length} file${files.length === 1 ? "" : "s"} cosigno can see.`,
         output: { files, simulated: false },
         sources: [{ name: "Google Drive", detail: `${files.length} files (drive.file scope: app-created only)` }],
       };
     }
     return {
       kind: "ok",
-      summary: `found ${SANDBOX.files.length} sandbox files related to the meeting.`,
+      summary: `Found ${SANDBOX.files.length} sandbox files related to the meeting.`,
       output: { files: SANDBOX.files, simulated: true },
       sources: [{ name: "workspace sandbox", detail: `${SANDBOX.files.length} example files (Drive not connected or sandbox event)`, simulated: true }],
     };
@@ -322,7 +322,7 @@ const analyzeExtract: MissionTool = {
       extraction.commitments.length + extraction.decisions.length + extraction.open_questions.length;
     return {
       kind: "ok",
-      summary: `analyzed ${messageCount} message${messageCount === 1 ? "" : "s"} and ${files.length} file${files.length === 1 ? "" : "s"} — ${extraction.commitments.length} commitments, ${extraction.decisions.length} decisions, ${extraction.open_questions.length} open questions.`,
+      summary: `Analyzed ${messageCount} message${messageCount === 1 ? "" : "s"} and ${files.length} file${files.length === 1 ? "" : "s"} — ${extraction.commitments.length} commitments, ${extraction.decisions.length} decisions, ${extraction.open_questions.length} open questions.`,
       output: { ...extraction, injected, analyzed: { messages: messageCount, files: files.length } },
       sources: [
         {
@@ -436,7 +436,7 @@ const deliverableBrief: MissionTool = {
     const file = await writeDeliverable(ctx, `meeting-brief — ${event.title}`, content);
     return {
       kind: "ok",
-      summary: `meeting brief created from ${nMsg} message${nMsg === 1 ? "" : "s"}, ${files.length} file${files.length === 1 ? "" : "s"}, and 1 calendar event.`,
+      summary: `Meeting brief created from ${nMsg} message${nMsg === 1 ? "" : "s"}, ${files.length} file${files.length === 1 ? "" : "s"}, and 1 calendar event.`,
       output: { ...file, deliverable: "brief" },
       sources: [{ name: "files", detail: `deliverable “${file.file_name}” saved (v1)` }],
     };
@@ -463,7 +463,7 @@ const deliverableAgenda: MissionTool = {
     const file = await writeDeliverable(ctx, `agenda — ${event.title}`, content);
     return {
       kind: "ok",
-      summary: `agenda drafted with ${items.length} item${items.length === 1 ? "" : "s"} from the analysis.`,
+      summary: `Agenda drafted with ${items.length} item${items.length === 1 ? "" : "s"} from the analysis.`,
       output: { ...file, deliverable: "agenda" },
       sources: [{ name: "files", detail: `deliverable “${file.file_name}” saved (v1)` }],
     };
@@ -495,7 +495,7 @@ const deliverableFollowup: MissionTool = {
     const file = await writeDeliverable(ctx, `follow-up draft — ${event.title}`, content);
     return {
       kind: "ok",
-      summary: "follow-up email drafted — saved as a deliverable, nothing has been sent.",
+      summary: "Follow-up email drafted — saved as a deliverable, nothing has been sent.",
       output: { ...file, deliverable: "followup", subject, body },
       sources: [{ name: "files", detail: `deliverable “${file.file_name}” saved (v1)` }],
     };
@@ -513,7 +513,7 @@ const approvalOfferSend: MissionTool = {
     return {
       kind: "propose",
       category: "send_email",
-      summary: `send the follow-up email for “${event.title}”`,
+      summary: `Send the follow-up email for “${event.title}”`,
       payload: { to: event.attendees[0] ?? "", subject, body },
     };
   },
@@ -523,7 +523,7 @@ const approvalOfferSend: MissionTool = {
       return {
         ok: true,
         simulated: true,
-        detail: "sandbox execution — verified inside the workspace; no external mail exists.",
+        detail: "Sandbox execution — verified inside the workspace; no external mail exists.",
       };
     }
     // Real send: confirm the message actually exists in Sent Mail (shared,
@@ -568,7 +568,7 @@ const missionReceipt: MissionTool = {
     await getStore().updateMission(ctx.userId, ctx.mission.id, { receipt });
     return {
       kind: "ok",
-      summary: `mission receipt written: ${done.length} steps completed, ${deliverables.length} deliverables, ${verified.length} verification${verified.length === 1 ? "" : "s"}.`,
+      summary: `Mission receipt written: ${done.length} steps completed, ${deliverables.length} deliverables, ${verified.length} verification${verified.length === 1 ? "" : "s"}.`,
       output: { receipt: true, deliverables: deliverables.length },
       sources: [],
     };
@@ -655,7 +655,7 @@ const browserResearch: MissionTool = {
     const priced = findings.filter((f) => f.price !== null);
     return {
       kind: "ok",
-      summary: `researched ${findings.length} product page${findings.length === 1 ? "" : "s"} through the browser — ${priced.length} with a current price.`,
+      summary: `Researched ${findings.length} product page${findings.length === 1 ? "" : "s"} through the browser — ${priced.length} with a current price.`,
       output: { findings, simulated: !live },
       sources: findings.map((f) => ({
         name: live ? f.retailer : "workspace sandbox",
@@ -708,7 +708,7 @@ const deliverableComparison: MissionTool = {
     const file = await writeDeliverable(ctx, "laptop comparison", content);
     return {
       kind: "ok",
-      summary: `compared ${findings.length} laptops and recommended ${pick ? pick.product : "none"} for “${priority}”.`,
+      summary: `Compared ${findings.length} laptops and recommended ${pick ? pick.product : "none"} for “${priority}”.`,
       output: { ...file, deliverable: "comparison", recommendation: pick, priority },
       sources: [{ name: "files", detail: `deliverable “${file.file_name}” saved (v1)`, simulated }],
     };
@@ -722,7 +722,7 @@ const browserPreparePurchase: MissionTool = {
     const cmp = outputOf(ctx, "deliverable.comparison");
     const pick = cmp.recommendation as ProductFinding | null;
     if (!pick || pick.price === null) {
-      return { kind: "ok", summary: "no priced recommendation to prepare — skipping the purchase step.", output: { skipped: true }, sources: [] };
+      return { kind: "ok", summary: "No priced recommendation to prepare — skipping the purchase step.", output: { skipped: true }, sources: [] };
     }
     // Prepare the cart, then propose the purchase for approval. No payment
     // connection is configured, so this can only ever stage a cart — the card
@@ -730,13 +730,13 @@ const browserPreparePurchase: MissionTool = {
     return {
       kind: "propose",
       category: "spend",
-      summary: `prepare the cart for “${pick.product}” at ${pick.retailer} — $${pick.price.toFixed(2)} (no payment is completed)`,
+      summary: `Prepare the cart for “${pick.product}” at ${pick.retailer} — $${pick.price.toFixed(2)} (no payment is completed)`,
       payload: {
         retailer: pick.retailer,
         product: pick.product,
         amount: `$${pick.price.toFixed(2)}`,
         url: pick.url,
-        note: "no supported payment connection — cosigno prepares the cart and verifies it, but does not pay.",
+        note: "No supported payment connection — cosigno prepares the cart and verifies it, but does not pay.",
       },
     };
   },
@@ -755,7 +755,7 @@ const browserPreparePurchase: MissionTool = {
     );
     await getStore().updateBrowserSession(ctx.userId, session.id, { status: "completed" });
     if (!submit.ok) {
-      return { ok: false, detail: "the cart couldn't be prepared — nothing was purchased." };
+      return { ok: false, detail: "The cart couldn't be prepared — nothing was purchased." };
     }
     const conf = submit.confirmation ?? {};
     return {

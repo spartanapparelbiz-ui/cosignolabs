@@ -69,7 +69,7 @@ export function MissionControl() {
       setSnap(await res.json());
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't check on cosigno.");
+      setError(e instanceof Error ? e.message : "Couldn't check on cosigno.");
     }
   }, []);
 
@@ -100,7 +100,7 @@ export function MissionControl() {
   return (
     <Page width="work">
       <PageHeader
-        title="What is in motion?"
+        title="What's running right now?"
         description={
           nodes.length === 0
             ? "Nothing is running at the moment."
@@ -129,7 +129,7 @@ export function MissionControl() {
       )}
 
       {!snap && !error ? (
-        <div className="mt-12 grid gap-3 sm:grid-cols-2" aria-hidden="true">
+        <div className="mt-12 grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-[repeat(2,minmax(0,1fr))]" aria-hidden="true">
           {[0, 1].map((i) => (
             <div key={i} className="h-[170px] animate-shimmer rounded-card bg-ink/[0.055]" />
           ))}
@@ -137,7 +137,7 @@ export function MissionControl() {
       ) : nodes.length === 0 && !error ? (
         <EmptyState finished={snap?.finished_count ?? 0} />
       ) : (
-        <div className="mt-12 grid gap-3 sm:grid-cols-2">
+        <div className="mt-12 grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-[repeat(2,minmax(0,1fr))]">
           {nodes.map((n) => (
             <MissionCard key={n.id} node={n} onOpen={() => setOpenId(n.id)} />
           ))}
@@ -244,20 +244,20 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="text-[0.75rem] font-semibold text-ink-soft">progress</span>
-        <span className="text-xs font-semibold tabular-nums">
+        <span className="t-caption">Progress</span>
+        <span className="t-caption tabular-nums">
           {done} of {total} steps
         </span>
       </div>
       <div
-        className="mt-1 h-1.5 overflow-hidden rounded-pill bg-cream-deep"
+        className="mt-2 h-1 overflow-hidden rounded-pill bg-ink/[0.08]"
         role="progressbar"
         aria-valuenow={done}
         aria-valuemin={0}
         aria-valuemax={total}
       >
         <div
-          className="h-full rounded-pill bg-signal transition-[width] duration-base ease-brand-out"
+          className="h-full rounded-pill bg-ink transition-[width] duration-slow ease-brand-out"
           style={{ width: `${Math.max(3, pct)}%` }}
         />
       </div>
@@ -271,7 +271,7 @@ function MissionCard({ node: n, onOpen }: { node: Node; onOpen: () => void }) {
     <button
       onClick={onOpen}
       aria-label={`check on: ${n.goal}`}
-      className={`${card(true)} group p-5 text-left focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_rgb(var(--c-signal))]`}
+      className={`${card(true)} group min-w-0 p-5 text-left focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_rgb(var(--c-signal))]`}
     >
       <div className="flex items-start justify-between gap-3">
         <p className="t-title min-w-0 truncate">{n.goal}</p>

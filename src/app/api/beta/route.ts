@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       message:
-        "application received — we review weekly and onboard in small cohorts. you'll hear from us at " +
+        "Application received — we review weekly and onboard in small cohorts. You'll hear from us at " +
         body.email.trim() +
         ".",
     });

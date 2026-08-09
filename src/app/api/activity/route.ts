@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
         throw new ApiError(
           402,
           "upgrade_required",
-          "CSV export is a pro feature. upgrade to export your audit log."
+          "CSV export is a pro feature. Upgrade to export your audit log."
         );
       }
       const header = [

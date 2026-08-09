@@ -104,7 +104,7 @@ export function LiveMonitoring() {
       setSnap(await res.json());
       setError(null);
     } catch {
-      setError("couldn't read the current state just now.");
+      setError("Couldn't read the current state just now.");
     }
   }, []);
 
@@ -204,7 +204,7 @@ export function LiveMonitoring() {
                     key={i}
                     className={`border-l-2 pl-3.5 ${al.level === "critical" ? "border-danger" : "border-signal"}`}
                   >
-                    <p className="text-[0.9375rem] font-semibold">{al.title}</p>
+                    <p className="text-[1rem] font-semibold">{al.title}</p>
                     <p className="t-caption mt-0.5">{al.detail}</p>
                   </li>
                 ))}
@@ -220,7 +220,7 @@ export function LiveMonitoring() {
               </Empty>
             ) : (
               <div className="surface-scroll overflow-x-auto">
-                <table className="w-full min-w-[560px] text-[0.875rem]">
+                <table className="w-full min-w-[560px] text-[0.9375rem]">
                   <thead>
                     <tr className="border-b border-line/50 text-left">
                       <th className="t-eyebrow px-3 pb-2 font-semibold">Service</th>
@@ -262,7 +262,7 @@ export function LiveMonitoring() {
                     className="flex flex-wrap items-center justify-between gap-3 rounded-btn px-3 py-3 transition-colors duration-fast hover:bg-ink/[0.035]"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-[0.9375rem]">{p.summary}</p>
+                      <p className="truncate text-[1rem]">{p.summary}</p>
                       <p className="t-caption mt-0.5">{p.category}</p>
                     </div>
                     <span className="t-caption shrink-0 tabular-nums">waiting {ago(p.waiting_ms)}</span>
@@ -297,7 +297,7 @@ export function LiveMonitoring() {
                       }`}
                       aria-hidden="true"
                     />
-                    <p className="text-[0.875rem]">
+                    <p className="text-[0.9375rem]">
                       <span className="t-caption">{e.actor}</span> {e.action}{" "}
                       <span className="text-ink-soft">on {e.resource}</span>
                     </p>

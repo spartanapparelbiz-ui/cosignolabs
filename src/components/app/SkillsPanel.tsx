@@ -26,7 +26,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -49,7 +49,7 @@ export function SkillsPanel() {
       const d = await jsonFetch("/api/skills");
       setSkills(d.skills ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load skills.");
+      setError(e instanceof Error ? e.message : "Couldn't load skills.");
     }
   }, []);
 
@@ -68,11 +68,11 @@ export function SkillsPanel() {
         "success",
         skill.installed
           ? "uninstalled — its rules are gone."
-          : "installed — its watches are live and its rules will prepare work for you."
+          : "Installed — its watches are live and its rules will prepare work for you."
       );
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "that didn't go through.");
+      toast("error", e instanceof Error ? e.message : "That didn't go through.");
     } finally {
       setBusy(null);
     }
@@ -124,7 +124,7 @@ export function SkillsPanel() {
                   <Repeat size={13} className="shrink-0" />
                 )}
                 <span className="min-w-0 flex-1 truncate">{i.name}</span>
-                <span className="shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide">
+                <span className="shrink-0 text-[0.75rem] font-semibold uppercase tracking-wide">
                   {i.mode === "monitor" ? "watch" : "prepare"} · {cadence(i.interval_hours)}
                 </span>
               </li>

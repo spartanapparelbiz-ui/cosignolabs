@@ -23,7 +23,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -59,7 +59,7 @@ export function DecisionInbox({
       const data = await jsonFetch("/api/actions?status=proposed&limit=200");
       setActions(data.actions ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load your decisions.");
+      setError(e instanceof Error ? e.message : "Couldn't load your decisions.");
     }
   }, []);
 
@@ -81,11 +81,11 @@ export function DecisionInbox({
             ...(opts.signature ? { signature: opts.signature } : {}),
           }),
         });
-        toast("success", opts.signature ? "signed & executed." : "approved & executed.");
+        toast("success", opts.signature ? "signed & executed." : "Approved & executed.");
         await load();
         return null;
       } catch (e) {
-        return e instanceof Error ? e.message : "that didn't go through.";
+        return e instanceof Error ? e.message : "That didn't go through.";
       }
     },
     [load, toast]
@@ -99,7 +99,7 @@ export function DecisionInbox({
           body: JSON.stringify({ name, image }),
         });
         setSaved(d.signature ?? null);
-        toast("success", "signature saved — next time, hold to sign.");
+        toast("success", "Signature saved — next time, hold to sign.");
       } catch {
         // Convenience only; the approval already went through.
       }
@@ -114,11 +114,11 @@ export function DecisionInbox({
           method: "POST",
           body: JSON.stringify({ reason }),
         });
-        toast("success", "vetoed — nothing ran.");
+        toast("success", "Vetoed — nothing ran.");
         await load();
         return null;
       } catch (e) {
-        return e instanceof Error ? e.message : "that didn't go through.";
+        return e instanceof Error ? e.message : "That didn't go through.";
       }
     },
     [load, toast]
@@ -134,7 +134,7 @@ export function DecisionInbox({
         await load();
         return null;
       } catch (e) {
-        return e instanceof Error ? e.message : "couldn't save that edit.";
+        return e instanceof Error ? e.message : "Couldn't save that edit.";
       }
     },
     [load]

@@ -48,7 +48,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -80,7 +80,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
       setError(null);
       return d.mission as MissionRecord;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load this mission.");
+      setError(e instanceof Error ? e.message : "Couldn't load this mission.");
       return null;
     }
   }, [missionId]);
@@ -116,11 +116,11 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
       await jsonFetch(`/api/missions/${missionId}/control`, { method: "POST", body: JSON.stringify({ op }) });
       toast(
         "success",
-        op === "pause" ? "paused — no new work will start." : op === "resume" ? "resumed." : "stopped — waiting steps canceled, pending cards vetoed."
+        op === "pause" ? "paused — no new work will start." : op === "resume" ? "resumed." : "Stopped — waiting steps canceled, pending cards vetoed."
       );
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "that didn't work.");
+      toast("error", e instanceof Error ? e.message : "That didn't work.");
     } finally {
       setBusy(null);
     }
@@ -138,7 +138,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
       toast("success", `${add} more actions approved — carrying on.`);
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "that didn't work.");
+      toast("error", e instanceof Error ? e.message : "That didn't work.");
     } finally {
       setBusy(null);
     }
@@ -150,7 +150,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
       await jsonFetch(`/api/missions/${missionId}/answer`, { method: "POST", body: JSON.stringify({ answer: value }) });
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "the answer didn't go through.");
+      toast("error", e instanceof Error ? e.message : "The answer didn't go through.");
     } finally {
       setBusy(null);
     }
@@ -359,7 +359,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               <div className="mt-2 flex items-start gap-3">
                 <WorkAppMark app={narration.nowWorking.app} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[0.9375rem] leading-snug">
+                  <p className="text-[1rem] leading-snug">
                     {narration.nowWorking.headline}
                   </p>
                   {(narration.nowWorking.app.department ?? narration.nowWorking.app.name) && (
@@ -429,7 +429,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                               {/* The outcome first. Metadata never precedes
                                   the result. */}
                               <p
-                                className={`min-w-0 flex-1 text-[0.875rem] ${
+                                className={`min-w-0 flex-1 text-[0.9375rem] ${
                                   e.phase === "upcoming"
                                     ? "text-ink-soft"
                                     : e.phase === "skipped"
@@ -440,7 +440,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                                 {e.headline}
                               </p>
                               {e.at && (
-                                <span className="shrink-0 text-[0.6875rem] tabular-nums text-ink-soft">
+                                <span className="shrink-0 text-[0.75rem] tabular-nums text-ink-soft">
                                   {clockTime(e.at)}
                                 </span>
                               )}
@@ -503,7 +503,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                       {src.kind === "link" ? <Link2 size={12} strokeWidth={1.9} /> : <FileText size={12} strokeWidth={1.9} />}
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-[0.875rem]">{src.name}</span>
+                      <span className="block text-[0.9375rem]">{src.name}</span>
                       <span className="t-caption block">
                         {src.status === "ready" ? "read as context" : "couldn't be read — not used"}
                       </span>
@@ -519,7 +519,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               <h2 className="t-eyebrow">Results</h2>
               <ul className="mt-2 flex flex-col gap-1.5">
                 {deliverables.map((s) => (
-                  <li key={s.id} className="text-[0.875rem]">
+                  <li key={s.id} className="text-[0.9375rem]">
                     <Link href="/app/files" className="underline underline-offset-2 hover:text-signal">
                       {String(s.output?.file_name ?? "deliverable")}
                     </Link>
@@ -608,7 +608,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                 ].map((r) => (
                   <div key={r.k} className="flex items-baseline justify-between gap-3">
                     <dt className="t-caption">{r.k}</dt>
-                    <dd className="text-[0.875rem] tabular-nums">{r.v}</dd>
+                    <dd className="text-[0.9375rem] tabular-nums">{r.v}</dd>
                   </div>
                 ))}
               </dl>

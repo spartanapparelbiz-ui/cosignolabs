@@ -396,7 +396,7 @@ export interface HoldRecord {
 /* ----------------------------------------------------- temporary authority */
 
 /**
- * A scoped, time-limited authority grant: "for the next two hours, handle
+ * A scoped, time-limited authority grant: "For the next two hours, handle
  * <category> without asking." Always explicit, visible, revocable, and
  * recorded; when it expires, the previous permission level simply applies
  * again (base tier settings are never touched). Only unpinned tier-2

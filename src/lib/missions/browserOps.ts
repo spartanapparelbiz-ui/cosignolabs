@@ -47,7 +47,7 @@ export async function ensureBrowserSession(
     if (s.expires_at && new Date(s.expires_at).getTime() < Date.now()) {
       await store.updateBrowserSession(userId, s.id, {
         status: "expired",
-        stop_reason: "the browser session expired. completed research was saved.",
+        stop_reason: "The browser session expired. Completed research was saved.",
       });
       continue;
     }
@@ -78,7 +78,7 @@ export async function ensureBrowserSession(
 /** Budget guard: refuse a new browser action when the mission is over its caps. */
 export async function budgetRemaining(mission: MissionRecord): Promise<{ ok: boolean; reason?: string }> {
   if (mission.browser_actions >= 30) {
-    return { ok: false, reason: "this mission reached its browser-action limit — approve to raise it." };
+    return { ok: false, reason: "This mission reached its browser-action limit — approve to raise it." };
   }
   return { ok: true };
 }
@@ -100,7 +100,7 @@ export async function runReadOnlyAction(
 ): Promise<{ ok: boolean; summary: string; observation?: PageObservation }> {
   const store = getStore();
   if (isConsequential(action.kind)) {
-    return { ok: false, summary: "consequential browser actions can't run without approval." };
+    return { ok: false, summary: "Consequential browser actions can't run without approval." };
   }
   const budget = await budgetRemaining(mission);
   if (!budget.ok) return { ok: false, summary: budget.reason! };
@@ -113,7 +113,7 @@ export async function runReadOnlyAction(
     if (visits >= MAX_PAGE_VISITS_PER_MISSION) {
       return {
         ok: false,
-        summary: `this mission reached its ${MAX_PAGE_VISITS_PER_MISSION}-page limit — cosigno stopped browsing and kept everything it already found.`,
+        summary: `This mission reached its ${MAX_PAGE_VISITS_PER_MISSION}-page limit — cosigno stopped browsing and kept everything it already found.`,
       };
     }
   }

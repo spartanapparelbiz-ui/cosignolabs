@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getUserPlan } from "../../src/lib/billing";
 import { chooseModel } from "../../src/lib/enforcement";
-import { PAST_DUE_GRACE_DAYS } from "../../src/lib/plans";
+import { PAST_DUE_GRACE_DAYS, PLANS, priceLabel } from "../../src/lib/plans";
 import { MemoryStore } from "../../src/lib/store/memory";
 import { resetRateLimitsForTests } from "../../src/lib/ratelimit";
 import type { SubscriptionRecord } from "../../src/lib/types";
@@ -126,7 +126,11 @@ describe("integration limit (free = 1)", () => {
     const second = await POST(req("webhook"));
     expect(second.status).toBe(402);
     const body = await second.json();
-    expect(body.message).toMatch(/pro/i);
+    // The refusal names the upgrade by its DISPLAY name and its real price,
+    // both read from plans.ts — a hardcoded "$29/mo" here is how the copy
+    // drifted away from what the customer is actually charged.
+    expect(body.message).toContain(PLANS.pro.name);
+    expect(body.message).toContain(priceLabel(PLANS.pro, "monthly"));
 
     // reconnecting an already-connected one is not a new slot
     expect((await POST(req("gmail"))).status).toBe(200);

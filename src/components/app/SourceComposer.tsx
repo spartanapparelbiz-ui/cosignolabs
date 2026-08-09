@@ -94,7 +94,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -124,7 +124,7 @@ function SourceRow({ source, onRemove }: { source: MissionSourceRecord; onRemove
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="min-w-0 flex-1 truncate text-[0.875rem] font-semibold" title={source.name}>
+          <p className="min-w-0 flex-1 truncate text-[0.9375rem] font-semibold" title={source.name}>
             {source.name}
           </p>
           <span className={badge(sv.tone === "ok" ? "positive" : sv.tone === "warn" ? "danger" : "neutral")}>
@@ -259,12 +259,12 @@ export function SourceComposer({
         form.append("file", file);
         const res = await fetch("/api/sources/file", { method: "POST", body: form });
         const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body.message || "upload failed.");
+        if (!res.ok) throw new Error(body.message || "Upload failed.");
         setPending((p) => p.filter((x) => x.id !== tempId));
         setSources((s) => [...s, body.source as MissionSourceRecord]);
       } catch (e) {
         setPending((p) => p.filter((x) => x.id !== tempId));
-        toast("error", e instanceof Error ? e.message : "that file couldn't be uploaded.");
+        toast("error", e instanceof Error ? e.message : "That file couldn't be uploaded.");
       }
     }
     if (fileRef.current) fileRef.current.value = "";
@@ -302,7 +302,7 @@ export function SourceComposer({
       setLinkOpen(false);
     } catch (e) {
       setPending((p) => p.filter((x) => x.id !== tempId));
-      toast("error", e instanceof Error ? e.message : "that link couldn't be added.");
+      toast("error", e instanceof Error ? e.message : "That link couldn't be added.");
     } finally {
       setAddingLink(false);
     }
@@ -323,7 +323,7 @@ export function SourceComposer({
     const g = goal.trim();
     if (!g || busy) return;
     if (anyWorking) {
-      toast("error", "give your files and links a moment to finish first.");
+      toast("error", "Give your files and links a moment to finish first.");
       return;
     }
     setBusy(true);
@@ -351,10 +351,10 @@ export function SourceComposer({
           backgroundActive === true
             ? intent.kind === "watch"
               ? "watching — cosigno will tell you when something happens."
-              : "recurring rule created — cosigno will prepare it on schedule."
+              : "Recurring rule created — cosigno will prepare it on schedule."
             : backgroundActive === false
-              ? "saved — but scheduled running isn't available for this workspace yet. run it from watch, or ask an administrator to switch it on."
-              : "saved — we couldn't confirm whether it will run on a schedule. check watch to run it yourself."
+              ? "saved — but scheduled running isn't available for this workspace yet. Run it from watch, or ask an administrator to switch it on."
+              : "Saved — we couldn't confirm whether it will run on a schedule. Check watch to run it yourself."
         );
         setGoal("");
         onStarted();
@@ -367,7 +367,7 @@ export function SourceComposer({
       });
       setPreview(data as CompilePreview);
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't read that request — try rephrasing it.");
+      toast("error", e instanceof Error ? e.message : "Couldn't read that request — try rephrasing it.");
     } finally {
       setBusy(false);
     }
@@ -390,7 +390,7 @@ export function SourceComposer({
       onStarted();
       router.push("/app/missions");
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't start that — try rephrasing the goal.");
+      toast("error", e instanceof Error ? e.message : "Couldn't start that — try rephrasing the goal.");
       setBusy(false);
     }
   }
@@ -587,17 +587,19 @@ export function SourceComposer({
               <button
                 key={ex}
                 onClick={() => setGoal(ex)}
-                className="group flex items-center gap-2 rounded-btn px-2 py-1.5 text-[0.9375rem] text-ink-soft transition-colors duration-fast hover:text-ink"
+                className="tap group flex items-center gap-2.5 rounded-btn px-2 py-1.5 text-left text-[1rem] text-ink-soft transition-colors duration-fast hover:text-ink"
               >
+                {/* The arrow is always there, just quiet. It used to appear only
+                    on hover, which meant that at rest four clickable lines
+                    looked exactly like four lines of prose — invisible to
+                    anyone who doesn't happen to mouse over them. */}
                 <ArrowRight
                   size={13}
                   strokeWidth={2}
                   aria-hidden="true"
-                  className="-translate-x-1 opacity-0 transition-all duration-base ease-brand-out group-hover:translate-x-0 group-hover:opacity-100"
+                  className="shrink-0 text-ink-soft/45 transition-colors duration-fast group-hover:text-ink"
                 />
-                <span className="-ml-[21px] transition-transform duration-base ease-brand-out group-hover:translate-x-[21px]">
-                  {ex}
-                </span>
+                <span>{ex}</span>
               </button>
             ))}
           </div>

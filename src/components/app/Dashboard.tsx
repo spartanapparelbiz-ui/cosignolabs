@@ -41,7 +41,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 

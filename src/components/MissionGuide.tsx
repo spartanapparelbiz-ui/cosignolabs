@@ -88,7 +88,7 @@ export function MissionGuide({
       >
         <span className="min-w-0 flex-1">
           <span className="t-eyebrow block">What cosigno is doing</span>
-          <span className="mt-1 block truncate text-[0.9375rem]">
+          <span className="mt-1 block truncate text-[1rem]">
             {planning
               ? "reading your request and creating the plan — nothing has run yet."
               : guide.current
@@ -109,7 +109,7 @@ export function MissionGuide({
           {guide.current && (
             <div>
               <p className="t-eyebrow">current step</p>
-              <p className="mt-1 text-[0.9375rem]">{guide.current.summary}</p>
+              <p className="mt-1 text-[1rem]">{guide.current.summary}</p>
               <p className="t-caption mt-1">
                 {guide.current.source.name} — {guide.current.source.doing}
               </p>
@@ -131,7 +131,7 @@ export function MissionGuide({
             ) : (
               <ul className="mt-1 flex flex-col gap-1">
                 {guide.changes.map((c, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[0.875rem]">
+                  <li key={i} className="flex items-start gap-2 text-[0.9375rem]">
                     <CheckCircle2 size={13} strokeWidth={2} className="mt-1 shrink-0 text-positive" aria-hidden="true" />
                     <span className="min-w-0">{c}</span>
                   </li>
@@ -147,7 +147,7 @@ export function MissionGuide({
                 {steps.map((s, i) => {
                   const Icon = STEP_ICON[s.state];
                   return (
-                    <li key={s.id} className="flex items-start gap-2.5 text-[0.875rem]">
+                    <li key={s.id} className="flex items-start gap-2.5 text-[0.9375rem]">
                       <Icon
                         size={14}
                         strokeWidth={1.9}

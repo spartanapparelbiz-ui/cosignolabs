@@ -111,7 +111,7 @@ export function CommandOverlay({
           ))}
         </div>
 
-        <p className="mt-3 text-[0.6875rem] font-semibold text-ink-soft/70">
+        <p className="mt-3 text-[0.75rem] font-semibold text-ink-soft/70">
           Anything else becomes a delegation — cosigno shows you its plan before it starts.
         </p>
       </div>

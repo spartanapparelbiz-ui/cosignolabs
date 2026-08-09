@@ -45,7 +45,7 @@ async function githubConnection(userId: string) {
  */
 function notConnected(): never {
   throw new Error(
-    "GitHub isn't connected. open connections and connect it, then run this again. nothing was read or changed."
+    "GitHub isn't connected. Open connections and connect it, then run this again. Nothing was read or changed."
   );
 }
 
@@ -84,10 +84,10 @@ function askForRepo(why: string): ToolResult {
   return {
     kind: "question",
     question: {
-      question: "which repository? give it as owner/name.",
+      question: "Which repository? give it as owner/name.",
       why,
       options: [],
-      effect: "cosigno will use exactly the repository you name, and no other.",
+      effect: "Cosigno will use exactly the repository you name, and no other.",
     },
   };
 }
@@ -122,7 +122,7 @@ const listRepos: MissionTool = {
       // the goal was to SEE the list, and the names are already in hand.
       summary: repos.length
         ? `your ${repos.length} most recently pushed repositories: ${repos.join(", ")}.`
-        : "your GitHub account has no repositories cosigno can see.",
+        : "Your GitHub account has no repositories cosigno can see.",
       output: { repos },
       sources: [
         {
@@ -189,9 +189,9 @@ const proposeIssue: MissionTool = {
         kind: "question",
         question: {
           question: "what should the issue be titled?",
-          why: "the title is what everyone watching the repository will see.",
+          why: "The title is what everyone watching the repository will see.",
           options: [],
-          effect: "cosigno proposes an issue with exactly this title, for your approval.",
+          effect: "Cosigno proposes an issue with exactly this title, for your approval.",
         },
       };
     }
@@ -209,7 +209,7 @@ const proposeIssue: MissionTool = {
     return {
       kind: "propose",
       category: "connection_call",
-      summary: `open issue “${title}” in ${repo}`,
+      summary: `Open issue “${title}” in ${repo}`,
       payload: {
         kind: "provider",
         connection_id: conn.id,
@@ -229,7 +229,7 @@ const proposeIssue: MissionTool = {
     const repo = String(payload.args?.repo ?? "");
     const title = String(payload.args?.title ?? "");
     if (!REPO_RE.test(repo) || !title) {
-      return { verified: false, detail: "the approved card was missing a repository or title." };
+      return { verified: false, detail: "The approved card was missing a repository or title." };
     }
 
     const conn = await githubConnection(ctx.userId);

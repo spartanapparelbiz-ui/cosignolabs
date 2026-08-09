@@ -181,11 +181,11 @@ function undoAdvice(action: ActionRecord): string | null {
   switch (action.category) {
     case "post_content":
     case "connection_call":
-      return "cosigno can't undo this. close or delete it in the app if you need it gone.";
+      return "cosigno can't undo this. Close or delete it in the app if you need it gone.";
     case "send_email":
-      return "email can't be unsent. reply or follow up if it needs correcting.";
+      return "email can't be unsent. Reply or follow up if it needs correcting.";
     case "delete":
-      return "cosigno can't restore this. check the app's own trash or backups.";
+      return "cosigno can't restore this. Check the app's own trash or backups.";
     case "refund":
     case "payment":
       return "money movement can't be reversed here — handle it in the payment provider.";

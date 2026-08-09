@@ -20,7 +20,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -41,7 +41,7 @@ export function MemoryPanel() {
       setMemories(data.memories ?? []);
       setMasterOn(Boolean(data.memory_enabled));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load your memory.");
+      setError(e instanceof Error ? e.message : "Couldn't load your memory.");
     }
   }, []);
 
@@ -55,10 +55,10 @@ export function MemoryPanel() {
     try {
       await jsonFetch("/api/memory", { method: "POST", body: JSON.stringify({ content: draft.trim() }) });
       setDraft("");
-      toast("success", "saved — the operator will use this context.");
+      toast("success", "Saved — the operator will use this context.");
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't save that.");
+      toast("error", e instanceof Error ? e.message : "Couldn't save that.");
     } finally {
       setBusy(null);
     }
@@ -72,7 +72,7 @@ export function MemoryPanel() {
         body: JSON.stringify({ memory_enabled: !masterOn }),
       });
       setMasterOn(!masterOn);
-      toast("success", !masterOn ? "memory on." : "memory off — cosigno stops using your notes.");
+      toast("success", !masterOn ? "memory on." : "Memory off — cosigno stops using your notes.");
     } finally {
       setBusy(null);
     }
@@ -93,7 +93,7 @@ export function MemoryPanel() {
     setBusy(m.id);
     try {
       await jsonFetch(`/api/memory/${m.id}`, { method: "DELETE" });
-      toast("success", "forgotten.");
+      toast("success", "Forgotten.");
       await load();
     } finally {
       setBusy(null);
@@ -128,11 +128,11 @@ export function MemoryPanel() {
       {/* master switch */}
       <div className="flex items-center gap-3 border-b border-line/40 pb-6">
         <div className="min-w-0 flex-1">
-          <p className="text-[0.9375rem] font-semibold">Memory is {masterOn ? "on" : "off"}</p>
+          <p className="text-[1rem] font-semibold">Memory is {masterOn ? "on" : "off"}</p>
           <p className="t-caption mt-0.5">
             {masterOn
               ? "Enabled notes below go to cosigno as your saved context."
-              : "cosigno isn\u2019t using your notes. They\u2019re kept, but unused."}
+              : "Cosigno isn\u2019t using your notes. They\u2019re kept, but unused."}
           </p>
         </div>
         <button
@@ -140,6 +140,7 @@ export function MemoryPanel() {
           disabled={busy === "master"}
           role="switch"
           aria-checked={masterOn}
+          aria-label={masterOn ? "turn memory off" : "turn memory on"}
           className={`inline-flex h-6 w-11 shrink-0 items-center rounded-pill p-0.5 transition-colors duration-base ${
             masterOn ? "bg-ink" : "bg-ink/15"
           }`}

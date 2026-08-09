@@ -35,7 +35,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -87,7 +87,7 @@ export function FocusMode() {
       setSaved(sig.signature ?? null);
       setNotes(((st.state as CosignoState | null)?.notes ?? []).slice(0, 1));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load your decisions.");
+      setError(e instanceof Error ? e.message : "Couldn't load your decisions.");
       setQueue([]);
     }
   }, []);
@@ -148,7 +148,7 @@ export function FocusMode() {
       });
       return null;
     } catch (e) {
-      return e instanceof Error ? e.message : "couldn't save the change.";
+      return e instanceof Error ? e.message : "Couldn't save the change.";
     }
   }, [action, control, draft, email, jsonDraft]);
 
@@ -169,7 +169,7 @@ export function FocusMode() {
       return;
     }
     setControl("cosigno");
-    toast("success", "cosigno continues — your changes are kept.");
+    toast("success", "Cosigno continues — your changes are kept.");
   }, [saveEdits, toast]);
 
   /** FINISH MYSELF — the user keeps the work; the card closes with a logged reason. */
@@ -181,10 +181,10 @@ export function FocusMode() {
         method: "POST",
         body: JSON.stringify({ reason: "took over — finishing this myself" }),
       });
-      toast("success", "all yours — cosigno stepped back and logged it.");
+      toast("success", "All yours — cosigno stepped back and logged it.");
       returnToCosigno();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "that didn't go through.");
+      setError(e instanceof Error ? e.message : "That didn't go through.");
     } finally {
       setBusy(false);
     }
@@ -246,11 +246,11 @@ export function FocusMode() {
             ...(signature ? { signature } : {}),
           }),
         });
-        toast("success", signature ? "signed — cosigno continues." : "approved — cosigno continues.");
+        toast("success", signature ? "signed — cosigno continues." : "Approved — cosigno continues.");
         returnToCosigno();
         return null;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "that didn't go through.";
+        const msg = e instanceof Error ? e.message : "That didn't go through.";
         setError(msg);
         return msg;
       } finally {
@@ -268,10 +268,10 @@ export function FocusMode() {
         method: "POST",
         body: JSON.stringify({ reason: tellText.trim() || "declined in focus" }),
       });
-      toast("success", "understood — nothing ran, and cosigno logged why.");
+      toast("success", "Understood — nothing ran, and cosigno logged why.");
       returnToCosigno();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "that didn't go through.");
+      setError(e instanceof Error ? e.message : "That didn't go through.");
     } finally {
       setBusy(false);
     }
@@ -387,7 +387,7 @@ export function FocusMode() {
         }`}
       >
         {action.injection_flag && (
-          <div className="mb-4 flex items-start gap-1.5 rounded-btn bg-signal/10 px-3 py-2 text-[0.75rem] font-semibold leading-snug text-signal ring-1 ring-inset ring-signal/30">
+          <div className="t-body mb-6 flex items-start gap-2.5 border-l-2 border-signal pl-3.5 text-signal-ink">
             <ShieldAlert size={13} strokeWidth={2.5} className="mt-px shrink-0" />
             external content tried to direct this — it can&apos;t be executed. re-issue the
             command yourself if you want it done.
@@ -600,7 +600,7 @@ export function FocusMode() {
               onClick={() => (bundleNeedsSign ? setBundleSignOpen(true) : authorizeBundle())}
               disabled={busy || bundleActions.length === 0}
               className={`inline-flex items-center gap-1.5 rounded-btn px-5 py-2.5 text-sm font-semibold shadow-rest transition-transform active:scale-[0.98] disabled:opacity-50 ${
-                bundleNeedsSign ? "bg-ink text-cream" : "bg-signal text-ink"
+                bundleNeedsSign ? "bg-ink text-cream" : "bg-signal text-on-signal"
               }`}
             >
               {bundleNeedsSign ? (

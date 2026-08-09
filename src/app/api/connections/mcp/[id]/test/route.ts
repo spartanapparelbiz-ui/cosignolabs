@@ -27,7 +27,7 @@ export async function POST(
     const store = getStore();
     const c = await store.getConnection(userId, id);
     if (!c || c.kind !== "mcp") {
-      return NextResponse.json({ error: "not_found", message: "connection not found." }, { status: 404 });
+      return NextResponse.json({ error: "not_found", message: "Connection not found." }, { status: 404 });
     }
 
     const creds = (c.encrypted_credentials

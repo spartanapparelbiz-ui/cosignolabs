@@ -17,7 +17,7 @@ export default function MemoryPage() {
     <Page width="work">
       <PageHeader
         title="What should cosigno remember?"
-        description="Standing instructions in your own words. cosigno reads every enabled one before it plans. Only you write here, and nothing written here can loosen a limit."
+        description="Standing instructions in your own words. Cosigno reads every enabled one before it plans. Only you write here, and nothing written here can loosen a limit."
       />
       <div className="mt-12 flex-1">
         <MemoryPanel />

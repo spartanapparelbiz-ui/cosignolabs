@@ -15,21 +15,21 @@ const JOBS = [
     title: "clean up my inbox",
     before: "3 newsletters burying 2 threads that actually need you.",
     after:
-      "what matters summarized, 2 replies drafted (drafts can't send), and the clutter archived — only after your signature, with a read-back check.",
+      "What matters summarized, 2 replies drafted (drafts can't send), and the clutter archived — only after your signature, with a read-back check.",
   },
   {
     icon: Reply,
     title: "prepare my follow-ups",
     before: "“re: proposal — any update?” has sat unread for 3 days.",
     after:
-      "a context-aware follow-up drafted, a send time proposed from your calendar's free/busy, sent only when you sign — then verified in Sent Mail.",
+      "A context-aware follow-up drafted, a send time proposed from your calendar's free/busy, sent only when you sign — then verified in Sent Mail.",
   },
   {
     icon: Sunrise,
     title: "build my morning brief",
-    before: "it's 8:55 and you don't know what today actually holds.",
+    before: "It's 8:55 and you don't know what today actually holds.",
     after:
-      "one brief: today's events, overnight inbox signals, suggested priorities — and a time-block offered as its own approval card.",
+      "One brief: today's events, overnight inbox signals, suggested priorities — and a time-block offered as its own approval card.",
   },
 ] as const;
 

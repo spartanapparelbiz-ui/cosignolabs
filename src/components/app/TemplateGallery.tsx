@@ -101,11 +101,11 @@ export function TemplateGallery() {
         body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || "couldn't start the mission.");
-      toast("success", "mission started.");
+      if (!res.ok) throw new Error(data.message || "Couldn't start the mission.");
+      toast("success", "Mission started.");
       router.push(`/app/missions/${data.mission.id}`);
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't start the mission.");
+      toast("error", e instanceof Error ? e.message : "Couldn't start the mission.");
       setBusy(null);
     }
   }
@@ -233,7 +233,7 @@ function Card({
       <p className="t-caption mt-1.5 flex-1">{t.outcome}</p>
       <p className="t-caption mt-4">{t.apps.join(" · ")}</p>
       <p className="t-caption">{t.approval}</p>
-      <span className="mt-4 inline-flex items-center gap-1.5 text-[0.8125rem] font-semibold">
+      <span className="mt-4 inline-flex items-center gap-1.5 text-[0.875rem] font-semibold">
         {busy === t.key ? "Starting…" : needsSubject ? "Add your subject" : "Run"}
         <ArrowRight
           size={13}

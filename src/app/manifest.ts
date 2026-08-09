@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "cosigno",
     short_name: "cosigno",
     description:
-      "the AI operator that asks first — plans, drafts, and executes across your tools, and nothing moves without your signature.",
+      "The AI operator that asks first — plans, drafts, and executes across your tools, and nothing moves without your signature.",
     start_url: "/app",
     display: "standalone",
     // App icons sit on a cream rounded plate (orange C + ink check). The splash

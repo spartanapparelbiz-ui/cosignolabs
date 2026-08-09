@@ -67,7 +67,7 @@ function describeFailure(err: unknown): { status: number | null; detail: string 
  * an env var name, a model id, or a stack trace.
  */
 const PLANNER_UNAVAILABLE =
-  "the AI operator is temporarily unavailable. we've been notified — please try again shortly.";
+  "the AI operator is temporarily unavailable. We've been notified — please try again shortly.";
 
 export function plannerErrorMessage(status: number | null, _detail?: string): string {
   if (status === 429) {

@@ -34,8 +34,8 @@ const CHOICES: Choice[] = [
     label: "my inbox",
     template: "inbox_cleanup",
     job: "clean up my inbox",
-    auto: "scans, summarizes what matters, and drafts replies — drafts can never send.",
-    signature: "archiving the newsletter clutter. nothing is ever deleted.",
+    auto: "Scans, summarizes what matters, and drafts replies — drafts can never send.",
+    signature: "Archiving the newsletter clutter. Nothing is ever deleted.",
   },
   {
     key: "followups",
@@ -43,8 +43,8 @@ const CHOICES: Choice[] = [
     label: "follow-ups I owe",
     template: "followups",
     job: "prepare my follow-ups",
-    auto: "finds waiting threads, drafts follow-ups, proposes a send time from your calendar.",
-    signature: "sending — and it's verified in Sent Mail after you sign.",
+    auto: "Finds waiting threads, drafts follow-ups, proposes a send time from your calendar.",
+    signature: "Sending — and it's verified in Sent Mail after you sign.",
   },
   {
     key: "calendar",
@@ -52,8 +52,8 @@ const CHOICES: Choice[] = [
     label: "my calendar + mornings",
     template: "daily_brief",
     job: "build my morning brief",
-    auto: "reads your schedule and overnight inbox signals, writes the brief.",
-    signature: "blocking time for the top item — a separate card.",
+    auto: "Reads your schedule and overnight inbox signals, writes the brief.",
+    signature: "Blocking time for the top item — a separate card.",
   },
 ];
 
@@ -100,13 +100,13 @@ export function FirstRunIntro() {
         body: JSON.stringify({ template: choice.template }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || "couldn't start the mission.");
+      if (!res.ok) throw new Error(data.message || "Couldn't start the mission.");
       markSeen();
       setOpen(false);
-      toast("success", "your first mission is running.");
+      toast("success", "Your first mission is running.");
       router.push(`/app/missions/${data.mission.id}`);
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't start the mission.");
+      toast("error", e instanceof Error ? e.message : "Couldn't start the mission.");
       setBusy(false);
     }
   }
@@ -139,7 +139,7 @@ export function FirstRunIntro() {
                 <button
                   key={c.key}
                   onClick={() => setPicked(c)}
-                  className="flex items-center gap-3 rounded-btn px-3 py-2.5 text-left text-[0.9375rem] transition-colors duration-fast hover:bg-ink/[0.04]"
+                  className="flex items-center gap-3 rounded-btn px-3 py-2.5 text-left text-[1rem] transition-colors duration-fast hover:bg-ink/[0.04]"
                 >
                   <c.icon size={15} strokeWidth={1.9} className="shrink-0 text-ink-soft" aria-hidden="true" />
                   {c.label}
@@ -147,7 +147,7 @@ export function FirstRunIntro() {
               ))}
               <button
                 onClick={somethingElse}
-                className="flex items-center gap-3 rounded-btn px-3 py-2.5 text-left text-[0.9375rem] transition-colors duration-fast hover:bg-ink/[0.04]"
+                className="flex items-center gap-3 rounded-btn px-3 py-2.5 text-left text-[1rem] transition-colors duration-fast hover:bg-ink/[0.04]"
               >
                 <PenLine size={15} strokeWidth={1.9} className="shrink-0 text-ink-soft" aria-hidden="true" />
                 Something else — I&apos;ll type it

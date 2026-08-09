@@ -38,7 +38,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -97,7 +97,7 @@ export function AutopilotView() {
         // once and the next visit frames what changed since now.
         jsonFetch("/api/autopilot/seen", { method: "POST" }).catch(() => null);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "something went wrong.");
+        if (!cancelled) setError(e instanceof Error ? e.message : "Something went wrong.");
       }
     })();
     return () => {
@@ -124,7 +124,7 @@ export function AutopilotView() {
             : o
         );
       } catch (e) {
-        toast("error", e instanceof Error ? e.message : "couldn't ignore that.");
+        toast("error", e instanceof Error ? e.message : "Couldn't ignore that.");
       } finally {
         setBusyKey(null);
       }
@@ -141,7 +141,7 @@ export function AutopilotView() {
           method: "POST",
           body: JSON.stringify({ command, ...(signalKey ? { signal_key: signalKey } : {}) }),
         });
-        toast("success", "prepared — nothing runs until you approve it.");
+        toast("success", "Prepared — nothing runs until you approve it.");
         if (signalKey) {
           setOverview((o) =>
             o
@@ -155,7 +155,7 @@ export function AutopilotView() {
           );
         }
       } catch (e) {
-        toast("error", e instanceof Error ? e.message : "couldn't prepare that.");
+        toast("error", e instanceof Error ? e.message : "Couldn't prepare that.");
       } finally {
         setBusyKey(null);
       }
@@ -175,7 +175,7 @@ export function AutopilotView() {
         });
         setAnswer(d.answer);
       } catch (e) {
-        toast("error", e instanceof Error ? e.message : "couldn't answer that.");
+        toast("error", e instanceof Error ? e.message : "Couldn't answer that.");
       } finally {
         setAsking(false);
       }
@@ -430,7 +430,7 @@ export function AutopilotView() {
                 </span>
                 <p className="min-w-0 flex-1 text-sm font-semibold">{s.title}</p>
                 {s.status === "new" && (
-                  <span className="rounded-pill bg-signal px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-ink">
+                  <span className="rounded-pill bg-signal px-2 py-0.5 text-[0.75rem] font-semibold uppercase tracking-wide text-on-signal">
                     New
                   </span>
                 )}
@@ -578,7 +578,7 @@ export function AutopilotView() {
                 <button
                   onClick={() => takeAction(answer.action!.command)}
                   disabled={busyKey === answer.action.command}
-                  className="mt-3 inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-ink shadow-rest transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+                  className="mt-3 inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-on-signal shadow-rest transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
                 >
                   {answer.action.label} <ChevronRight size={14} />
                 </button>
@@ -689,7 +689,7 @@ function AttentionCard({
           <button
             onClick={onAct}
             disabled={busy}
-            className="inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-ink shadow-rest transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-on-signal shadow-rest transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             {busy ? "Preparing…" : "Review action"} <ChevronRight size={14} />
           </button>

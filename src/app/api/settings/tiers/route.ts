@@ -39,7 +39,7 @@ export async function PUT(req: NextRequest) {
         "tier_locked",
         CATEGORIES[category].pinned
           ? `"${CATEGORIES[category].label.toLowerCase()}" is pinned to tier 3 and can't be moved.`
-          : "categories can only be assigned tier 1 or tier 2."
+          : "Categories can only be assigned tier 1 or tier 2."
       );
     }
 

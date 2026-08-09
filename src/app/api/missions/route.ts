@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
         throw new ApiError(
           422,
           "unsupported_goal",
-          compiled.understood.boundary || "cosigno can't turn that goal into a plan it can actually run yet."
+          compiled.understood.boundary || "Cosigno can't turn that goal into a plan it can actually run yet."
         );
       }
       const { mission } = await instantiateCompiledMission(userId, compiled.plan, {

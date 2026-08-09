@@ -36,11 +36,11 @@ export function ReplayModal({ sessionId, onClose }: { sessionId: string; onClose
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
-        if (!d.lines) throw new Error(d.message || "couldn't load the replay.");
+        if (!d.lines) throw new Error(d.message || "Couldn't load the replay.");
         setGoal(d.goal ?? null);
         setLines(d.lines);
       })
-      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : "couldn't load the replay."));
+      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : "Couldn't load the replay."));
     return () => {
       cancelled = true;
     };

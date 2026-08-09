@@ -6,7 +6,7 @@ import { Reveal } from "@/components/Reveal";
 export const metadata: Metadata = {
   title: "cosigno — product",
   description:
-    "the approval-first AI operator: it plans, prepares, and executes across your tools — with your authority exactly where you want it.",
+    "The approval-first AI operator: it plans, prepares, and executes across your tools — with your authority exactly where you want it.",
   alternates: { canonical: "https://cosignolabs.com/product" },
 };
 
@@ -31,22 +31,22 @@ const AUTHORITY = [
   {
     name: "observe",
     tier: "runs instantly",
-    body: "read-only work — searching, reading, summarizing. nothing leaves your accounts, so it doesn't wait.",
+    body: "Read-only work — searching, reading, summarizing. Nothing leaves your accounts, so it doesn't wait.",
   },
   {
     name: "prepare",
     tier: "runs instantly",
-    body: "drafts and proposals — a reply saved as a draft, a plan laid out. created, never sent.",
+    body: "Drafts and proposals — a reply saved as a draft, a plan laid out. Created, never sent.",
   },
   {
     name: "confirm",
     tier: "waits for your signature",
-    body: "anything that sends, posts, changes, or spends stops at an action card until you approve it.",
+    body: "Anything that sends, posts, changes, or spends stops at an action card until you approve it.",
   },
   {
     name: "locked",
     tier: "typed confirmation",
-    body: "destructive or irreversible moves — deletes, refunds — require you to type the confirmation. no shortcut can approve them.",
+    body: "Destructive or irreversible moves — deletes, refunds — require you to type the confirmation. No shortcut can approve them.",
   },
 ] as const;
 

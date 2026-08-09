@@ -61,7 +61,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       throw new ApiError(
         400,
         "budget_at_maximum",
-        "this mission is already at the highest limit a single mission can have. start a new one to keep going."
+        "this mission is already at the highest limit a single mission can have. Start a new one to keep going."
       );
     }
 

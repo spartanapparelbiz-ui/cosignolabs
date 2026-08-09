@@ -123,7 +123,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
-        if (!d.action) throw new Error(d.message || "couldn't load the receipt.");
+        if (!d.action) throw new Error(d.message || "Couldn't load the receipt.");
         setAction(d.action);
         setEvents(d.events ?? []);
         // Best-effort "why": the delegation this action belonged to.
@@ -134,7 +134,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
             .catch(() => null);
         }
       })
-      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : "couldn't load the receipt."));
+      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : "Couldn't load the receipt."));
     return () => {
       cancelled = true;
     };
@@ -167,7 +167,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
           label: "Status",
           value:
             action.status === "executed" ? (
-              <span className="font-semibold text-signal">Completed</span>
+              <span className="font-semibold text-signal-ink">Completed</span>
             ) : (
               action.status
             ),
@@ -222,7 +222,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
               /* The Cosigno Seal — the user and cosigno co-sign important
                  work: cosigno prepared and executed, the user authorized. */
               <div className="relative mt-3 rounded-btn border border-ink/20 bg-cream px-6 pb-3 pt-3 shadow-well">
-                <p className="text-center text-[0.6875rem] font-semibold uppercase tracking-[0.22em] text-ink-soft">
+                <p className="text-center text-[0.75rem] font-semibold uppercase tracking-[0.22em] text-ink-soft">
                   Signed by {auth.signed_name ?? "you"}
                 </p>
                 {auth.signature_image && (
@@ -230,7 +230,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
                   <img src={auth.signature_image} alt="authorizing signature" className="mx-auto h-14 object-contain" />
                 )}
                 <div className="mx-2 border-b border-ink/30" aria-hidden="true" />
-                <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+                <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[0.75rem] font-semibold uppercase tracking-[0.18em] text-ink-soft">
                   <CosignoMark size={11} /> Authorized through Cosigno · {fmtTime(auth.authorized_at)}
                 </p>
               </div>
@@ -273,7 +273,7 @@ export function ReceiptModal({ actionId, onClose }: { actionId: string; onClose(
             )}
 
             {auth?.record_hash && (
-              <p className="mt-3 break-all font-mono text-[0.6875rem] leading-relaxed text-ink-soft">
+              <p className="mt-3 break-all font-mono text-[0.75rem] leading-relaxed text-ink-soft">
                 record {auth.record_hash.slice(0, 32)}… — tamper-evident hash of exactly what you
                 authorized, sealed at approval.
               </p>

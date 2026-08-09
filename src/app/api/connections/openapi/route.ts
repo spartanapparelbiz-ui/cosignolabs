@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       throw new ApiError(
         400,
         "no_actions",
-        detected.notes[0] ?? "no operations were detected in that spec."
+        detected.notes[0] ?? "No operations were detected in that spec."
       );
     }
     return NextResponse.json({ detected });

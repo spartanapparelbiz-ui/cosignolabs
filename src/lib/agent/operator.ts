@@ -74,7 +74,7 @@ export async function planCommand(
     // instead — it invents nothing and reaches no real provider.
     throw new PlannerError(
       null,
-      "the AI operator is temporarily unavailable. we've been notified — please try again shortly."
+      "the AI operator is temporarily unavailable. We've been notified — please try again shortly."
     );
   }
 
@@ -199,7 +199,7 @@ async function planWithLLM(
       meta,
     });
     if (!result.toolInput) {
-      return { reasoning: "the operator couldn't produce a plan — try rephrasing.", proposals: [] };
+      return { reasoning: "The operator couldn't produce a plan — try rephrasing.", proposals: [] };
     }
   }
   const input = result.toolInput as {

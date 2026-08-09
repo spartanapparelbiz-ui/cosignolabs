@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!stripe || !secret) {
     return NextResponse.json(
-      { error: "not_configured", message: "billing isn't enabled." },
+      { error: "not_configured", message: "Billing isn't enabled." },
       { status: 501 }
     );
   }

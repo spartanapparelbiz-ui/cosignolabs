@@ -78,7 +78,7 @@ export function TodayStrip() {
               key={t.label}
               href={t.href}
               prefetch
-              className="inline-flex items-center gap-1.5 rounded-btn px-2 py-1 text-[0.8125rem] text-ink-soft transition-colors duration-fast hover:bg-ink/[0.04] hover:text-ink"
+              className="inline-flex items-center gap-1.5 rounded-btn px-2 py-1 text-[0.875rem] text-ink-soft transition-colors duration-fast hover:bg-ink/[0.04] hover:text-ink"
             >
               {t.accent && <span className={dot("signal")} aria-hidden="true" />}
               <span className={`tabular-nums ${t.accent ? "text-ink" : ""}`}>{t.value}</span>

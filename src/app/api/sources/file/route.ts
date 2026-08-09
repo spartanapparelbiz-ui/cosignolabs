@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         ...result.detail,
         // A human message the UI shows verbatim on the chip.
         ...(result.status === "unsupported"
-          ? { message: `cosigno can read ${SUPPORTED_LABEL}. This file type isn't supported.` }
+          ? { message: `Cosigno can read ${SUPPORTED_LABEL}. This file type isn't supported.` }
           : {}),
       },
     });

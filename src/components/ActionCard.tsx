@@ -99,7 +99,7 @@ const CHIP_TONE: Record<string, BadgeTone> = {
 };
 
 const INJECTION_TOOLTIP =
-  "external content tried to direct this action, so approval is locked. re-issue the command yourself if you want this done.";
+  "external content tried to direct this action, so approval is locked. Re-issue the command yourself if you want this done.";
 
 /**
  * The drawn-in brand check shown on executed cards — the product's one quiet
@@ -122,7 +122,7 @@ export function SignedCheck({ label = "Signed & executed" }: { label?: string })
           className="animate-check-draw"
         />
       </svg>
-      {label && <span className="text-[0.8125rem] font-semibold">{label}</span>}
+      {label && <span className="text-[0.875rem] font-semibold">{label}</span>}
     </div>
   );
 }
@@ -234,7 +234,7 @@ function ActionCardInner({
     try {
       parsed = JSON.parse(payloadText);
     } catch {
-      setError("the payload needs to be valid JSON.");
+      setError("The payload needs to be valid JSON.");
       return;
     }
     const err = await run(() => onEdit(action.id, parsed));
@@ -259,7 +259,7 @@ function ActionCardInner({
         )}
         <span className="min-w-0 flex-1">
           <span
-            className={`block truncate text-[0.9375rem] ${
+            className={`block truncate text-[1rem] ${
               action.status === "vetoed" ? "text-ink-soft line-through decoration-ink/30" : ""
             } ${action.status === "failed" ? "text-ink-soft" : ""}`}
           >

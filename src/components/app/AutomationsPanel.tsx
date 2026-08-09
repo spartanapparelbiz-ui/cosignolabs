@@ -34,18 +34,18 @@ const MODES: { value: AutomationRecord["mode"]; label: string; detail: string }[
   {
     value: "monitor",
     label: "observe",
-    detail: "watch and report only — nothing is proposed, nothing waits on you.",
+    detail: "Watch and report only — nothing is proposed, nothing waits on you.",
   },
   {
     value: "prepare",
     label: "prepare",
-    detail: "prepare proposed actions that wait for your approval. the default.",
+    detail: "Prepare proposed actions that wait for your approval. The default.",
   },
   {
     value: "execute",
     label: "operate",
     detail:
-      "you grant THIS order permission to run its routine actions automatically. signed and locked actions (external email, payments, refunds, deletes) always wait for you.",
+      "You grant THIS order permission to run its routine actions automatically. Signed and locked actions (external email, payments, refunds, deletes) always wait for you.",
   },
 ];
 
@@ -61,7 +61,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -103,7 +103,7 @@ export function AutomationsPanel() {
       const data = await jsonFetch("/api/automations");
       setAutomations(data.automations ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load your automations.");
+      setError(e instanceof Error ? e.message : "Couldn't load your automations.");
     }
   }, []);
 
@@ -128,14 +128,14 @@ export function AutomationsPanel() {
       toast(
         "success",
         backgroundActive === true
-          ? "standing order created — its first run is scheduled."
+          ? "Standing order created — its first run is scheduled."
           : backgroundActive === false
-            ? "standing order saved — but nothing runs it yet. use “run now”, or set up background execution."
-            : "standing order saved — we couldn't confirm whether it will run on a schedule. use “run now” until it does."
+            ? "Standing order saved — but nothing runs it yet. Use “run now”, or set up background execution."
+            : "Standing order saved — we couldn't confirm whether it will run on a schedule. Use “run now” until it does."
       );
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't create that automation.");
+      toast("error", e instanceof Error ? e.message : "Couldn't create that automation.");
     } finally {
       setBusy(null);
     }
@@ -149,12 +149,12 @@ export function AutomationsPanel() {
         run.status === "ok" ? "success" : "error",
         run.status === "ok"
           ? "ran — anything needing you is in decisions."
-          : run.detail || "that run didn't complete."
+          : run.detail || "That run didn't complete."
       );
       await load();
       await toggleRuns(a.id, true);
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't run that.");
+      toast("error", e instanceof Error ? e.message : "Couldn't run that.");
     } finally {
       setBusy(null);
     }
@@ -167,7 +167,7 @@ export function AutomationsPanel() {
         method: "PATCH",
         body: JSON.stringify({ enabled }),
       });
-      toast("success", enabled ? "resumed." : "paused — no runs until you resume.");
+      toast("success", enabled ? "resumed." : "Paused — no runs until you resume.");
       await load();
     } finally {
       setBusy(null);
@@ -179,7 +179,7 @@ export function AutomationsPanel() {
     setBusy(a.id);
     try {
       await jsonFetch(`/api/automations/${a.id}`, { method: "DELETE" });
-      toast("success", "deleted — nothing further will run.");
+      toast("success", "Deleted — nothing further will run.");
       await load();
     } finally {
       setBusy(null);
@@ -284,7 +284,7 @@ export function AutomationsPanel() {
                     className="mt-0.5 accent-[#FB4C20]"
                   />
                   <span>
-                    <span className="text-[0.875rem]">{m.label}</span>
+                    <span className="text-[0.9375rem]">{m.label}</span>
                     <span className="t-caption block">{m.detail}</span>
                   </span>
                 </label>
@@ -321,13 +321,13 @@ export function AutomationsPanel() {
               {a.name}
             </h2>
             <span
-              className="rounded-pill bg-cream-deep px-2.5 py-0.5 text-[0.6875rem] font-semibold tracking-wide text-ink-soft"
+              className="rounded-pill bg-cream-deep px-2.5 py-0.5 text-[0.75rem] font-semibold tracking-wide text-ink-soft"
               title={MODES.find((m) => m.value === a.mode)?.detail}
             >
               {MODE_LABEL[a.mode] ?? "prepare"}
             </span>
             <span
-              className={`rounded-pill px-2.5 py-0.5 text-[0.6875rem] font-semibold tracking-wide ${
+              className={`rounded-pill px-2.5 py-0.5 text-[0.75rem] font-semibold tracking-wide ${
                 a.enabled ? "bg-signal text-cream" : "ring-1 ring-inset ring-ink/40 text-ink-soft"
               }`}
             >

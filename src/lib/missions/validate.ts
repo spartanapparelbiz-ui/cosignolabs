@@ -82,7 +82,7 @@ export function validatePlan(plan: CompiledPlan, manifest: CapabilityManifest): 
   const toolById = new Map(manifest.tools.map((t) => [t.id, t]));
 
   if (plan.steps.length === 0) {
-    issues.push({ code: "empty_plan", detail: "the plan has no executable steps." });
+    issues.push({ code: "empty_plan", detail: "The plan has no executable steps." });
   }
 
   const idxs = new Set(plan.steps.map((s) => s.idx));
@@ -122,7 +122,7 @@ export function validatePlan(plan: CompiledPlan, manifest: CapabilityManifest): 
   }
 
   if (hasCycle(plan.steps)) {
-    issues.push({ code: "cycle", detail: "the plan's steps form a dependency cycle." });
+    issues.push({ code: "cycle", detail: "The plan's steps form a dependency cycle." });
   }
 
   // Live + sandbox in the same plan is allowed ONLY when the plan explicitly
@@ -131,7 +131,7 @@ export function validatePlan(plan: CompiledPlan, manifest: CapabilityManifest): 
     const acknowledged =
       plan.assumptions.some((a) => /sandbox/i.test(a)) || plan.unsupported.some((u) => /sandbox|live/i.test(u));
     if (!acknowledged) {
-      issues.push({ code: "mixed_data", detail: "the plan mixes live and sandbox steps without labeling it." });
+      issues.push({ code: "mixed_data", detail: "The plan mixes live and sandbox steps without labeling it." });
     }
   }
 

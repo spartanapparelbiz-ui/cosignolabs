@@ -420,28 +420,28 @@ for (const vp of VIEWPORTS) {
       await page.screenshot({ path: join(OUT, `account-profile-${vp.name}.png`), fullPage: true });
 
       // permissions — the three-column tier board
-      await page.getByRole("button", { name: "trust center" }).click();
+      await page.getByRole("button", { name: "Trust", exact: true }).click();
       await expect(page.getByRole("heading", { name: "Trust", exact: true })).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-permissions-${vp.name}.png`), fullPage: true });
 
       // plan & usage — the usage ring + sparkline + plan card
-      await page.getByRole("button", { name: "plan & usage" }).click();
+      await page.getByRole("button", { name: "Plan & usage" }).click();
       await expect(page.getByRole("heading", { name: "Plan & usage" })).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-usage-${vp.name}.png`), fullPage: true });
 
       // connections — third-party apps + custom MCP servers
-      await page.getByRole("button", { name: "connections" }).click();
+      await page.getByRole("button", { name: "Connections" }).click();
       await expect(page.getByRole("heading", { name: "Connections" })).toBeVisible();
       await page.waitForTimeout(400);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-integrations-${vp.name}.png`), fullPage: true });
 
       // security — audit trail + injection tiles
-      await page.getByRole("button", { name: "security" }).click();
+      await page.getByRole("button", { name: "Security" }).click();
       await expect(page.getByRole("heading", { name: "Security" })).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);

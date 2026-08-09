@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
 function SandboxBanner() {
   return (
     <div className="bg-signal/[0.09]">
-      <div className="mx-auto flex w-full max-w-[82rem] flex-wrap items-center justify-center gap-x-2 px-5 py-2 text-center text-[0.8125rem] sm:px-8">
+      <div className="mx-auto flex w-full max-w-[82rem] flex-wrap items-center justify-center gap-x-2 px-5 py-2 text-center text-[0.875rem] sm:px-8">
         <span>This is a sandbox — nothing is saved, and nothing real is touched.</span>
         <Link href="/" className="font-semibold underline underline-offset-2 hover:text-signal">
           Join the waitlist
@@ -49,6 +49,15 @@ function Chrome({
 }) {
   return (
     <ToastProvider>
+      {/* The first stop for anyone on a keyboard or a screen reader: one tab
+          press jumps past eleven navigation links straight to the page. It is
+          invisible until focused, which is the whole trick. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-btn focus:bg-ink focus:px-4 focus:py-2.5 focus:text-[0.9375rem] focus:font-semibold focus:text-cream focus:shadow-overlay"
+      >
+        Skip to content
+      </a>
       <div className="flex min-h-screen [min-height:100dvh]">
         {/* desktop: compact left rail */}
         <AppRail />
@@ -75,7 +84,7 @@ function Chrome({
             </div>
           </header>
           {/* bottom padding keeps content clear of the mobile bottom bar */}
-          <main className="flex flex-1 flex-col pb-24 lg:pb-0">{children}</main>
+          <main id="main" className="flex flex-1 flex-col pb-24 lg:pb-0">{children}</main>
         </div>
         {/* mobile: bottom navigation bar */}
         <AppBottomNav />

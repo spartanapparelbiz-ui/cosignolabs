@@ -28,7 +28,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -75,7 +75,7 @@ export function ObjectivesPanel() {
       const d = await jsonFetch("/api/objectives");
       setObjectives(d.objectives ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load your objectives.");
+      setError(e instanceof Error ? e.message : "Couldn't load your objectives.");
     }
   }, []);
 
@@ -93,10 +93,10 @@ export function ObjectivesPanel() {
       setTitle("");
       setTarget("");
       setAddOpen(false);
-      toast("success", "objective created — link the delegations that move it forward.");
+      toast("success", "Objective created — link the delegations that move it forward.");
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't create that.");
+      toast("error", e instanceof Error ? e.message : "Couldn't create that.");
     } finally {
       setBusy(false);
     }
@@ -161,7 +161,7 @@ export function ObjectivesPanel() {
       ) : objectives.length === 0 && !addOpen ? (
         <EmptyState
           title="No objectives yet"
-          description="An objective is an outcome you own over time. cosigno keeps every mission that contributes to it moving."
+          description="An objective is an outcome you own over time. Cosigno keeps every mission that contributes to it moving."
         />
       ) : (
         objectives.map(({ objective, progress }) => {

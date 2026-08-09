@@ -54,13 +54,13 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
     proposals.push(
       {
         category: "search",
-        summary: "scan your inbox for newsletter and promotional senders from the last 30 days.",
+        summary: "Scan your inbox for newsletter and promotional senders from the last 30 days.",
         payload: { query: "category:promotions OR list-unsubscribe", window_days: 30 },
         requested_tier: 1,
       },
       {
         category: "update_record",
-        summary: 'archive 47 matched newsletter emails and label them "newsletters".',
+        summary: 'Archive 47 matched newsletter emails and label them "newsletters".',
         payload: { operation: "archive+label", label: "newsletters", match_count: 47 },
         requested_tier: 2,
       }
@@ -71,7 +71,7 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
     const topic = /lead/.test(c) ? "the 3 most recent unanswered leads" : `the unanswered threads about ${subject}`;
     proposals.push({
       category: "draft",
-      summary: `draft replies to ${topic} — saved as drafts, nothing sent.`,
+      summary: `Draft replies to ${topic} — saved as drafts, nothing sent.`,
       payload: {
         count: 3,
         topic: subject,
@@ -89,13 +89,13 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
     proposals.push(
       {
         category: "search",
-        summary: "read tomorrow's calendar and the mail threads connected to each meeting.",
+        summary: "Read tomorrow's calendar and the mail threads connected to each meeting.",
         payload: { window: "next 24h", sources: ["calendar", "related mail"] },
         requested_tier: 1,
       },
       {
         category: "draft",
-        summary: `draft tomorrow's meeting brief${/meeting|agenda/.test(subject) ? "" : ` for ${subject}`} — meetings, open questions, and prep notes. saved, not sent.`,
+        summary: `Draft tomorrow's meeting brief${/meeting|agenda/.test(subject) ? "" : ` for ${subject}`} — meetings, open questions, and prep notes. Saved, not sent.`,
         payload: { deliverable: "meeting brief", window: "next 24h" },
         requested_tier: 1,
       }
@@ -104,7 +104,7 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
   if (/(send)/.test(c) && !/(draft)/.test(c)) {
     proposals.push({
       category: "send_email",
-      summary: `send the email about ${subject} to the recipient named in your command.`,
+      summary: `Send the email about ${subject} to the recipient named in your command.`,
       payload: { to: "recipient@example.com", subject: subject.slice(0, 60), body: "(from your command)" },
       requested_tier: 2,
     });
@@ -112,7 +112,7 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
   if (/(reprice|price|pricing)/.test(c)) {
     proposals.push({
       category: "update_record",
-      summary: "update prices on the matched products to the values you specified.",
+      summary: "Update prices on the matched products to the values you specified.",
       payload: { operation: "reprice", products: "matched from command", strategy: "as specified" },
       requested_tier: 2,
     });
@@ -120,7 +120,7 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
   if (/(order|sales|revenue)/.test(c)) {
     proposals.push({
       category: "summarize",
-      summary: "summarize this week's orders into a short digest: totals, top products, anything unusual.",
+      summary: "Summarize this week's orders into a short digest: totals, top products, anything unusual.",
       payload: { window: "7d", source: "orders", format: "digest" },
       requested_tier: 1,
     });
@@ -128,7 +128,7 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
   if (/(schedule|calendar|book)/.test(c) && proposals.length === 0) {
     proposals.push({
       category: "update_record",
-      summary: `add the calendar event for ${subject} — after your approval.`,
+      summary: `Add the calendar event for ${subject} — after your approval.`,
       payload: { operation: "create_event", details: subject },
       requested_tier: 2,
     });
@@ -136,7 +136,7 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
   if (/(delete|remove permanently)/.test(c)) {
     proposals.push({
       category: "delete",
-      summary: "permanently delete the items named in your command.",
+      summary: "Permanently delete the items named in your command.",
       payload: { target: "items from command" },
       requested_tier: 3,
     });
@@ -144,7 +144,7 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
   if (/(payment|pay\b|wire|transfer)/.test(c)) {
     proposals.push({
       category: "payment",
-      summary: "send the payment named in your command.",
+      summary: "Send the payment named in your command.",
       payload: { amount: "as specified", recipient: "from command" },
       // Deliberately requests tier 1 — the mock simulates a compromised
       // model attempting to de-escalate. The server must clamp to tier 3;
@@ -155,7 +155,7 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
   if (/refund/.test(c)) {
     proposals.push({
       category: "refund",
-      summary: "issue the refund named in your command.",
+      summary: "Issue the refund named in your command.",
       payload: { amount: "as specified", order: "from command" },
       requested_tier: 3,
     });
@@ -163,7 +163,7 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
   if (/(summar|digest|mail\b)/.test(c) && proposals.length === 0) {
     proposals.push({
       category: "summarize",
-      summary: "summarize the referenced content into a short digest in this thread.",
+      summary: "Summarize the referenced content into a short digest in this thread.",
       payload: { sources: blocks.map((b) => b.source) },
       requested_tier: 1,
     });
@@ -176,7 +176,7 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
     // honestly instead of showing this card.
     proposals.push({
       category: "draft",
-      summary: `draft the output of "${command.slice(0, 80)}" for your review — saved, not sent.`,
+      summary: `Draft the output of "${command.slice(0, 80)}" for your review — saved, not sent.`,
       payload: { command: command.slice(0, 200), deliverable: "draft" },
       requested_tier: 1,
     });
@@ -193,8 +193,8 @@ export function planWithMock(command: string, blocks: UntrustedBlock[]): MockPla
 
   const injected = blocks.some((b) => b.injectionSuspected);
   const reasoning = injected
-    ? "i planned from your command only. content i read from an external source contained instructions aimed at me — i ignored them and held the affected cards for your review."
-    : "i broke your command into the smallest independently-approvable steps. read-only steps run automatically; anything that changes the outside world waits for your signature.";
+    ? "i planned from your command only. Content i read from an external source contained instructions aimed at me — i ignored them and held the affected cards for your review."
+    : "I broke your command into the smallest independently-approvable steps. Read-only steps run automatically; anything that changes the outside world waits for your signature.";
 
   return { reasoning, proposals, supported, planPreview };
 }

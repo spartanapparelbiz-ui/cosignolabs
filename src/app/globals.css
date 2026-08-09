@@ -23,6 +23,18 @@
   --c-positive: 22 116 78;
   --c-danger: 178 38 28;
 
+  /* The brand orange is a beautiful FILL and a poor WORD: #FB4C20 on cream is
+     3.0:1, which is below the 4.5:1 a person with ordinary middle-aged eyes
+     needs to read a label. So the orange splits in two, and each half does the
+     job it can actually do:
+       --c-signal       the fill — buttons, dots, rules, the mark
+       --c-signal-text  the same intent as TYPE, darkened until it is readable
+       --c-on-signal    what sits ON the fill; near-black in BOTH themes, since
+                        flipping it to cream in dark mode drops it to 2.6:1
+     Dark mode needs no darkening: the lifted orange already reads at 6.2:1. */
+  --c-signal-text: 184 52 12;
+  --c-on-signal: 20 20 20;
+
   /* Elevation. A card is a surface, not a box: no border, a hairline of the
      page's own ink, and a shadow small enough that you notice the card only
      when it moves. Two steps — resting and hovered — and nothing else. */
@@ -52,6 +64,10 @@
   --c-surface: 34 30 24; /* raised cards, one step above the page */
   --c-positive: 90 199 148; /* both lift on dark so they stay legible as text */
   --c-danger: 255 130 112;
+  /* On dark the lifted orange is already readable as type, so the text tone
+     and the fill are the same color. What sits on the fill stays near-black. */
+  --c-signal-text: 255 99 64;
+  --c-on-signal: 20 20 20;
 
   /* Shadows barely read on a dark page, so elevation there is carried by the
      hairline and the surface step instead. Same names, same two steps. */
@@ -104,11 +120,25 @@ body {
   background: rgba(251, 76, 32, 0.2);
 }
 
-/* Focus is always the signal ring — one of the few sanctioned uses of orange. */
+/* Focus is always the signal ring — one of the few sanctioned uses of orange.
+   Two rings, not one: the orange reads on the cream page, and the inner halo
+   of the page color keeps it visible when the focused thing is itself orange
+   or ink. A keyboard user should never have to hunt for where they are. */
 *:focus-visible {
-  outline: 2px solid #fb4c20;
+  outline: 2px solid rgb(var(--c-signal));
   outline-offset: 2px;
-  border-radius: 6px;
+  box-shadow: 0 0 0 2px rgb(var(--c-cream));
+  border-radius: 8px;
+}
+/* Controls that carry their own focus treatment opt out of the halo. */
+.focus-plain:focus-visible {
+  box-shadow: none;
+}
+
+/* A caret you can find in a long field. */
+input,
+textarea {
+  caret-color: rgb(var(--c-signal));
 }
 
 /* Scrollbars are chrome. Make them the thinnest thing that still works, and
@@ -147,43 +177,54 @@ body {
    Two weights carry all of it — 400 for reading, 600 for naming. Anything
    heavier reads as shouting, and a page where everything shouts has no
    hierarchy at all.
+
+   Sizes start at 16px for body and 14px for captions. Twelve-pixel prose is a
+   habit design tools encourage and eyes over forty cannot follow; the only
+   thing allowed at 12px here is a two-word badge. Larger type also reads as
+   more confident, so legibility and the look pull the same direction.
    ------------------------------------------------------------------------ */
 @layer components {
   .t-display {
     font-family: var(--font-display), Georgia, serif;
     font-weight: 600;
-    font-size: 1.75rem;
+    font-size: 1.875rem;
     line-height: 1.14;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.021em;
+    /* Headings break where the sentence breaks, not where the box ends. */
+    text-wrap: balance;
   }
   @media (min-width: 640px) {
     .t-display {
-      font-size: 2.25rem;
+      font-size: 2.375rem;
     }
   }
   .t-title {
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 1.0625rem;
     line-height: 1.35;
     letter-spacing: -0.012em;
+    text-wrap: balance;
   }
   .t-body {
     font-weight: 400;
-    font-size: 0.9375rem;
+    font-size: 1rem;
     line-height: 1.6;
+    /* No orphaned last word. Costs nothing where unsupported. */
+    text-wrap: pretty;
   }
   .t-caption {
     font-weight: 400;
-    font-size: 0.8125rem;
-    line-height: 1.5;
+    font-size: 0.875rem;
+    line-height: 1.55;
     color: rgb(var(--c-ink-soft));
+    text-wrap: pretty;
   }
   /* A caption doing the job of a heading: the quiet label above a group. */
   .t-eyebrow {
     font-weight: 600;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     line-height: 1.4;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     color: rgb(var(--c-ink-soft));
   }
@@ -191,6 +232,30 @@ body {
   .t-num {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* A line of text nobody finishes is a line nobody reads. Paragraph-shaped
+   content stops at a comfortable measure even when its column is wider. */
+.measure {
+  max-width: 68ch;
+}
+
+/* Touch targets. A 32px control is fine under a mouse and a coin-flip under a
+   thumb, so on a coarse pointer every control grows to the 44px minimum —
+   without changing how any of it looks on a desktop. */
+@media (pointer: coarse) {
+  .tap {
+    min-height: 44px;
+  }
+  .tap-sq {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Anchored headings clear the sticky header instead of hiding under it. */
+:target {
+  scroll-margin-top: 6rem;
 }
 
 /* Signature check motif — shared surface language across the app. */
@@ -243,5 +308,43 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
+}
+
+/* Some people turn transparency off because blurred layers make text hard to
+   read, or because compositing them costs their machine real frames. Honour
+   it: the header and the bottom bar go opaque and keep their hairline. */
+@media (prefers-reduced-transparency: reduce) {
+  .backdrop-blur-md,
+  .backdrop-blur,
+  .backdrop-blur-\[2px\] {
+    backdrop-filter: none;
+  }
+  header.sticky,
+  nav.fixed {
+    background-color: rgb(var(--c-cream));
+  }
+}
+
+/* Windows high-contrast and similar forced-colour modes replace our palette
+   wholesale. Shadows vanish there, so the surfaces that relied on one for
+   their edge get a real border, and focus keeps a visible ring. */
+@media (forced-colors: active) {
+  .shadow-rest,
+  .shadow-raise,
+  .shadow-hairline,
+  .shadow-overlay {
+    border: 1px solid CanvasText;
+  }
+  *:focus-visible {
+    outline: 3px solid Highlight;
+  }
+}
+
+/* iOS rotates a phone and helpfully inflates the type. It does not need to
+   help — the scale already starts at a readable size. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }

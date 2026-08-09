@@ -135,7 +135,7 @@ const inboxScan: MissionTool = {
       const injected = injectionIn([...newsletters.items, ...leads.items]);
       return {
         kind: "ok",
-        summary: `scanned your inbox — ${newsletters.count} newsletter/promo message${newsletters.count === 1 ? "" : "s"} and ${leads.count} recent unread thread${leads.count === 1 ? "" : "s"} that may need you.`,
+        summary: `Scanned your inbox — ${newsletters.count} newsletter/promo message${newsletters.count === 1 ? "" : "s"} and ${leads.count} recent unread thread${leads.count === 1 ? "" : "s"} that may need you.`,
         output: {
           newsletters: newsletters.items,
           newsletter_count: newsletters.count,
@@ -152,7 +152,7 @@ const inboxScan: MissionTool = {
     }
     return {
       kind: "ok",
-      summary: `scanned the sandbox inbox — ${SANDBOX_MAIL.newsletters.length} newsletters and ${SANDBOX_MAIL.leads.length} waiting leads. connect Gmail to run this on your real inbox.`,
+      summary: `Scanned the sandbox inbox — ${SANDBOX_MAIL.newsletters.length} newsletters and ${SANDBOX_MAIL.leads.length} waiting leads. connect Gmail to run this on your real inbox.`,
       output: {
         newsletters: SANDBOX_MAIL.newsletters,
         newsletter_count: SANDBOX_MAIL.newsletters.length,
@@ -182,12 +182,12 @@ const inboxSummarize: MissionTool = {
       `${nNews} newsletter/promotional message${nNews === 1 ? "" : "s"} can be archived out of the inbox.`,
       nLeads > 0
         ? `${nLeads} thread${nLeads === 1 ? " needs" : "s need"} a human reply — drafts are prepared next (drafts never send).`
-        : "no waiting threads need a reply right now.",
+        : "No waiting threads need a reply right now.",
       ...leads.map((l) => `needs you: “${l.subject}” from ${l.from || "unknown sender"}`),
     ];
     return {
       kind: "ok",
-      summary: `summarized the scan: ${nNews} archivable, ${nLeads} needing a reply.`,
+      summary: `Summarized the scan: ${nNews} archivable, ${nLeads} needing a reply.`,
       output: { overview, newsletter_count: nNews, lead_count: nLeads, simulated },
       sources: [
         {
@@ -210,7 +210,7 @@ const inboxDraftReplies: MissionTool = {
     if (leads.length === 0) {
       return {
         kind: "ok",
-        summary: "no waiting threads to reply to — skipping the drafts.",
+        summary: "No waiting threads to reply to — skipping the drafts.",
         output: { drafts: [], skipped: true, simulated },
         sources: [],
       };
@@ -272,7 +272,7 @@ const inboxProposeCleanup: MissionTool = {
     if (count === 0) {
       return {
         kind: "ok",
-        summary: "no newsletter clutter found — nothing to archive.",
+        summary: "No newsletter clutter found — nothing to archive.",
         output: { skipped: true, simulated },
         sources: [],
       };
@@ -280,11 +280,11 @@ const inboxProposeCleanup: MissionTool = {
     return {
       kind: "propose",
       category: "update_record",
-      summary: `archive ${count} newsletter/promo message${count === 1 ? "" : "s"} out of the inbox (nothing is deleted)`,
+      summary: `Archive ${count} newsletter/promo message${count === 1 ? "" : "s"} out of the inbox (nothing is deleted)`,
       payload: {
         query: NEWSLETTER_QUERY,
         count,
-        note: "archive only — the messages stay searchable in All Mail; nothing is deleted.",
+        note: "Archive only — the messages stay searchable in All Mail; nothing is deleted.",
         simulated,
       },
     };
@@ -294,11 +294,11 @@ const inboxProposeCleanup: MissionTool = {
       return {
         ok: true,
         simulated: true,
-        detail: "sandbox cleanup — archived inside the workspace only; no real mailbox was touched.",
+        detail: "Sandbox cleanup — archived inside the workspace only; no real mailbox was touched.",
       };
     }
     const conn = await connectedApp(ctx.userId, "google");
-    if (!conn) return { ok: false, detail: "couldn't archive — Gmail is no longer connected. nothing was changed." };
+    if (!conn) return { ok: false, detail: "Couldn't archive — Gmail is no longer connected. Nothing was changed." };
     const query = typeof action.payload.query === "string" ? action.payload.query : NEWSLETTER_QUERY;
     const res = await runProviderAction(ctx.userId, conn.id, "archive", { query });
     if (!res.ok) return { ok: false, detail: `the archive call failed: ${res.summary}` };
@@ -324,14 +324,14 @@ const followupFind: MissionTool = {
       const { count, items } = await scanQuery(ctx.userId, conn.id, WAITING_QUERY);
       return {
         kind: "ok",
-        summary: `found ${count} thread${count === 1 ? "" : "s"} in your inbox unread for 2+ days — the ones most likely waiting on a response.`,
+        summary: `Found ${count} thread${count === 1 ? "" : "s"} in your inbox unread for 2+ days — the ones most likely waiting on a response.`,
         output: { threads: items, count, injected: injectionIn(items), simulated: false },
         sources: [{ name: "Gmail", detail: `${count} messages matching ${WAITING_QUERY}` }],
       };
     }
     return {
       kind: "ok",
-      summary: `found ${SANDBOX_MAIL.waiting.length} sandbox threads waiting on a response. connect Gmail to run this on your real inbox.`,
+      summary: `Found ${SANDBOX_MAIL.waiting.length} sandbox threads waiting on a response. connect Gmail to run this on your real inbox.`,
       output: { threads: SANDBOX_MAIL.waiting, count: SANDBOX_MAIL.waiting.length, injected: false, simulated: true },
       sources: [{ name: "workspace sandbox", detail: "example threads (Gmail not connected)", simulated: true }],
     };
@@ -367,7 +367,7 @@ const followupDraft: MissionTool = {
     if (threads.length === 0) {
       return {
         kind: "ok",
-        summary: "no threads are waiting on a response — nothing to draft.",
+        summary: "No threads are waiting on a response — nothing to draft.",
         output: { drafts: [], skipped: true, simulated },
         sources: [],
       };
@@ -419,7 +419,7 @@ const followupDraft: MissionTool = {
     const file = await writeDeliverable(ctx, "follow-up drafts", content);
     return {
       kind: "ok",
-      summary: `drafted ${drafts.length} follow-up${drafts.length === 1 ? "" : "s"}${gmail ? ` (${saved} saved to Gmail Drafts)` : ""} and proposed a send time — nothing sent.`,
+      summary: `Drafted ${drafts.length} follow-up${drafts.length === 1 ? "" : "s"}${gmail ? ` (${saved} saved to Gmail Drafts)` : ""} and proposed a send time — nothing sent.`,
       output: { ...file, deliverable: "followups", drafts, send_time, send_time_live: sendTimeLive, saved_to_gmail: saved, simulated },
       sources: [
         { name: "files", detail: `deliverable “${file.file_name}” saved (v1)` },
@@ -441,7 +441,7 @@ const followupOfferSend: MissionTool = {
     if (!first || !first.to) {
       return {
         kind: "ok",
-        summary: "no follow-up draft to offer — nothing to send.",
+        summary: "No follow-up draft to offer — nothing to send.",
         output: { skipped: true, simulated },
         sources: [],
       };
@@ -450,7 +450,7 @@ const followupOfferSend: MissionTool = {
     return {
       kind: "propose",
       category: "send_email",
-      summary: `send the follow-up “${first.subject}” to ${first.to}`,
+      summary: `Send the follow-up “${first.subject}” to ${first.to}`,
       payload: { to: first.to, subject: first.subject, body: first.body, send_time, simulated },
     };
   },
@@ -461,11 +461,11 @@ const followupOfferSend: MissionTool = {
       return {
         ok: true,
         simulated: true,
-        detail: "sandbox send — verified inside the workspace; no external mail exists.",
+        detail: "Sandbox send — verified inside the workspace; no external mail exists.",
       };
     }
     const conn = await connectedApp(ctx.userId, "google");
-    if (!conn) return { ok: false, detail: "couldn't send — Gmail is no longer connected. nothing was sent." };
+    if (!conn) return { ok: false, detail: "Couldn't send — Gmail is no longer connected. Nothing was sent." };
     const to = typeof action.payload.to === "string" ? action.payload.to : "";
     const subject = typeof action.payload.subject === "string" ? action.payload.subject : "";
     const body = typeof action.payload.body === "string" ? action.payload.body : "";
@@ -493,7 +493,7 @@ const calendarProposeReminder: MissionTool = {
     if (!topic) {
       return {
         kind: "ok",
-        summary: "nothing needs a reminder — no calendar change proposed.",
+        summary: "Nothing needs a reminder — no calendar change proposed.",
         output: { skipped: true },
         sources: [],
       };
@@ -505,7 +505,7 @@ const calendarProposeReminder: MissionTool = {
     return {
       kind: "propose",
       category: "update_record",
-      summary: `add a 15-minute reminder “${topic.title}” to your calendar tomorrow at 9:00`,
+      summary: `Add a 15-minute reminder “${topic.title}” to your calendar tomorrow at 9:00`,
       payload: { title: topic.title, start: start.toISOString(), end: end.toISOString(), simulated: topic.simulated },
     };
   },
@@ -514,11 +514,11 @@ const calendarProposeReminder: MissionTool = {
       return {
         ok: true,
         simulated: true,
-        detail: "sandbox reminder — recorded inside the workspace; no real calendar was touched.",
+        detail: "Sandbox reminder — recorded inside the workspace; no real calendar was touched.",
       };
     }
     const conn = await connectedApp(ctx.userId, "google-calendar");
-    if (!conn) return { ok: false, detail: "couldn't schedule — Google Calendar is no longer connected. nothing was created." };
+    if (!conn) return { ok: false, detail: "Couldn't schedule — Google Calendar is no longer connected. Nothing was created." };
     const title = typeof action.payload.title === "string" ? action.payload.title : "follow-up reminder";
     const start = typeof action.payload.start === "string" ? action.payload.start : "";
     const end = typeof action.payload.end === "string" ? action.payload.end : "";
@@ -541,14 +541,14 @@ const briefCalendar: MissionTool = {
       const titles = Array.isArray(res.detail?.titles) ? (res.detail.titles as string[]) : [];
       return {
         kind: "ok",
-        summary: `read your calendar — ${titles.length} upcoming event${titles.length === 1 ? "" : "s"}.`,
+        summary: `Read your calendar — ${titles.length} upcoming event${titles.length === 1 ? "" : "s"}.`,
         output: { events: titles, count: titles.length, simulated: false },
         sources: [{ name: "Google Calendar", detail: `${titles.length} upcoming events` }],
       };
     }
     return {
       kind: "ok",
-      summary: `read the sandbox calendar — ${SANDBOX_MAIL.events.length} events. connect Google Calendar for your real schedule.`,
+      summary: `Read the sandbox calendar — ${SANDBOX_MAIL.events.length} events. connect Google Calendar for your real schedule.`,
       output: { events: SANDBOX_MAIL.events, count: SANDBOX_MAIL.events.length, simulated: true },
       sources: [{ name: "workspace sandbox", detail: "example schedule (calendar not connected)", simulated: true }],
     };
@@ -565,7 +565,7 @@ const briefSignals: MissionTool = {
       const subjects = items.map((i) => i.subject);
       return {
         kind: "ok",
-        summary: `read the overnight inbox — ${count} new unread message${count === 1 ? "" : "s"}.`,
+        summary: `Read the overnight inbox — ${count} new unread message${count === 1 ? "" : "s"}.`,
         output: { count, subjects, injected: injectionIn(items), simulated: false },
         sources: [{ name: "Gmail", detail: `${count} messages matching ${SIGNAL_QUERY}` }],
       };
@@ -573,7 +573,7 @@ const briefSignals: MissionTool = {
     const subjects = SANDBOX_MAIL.leads.map((l) => l.subject);
     return {
       kind: "ok",
-      summary: `read the sandbox inbox — ${subjects.length} overnight signals. connect Gmail for your real mail.`,
+      summary: `Read the sandbox inbox — ${subjects.length} overnight signals. connect Gmail for your real mail.`,
       output: { count: subjects.length, subjects, injected: false, simulated: true },
       sources: [{ name: "workspace sandbox", detail: "example signals (Gmail not connected)", simulated: true }],
     };
@@ -609,7 +609,7 @@ const deliverableDailyBrief: MissionTool = {
     const file = await writeDeliverable(ctx, `daily brief — ${today}`, content);
     return {
       kind: "ok",
-      summary: `morning brief written from ${events.length} calendar event${events.length === 1 ? "" : "s"} and ${nSignals} inbox signal${nSignals === 1 ? "" : "s"}.`,
+      summary: `Morning brief written from ${events.length} calendar event${events.length === 1 ? "" : "s"} and ${nSignals} inbox signal${nSignals === 1 ? "" : "s"}.`,
       output: { ...file, deliverable: "daily-brief" },
       sources: [{ name: "files", detail: `deliverable “${file.file_name}” saved (v1)`, simulated }],
     };

@@ -126,7 +126,7 @@ function meetingPrepPlan(goal: string): CompiledPlan {
     expectedDeliverables: ["meeting brief", "agenda", "follow-up draft"],
     approvalCheckpoints: ["sending the follow-up email requires your approval"],
     verificationRequirements: ["approval.offer_send: confirm the message appears in Sent Mail"],
-    riskSummary: "read-only research and drafts; the only consequential step (sending) is approval-gated.",
+    riskSummary: "Read-only research and drafts; the only consequential step (sending) is approval-gated.",
     unsupported: [],
   };
 }
@@ -165,8 +165,8 @@ function productComparePlan(goal: string, manifest: CapabilityManifest): Compile
     approvalCheckpoints: [],
     verificationRequirements: [],
     riskSummary: browserLive
-      ? "entirely read-only — cosigno opens and reads public pages, and stops at the recommended product page. no purchase, login, or form submission ever happens."
-      : "sandbox research (labeled) — read-only; no purchase, login, or form submission ever happens.",
+      ? "entirely read-only — cosigno opens and reads public pages, and stops at the recommended product page. No purchase, login, or form submission ever happens."
+      : "Sandbox research (labeled) — read-only; no purchase, login, or form submission ever happens.",
     unsupported: [
       "completing a purchase or payment — cosigno researches, compares, and opens the recommended product page, then stops.",
     ],
@@ -224,7 +224,7 @@ function githubPlan(goal: string): CompiledPlan {
       : [],
     riskSummary: wantsIssue
       ? "read-only until you approve; the only write is opening one issue, which happens after approval and is then read back."
-      : "entirely read-only — nothing in any repository is created, changed, or deleted.",
+      : "Entirely read-only — nothing in any repository is created, changed, or deleted.",
     unsupported: [],
   };
 }
@@ -246,7 +246,7 @@ function researchPlan(goal: string, manifest: CapabilityManifest): CompiledPlan 
     expectedDeliverables: ["findings deliverable with sources"],
     approvalCheckpoints: [],
     verificationRequirements: [],
-    riskSummary: "entirely read-only research — no external changes are made.",
+    riskSummary: "Entirely read-only research — no external changes are made.",
     unsupported: [],
   };
 }
@@ -261,7 +261,7 @@ function unsupportedPlan(goal: string): CompiledPlan {
     expectedDeliverables: [],
     approvalCheckpoints: [],
     verificationRequirements: [],
-    riskSummary: "this goal needs a capability cosigno doesn't have yet.",
+    riskSummary: "This goal needs a capability cosigno doesn't have yet.",
     unsupported: [
       "this goal requires moving money or publishing through a connection that isn't available — cosigno can research and prepare, but can't complete it.",
     ],
@@ -338,11 +338,11 @@ export async function compileMission(
       understood: {
         normalizedGoal: goal,
         willDo: [],
-        boundary: plan.unsupported[0] ?? "this goal isn't supported yet.",
+        boundary: plan.unsupported[0] ?? "This goal isn't supported yet.",
         informationProvided,
       },
       plan,
-      validation: { ok: false, issues: [{ code: "empty_plan", detail: "no executable steps." }] },
+      validation: { ok: false, issues: [{ code: "empty_plan", detail: "No executable steps." }] },
       blocked: true,
       shape,
     };
@@ -356,7 +356,7 @@ export async function compileMission(
 
   const boundary =
     plan.approvalCheckpoints[0] ??
-    (plan.unsupported[0] ? `boundary: ${plan.unsupported[0]}` : "cosigno will research and prepare — nothing consequential runs without your approval.");
+    (plan.unsupported[0] ? `boundary: ${plan.unsupported[0]}` : "Cosigno will research and prepare — nothing consequential runs without your approval.");
 
   const willDo = willDoFrom(plan);
   if (usable.length > 0) {

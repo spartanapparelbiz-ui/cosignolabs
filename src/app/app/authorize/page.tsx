@@ -18,7 +18,7 @@ export const metadata = { title: "authorization" };
 const AUTHORITY_STYLE: Record<string, string> = {
   auto: "bg-cream-deep text-ink-soft",
   approve: "bg-signal/15 text-ink ring-1 ring-inset ring-signal/40",
-  sign: "bg-signal text-ink",
+  sign: "bg-signal text-on-signal",
   deny: "bg-ink text-cream",
 };
 
@@ -144,7 +144,7 @@ export default async function AuthorizeConsole() {
                         ) : (
                           <span className="text-xs font-semibold text-ink">awaiting signature</span>
                         )}
-                        <p className="font-mono text-[0.6875rem] text-ink-soft">{d.id}</p>
+                        <p className="font-mono text-[0.75rem] text-ink-soft">{d.id}</p>
                       </td>
                     </tr>
                   );
@@ -175,7 +175,7 @@ export default async function AuthorizeConsole() {
                   <p className="truncate text-[0.75rem] text-ink-soft">{t.label}</p>
                 </div>
                 <span
-                  className={`ml-2 shrink-0 rounded-pill px-2 py-0.5 text-[0.6875rem] font-semibold ${
+                  className={`ml-2 shrink-0 rounded-pill px-2 py-0.5 text-[0.75rem] font-semibold ${
                     meta?.pinned ? "bg-ink text-cream" : "bg-cream-deep text-ink-soft"
                   }`}
                 >

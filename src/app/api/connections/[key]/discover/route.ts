@@ -38,7 +38,7 @@ export async function POST(
     const model = await describeConnection(userId, key);
     if (!model) {
       return NextResponse.json(
-        { ok: false, facts: [], limitations: [], capabilities: [], error: "connection not found." },
+        { ok: false, facts: [], limitations: [], capabilities: [], error: "Connection not found." },
         { status: 404 }
       );
     }

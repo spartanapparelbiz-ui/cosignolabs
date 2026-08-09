@@ -33,7 +33,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -66,7 +66,7 @@ export function FilesPanel() {
       const data = await jsonFetch("/api/files");
       setFiles(data.files ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load your files.");
+      setError(e instanceof Error ? e.message : "Couldn't load your files.");
     }
   }, []);
 
@@ -84,12 +84,12 @@ export function FilesPanel() {
       });
       setCreating(false);
       setDraftName("");
-      toast("success", "file created.");
+      toast("success", "File created.");
       await load();
       setOpen(data.file?.id ?? null);
       setEditText("");
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't create that file.");
+      toast("error", e instanceof Error ? e.message : "Couldn't create that file.");
     } finally {
       setBusy(null);
     }
@@ -102,11 +102,11 @@ export function FilesPanel() {
         method: "PATCH",
         body: JSON.stringify({ content: editText }),
       });
-      toast("success", `saved — now v${file.version + 1}.`);
+      toast("success", `Saved — now v${file.version + 1}.`);
       setOpen(null);
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't save that.");
+      toast("error", e instanceof Error ? e.message : "Couldn't save that.");
     } finally {
       setBusy(null);
     }
@@ -116,11 +116,11 @@ export function FilesPanel() {
     setBusy(file.id);
     try {
       await jsonFetch(`/api/files/${file.id}`, { method: "DELETE" });
-      toast("success", "deleted.");
+      toast("success", "Deleted.");
       if (open === file.id) setOpen(null);
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't delete that.");
+      toast("error", e instanceof Error ? e.message : "Couldn't delete that.");
     } finally {
       setBusy(null);
     }

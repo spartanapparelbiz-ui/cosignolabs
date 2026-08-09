@@ -273,7 +273,7 @@ async function settleApprovalSteps(
               15_000
             );
           } catch {
-            verification = { ok: false, detail: "verification didn't complete — check the provider." };
+            verification = { ok: false, detail: "Verification didn't complete — check the provider." };
           }
         }
         await store.updateMissionStep(userId, step.id, {
@@ -282,7 +282,7 @@ async function settleApprovalSteps(
             summary:
               typeof action.result?.summary === "string"
                 ? action.result.summary
-                : "approved and executed.",
+                : "Approved and executed.",
           },
           verification,
           completed_at: new Date().toISOString(),
@@ -292,7 +292,7 @@ async function settleApprovalSteps(
       if (action.status === "failed") {
         await store.updateMissionStep(userId, step.id, {
           state: "failed",
-          error: "the approved action didn't complete — nothing was left half-done.",
+          error: "The approved action didn't complete — nothing was left half-done.",
         });
         return true;
       }
@@ -324,7 +324,7 @@ async function settleApprovalSteps(
             await store.transitionAction(userId, action.id, "executing");
           }
           await store.transitionAction(userId, action.id, "failed", {
-            result: { summary: "execution didn't complete — the run was interrupted." },
+            result: { summary: "Execution didn't complete — the run was interrupted." },
           });
           await store.logEvent(userId, action.id, "failed", "system", {
             reason: "stuck_execution",
@@ -341,7 +341,7 @@ async function settleApprovalSteps(
           // Say what is and isn't known. Whether the side effect happened is
           // genuinely undetermined, and guessing either way would be worse.
           error:
-            "the approval was recorded but the run was interrupted, so cosigno can't confirm whether it took effect. check the app before retrying.",
+            "The approval was recorded but the run was interrupted, so cosigno can't confirm whether it took effect. Check the app before retrying.",
         });
         return true;
       }
@@ -412,7 +412,7 @@ export async function advanceMission(
       await store.updateMission(userId, missionId, {
         state: next,
         ...(TERMINAL_MISSION.has(next) ? { completed_at: new Date().toISOString() } : {}),
-        ...(next === "failed" ? { error: "no step completed — see the step list." } : {}),
+        ...(next === "failed" ? { error: "No step completed — see the step list." } : {}),
       });
       break;
     }
@@ -463,7 +463,7 @@ export async function advanceMission(
       if (verdict.reason === "refused") {
         await store.updateMissionStep(userId, step.id, {
           state: "skipped",
-          error: "you declined this step — it wasn't part of the approved plan.",
+          error: "You declined this step — it wasn't part of the approved plan.",
         });
         continue;
       }
@@ -510,7 +510,7 @@ export async function advanceMission(
       );
       await applyToolResult({ userId, mission, steps: freshSteps, step: fresh }, result);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "the step didn't complete.";
+      const message = err instanceof Error ? err.message : "The step didn't complete.";
       // A forbidden capability is a decision, not a transient failure. Retrying
       // it would burn attempts to arrive at the same refusal, and would read in
       // the log as if cosigno kept trying to do the thing you said never.

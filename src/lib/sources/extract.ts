@@ -128,10 +128,10 @@ export async function extractFile(
   declaredMime: string
 ): Promise<ExtractResult> {
   if (buf.length === 0) {
-    return { status: "failed", mime: declaredMime, summary: "", injection: false, detail: { error: "the file was empty." } };
+    return { status: "failed", mime: declaredMime, summary: "", injection: false, detail: { error: "The file was empty." } };
   }
   if (buf.length > MAX_FILE_BYTES) {
-    return { status: "failed", mime: declaredMime, summary: "", injection: false, detail: { error: "the file is larger than the 4 MB limit." } };
+    return { status: "failed", mime: declaredMime, summary: "", injection: false, detail: { error: "The file is larger than the 4 MB limit." } };
   }
 
   const ext = extOf(filename);
@@ -139,7 +139,7 @@ export async function extractFile(
 
   // A ZIP that isn't a DOCX (by extension) is rejected — no archive expansion.
   if (kind === "zip" && ext !== "docx") {
-    return { status: "unsupported", mime: "application/zip", summary: "", injection: false, detail: { reason: "archives aren't supported." } };
+    return { status: "unsupported", mime: "application/zip", summary: "", injection: false, detail: { reason: "Archives aren't supported." } };
   }
   if (kind === "gif") {
     return { status: "unsupported", mime: "image/gif", summary: "", injection: false, detail: { reason: "GIF isn't supported." } };
@@ -166,7 +166,7 @@ export async function extractFile(
       const parsed = await pdfParse(buf);
       const text = boundText(parsed.text ?? "");
       if (!text) {
-        return { status: "failed", mime: "application/pdf", summary: "", injection: false, detail: { error: "no readable text found (it may be a scanned image)." } };
+        return { status: "failed", mime: "application/pdf", summary: "", injection: false, detail: { error: "No readable text found (it may be a scanned image)." } };
       }
       return { status: "ready", mime: "application/pdf", summary: text, injection: detectInjection(text), detail: { pages: parsed.numpages ?? null } };
     }
@@ -179,7 +179,7 @@ export async function extractFile(
       const text = boundText(result.value ?? "");
       const mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
       if (!text) {
-        return { status: "failed", mime, summary: "", injection: false, detail: { error: "no readable text found." } };
+        return { status: "failed", mime, summary: "", injection: false, detail: { error: "No readable text found." } };
       }
       return { status: "ready", mime, summary: text, injection: detectInjection(text), detail: {} };
     }
@@ -195,14 +195,14 @@ export async function extractFile(
     }
 
     // Nothing matched -> unsupported.
-    return { status: "unsupported", mime: declaredMime || "application/octet-stream", summary: "", injection: false, detail: { reason: "unrecognized file type." } };
+    return { status: "unsupported", mime: declaredMime || "application/octet-stream", summary: "", injection: false, detail: { reason: "Unrecognized file type." } };
   } catch (err) {
     return {
       status: "failed",
       mime: declaredMime || "application/octet-stream",
       summary: "",
       injection: false,
-      detail: { error: err instanceof Error ? err.message.slice(0, 120) : "processing failed." },
+      detail: { error: err instanceof Error ? err.message.slice(0, 120) : "Processing failed." },
     };
   }
 }

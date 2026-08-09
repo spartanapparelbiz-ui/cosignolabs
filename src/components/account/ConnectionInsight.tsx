@@ -66,10 +66,10 @@ export function ConnectionInsight({
     try {
       const r = await fetch(`/api/connections/${connectionId}/discover`, { method: "POST" });
       const d = await r.json();
-      if (!r.ok && !d?.error) throw new Error(d?.message || "couldn't read this connection.");
+      if (!r.ok && !d?.error) throw new Error(d?.message || "Couldn't read this connection.");
       setData(d);
     } catch (e) {
-      setFailed(e instanceof Error ? e.message : "couldn't read this connection.");
+      setFailed(e instanceof Error ? e.message : "Couldn't read this connection.");
     } finally {
       setBusy(false);
     }
@@ -173,7 +173,7 @@ export function ConnectionInsight({
                       the thing being read before approving. */}
                   <span className="font-semibold">{c.label ?? c.id}</span>
                   {c.technical && c.technical !== c.label && (
-                    <span className="ml-1.5 font-mono text-[0.6875rem] text-ink-soft/70">
+                    <span className="ml-1.5 font-mono text-[0.75rem] text-ink-soft/70">
                       {c.technical}
                     </span>
                   )}
@@ -185,7 +185,7 @@ export function ConnectionInsight({
                   )}
                 </span>
                 <span
-                  className={`shrink-0 rounded-pill px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider ${
+                  className={`shrink-0 rounded-pill px-1.5 py-0.5 text-[0.75rem] font-semibold uppercase tracking-wider ${
                     c.available === false ? "bg-cream-deep text-ink-soft" : REQUIRES_TONE[c.tier]
                   }`}
                 >

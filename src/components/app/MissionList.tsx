@@ -19,7 +19,7 @@ import { badge, btn, dot, type BadgeTone } from "@/components/ui/styles";
 async function jsonFetch(url: string) {
   const res = await fetch(url, { headers: { "Content-Type": "application/json" } });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -54,7 +54,7 @@ export function MissionList() {
       setSessions(s.sessions ?? []);
       setActions(a.actions ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load your missions.");
+      setError(e instanceof Error ? e.message : "Couldn't load your missions.");
     }
   }, []);
 
@@ -122,7 +122,7 @@ export function MissionList() {
             className="group flex animate-fade-through flex-wrap items-center gap-x-4 gap-y-1.5 rounded-btn px-3 py-3 transition-colors duration-fast hover:bg-ink/[0.035]"
           >
             <div className="min-w-0 flex-1">
-              <h3 className="truncate text-[0.9375rem]" title={m.session.title}>
+              <h3 className="truncate text-[1rem]" title={m.session.title}>
                 {m.session.title}
               </h3>
               <p className="t-caption tabular-nums">

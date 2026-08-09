@@ -98,23 +98,23 @@ const VERDICT: Record<
 > = {
   safe: {
     tone: "good",
-    title: "looks safe to turn on.",
-    body: "it adds a checkpoint where you'd want one, and leaves the rest of your work alone.",
+    title: "Looks safe to turn on.",
+    body: "It adds a checkpoint where you'd want one, and leaves the rest of your work alone.",
   },
   review: {
     tone: "warn",
-    title: "read this one before turning it on.",
-    body: "it reaches further than most rules do. make sure everything it would catch is something you actually want stopped.",
+    title: "Read this one before turning it on.",
+    body: "It reaches further than most rules do. Make sure everything it would catch is something you actually want stopped.",
   },
   no_effect: {
     tone: "flat",
-    title: "nothing in your past work would have changed.",
-    body: "either you haven't done this kind of work yet, or it already asked for at least this much. the rule still applies going forward.",
+    title: "Nothing in your past work would have changed.",
+    body: "Either you haven't done this kind of work yet, or it already asked for at least this much. The rule still applies going forward.",
   },
   no_history: {
     tone: "flat",
-    title: "there's no completed work to check this against yet.",
-    body: "the rule is still safe to turn on — a rule can only ever add a checkpoint, never remove one.",
+    title: "There's no completed work to check this against yet.",
+    body: "The rule is still safe to turn on — a rule can only ever add a checkpoint, never remove one.",
   },
 };
 
@@ -167,10 +167,10 @@ export function SafetyRules() {
         body: JSON.stringify({ text: t }),
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.message || "couldn't check that rule.");
+      if (!r.ok) throw new Error(data.message || "Couldn't check that rule.");
       setResult(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't check that rule.");
+      setError(e instanceof Error ? e.message : "Couldn't check that rule.");
     } finally {
       setBusy(false);
     }
@@ -187,13 +187,13 @@ export function SafetyRules() {
         body: JSON.stringify({ text: result.rule.text }),
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.message || "couldn't turn that rule on.");
+      if (!r.ok) throw new Error(data.message || "Couldn't turn that rule on.");
       setEnabled(result);
       setResult(null);
       setText("");
       loadSaved();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't turn that rule on.");
+      setError(e instanceof Error ? e.message : "Couldn't turn that rule on.");
     } finally {
       setSaving(false);
     }
@@ -307,7 +307,7 @@ function Gallery({
                   <button
                     key={rule}
                     onClick={() => onPick(rule)}
-                    className="group flex items-center justify-between gap-3 rounded-btn px-3 py-2.5 text-left text-[0.9375rem] transition-colors duration-fast hover:bg-ink/[0.035] focus-visible:outline-none focus-visible:bg-ink/[0.05]"
+                    className="group flex items-center justify-between gap-3 rounded-btn px-3 py-2.5 text-left text-[1rem] transition-colors duration-fast hover:bg-ink/[0.035] focus-visible:outline-none focus-visible:bg-ink/[0.05]"
                   >
                     <span className={active ? "text-ink-soft" : undefined}>{rule}</span>
                     {active ? (
@@ -336,7 +336,7 @@ function Gallery({
           <p className="t-caption mt-1.5">cosigno checks these before every action it takes.</p>
           <ul className="mt-3 flex flex-col gap-2">
             {on.map((r) => (
-              <li key={r.id} className="flex items-center gap-2.5 text-[0.9375rem]">
+              <li key={r.id} className="flex items-center gap-2.5 text-[1rem]">
                 <Check size={14} strokeWidth={2.2} className="shrink-0 text-positive" aria-hidden="true" />
                 {r.text}
               </li>
@@ -369,8 +369,8 @@ function Report({
   const verdict: (typeof VERDICT)[keyof typeof VERDICT] = result.coverage.unreachable
     ? {
         tone: "warn",
-        title: "turning this on would not protect anything yet.",
-        body: "the rule is understood and will be saved, but cosigno cannot perform the action it guards today. it starts working if that support is added.",
+        title: "Turning this on would not protect anything yet.",
+        body: "The rule is understood and will be saved, but cosigno cannot perform the action it guards today. It starts working if that support is added.",
       }
     : VERDICT[result.recommendation];
   const affected = [...result.would_block, ...result.would_ask];
@@ -452,8 +452,8 @@ function Report({
           </button>
           <p className="text-xs text-ink-soft">
             {result.coverage.unreachable
-              ? "it will be kept and start working if cosigno gains this capability. you can remove it at any time."
-              : "you can turn it off again at any time. it never changes work that already happened."}
+              ? "It will be kept and start working if cosigno gains this capability. You can remove it at any time."
+              : "You can turn it off again at any time. It never changes work that already happened."}
           </p>
         </div>
       )}

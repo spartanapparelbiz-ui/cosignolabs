@@ -82,7 +82,7 @@ export function EventCard({
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="block text-[0.875rem] leading-snug">{event.headline}</span>
+        <span className="block text-[0.9375rem] leading-snug">{event.headline}</span>
         <span className="t-caption mt-0.5 flex flex-wrap items-center gap-x-1.5">
           {/* Who did it — said the way a person would, never "system". */}
           <span>{event.actor === "you" ? "You" : "cosigno"}</span>

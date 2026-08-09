@@ -2,7 +2,7 @@ import { getStore } from "../store";
 import type { MissionRecord, MissionStepRecord } from "../types";
 
 /**
- * The reference mission: "prepare everything for tomorrow's meeting."
+ * The reference mission: "Prepare everything for tomorrow's meeting."
  * A fixed, inspectable initial plan — the engine expands it adaptively when
  * the analysis actually finds follow-up material (see analyze.extract).
  * Steps 1 and 2 are independent of each other (both depend only on the

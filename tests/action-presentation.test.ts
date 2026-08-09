@@ -28,29 +28,29 @@ function act(
 
 describe("effectLine — one calm sentence, reversibility included", () => {
   it("read-only categories say nothing changes", () => {
-    expect(effectLine(act("search", 1))).toMatch(/read-only/);
-    expect(effectLine(act("summarize", 1))).toMatch(/read-only/);
+    expect(effectLine(act("search", 1))).toMatch(/read-only/i);
+    expect(effectLine(act("summarize", 1))).toMatch(/read-only/i);
     expect(effectLine(act("draft", 1))).toMatch(/nothing is sent/);
   });
 
   it("effects state their size from the payload", () => {
     expect(effectLine(act("send_email", 2, { count: 3 }))).toBe(
-      "this sends 3 emails on your behalf."
+      "Sends 3 emails on your behalf."
     );
     expect(effectLine(act("send_email", 2))).toBe(
-      "this sends 1 email on your behalf."
+      "Sends 1 email on your behalf."
     );
     expect(effectLine(act("update_record", 2, { match_count: 47 }))).toMatch(
-      /changes 47 records/
+      /Changes 47 records/
     );
     expect(effectLine(act("delete", 3, { count: 12 }))).toMatch(
-      /permanently deletes 12 items — it can't be undone/
+      /Permanently deletes 12 items — it can't be undone/
     );
   });
 
   it("money categories name the amount when present", () => {
     expect(effectLine(act("refund", 3, { amount: "$40" }))).toMatch(/\$40/);
-    expect(effectLine(act("payment", 3))).toMatch(/moves money out/);
+    expect(effectLine(act("payment", 3))).toMatch(/Moves money out/);
   });
 
   it("never throws on junk payloads", () => {

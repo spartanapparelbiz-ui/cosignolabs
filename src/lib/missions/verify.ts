@@ -35,14 +35,14 @@ export async function verifyGmailSend(
   expected: { subject: string }
 ): Promise<VerificationResult> {
   const conn = await connectedApp(userId, "google");
-  if (!conn) return { ok: false, detail: "couldn't verify — Gmail is no longer connected." };
+  if (!conn) return { ok: false, detail: "Couldn't verify — Gmail is no longer connected." };
   const res = await runProviderAction(userId, conn.id, "search_messages", {
     query: `in:sent subject:"${expected.subject.replace(/"/g, "")}"`,
   });
   const count = typeof res.detail?.count === "number" ? (res.detail.count as number) : 0;
   return res.ok && count > 0
     ? { ok: true, detail: `verified: the message is in Sent Mail (subject “${expected.subject}”).`, checked: { subject: expected.subject } }
-    : { ok: false, detail: "the send reported success but the message wasn't found in Sent Mail yet." };
+    : { ok: false, detail: "The send reported success but the message wasn't found in Sent Mail yet." };
 }
 
 /**
@@ -54,9 +54,9 @@ export async function verifyCalendarEvent(
   expected: { title: string; when?: string; attendees?: string[] }
 ): Promise<VerificationResult> {
   const conn = await connectedApp(userId, "google-calendar");
-  if (!conn) return { ok: false, detail: "couldn't verify — Google Calendar is no longer connected." };
+  if (!conn) return { ok: false, detail: "Couldn't verify — Google Calendar is no longer connected." };
   const res = await runProviderAction(userId, conn.id, "list_events", {});
-  if (!res.ok) return { ok: false, detail: "couldn't read the calendar back to verify." };
+  if (!res.ok) return { ok: false, detail: "Couldn't read the calendar back to verify." };
   const titles = Array.isArray(res.detail?.titles) ? (res.detail!.titles as string[]) : [];
   const found = titles.some((t) => t.toLowerCase().includes(expected.title.toLowerCase()));
   return found
@@ -74,9 +74,9 @@ export async function verifyDriveFile(
   expected: { name: string }
 ): Promise<VerificationResult> {
   const conn = await connectedApp(userId, "google-drive");
-  if (!conn) return { ok: false, detail: "couldn't verify — Google Drive is no longer connected." };
+  if (!conn) return { ok: false, detail: "Couldn't verify — Google Drive is no longer connected." };
   const res = await runProviderAction(userId, conn.id, "list_files", {});
-  if (!res.ok) return { ok: false, detail: "couldn't read Drive back to verify." };
+  if (!res.ok) return { ok: false, detail: "Couldn't read Drive back to verify." };
   const files = Array.isArray(res.detail?.files)
     ? (res.detail!.files as { name?: string }[]).map((f) => f.name ?? "")
     : [];

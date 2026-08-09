@@ -29,7 +29,7 @@ export function BudgetPanel() {
         setBudget(typeof d.budget === "number" ? d.budget : null);
         setChoices(d.choices ?? []);
       })
-      .catch(() => setError("couldn't load your limit."));
+      .catch(() => setError("Couldn't load your limit."));
   }, []);
 
   async function choose(value: number) {
@@ -42,10 +42,10 @@ export function BudgetPanel() {
         body: JSON.stringify({ budget: value }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.message || "that limit didn't save.");
+      if (!res.ok) throw new Error(body.message || "That limit didn't save.");
       setBudget(body.budget);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "that limit didn't save.");
+      setError(e instanceof Error ? e.message : "That limit didn't save.");
     } finally {
       setBusy(false);
     }
@@ -66,7 +66,7 @@ export function BudgetPanel() {
             onClick={() => choose(n)}
             disabled={busy || budget === null}
             aria-pressed={budget === n}
-            className={`rounded-pill px-3.5 py-1.5 text-[0.8125rem] transition-all duration-fast ease-brand-out disabled:cursor-not-allowed ${
+            className={`rounded-pill px-3.5 py-1.5 text-[0.875rem] transition-all duration-fast ease-brand-out disabled:cursor-not-allowed ${
               budget === n
                 ? "bg-surface font-semibold text-ink shadow-rest"
                 : "text-ink-soft hover:text-ink"

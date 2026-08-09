@@ -55,7 +55,7 @@ export async function assertIntegrationCapacity(
       "upgrade_required",
       planId === "free"
         ? `free connects one app. ${PLANS.pro.name} is ${priceLabel(PLANS.pro, "monthly")} for unlimited.`
-        : "you've reached your plan's connection limit."
+        : "You've reached your plan's connection limit."
     );
   }
 }

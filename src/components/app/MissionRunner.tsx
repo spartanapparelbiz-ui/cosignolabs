@@ -51,7 +51,7 @@ function StarterRow({
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-btn px-3 py-3.5 transition-colors duration-fast hover:bg-ink/[0.025]">
       <span className="mt-0.5 shrink-0 self-start text-ink-soft">{icon}</span>
       <div className="min-w-0 flex-1">
-        <p className="text-[0.9375rem]">{title}</p>
+        <p className="text-[1rem]">{title}</p>
         <p className="t-caption mt-0.5">{detail}</p>
       </div>
       <button onClick={onStart} disabled={busy} className={btn("secondary", "sm")}>
@@ -83,17 +83,17 @@ const STEP_ICON: Record<MissionStepRecord["state"], typeof Circle> = {
 };
 
 const STEP_NOTE: Record<MissionStepRecord["state"], string> = {
-  ready: "waiting for its turn.",
+  ready: "Waiting for its turn.",
   running: "running now.",
-  awaiting_input: "needs your answer below.",
-  awaiting_approval: "waiting on your approval — see decisions.",
-  retrying: "hit a problem — will retry.",
-  verifying: "confirming the outcome.",
+  awaiting_input: "Needs your answer below.",
+  awaiting_approval: "Waiting on your approval — see decisions.",
+  retrying: "Hit a problem — will retry.",
+  verifying: "Confirming the outcome.",
   completed: "finished.",
-  failed: "didn't complete — nothing was left half-done.",
-  vetoed: "you vetoed this — it never ran.",
+  failed: "Didn't complete — nothing was left half-done.",
+  vetoed: "You vetoed this — it never ran.",
   skipped: "skipped.",
-  canceled: "canceled when the mission stopped.",
+  canceled: "Canceled when the mission stopped.",
 };
 
 async function jsonFetch(url: string, init?: RequestInit) {
@@ -102,7 +102,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -140,7 +140,7 @@ function GoalComposer({ onStarted }: { onStarted: (id: string) => void }) {
       });
       setPreview(data);
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't read that goal.");
+      toast("error", e instanceof Error ? e.message : "Couldn't read that goal.");
     } finally {
       setBusy(false);
     }
@@ -153,12 +153,12 @@ function GoalComposer({ onStarted }: { onStarted: (id: string) => void }) {
         method: "POST",
         body: JSON.stringify({ goal: goal.trim() }),
       });
-      toast("success", "mission started from your goal.");
+      toast("success", "Mission started from your goal.");
       setPreview(null);
       setGoal("");
       onStarted(data.mission.id);
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't start that mission.");
+      toast("error", e instanceof Error ? e.message : "Couldn't start that mission.");
     } finally {
       setBusy(false);
     }
@@ -266,7 +266,7 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
       setError(null);
       return (data.missions ?? []) as MissionRecord[];
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load missions.");
+      setError(e instanceof Error ? e.message : "Couldn't load missions.");
       return [];
     }
   }, []);
@@ -325,13 +325,13 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
           ? "mission started — it keeps working even if you close this tab."
           : bgActive === false
             ? "mission started — keep this mission open; it pauses when you close it."
-            : "mission started — keep it open until we can confirm it runs in the background."
+            : "Mission started — keep it open until we can confirm it runs in the background."
       );
       setSteps((s) => ({ ...s, [data.mission.id]: data.steps ?? [] }));
       await load();
       setOpenId(data.mission.id);
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't start the mission.");
+      toast("error", e instanceof Error ? e.message : "Couldn't start the mission.");
     } finally {
       setBusy(null);
     }
@@ -344,10 +344,10 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
         method: "POST",
         body: JSON.stringify({ template: "laptop_compare" }),
       });
-      toast("success", "browser mission started — opening the browser view.");
+      toast("success", "Browser mission started — opening the browser view.");
       window.location.href = `/app/browser/${data.mission.id}`;
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't start the mission.");
+      toast("error", e instanceof Error ? e.message : "Couldn't start the mission.");
       setBusy(null);
     }
   }
@@ -358,12 +358,12 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
       await jsonFetch(`/api/missions/${id}/control`, { method: "POST", body: JSON.stringify({ op }) });
       toast(
         "success",
-        op === "pause" ? "paused — no new work will start." : op === "resume" ? "resumed." : "stopped — waiting steps were canceled and pending cards vetoed."
+        op === "pause" ? "paused — no new work will start." : op === "resume" ? "resumed." : "Stopped — waiting steps were canceled and pending cards vetoed."
       );
       await load();
       await loadSteps(id);
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "that didn't work.");
+      toast("error", e instanceof Error ? e.message : "That didn't work.");
     } finally {
       setBusy(null);
     }
@@ -379,7 +379,7 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
       setSteps((s) => ({ ...s, [id]: data.steps ?? [] }));
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "the answer didn't go through.");
+      toast("error", e instanceof Error ? e.message : "The answer didn't go through.");
     } finally {
       setBusy(null);
     }
@@ -516,7 +516,7 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                           disabled={busy === m.id}
                           className={`min-h-[32px] rounded-btn px-3.5 py-1.5 text-xs font-semibold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
                             o === m.pending_question?.recommended
-                              ? "bg-signal text-ink"
+                              ? "bg-signal text-on-signal"
                               : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                           }`}
                         >
@@ -620,7 +620,7 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                             </span>
                           )}
                           {verif && (
-                            <span className={`block text-[0.75rem] font-semibold ${verif.ok ? "text-signal" : "text-ink"}`}>
+                            <span className={`block text-[0.75rem] font-semibold ${verif.ok ? "text-positive" : "text-ink"}`}>
                               {verif.ok ? "verified" : "verification failed"}: {verif.detail}
                             </span>
                           )}

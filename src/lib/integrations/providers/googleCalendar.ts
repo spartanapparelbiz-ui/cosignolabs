@@ -14,10 +14,10 @@ const API = "https://www.googleapis.com/calendar/v3/calendars/primary";
 const MAX_EVENTS = 25;
 
 const CALENDAR_ACTIONS: ProviderAction[] = [
-  { id: "list_events", summary: "list upcoming events (read-only).", mutates: false, risk: "read" },
-  { id: "find_free_slots", summary: "find open time between events (read-only).", mutates: false, risk: "read" },
-  { id: "create_event", summary: "add an event to your calendar.", mutates: true, risk: "write" },
-  { id: "delete_event", summary: "delete an event (destructive — typed confirmation).", mutates: true, risk: "destructive" },
+  { id: "list_events", summary: "List upcoming events (read-only).", mutates: false, risk: "read" },
+  { id: "find_free_slots", summary: "Find open time between events (read-only).", mutates: false, risk: "read" },
+  { id: "create_event", summary: "Add an event to your calendar.", mutates: true, risk: "write" },
+  { id: "delete_event", summary: "Delete an event (destructive — typed confirmation).", mutates: true, risk: "destructive" },
 ];
 
 function bearer(creds: OAuthCredentials) {
@@ -62,7 +62,7 @@ async function calendarExecute(
       // Event titles are UNTRUSTED content — data, never instructions.
       return {
         ok: true,
-        summary: `found ${items.length} upcoming event${items.length === 1 ? "" : "s"}.`,
+        summary: `Found ${items.length} upcoming event${items.length === 1 ? "" : "s"}.`,
         detail: { count: items.length, titles, untrusted: true },
       };
     }
@@ -85,7 +85,7 @@ async function calendarExecute(
       const busy = res.calendars?.primary?.busy ?? [];
       return {
         ok: true,
-        summary: `checked the next 7 days — ${busy.length} busy block${busy.length === 1 ? "" : "s"} found.`,
+        summary: `Checked the next 7 days — ${busy.length} busy block${busy.length === 1 ? "" : "s"} found.`,
         detail: { busy: busy.slice(0, 25), untrusted: true },
       };
     }
@@ -94,7 +94,7 @@ async function calendarExecute(
       const start = str(payload.start);
       const end = str(payload.end);
       if (!title || !start || !end) {
-        return { ok: false, summary: "an event needs a title, a start, and an end (ISO datetimes)." };
+        return { ok: false, summary: "An event needs a title, a start, and an end (ISO datetimes)." };
       }
       const created = await requestJson<GEvent>(`${API}/events`, {
         method: "POST",
@@ -106,27 +106,27 @@ async function calendarExecute(
           ...(str(payload.description) ? { description: str(payload.description) } : {}),
         },
       });
-      return { ok: true, summary: `added “${title}” to your calendar.`, detail: { event_id: created.id } };
+      return { ok: true, summary: `Added “${title}” to your calendar.`, detail: { event_id: created.id } };
     }
     case "delete_event": {
       const id = str(payload.event_id) ?? str(payload.id);
-      if (!id) return { ok: false, summary: "no event id given." };
+      if (!id) return { ok: false, summary: "No event id given." };
       await requestJson(`${API}/events/${encodeURIComponent(id)}`, {
         method: "DELETE",
         headers: bearer(creds),
       });
-      return { ok: true, summary: "deleted the event." };
+      return { ok: true, summary: "Deleted the event." };
     }
     default:
-      return { ok: false, summary: "unknown Calendar action." };
+      return { ok: false, summary: "Unknown Calendar action." };
   }
 }
 
 export const googleCalendarProvider = makeOAuthProvider({
   key: "google-calendar",
   name: "Google Calendar",
-  detail: "list events, find free time, and (with your signature) add or delete events.",
-  scopeSummary: "calendar: events only",
+  detail: "List events, find free time, and (with your signature) add or delete events.",
+  scopeSummary: "Your calendar events, and nothing else in your account",
   homeUrl: "https://calendar.google.com",
   tracks: ["upcoming events", "free time", "conflicts"],
   authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",

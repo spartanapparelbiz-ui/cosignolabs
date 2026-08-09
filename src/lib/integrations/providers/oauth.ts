@@ -253,27 +253,27 @@ async function slackExecute(
       // Channel names are workspace content — UNTRUSTED, data only.
       return {
         ok: true,
-        summary: `found ${channels.length} channel${channels.length === 1 ? "" : "s"}.`,
+        summary: `Found ${channels.length} channel${channels.length === 1 ? "" : "s"}.`,
         detail: { channels, untrusted: true },
       };
     }
     case "post_message": {
       const channel = s(payload.channel) ?? s(payload.channel_id);
       const text = s(payload.text) ?? s(payload.message);
-      if (!channel || !text) return { ok: false, summary: "a post needs a channel and text." };
+      if (!channel || !text) return { ok: false, summary: "A post needs a channel and text." };
       await slackCall("chat.postMessage", creds, { method: "POST", body: { channel, text } });
-      return { ok: true, summary: `posted to ${channel.startsWith("#") ? channel : `#${channel}`}.` };
+      return { ok: true, summary: `Posted to ${channel.startsWith("#") ? channel : `#${channel}`}.` };
     }
     default:
-      return { ok: false, summary: "unknown Slack action." };
+      return { ok: false, summary: "Unknown Slack action." };
   }
 }
 
 export const slackProvider = makeOAuthProvider({
   key: "slack",
   name: "Slack",
-  detail: "list channels and (with your signature) post messages.",
-  scopeSummary: "chat:write · channels:read",
+  detail: "List channels and (with your signature) post messages.",
+  scopeSummary: "Your public channels, and posting to them",
   homeUrl: "https://slack.com",
   tracks: ["channels", "messages cosigno posted"],
   authorizeUrl: "https://slack.com/oauth/v2/authorize",
@@ -284,8 +284,8 @@ export const slackProvider = makeOAuthProvider({
   healthUrl: "https://slack.com/api/auth.test",
   healthLabel: (j) => (typeof j.team === "string" ? j.team : undefined),
   actions: [
-    { id: "list_channels", summary: "list public channels (read-only).", mutates: false, risk: "read" },
-    { id: "post_message", summary: "post a message to a channel (waits for your signature).", mutates: true, risk: "write" },
+    { id: "list_channels", summary: "List public channels (read-only).", mutates: false, risk: "read" },
+    { id: "post_message", summary: "Post a message to a channel (waits for your signature).", mutates: true, risk: "write" },
   ],
   execute: slackExecute,
 });
@@ -316,12 +316,12 @@ async function notionExecute(
         body: { query, page_size: 25, filter: { value: "page", property: "object" } },
       });
       const n = res.results?.length ?? 0;
-      return { ok: true, summary: `found ${n} page${n === 1 ? "" : "s"}${query ? ` matching “${query}”` : ""}.`, detail: { count: n, untrusted: true } };
+      return { ok: true, summary: `Found ${n} page${n === 1 ? "" : "s"}${query ? ` matching “${query}”` : ""}.`, detail: { count: n, untrusted: true } };
     }
     case "create_page": {
       const parent = s(payload.parent_page_id) ?? s(payload.parent_id);
       const title = s(payload.title);
-      if (!parent || !title) return { ok: false, summary: "a page needs a parent page id and a title." };
+      if (!parent || !title) return { ok: false, summary: "A page needs a parent page id and a title." };
       const children = s(payload.content)
         ? [{ object: "block", type: "paragraph", paragraph: { rich_text: [{ type: "text", text: { content: s(payload.content) } }] } }]
         : [];
@@ -334,12 +334,12 @@ async function notionExecute(
           children,
         },
       });
-      return { ok: true, summary: `created the page “${title}”.`, detail: { page_id: created.id } };
+      return { ok: true, summary: `Created the page “${title}”.`, detail: { page_id: created.id } };
     }
     case "append_note": {
       const page = s(payload.page_id) ?? s(payload.id);
       const text = s(payload.text) ?? s(payload.content);
-      if (!page || !text) return { ok: false, summary: "an append needs a page id and text." };
+      if (!page || !text) return { ok: false, summary: "An append needs a page id and text." };
       await requestJson(`${NOTION_API}/blocks/${encodeURIComponent(page)}/children`, {
         method: "PATCH",
         headers: notionHeaders(creds),
@@ -347,18 +347,18 @@ async function notionExecute(
           children: [{ object: "block", type: "paragraph", paragraph: { rich_text: [{ type: "text", text: { content: text } }] } }],
         },
       });
-      return { ok: true, summary: "appended the note to the page." };
+      return { ok: true, summary: "Appended the note to the page." };
     }
     default:
-      return { ok: false, summary: "unknown Notion action." };
+      return { ok: false, summary: "Unknown Notion action." };
   }
 }
 
 export const notionProvider = makeOAuthProvider({
   key: "notion",
   name: "Notion",
-  detail: "search pages and (with your signature) create pages or append notes.",
-  scopeSummary: "pages you share with cosigno",
+  detail: "Search pages and (with your signature) create pages or append notes.",
+  scopeSummary: "Pages you share with cosigno",
   homeUrl: "https://www.notion.so",
   tracks: ["pages shared with cosigno"],
   authorizeUrl: "https://api.notion.com/v1/oauth/authorize",
@@ -375,9 +375,9 @@ export const notionProvider = makeOAuthProvider({
     return bot?.owner?.user?.name ?? (typeof j.name === "string" ? j.name : undefined);
   },
   actions: [
-    { id: "search_pages", summary: "search pages shared with cosigno (read-only).", mutates: false, risk: "read" },
-    { id: "create_page", summary: "create a page under a parent you choose.", mutates: true, risk: "write" },
-    { id: "append_note", summary: "append a note to an existing page.", mutates: true, risk: "write" },
+    { id: "search_pages", summary: "Search pages shared with cosigno (read-only).", mutates: false, risk: "read" },
+    { id: "create_page", summary: "Create a page under a parent you choose.", mutates: true, risk: "write" },
+    { id: "append_note", summary: "Append a note to an existing page.", mutates: true, risk: "write" },
   ],
   execute: notionExecute,
 });

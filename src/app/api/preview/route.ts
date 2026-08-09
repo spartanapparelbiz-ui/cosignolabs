@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         unsupported: true,
         message:
-          "the public demo currently simulates inbox, follow-up, and calendar missions. here's how cosigno would break your task down — but i won't pretend to execute tools that aren't connected.",
+          "The public demo currently simulates inbox, follow-up, and calendar missions. Here's how cosigno would break your task down — but i won't pretend to execute tools that aren't connected.",
         planPreview: plan.planPreview,
         reasoning: null,
         cards: [],

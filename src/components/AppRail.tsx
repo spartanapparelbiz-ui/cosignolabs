@@ -36,11 +36,11 @@ import { LogoHome } from "@/components/brand/LivingLogo";
  * them.
  */
 const PRIMARY = [
-  { href: "/app", label: "home", icon: Home },
-  { href: "/app/missions", label: "missions", icon: Rocket },
-  { href: "/app/approvals", label: "approvals", icon: PenLine },
-  { href: "/app/activity", label: "activity", icon: Activity },
-  { href: "/app/connections", label: "connections", icon: Plug },
+  { href: "/app", label: "Home", icon: Home },
+  { href: "/app/missions", label: "Missions", icon: Rocket },
+  { href: "/app/approvals", label: "Approvals", icon: PenLine },
+  { href: "/app/activity", label: "Activity", icon: Activity },
+  { href: "/app/connections", label: "Connections", icon: Plug },
 ] as const;
 
 /**
@@ -50,17 +50,17 @@ const PRIMARY = [
  * panel rather than a workspace.
  */
 const SECONDARY = [
-  { href: "/app/trust", label: "trust", icon: ShieldCheck },
-  { href: "/app/monitoring", label: "monitoring", icon: Gauge },
-  { href: "/app/mission-control", label: "live work", icon: Radar },
-  /* Digital twins are gone — "capabilities" went with them, and everything it
-     showed now lives on Connections. "simulate" points straight at the rule
-     tester rather than through /app/simulation, which only redirects. */
-  { href: "/app/settings/rules", label: "simulate", icon: FlaskConical },
-  { href: "/app/templates", label: "templates", icon: LayoutTemplate },
+  { href: "/app/trust", label: "Trust", icon: ShieldCheck },
+  { href: "/app/monitoring", label: "Monitoring", icon: Gauge },
+  { href: "/app/mission-control", label: "Live", icon: Radar },
+  /* "Simulate" named the mechanism. The destination is where you write and
+     test a rule, so it is called Rules — a word that needs no explaining to
+     anyone, which is the bar every label in a navigation has to clear. */
+  { href: "/app/settings/rules", label: "Rules", icon: FlaskConical },
+  { href: "/app/templates", label: "Templates", icon: LayoutTemplate },
   // /app/settings redirects here; the surface it opens is titled "account",
   // so the rail says the same word rather than a second name for one place.
-  { href: "/app/account", label: "account", icon: Settings },
+  { href: "/app/account", label: "Account", icon: Settings },
 ] as const;
 
 
@@ -84,7 +84,7 @@ function RailLink({
       href={href}
       prefetch
       aria-current={active ? "page" : undefined}
-      className={`relative flex w-[64px] flex-col items-center gap-1 rounded-btn px-1 py-2.5 text-[0.6875rem] font-semibold lowercase tracking-wide transition-colors duration-fast ease-brand-out ${
+      className={`tap-sq relative flex w-[64px] flex-col items-center gap-1 rounded-btn px-1 py-2.5 text-[0.75rem] font-semibold tracking-[0.01em] transition-colors duration-fast ease-brand-out ${
         active ? "bg-ink/[0.07] text-ink" : "text-ink-soft hover:bg-ink/[0.04] hover:text-ink"
       }`}
     >
@@ -159,7 +159,7 @@ function usePendingCount(): number {
 function Badge({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
-    <span className="absolute -right-1.5 -top-1 flex h-[15px] min-w-[15px] animate-check-pop items-center justify-center rounded-pill bg-signal px-1 text-[0.6875rem] font-semibold tabular-nums text-ink">
+    <span className="absolute -right-1.5 -top-1 flex h-[15px] min-w-[15px] animate-check-pop items-center justify-center rounded-pill bg-signal px-1 text-[0.75rem] font-semibold tabular-nums text-on-signal">
       {count > 9 ? "9+" : count}
     </span>
   );
@@ -184,7 +184,7 @@ export function AppRail() {
           label={label}
           Icon={Icon}
           active={isActive(pathname, href)}
-          badge={label === "approvals" ? pending : 0}
+          badge={label === "Approvals" ? pending : 0}
         />
       ))}
 
@@ -228,7 +228,7 @@ export function AppBottomNav() {
             href={href}
             prefetch
             aria-current={active ? "page" : undefined}
-            className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-btn py-1 text-[0.6875rem] font-semibold lowercase tracking-wide transition-colors duration-fast ${
+            className={`tap relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-btn py-1.5 text-[0.75rem] font-semibold tracking-[0.01em] transition-colors duration-fast ${
               active ? "text-ink" : "text-ink-soft"
             }`}
           >
@@ -238,7 +238,7 @@ export function AppBottomNav() {
               }`}
             >
               <Icon size={17} strokeWidth={active ? 2.2 : 1.9} aria-hidden="true" />
-              {label === "approvals" && <Badge count={pending} />}
+              {label === "Approvals" && <Badge count={pending} />}
             </span>
             <span className="truncate">{label}</span>
           </Link>

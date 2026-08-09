@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) {
     return NextResponse.json(
-      { error: "not_configured", message: "the scheduler isn't enabled on this deployment." },
+      { error: "not_configured", message: "The scheduler isn't enabled on this deployment." },
       { status: 503 }
     );
   }

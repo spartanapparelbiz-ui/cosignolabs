@@ -112,7 +112,7 @@ export async function GET() {
       alerts.push({
         level: "warn",
         title: `${failed} mission${failed === 1 ? "" : "s"} failed`,
-        detail: "open the mission to see the step that stopped and retry it.",
+        detail: "Open the mission to see the step that stopped and retry it.",
       });
     }
 

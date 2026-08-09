@@ -311,7 +311,7 @@ function headlineFor(step: MissionStepRecord, phase: StepPhase): string {
 function pauseReason(mission: MissionRecord, steps: MissionStepRecord[]): string | null {
   if (mission.state === "paused") return "You paused this. Resume it whenever you're ready.";
   if (mission.state === "blocked") {
-    return mission.error ?? "cosigno stopped and needs you before it can carry on.";
+    return mission.error ?? "Cosigno stopped and needs you before it can carry on.";
   }
 
   const question = mission.pending_question;

@@ -125,10 +125,10 @@ export async function runProviderAction(
 ): Promise<ActionResult> {
   const store = getStore();
   const c = await store.getConnection(userId, connectionId);
-  if (!c || c.kind !== "app") return { ok: false, summary: "connection not found." };
-  if (c.status === "revoked") return { ok: false, summary: "this connection was disconnected." };
+  if (!c || c.kind !== "app") return { ok: false, summary: "Connection not found." };
+  if (c.status === "revoked") return { ok: false, summary: "This connection was disconnected." };
   const provider = getProvider(c.provider_key);
-  if (!provider) return { ok: false, summary: "unknown provider." };
+  if (!provider) return { ok: false, summary: "Unknown provider." };
 
   try {
     let creds = decryptCreds(c);
@@ -136,10 +136,10 @@ export async function runProviderAction(
     return await provider.execute(actionId, payload, creds);
   } catch (err) {
     if (err instanceof Error && err.message === "needs_reauth") {
-      return { ok: false, summary: "this connection needs to be reconnected." };
+      return { ok: false, summary: "This connection needs to be reconnected." };
     }
     logError(newRequestId(), err, { event: "provider_action_failed", provider: c.provider_key });
-    return { ok: false, summary: "the provider call didn't go through." };
+    return { ok: false, summary: "The provider call didn't go through." };
   }
 }
 
@@ -196,11 +196,11 @@ export async function runMcpTool(
   const c = await store.getConnection(userId, connectionId);
   if (!c || c.kind !== "mcp") return { ok: false, summary: "MCP connection not found." };
   const tool = await store.getMcpTool(userId, connectionId, toolName);
-  if (!tool) return { ok: false, summary: "that tool isn't on this server anymore." };
+  if (!tool) return { ok: false, summary: "That tool isn't on this server anymore." };
   // Belt-and-suspenders: consent is checked at enable time AND here.
   if (!isCallable(tool)) {
     logSecurity("injection_approval_blocked", { connectionId, tool: toolName, reason: "not_consented" });
-    return { ok: false, summary: "this tool isn't enabled/consented." };
+    return { ok: false, summary: "This tool isn't enabled/consented." };
   }
   try {
     const res = await callTool(mcpConfig(c), toolName, args);
@@ -213,10 +213,10 @@ export async function runMcpTool(
   } catch (err) {
     if (err instanceof McpError && err.kind === "auth") {
       await store.updateConnection(userId, connectionId, { status: "needs_reauth" });
-      return { ok: false, summary: "the MCP server needs re-authentication." };
+      return { ok: false, summary: "The MCP server needs re-authentication." };
     }
     const kind = err instanceof McpError ? err.kind : "error";
-    return { ok: false, summary: `couldn't reach the MCP tool (${kind}).` };
+    return { ok: false, summary: `Couldn't reach the MCP tool (${kind}).` };
   }
 }
 

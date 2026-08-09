@@ -78,7 +78,7 @@ export default function ElementsForm(props: CheckoutDriverProps) {
     })
       .then(async (r) => {
         const b = await r.json();
-        if (!r.ok) throw new Error(b.message || "couldn't start checkout.");
+        if (!r.ok) throw new Error(b.message || "Couldn't start checkout.");
         if (alive) setClientSecret(b.clientSecret);
       })
       .catch(() => alive && setFatal(true));
@@ -198,7 +198,7 @@ function InnerForm({
     });
     if (pmError || !paymentMethod) {
       setBusy(false);
-      onError(pmError?.message || "that card didn't go through — try another or check with your bank.");
+      onError(pmError?.message || "That card didn't go through — try another or check with your bank.");
       return;
     }
     const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
@@ -299,11 +299,11 @@ function HostedFallback({
         body: JSON.stringify({ plan, interval }),
       });
       const b = await res.json();
-      if (!res.ok) throw new Error(b.message || "couldn't open checkout.");
+      if (!res.ok) throw new Error(b.message || "Couldn't open checkout.");
       window.location.href = b.url;
     } catch (e) {
       setBusy(false);
-      onError(e instanceof Error ? e.message : "couldn't open checkout.");
+      onError(e instanceof Error ? e.message : "Couldn't open checkout.");
     }
   }
   return (

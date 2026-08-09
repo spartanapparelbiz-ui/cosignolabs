@@ -96,10 +96,10 @@ export function TrustCenter() {
     fetch("/api/trust")
       .then((r) => r.json())
       .then((d) => {
-        if (!d.capabilities) throw new Error(d.message || "couldn't load your settings.");
+        if (!d.capabilities) throw new Error(d.message || "Couldn't load your settings.");
         setRows(d.capabilities);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "couldn't load your settings."));
+      .catch((e) => setError(e instanceof Error ? e.message : "Couldn't load your settings."));
   }
   useEffect(load, []);
 
@@ -118,13 +118,13 @@ export function TrustCenter() {
         body: JSON.stringify({ capability, setting }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.message || "that setting didn't save.");
+      if (!res.ok) throw new Error(body.message || "That setting didn't save.");
       // The server returns the whole picture back, so what's on screen is what
       // the engine will actually enforce — never an optimistic guess.
       setRows(body.capabilities);
       setJustSet({ id: capability, setting });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "that setting didn't save.");
+      setError(e instanceof Error ? e.message : "That setting didn't save.");
     } finally {
       setBusy(null);
     }
@@ -158,12 +158,12 @@ export function TrustCenter() {
           body: JSON.stringify({ capability: row.id, setting: want }),
         });
         const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body.message || "that preset didn't apply.");
+        if (!res.ok) throw new Error(body.message || "That preset didn't apply.");
         setRows(body.capabilities);
       }
       setJustSet(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "that preset didn't apply.");
+      setError(e instanceof Error ? e.message : "That preset didn't apply.");
     } finally {
       setBusy(null);
     }
@@ -212,7 +212,7 @@ export function TrustCenter() {
                     <span className="t-caption ml-auto">suggested</span>
                   )}
                 </div>
-                <p className={`mt-2 text-[0.8125rem] leading-relaxed ${active ? "text-cream/70" : "text-ink-soft"}`}>
+                <p className={`mt-2 text-[0.875rem] leading-relaxed ${active ? "text-cream/70" : "text-ink-soft"}`}>
                   {p.detail}
                 </p>
               </button>
@@ -344,7 +344,7 @@ function ProtectionSummary({ rows }: { rows: Row[] | null }) {
           <h3 className="t-eyebrow">{g.title}</h3>
           <ul className="mt-2.5 flex flex-col gap-1.5">
             {g.items.map((r) => (
-              <li key={r.id} className="flex items-center gap-2.5 text-[0.875rem]">
+              <li key={r.id} className="flex items-center gap-2.5 text-[0.9375rem]">
                 <span className={dot(g.tone)} aria-hidden="true" />
                 {r.title}
               </li>
@@ -372,7 +372,7 @@ function AdvancedControls() {
       <button
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        className="flex w-full items-center gap-2 text-left text-[0.875rem] text-ink-soft transition-colors duration-fast hover:text-ink"
+        className="flex w-full items-center gap-2 text-left text-[0.9375rem] text-ink-soft transition-colors duration-fast hover:text-ink"
       >
         <ChevronDown
           size={15}
@@ -392,7 +392,7 @@ function AdvancedControls() {
             {
               href: "/app/connections",
               title: "Connected apps, MCP servers and custom APIs",
-              detail: "which tools each connection exposes, and what each one may be used for.",
+              detail: "Which tools each connection exposes, and what each one may be used for.",
             },
             {
               href: "/app/connections",
@@ -403,7 +403,7 @@ function AdvancedControls() {
             {
               href: "/app/activity",
               title: "Every change to these settings",
-              detail: "who changed what, and when. nothing here is silent.",
+              detail: "Who changed what, and when. Nothing here is silent.",
             },
           ].map((l) => (
             <Link
@@ -411,7 +411,7 @@ function AdvancedControls() {
               href={l.href}
               className="rounded-btn px-3 py-2.5 transition-colors duration-fast hover:bg-ink/[0.035]"
             >
-              <p className="text-[0.875rem]">{l.title}</p>
+              <p className="text-[0.9375rem]">{l.title}</p>
               <p className="t-caption mt-0.5">{l.detail}</p>
             </Link>
           ))}
@@ -451,7 +451,7 @@ function Segmented({
             aria-checked={active}
             disabled={busy || row.options.length === 1}
             onClick={() => onChoose(value)}
-            className={`rounded-pill px-3.5 py-1.5 text-[0.8125rem] transition-all duration-fast ease-brand-out disabled:cursor-default ${
+            className={`rounded-pill px-3.5 py-1.5 text-[0.875rem] transition-all duration-fast ease-brand-out disabled:cursor-default ${
               active
                 ? "bg-surface font-semibold text-ink shadow-rest"
                 : "text-ink-soft hover:text-ink"
@@ -467,10 +467,10 @@ function Segmented({
 
 const WHAT_CHANGES: Record<string, string> = {
   "never→ask":
-    "cosigno will start proposing this again. it still waits for your approval every time.",
-  "never→always": "cosigno will do this on its own, without asking and without waiting.",
+    "Cosigno will start proposing this again. It still waits for your approval every time.",
+  "never→always": "Cosigno will do this on its own, without asking and without waiting.",
   "ask→always":
-    "cosigno will stop asking. it will do this on its own, immediately, every time.",
+    "Cosigno will stop asking. It will do this on its own, immediately, every time.",
 };
 
 /**

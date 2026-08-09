@@ -52,10 +52,10 @@ export function AccountChip() {
         aria-expanded={open}
         className="inline-flex items-center gap-2 rounded-pill py-1 pl-1 pr-2.5 transition-colors duration-fast ease-brand-out hover:bg-ink/[0.05]"
       >
-        <span className="flex h-7 w-7 items-center justify-center rounded-pill bg-ink text-[0.6875rem] font-semibold uppercase text-cream">
+        <span className="flex h-7 w-7 items-center justify-center rounded-pill bg-ink text-[0.75rem] font-semibold uppercase text-cream">
           {initialsFor(display)}
         </span>
-        <span className="hidden max-w-[9rem] truncate text-[0.8125rem] font-semibold text-ink sm:block">
+        <span className="hidden max-w-[9rem] truncate text-[0.875rem] font-semibold text-ink sm:block">
           {display}
         </span>
       </button>
@@ -66,11 +66,11 @@ export function AccountChip() {
           className="absolute right-0 z-30 mt-2 w-60 origin-top-right animate-modal-in rounded-card bg-surface p-1.5 shadow-overlay"
         >
           <div className="flex items-center gap-2.5 px-2.5 py-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink text-[0.8125rem] font-semibold uppercase text-cream">
+            <span className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink text-[0.875rem] font-semibold uppercase text-cream">
               {initialsFor(display)}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-[0.875rem] font-semibold text-ink">{display}</p>
+              <p className="truncate text-[0.9375rem] font-semibold text-ink">{display}</p>
               <p className="t-caption truncate">your cosigno operator</p>
             </div>
           </div>
@@ -86,7 +86,7 @@ export function AccountChip() {
             href="/app/account"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 rounded-btn px-2.5 py-2 text-[0.875rem] text-ink transition-colors duration-fast hover:bg-ink/[0.05]"
+            className="flex items-center gap-2.5 rounded-btn px-2.5 py-2 text-[0.9375rem] text-ink transition-colors duration-fast hover:bg-ink/[0.05]"
           >
             <Settings size={15} strokeWidth={1.9} aria-hidden="true" />
             Account
@@ -95,7 +95,7 @@ export function AccountChip() {
             href="/app/account/plan"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 rounded-btn px-2.5 py-2 text-[0.875rem] text-ink transition-colors duration-fast hover:bg-ink/[0.05]"
+            className="flex items-center gap-2.5 rounded-btn px-2.5 py-2 text-[0.9375rem] text-ink transition-colors duration-fast hover:bg-ink/[0.05]"
           >
             <CreditCard size={15} strokeWidth={1.9} aria-hidden="true" />
             Plan &amp; usage
@@ -103,7 +103,7 @@ export function AccountChip() {
           <button
             role="menuitem"
             onClick={signOut}
-            className="flex w-full items-center gap-2.5 rounded-btn px-2.5 py-2 text-[0.875rem] text-ink transition-colors duration-fast hover:bg-ink/[0.05]"
+            className="flex w-full items-center gap-2.5 rounded-btn px-2.5 py-2 text-[0.9375rem] text-ink transition-colors duration-fast hover:bg-ink/[0.05]"
           >
             <LogOut size={15} strokeWidth={1.9} aria-hidden="true" />
             Sign out

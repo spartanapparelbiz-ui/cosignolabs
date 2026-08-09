@@ -6,7 +6,7 @@ import { Reveal } from "@/components/Reveal";
 export const metadata: Metadata = {
   title: "cosigno — what cosigno can do",
   description:
-    "the specialist capabilities cosigno routes your missions through — each with a defined job, real tools, and a hard authority ceiling.",
+    "The specialist capabilities cosigno routes your missions through — each with a defined job, real tools, and a hard authority ceiling.",
   alternates: { canonical: "https://cosignolabs.com/operators" },
 };
 
@@ -21,51 +21,51 @@ export const metadata: Metadata = {
 const OPERATORS = [
   {
     name: "research",
-    job: "finds, reads, compares, and organizes information.",
+    job: "Finds, reads, compares, and organizes information.",
     caps: "search · summarize",
     authority: "observe — runs instantly, changes nothing",
     detail:
-      "read-only work never waits: it searches, reads, and hands back organized findings. everything it reads from the outside world is treated as untrusted content and injection-scanned.",
+      "Read-only work never waits: it searches, reads, and hands back organized findings. Everything it reads from the outside world is treated as untrusted content and injection-scanned.",
   },
   {
     name: "communication",
-    job: "prepares replies, updates, and posts — and sends only with your signature.",
+    job: "Prepares replies, updates, and posts — and sends only with your signature.",
     caps: "draft · send_email · post_content",
     authority: "prepare runs instantly · sending waits for confirm",
     detail:
-      "drafting is safe by construction — nothing leaves the account, so drafts appear immediately. the moment anything would actually send or publish, it stops at an action card.",
+      "Drafting is safe by construction — nothing leaves the account, so drafts appear immediately. The moment anything would actually send or publish, it stops at an action card.",
   },
   {
     name: "records",
-    job: "updates the systems you point it at.",
+    job: "Updates the systems you point it at.",
     caps: "update_record · webhook",
     authority: "confirm — every change waits for sign-off",
     detail:
-      "each proposed change shows the exact payload before it happens, and the real result after — logged to your audit trail.",
+      "Each proposed change shows the exact payload before it happens, and the real result after — logged to your audit trail.",
   },
   {
     name: "finance",
-    job: "prepares spending, payments, and refunds — under the hardest lock.",
+    job: "Prepares spending, payments, and refunds — under the hardest lock.",
     caps: "spend · payment · refund",
     authority: "locked — typed confirmation, always",
     detail:
-      "money can never move on a click, and never automatically: these categories are pinned to the top tier and cannot be lowered, by you or the agent.",
+      "Money can never move on a click, and never automatically: these categories are pinned to the top tier and cannot be lowered, by you or the agent.",
   },
   {
     name: "cleanup",
-    job: "archives, labels, and — only with typed confirmation — deletes.",
+    job: "Archives, labels, and — only with typed confirmation — deletes.",
     caps: "delete (destructive)",
     authority: "locked — typed confirmation, always",
     detail:
-      "destructive actions are pinned: no shortcut, rule, or connector can make them automatic.",
+      "Destructive actions are pinned: no shortcut, rule, or connector can make them automatic.",
   },
   {
     name: "connections",
-    job: "acts through your connected tools — gmail today, plus any custom MCP server or API tool you add.",
+    job: "Acts through your connected tools — gmail today, plus any custom MCP server or API tool you add.",
     caps: "connection_call",
     authority: "tiered per capability — read 1 · write 2 · destructive 3",
     detail:
-      "every connected capability gets a server-assigned authority level from its risk. a connector can propose, but anything that changes something outside cosigno waits for your signature — and it can never talk its way into a weaker approval.",
+      "Every connected capability gets a server-assigned authority level from its risk. A connector can propose, but anything that changes something outside cosigno waits for your signature — and it can never talk its way into a weaker approval.",
   },
 ] as const;
 

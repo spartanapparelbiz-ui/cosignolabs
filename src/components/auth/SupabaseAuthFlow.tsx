@@ -73,7 +73,7 @@ export function SupabaseAuthFlow({
       succeed();
       return;
     }
-    setError("that email is already registered — sign in instead.");
+    setError("That email is already registered — sign in instead.");
     setErrorAction({ href: switchHref, label: "go to sign in" });
   }
 
@@ -154,7 +154,7 @@ export function SupabaseAuthFlow({
         type: "signup",
       });
       if (err || !data.session) {
-        setError(err ? describeAuthError(err, "sign-up") : "that code isn't right — check it and try again.");
+        setError(err ? describeAuthError(err, "sign-up") : "That code isn't right — check it and try again.");
         return;
       }
       succeed();

@@ -108,7 +108,7 @@ export const editSchema = z
   })
   .strict()
   .refine((v) => v.payload !== undefined || v.summary !== undefined, {
-    message: "nothing to update.",
+    message: "Nothing to update.",
   });
 
 export const tierSettingSchema = z
@@ -350,7 +350,7 @@ export const filePatchSchema = z
   })
   .strict()
   .refine((v) => v.name !== undefined || v.content !== undefined, {
-    message: "nothing to update.",
+    message: "Nothing to update.",
   });
 
 /** Durable missions. A mission starts from a template OR a compiled goal. */
@@ -365,7 +365,7 @@ export const missionCreateSchema = z
   })
   .strict()
   .refine((v) => Boolean(v.template) !== Boolean(v.goal), {
-    message: "provide exactly one of template or goal.",
+    message: "Provide exactly one of template or goal.",
   });
 
 /** Adding a link source from the ask box. */
@@ -488,6 +488,6 @@ export function parseStrict<T>(
   throw new ApiError(
     400,
     "invalid_input",
-    first ? `${first.path.join(".") || "body"}: ${first.message}` : "that input didn't validate."
+    first ? `${first.path.join(".") || "body"}: ${first.message}` : "That input didn't validate."
   );
 }

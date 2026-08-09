@@ -48,7 +48,7 @@ export async function runAutomation(
       for (const a of proposals) {
         await store
           .transitionAction(userId, a.id, "vetoed", {
-            veto_reason: "monitor-only automation — reported, not proposed.",
+            veto_reason: "Monitor-only automation — reported, not proposed.",
           })
           .catch(() => null);
         await store

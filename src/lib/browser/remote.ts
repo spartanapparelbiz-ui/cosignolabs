@@ -284,12 +284,12 @@ export class RemoteBrowserProvider implements BrowserProvider {
         case "navigate":
         case "openLink":
         case "inspect": {
-          if (!target) return { ok: false, summary: "no page was given to open.", simulated: false };
+          if (!target) return { ok: false, summary: "No page was given to open.", simulated: false };
           const obs = await this.render(target);
-          return { ok: true, summary: `read “${obs.title}”.`, observation: obs, simulated: false };
+          return { ok: true, summary: `Read “${obs.title}”.`, observation: obs, simulated: false };
         }
         case "searchWithinPage": {
-          if (!target) return { ok: false, summary: "nothing to search for.", simulated: false };
+          if (!target) return { ok: false, summary: "Nothing to search for.", simulated: false };
           // target format: "<url> :: <text to find>"
           const [pageUrl, needle] = target.split(" :: ");
           const obs = await this.render(pageUrl ?? target);
@@ -307,32 +307,32 @@ export class RemoteBrowserProvider implements BrowserProvider {
         }
         case "scroll": {
           // Rendering is full-page per request; a scroll re-reads the current page.
-          if (!target) return { ok: true, summary: "nothing more to load.", simulated: false };
+          if (!target) return { ok: true, summary: "Nothing more to load.", simulated: false };
           const obs = await this.render(target);
-          return { ok: true, summary: "read further down the page.", observation: obs, simulated: false };
+          return { ok: true, summary: "Read further down the page.", observation: obs, simulated: false };
         }
         case "captureScreenshot": {
-          if (!target) return { ok: false, summary: "no page to capture.", simulated: false };
+          if (!target) return { ok: false, summary: "No page to capture.", simulated: false };
           const ref = await this.screenshot(target);
-          if (!ref) return { ok: false, summary: "the page preview couldn't be captured.", simulated: false };
-          return { ok: true, summary: "captured the current page.", simulated: false };
+          if (!ref) return { ok: false, summary: "The page preview couldn't be captured.", simulated: false };
+          return { ok: true, summary: "Captured the current page.", simulated: false };
         }
         case "clickReadOnlyControl":
           // Stateless rendering has no persistent DOM to click; honest refusal.
-          return { ok: false, summary: "clicking controls isn't available in this phase — cosigno opens links directly instead.", simulated: false };
+          return { ok: false, summary: "Clicking controls isn't available in this phase — cosigno opens links directly instead.", simulated: false };
         default:
           // No form typing, submission, downloads, or any consequential action
           // exists on the remote read-only path — refused by construction.
-          return { ok: false, summary: "that browser action isn't available in this phase.", simulated: false };
+          return { ok: false, summary: "That browser action isn't available in this phase.", simulated: false };
       }
     } catch (err) {
       if (err instanceof BrowserBlockedError) {
         return { ok: false, summary: `${err.site} blocked automated access.`, simulated: false };
       }
       if (err instanceof SsrfError) {
-        return { ok: false, summary: "that address can't be opened safely.", simulated: false };
+        return { ok: false, summary: "That address can't be opened safely.", simulated: false };
       }
-      const msg = err instanceof Error ? err.message : "the page couldn't be read.";
+      const msg = err instanceof Error ? err.message : "The page couldn't be read.";
       return { ok: false, summary: msg.slice(0, 160), simulated: false };
     }
   }

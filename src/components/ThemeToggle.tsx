@@ -4,9 +4,9 @@ import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme, type ThemePref } from "@/lib/theme";
 
 const OPTIONS: { id: ThemePref; label: string; icon: typeof Sun }[] = [
-  { id: "light", label: "light", icon: Sun },
-  { id: "dark", label: "dark", icon: Moon },
-  { id: "system", label: "system", icon: Monitor },
+  { id: "light", label: "Light", icon: Sun },
+  { id: "dark", label: "Dark", icon: Moon },
+  { id: "system", label: "System", icon: Monitor },
 ];
 
 /**
@@ -30,7 +30,7 @@ export function ThemeToggle() {
             role="radio"
             aria-checked={active}
             onClick={() => set(o.id)}
-            className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-[0.8125rem] transition-all duration-fast ease-brand-out ${
+            className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-[0.875rem] transition-all duration-fast ease-brand-out ${
               active ? "bg-surface font-semibold text-ink shadow-rest" : "text-ink-soft hover:text-ink"
             }`}
           >

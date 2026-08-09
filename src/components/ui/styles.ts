@@ -29,22 +29,32 @@
 export type ButtonIntent = "primary" | "secondary" | "ghost" | "sign" | "danger";
 export type ButtonSize = "sm" | "md" | "lg";
 
+/* `tap` is the coarse-pointer floor (see globals.css): these heights are right
+   under a mouse and too small under a thumb, so on touch every one of them
+   grows to 44px without changing how any of it looks on a desktop. */
 const BUTTON_BASE =
-  "inline-flex select-none items-center justify-center gap-1.5 rounded-btn font-semibold " +
+  "tap inline-flex select-none items-center justify-center gap-1.5 rounded-btn font-semibold " +
   "transition-[transform,background-color,color,box-shadow,opacity] duration-fast ease-brand-out " +
-  "active:scale-[0.985] disabled:pointer-events-none disabled:opacity-30 disabled:shadow-none";
+  "active:scale-[0.985] disabled:pointer-events-none disabled:shadow-none";
 
 const BUTTON_SIZE: Record<ButtonSize, string> = {
-  sm: "min-h-[32px] px-3 text-[0.8125rem]",
-  md: "min-h-[38px] px-4 text-[0.875rem]",
-  lg: "min-h-[46px] px-6 text-[0.9375rem]",
+  sm: "min-h-[34px] px-3 text-[0.875rem]",
+  md: "min-h-[40px] px-4 text-[0.9375rem]",
+  lg: "min-h-[48px] px-6 text-[1rem]",
 };
 
+/**
+ * Disabled is stated by LOSING the fill, not by fading it. A 30%-opacity ink
+ * slab is still a slab: it holds the same visual weight as the live button and
+ * pulls the eye to the one thing on the page that cannot be pressed.
+ */
 const BUTTON_INTENT: Record<ButtonIntent, string> = {
-  primary: "bg-ink text-cream shadow-rest hover:shadow-raise",
-  secondary: "bg-surface text-ink shadow-hairline hover:bg-cream-deep/60",
+  primary:
+    "bg-ink text-cream shadow-rest hover:shadow-raise disabled:bg-ink/[0.07] disabled:text-ink-soft",
+  secondary: "bg-surface text-ink shadow-hairline hover:bg-cream-deep/60 disabled:text-ink-soft",
   ghost: "text-ink-soft hover:bg-ink/[0.055] hover:text-ink",
-  sign: "bg-signal text-ink shadow-rest hover:shadow-raise",
+  sign:
+    "bg-signal text-on-signal shadow-rest hover:shadow-raise disabled:bg-ink/[0.07] disabled:text-ink-soft",
   danger: "text-danger shadow-hairline hover:bg-danger/[0.08]",
 };
 
@@ -83,9 +93,14 @@ export const hairline = "border-t border-line/50";
 /* ------------------------------------------------------------------ */
 
 export function field(size: "sm" | "md" | "lg" = "md"): string {
-  const h = size === "sm" ? "min-h-[32px] px-3 py-1.5 text-[0.8125rem]" : size === "lg" ? "min-h-[52px] px-4 py-3 text-base" : "min-h-[38px] px-3.5 py-2 text-[0.875rem]";
+  const h =
+    size === "sm"
+      ? "min-h-[34px] px-3 py-1.5 text-[0.875rem]"
+      : size === "lg"
+        ? "min-h-[54px] px-4 py-3 text-[1.0625rem]"
+        : "min-h-[40px] px-3.5 py-2 text-[0.9375rem]";
   return (
-    "w-full rounded-btn bg-surface text-ink shadow-hairline transition-shadow duration-fast " +
+    "tap w-full rounded-btn bg-surface text-ink shadow-hairline caret-signal transition-shadow duration-fast " +
     "placeholder:text-ink-soft/60 focus-visible:outline-none " +
     "focus-visible:shadow-[0_0_0_1px_rgb(var(--c-signal)),0_0_0_4px_rgb(var(--c-signal)/0.16)] " +
     h
@@ -107,14 +122,14 @@ export type BadgeTone = "neutral" | "positive" | "signal" | "danger";
 const BADGE_TONE: Record<BadgeTone, string> = {
   neutral: "text-ink-soft",
   positive: "text-positive",
-  signal: "text-signal",
+  signal: "text-signal-ink",
   danger: "text-danger",
 };
 
 export function badge(tone: BadgeTone = "neutral"): string {
   return (
-    "inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-ink/[0.04] px-2 py-0.5 " +
-    "text-[0.6875rem] font-semibold " +
+    "inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-ink/[0.05] px-2 py-[3px] " +
+    "text-[0.75rem] font-semibold " +
     BADGE_TONE[tone]
   );
 }
@@ -128,7 +143,7 @@ const DOT_TONE: Record<BadgeTone, string> = {
 };
 
 export function dot(tone: BadgeTone = "neutral"): string {
-  return `h-[5px] w-[5px] shrink-0 rounded-pill ${DOT_TONE[tone]}`;
+  return `h-1.5 w-1.5 shrink-0 rounded-pill ${DOT_TONE[tone]}`;
 }
 
 /* ------------------------------------------------------------------ */

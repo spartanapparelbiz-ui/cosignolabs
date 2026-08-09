@@ -13,7 +13,7 @@ import { CheckDivider } from "@/components/landing/CheckDivider";
 import { Island } from "@/components/landing/Island";
 import { ApplyViewTracker, PricingLink } from "@/components/landing/Track";
 import { Reveal } from "@/components/Reveal";
-import { PLANS, PLAN_ORDER } from "@/lib/plans";
+import { PLANS, PLAN_ORDER, priceLabel } from "@/lib/plans";
 
 // The sandbox is below the fold — lazy-loaded so it never touches LCP.
 const LivePreview = dynamic(() => import("@/components/landing/LivePreview"), {
@@ -381,7 +381,7 @@ export default function LandingPage() {
             </div>
             {/* the single, de-emphasised pricing mention on the page */}
             <p className="mt-5 text-center text-xs font-semibold text-ink-soft">
-              the founding cohort locks pro at $29/mo.{" "}
+              the founding cohort locks {PLANS.pro.name} at {priceLabel(PLANS.pro, "monthly")}.{" "}
               <PricingLink className="underline decoration-signal underline-offset-2 hover:text-ink">
                 see what&apos;s included
               </PricingLink>

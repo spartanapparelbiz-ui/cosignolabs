@@ -28,7 +28,7 @@ async function api(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -80,7 +80,7 @@ export function PermissionRules() {
       setText("");
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't add that rule.");
+      setError(e instanceof Error ? e.message : "Couldn't add that rule.");
     } finally {
       setBusy(false);
     }
@@ -117,7 +117,7 @@ export function PermissionRules() {
             to see what it would have done first. Offer it right here. */}
         <Link
           href="/app/settings/rules"
-          className="group mt-2 inline-flex items-center gap-1.5 text-[0.8125rem] text-ink-soft transition-colors duration-fast hover:text-ink"
+          className="group mt-2 inline-flex items-center gap-1.5 text-[0.875rem] text-ink-soft transition-colors duration-fast hover:text-ink"
         >
           Test a rule against your past work
           <ArrowRight
@@ -176,7 +176,7 @@ export function PermissionRules() {
           >
             <div className="flex items-start gap-3">
               <RequirementBadge requirement={r.requirement} />
-              <p className="min-w-0 flex-1 text-[0.9375rem]">{r.text}</p>
+              <p className="min-w-0 flex-1 text-[1rem]">{r.text}</p>
               <button
                 onClick={() => toggle(r)}
                 aria-pressed={r.enabled}

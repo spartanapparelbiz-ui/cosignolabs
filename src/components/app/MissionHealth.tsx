@@ -40,7 +40,7 @@ function Row({ label, ok, value }: { label: string; ok?: boolean; value?: string
 function describeFailure(status: number, body: string): string {
   if (status === 401) return "you're signed out — sign in again and reload this page.";
   if (status === 503)
-    return "the app is running without its database or AI keys. check the Netlify environment variables.";
+    return "the app is running without its database or AI keys. Check the Netlify environment variables.";
   // 5xx bodies are deliberately generic (no schema detail leaves the server),
   // so quoting them back adds nothing. Name the likeliest cause instead: this
   // route's only real work is a `missions` table query.
@@ -72,7 +72,7 @@ export function MissionHealth() {
         setError(
           e instanceof Error && e.message
             ? e.message
-            : "couldn't reach the server — check your connection and reload."
+            : "Couldn't reach the server — check your connection and reload."
         );
       });
     return () => {
@@ -99,8 +99,8 @@ export function MissionHealth() {
       )}
       <ul className="rounded-card bg-surface px-4 shadow-rest">
         <Row label="background mission execution" ok={health.background_execution_active} value={health.background_execution_active ? "active" : "not configured"} />
-        <Row label="mission cron" ok={health.mission_cron_configured} />
-        <Row label="missions waiting for a tick" value={String(health.missions_waiting_for_tick)} />
+        <Row label="scheduled runner" ok={health.mission_cron_configured} />
+        <Row label="missions waiting for the next run" value={String(health.missions_waiting_for_tick)} />
         <Row label="database" value={health.database} />
         <Row label="AI" ok={health.planner_configured} />
         <Row label="browser provider" ok={health.browser_provider_configured} value={health.browser_provider_configured ? "configured" : "sandbox only"} />

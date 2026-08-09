@@ -242,7 +242,7 @@ export function ConnectionsPanel() {
             ? "you cancelled that connection."
             : s === "expired"
               ? "that link expired — try connecting again."
-              : "that connection didn't complete — try again."
+              : "That connection didn't complete — try again."
       );
       p.delete("status");
       p.delete("key");
@@ -294,7 +294,7 @@ export function ConnectionsPanel() {
   function requireVault(): boolean {
     if (data && !data.vaultReady) {
       setError(
-        "connecting apps isn't switched on for this workspace yet. cosigno won't hold an account's keys until secure storage is turned on, so nothing can be connected until an administrator enables it."
+        "Connecting apps isn't switched on for this workspace yet. Cosigno won't hold an account's keys until secure storage is turned on, so nothing can be connected until an administrator enables it."
       );
       return false;
     }
@@ -358,9 +358,9 @@ export function ConnectionsPanel() {
       // Tier-1 (read-only) actions auto-run immediately; tier-2/3 wait at the
       // boundary. Say which actually happened rather than implying it's pending.
       if (action?.status === "executed") {
-        setNotice("that was read-only (tier 1), so it ran now — it's logged in activity.");
+        setNotice("That one only reads, so it ran straight away. It's in your activity.");
       } else if (action?.status === "failed") {
-        setNotice("that read-only action ran but the endpoint didn't respond — see activity.");
+        setNotice("That one only reads. It ran, but the app didn't answer — see activity.");
       } else {
         setNotice("prepared — review and approve it at the boundary.");
       }
@@ -588,7 +588,7 @@ export function ConnectionsPanel() {
                             and a tier number are the engine's words; what a person
                             needs to know is what it does and whether it can happen
                             without them. */}
-                        <span className="text-[0.8125rem]">{humanizeActionId(a.id)}</span>
+                        <span className="text-[0.875rem]">{humanizeActionId(a.id)}</span>
                         <span className={badge(a.tier === 1 ? "neutral" : "signal")}>
                           {a.tier === 1
                             ? "no approval"
@@ -689,7 +689,7 @@ export function ConnectionsPanel() {
               setBusy(c.id);
               try {
                 const r = await api(`/api/connections/mcp/${c.id}/test`, { method: "POST" });
-                setNotice(r.ok ? `re-tested: ${r.toolCount} tools.` : "the server didn't respond as expected.");
+                setNotice(r.ok ? `re-tested: ${r.toolCount} tools.` : "The server didn't respond as expected.");
                 await load();
               } finally {
                 setBusy(null);
@@ -720,7 +720,7 @@ export function ConnectionsPanel() {
 
         {addApiOpen && (
           <AddApiToolForm
-            onAdded={async () => { setAddApiOpen(false); setNotice("added. review its actions below."); await load(); }}
+            onAdded={async () => { setAddApiOpen(false); setNotice("added. Review its actions below."); await load(); }}
             onError={(m) => setError(m)}
           />
         )}
@@ -892,10 +892,10 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
                   <p className="text-sm font-semibold">{req.description}</p>
                 )}
                 {req.keyPlacement && (
-                  <p className="mt-1 font-mono text-[0.6875rem] text-ink-soft">{req.keyPlacement}</p>
+                  <p className="mt-1 font-mono text-[0.75rem] text-ink-soft">{req.keyPlacement}</p>
                 )}
                 {Object.keys(req.args).length > 0 && (
-                  <pre className="mt-1.5 overflow-x-auto rounded bg-surface p-2 font-mono text-[0.6875rem] text-ink-soft">
+                  <pre className="mt-1.5 overflow-x-auto rounded bg-surface p-2 font-mono text-[0.75rem] text-ink-soft">
                     {JSON.stringify(req.args, null, 2)}
                   </pre>
                 )}
@@ -904,7 +904,7 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
               <span className="font-semibold">then it would require:</span>
               <span
-                className={`rounded-pill px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide ${
+                className={`rounded-pill px-2.5 py-0.5 text-[0.75rem] font-semibold uppercase tracking-wide ${
                   preview.wouldRequire === "blocked"
                     ? "bg-ink text-cream"
                     : preview.wouldRequire === "auto"
@@ -925,7 +925,7 @@ function PreviewModal({ preview, onClose }: { preview: PreviewResult; onClose: (
                 ))}
               </div>
             )}
-            <p className="mt-3 text-[0.6875rem] text-ink-soft/80">
+            <p className="mt-3 text-[0.75rem] text-ink-soft/80">
               computed with no arguments — rules that depend on a specific amount or recipient
               are evaluated when the real action runs, and can only tighten this further.
             </p>
@@ -1020,7 +1020,7 @@ function McpCard({
         />
         <span className="text-sm font-semibold">{conn.display_name}</span>
         <StatusPill status={conn.status} />
-        <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-[0.6875rem] font-semibold text-ink-soft">
+        <span className="rounded-pill bg-cream-deep px-2 py-0.5 text-[0.75rem] font-semibold text-ink-soft">
           {tools.length} tools
         </span>
         <span className="ml-auto flex gap-2">
@@ -1098,10 +1098,10 @@ function ToolRow({
             server. Lead with what it does; keep the raw name for whoever
             needs to match it against the server's own docs. */}
         <span className="text-[12px] font-semibold">{humanizeActionId(tool.name)}</span>
-        <span className="font-mono text-[0.6875rem] text-ink-soft/70">{tool.name}</span>
+        <span className="font-mono text-[0.75rem] text-ink-soft/70">{tool.name}</span>
         {tool.tier && <TierBadge tier={tool.tier} />}
         {tool.sensitive && (
-          <span className="inline-flex items-center gap-1 rounded-pill bg-signal/15 px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-signal">
+          <span className="inline-flex items-center gap-1 rounded-pill bg-signal/15 px-1.5 py-0.5 text-[0.75rem] font-semibold uppercase tracking-wide text-signal">
             <ShieldAlert size={9} /> sensitive
           </span>
         )}
@@ -1123,7 +1123,7 @@ function ToolRow({
             this tool can read or change data. enable it for your operator to use?
           </p>
           <div className="mt-1.5 flex gap-2">
-            <button onClick={() => set(true, true)} disabled={busy} className="rounded-btn bg-signal px-3 py-1 text-[0.75rem] font-semibold text-ink">
+            <button onClick={() => set(true, true)} disabled={busy} className="rounded-btn bg-signal px-3 py-1 text-[0.75rem] font-semibold text-on-signal">
               yes, enable
             </button>
             <button onClick={() => setConfirming(false)} className="rounded-btn px-3 py-1 text-[0.75rem] font-semibold text-ink-soft hover:bg-cream-deep">
@@ -1198,7 +1198,7 @@ function AddMcpForm({ onAdded }: { onAdded: () => Promise<void> }) {
         </div>
         {error && <p className="text-xs font-semibold text-signal">{error}</p>}
         {result && <p className="text-xs font-semibold text-ink">{result}</p>}
-        <button onClick={submit} disabled={!ready} className="self-start rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-ink disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
+        <button onClick={submit} disabled={!ready} className="self-start rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-on-signal disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed">
           {busy ? "testing connection…" : "test & add"}
         </button>
       </div>
@@ -1272,7 +1272,7 @@ function CustomApiCard({
                 thing read immediately before approving should say what the
                 action DOES, not which verb and path implement it. */}
             <span className="text-[0.75rem] font-semibold">{humanizeEndpoint(a.method, a.path)}</span>
-            <span className="font-mono text-[0.6875rem] text-ink-soft/70">
+            <span className="font-mono text-[0.75rem] text-ink-soft/70">
               {a.method} {a.path}
             </span>
             <TierBadge tier={RISK_TIER_UI[a.risk] ?? 2} />
@@ -1284,7 +1284,7 @@ function CustomApiCard({
                 <button
                   onClick={() => onPreview(a.id)}
                   disabled={busy === `preview:${conn.id}:${a.id}`}
-                  className="shrink-0 rounded-pill px-2.5 py-1 text-[0.6875rem] font-semibold text-ink-soft hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 rounded-pill px-2.5 py-1 text-[0.75rem] font-semibold text-ink-soft hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                   title="dry-run: see what this would do, without doing it"
                 >
                   {busy === `preview:${conn.id}:${a.id}` ? "…" : "dry run"}
@@ -1292,7 +1292,7 @@ function CustomApiCard({
                 <button
                   onClick={() => onPropose(a.id)}
                   disabled={busy === `${conn.id}:${a.id}`}
-                  className="shrink-0 rounded-pill px-2.5 py-1 text-[0.6875rem] font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 rounded-pill px-2.5 py-1 text-[0.75rem] font-semibold ring-1 ring-inset ring-ink hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {busy === `${conn.id}:${a.id}` ? "…" : "propose"}
                 </button>
@@ -1424,7 +1424,7 @@ function AddApiToolForm({
         <Labeled label="name">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme API" className={inputCls} />
         </Labeled>
-        <Labeled label="base URL" hint="must be a public https endpoint">
+        <Labeled label="base URL" hint="must be a public https address">
           <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.acme.com" className={inputCls} />
         </Labeled>
         <Labeled label="auth">

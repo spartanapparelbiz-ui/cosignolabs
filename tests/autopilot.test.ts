@@ -251,7 +251,7 @@ describe("automation modes (approval-first stays the default)", () => {
     expect(tier2.length).toBeGreaterThan(0);
     for (const a of tier2) {
       expect(a.status).toBe("vetoed");
-      expect(a.veto_reason).toContain("monitor-only");
+      expect(a.veto_reason).toMatch(/monitor-only/i);
     }
   });
 

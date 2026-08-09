@@ -40,7 +40,7 @@ const poppins = Poppins({
 });
 
 const DESCRIPTION =
-  "give cosigno a task, review the important actions, and let it handle the work across your connected tools. nothing sends, changes, or spends until you approve it.";
+  "give cosigno a task, review the important actions, and let it handle the work across your connected tools. Nothing sends, changes, or spends until you approve it.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://cosignolabs.com"),

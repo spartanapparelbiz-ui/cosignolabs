@@ -94,8 +94,8 @@ async function discoverGithub(creds: Credentials): Promise<DiscoveryResult> {
       limitations: [],
       error:
         err instanceof IntegrationHttpError && err.status === 401
-          ? "GitHub rejected the saved token. reconnect the account."
-          : "couldn't read your GitHub account just now.",
+          ? "GitHub rejected the saved token. Reconnect the account."
+          : "Couldn't read your GitHub account just now.",
     };
   }
 
@@ -128,18 +128,18 @@ async function discoverGithub(creds: Credentials): Promise<DiscoveryResult> {
 }
 
 const ACTIONS: ProviderAction[] = [
-  { id: "whoami", summary: "read your GitHub profile (login, name).", mutates: false },
-  { id: "list_repos", summary: "list your most recently pushed repositories.", mutates: false },
-  { id: "list_issues", summary: "list open issues in a repository you name.", mutates: false },
-  { id: "create_issue", summary: "open a new issue in a repository you name.", mutates: true },
+  { id: "whoami", summary: "Read your GitHub profile (login, name).", mutates: false },
+  { id: "list_repos", summary: "List your most recently pushed repositories.", mutates: false },
+  { id: "list_issues", summary: "List open issues in a repository you name.", mutates: false },
+  { id: "create_issue", summary: "Open a new issue in a repository you name.", mutates: true },
 ];
 
 export const githubProvider: IntegrationProvider = {
   key: "github",
   name: "GitHub",
-  detail: "read your repos and issues; open issues (always with your approval).",
+  detail: "Read your repos and issues; open issues (always with your approval).",
   authType: "oauth2",
-  scopeSummary: "read profile · read/write issues · repo",
+  scopeSummary: "Your repositories and issues, plus your public profile",
   homeUrl: "https://github.com",
   tracks: ["repositories", "open issues", "pull requests"],
   setupEnv: ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"],
@@ -268,7 +268,7 @@ export const githubProvider: IntegrationProvider = {
     switch (actionId) {
       case "whoami": {
         const me = await requestJson<{ login: string; name?: string }>(`${API}/user`, { headers });
-        return { ok: true, summary: `signed in as ${me.login}`, detail: { login: me.login, name: me.name } };
+        return { ok: true, summary: `Signed in as ${me.login}`, detail: { login: me.login, name: me.name } };
       }
       case "list_repos": {
         const repos = await requestJson<Array<{ full_name: string; private: boolean }>>(
@@ -277,14 +277,14 @@ export const githubProvider: IntegrationProvider = {
         );
         return {
           ok: true,
-          summary: `found ${repos.length} recent repositories.`,
+          summary: `Found ${repos.length} recent repositories.`,
           detail: { repos: repos.map((r) => r.full_name) },
         };
       }
       case "list_issues": {
         const repo = String(payload.repo ?? "").trim();
         if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) {
-          return { ok: false, summary: "give a repository as owner/name." };
+          return { ok: false, summary: "Give a repository as owner/name." };
         }
         const issues = await requestJson<Array<{ number: number; title: string }>>(
           `${API}/repos/${repo}/issues?state=open&per_page=10`,
@@ -300,7 +300,7 @@ export const githubProvider: IntegrationProvider = {
         const repo = String(payload.repo ?? "").trim();
         const title = String(payload.title ?? "").trim();
         if (!/^[\w.-]+\/[\w.-]+$/.test(repo) || !title) {
-          return { ok: false, summary: "need a repository (owner/name) and a title." };
+          return { ok: false, summary: "Need a repository (owner/name) and a title." };
         }
         const issue = await requestJson<{ number: number; html_url: string }>(
           `${API}/repos/${repo}/issues`,
@@ -315,12 +315,12 @@ export const githubProvider: IntegrationProvider = {
         );
         return {
           ok: true,
-          summary: `opened issue #${issue.number} in ${repo}.`,
+          summary: `Opened issue #${issue.number} in ${repo}.`,
           detail: { url: issue.html_url },
         };
       }
       default:
-        return { ok: false, summary: "unknown GitHub action." };
+        return { ok: false, summary: "Unknown GitHub action." };
     }
   },
 };

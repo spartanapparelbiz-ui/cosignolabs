@@ -3,11 +3,14 @@ import Link from "next/link";
 import { LivingLockup, LogoHome } from "@/components/brand/LivingLogo";
 import { PricingCards } from "@/components/pricing/PricingCards";
 import { FaqAccordion } from "@/components/pricing/FaqAccordion";
+import { PLANS, priceLabel } from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "pricing — cosigno",
   description:
-    "cosigno pricing: free, pro ($29/mo), and max ($99/mo). every plan is approval-first — the agent never spends without your signature.",
+    `Cosigno pricing: ${PLANS.free.name}, ${PLANS.pro.name} (${priceLabel(PLANS.pro, "monthly")}), and ` +
+    `${PLANS.max.name} (${priceLabel(PLANS.max, "monthly")}). Every plan is approval-first — ` +
+    "the agent never spends without your signature.",
   alternates: { canonical: "https://cosignolabs.com/pricing" },
 };
 
@@ -15,27 +18,27 @@ const FAQ = [
   {
     id: "what-counts-as-an-action",
     q: "what counts as an action?",
-    a: "an action is one planning call or one execution. asking the operator to plan a command counts, and each card you approve that runs counts. vetoed and un-run proposals don't.",
+    a: "An action is one planning call or one execution. Asking the operator to plan a command counts, and each card you approve that runs counts. Vetoed and un-run proposals don't.",
   },
   {
     id: "hitting-the-limit",
     q: "what happens when i hit the limit?",
-    a: "planning pauses with an upgrade prompt, and new commands are blocked until your cycle resets or you upgrade. proposals already on screen can still be approved, and nothing is ever charged as surprise overage.",
+    a: "Planning pauses with an upgrade prompt, and new commands are blocked until your cycle resets or you upgrade. Proposals already on screen can still be approved, and nothing is ever charged as surprise overage.",
   },
   {
     id: "cancel-anytime",
     q: "can i cancel anytime?",
-    a: "yes, from the billing portal. you keep your plan until the end of the period you've paid for, then drop to free — no lock-in.",
+    a: "Yes, from the billing portal. You keep your plan until the end of the period you've paid for, then drop to free — no lock-in.",
   },
   {
     id: "approval-first-billing",
     q: "how does approval-first keep billing safe?",
-    a: "the operator can never spend money or take a paid action on its own — every send, change, or payment stops at a card for your signature, and tier-3 actions need typed confirmation. your plan only meters the operator's planning and the actions you approve.",
+    a: "The operator can never spend money or take a paid action on its own — every send, change, or payment stops at a card for your signature, and tier-3 actions need typed confirmation. Your plan only meters the operator's planning and the actions you approve.",
   },
   {
     id: "annual-refunds",
     q: "do you refund annual plans?",
-    a: "annual refunds follow stripe's standard policy — manage cancellations and refunds from the billing portal, and reach out if anything looks off.",
+    a: "Annual refunds follow stripe's standard policy — manage cancellations and refunds from the billing portal, and reach out if anything looks off.",
   },
 ];
 

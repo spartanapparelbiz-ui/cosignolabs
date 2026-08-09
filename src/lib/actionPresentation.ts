@@ -67,43 +67,43 @@ export function effectLine(
   const amount = shortStr(action.payload?.amount, 18);
   switch (action.category) {
     case "search":
-      return "read-only — nothing changes.";
+      return "Read-only — nothing changes.";
     case "summarize":
-      return "read-only — a summary is added to this thread.";
+      return "Read-only — a summary is added to this thread.";
     case "draft":
       return n
-        ? `saves ${n} draft${n === 1 ? "" : "s"} — nothing is sent.`
-        : "saved as a draft — nothing is sent.";
+        ? `Saves ${n} draft${n === 1 ? "" : "s"} — nothing is sent.`
+        : "Saved as a draft — nothing is sent.";
     case "send_email":
-      return `this sends ${n ?? 1} email${(n ?? 1) === 1 ? "" : "s"} on your behalf.`;
+      return `Sends ${n ?? 1} email${(n ?? 1) === 1 ? "" : "s"} on your behalf.`;
     case "post_content":
-      return "this publishes content outside your workspace.";
+      return "This publishes content outside your workspace.";
     case "update_record":
       return n
-        ? `this changes ${n} record${n === 1 ? "" : "s"} in a connected tool.`
-        : "this changes data in a connected tool.";
+        ? `Changes ${n} record${n === 1 ? "" : "s"} in a connected tool.`
+        : "Changes data in a connected tool.";
     case "spend":
       return amount
-        ? `this commits spend of ${amount} under your cap.`
-        : "this commits spend under your configured cap.";
+        ? `Commits spend of ${amount} under your cap.`
+        : "Commits spend under your configured cap.";
     case "webhook":
-      return "this fires your configured outbound webhook.";
+      return "This fires your configured outbound webhook.";
     case "delete":
       return n
-        ? `this permanently deletes ${n} item${n === 1 ? "" : "s"} — it can't be undone.`
-        : "this permanently deletes items — it can't be undone.";
+        ? `Permanently deletes ${n} item${n === 1 ? "" : "s"} — it can't be undone.`
+        : "Permanently deletes items — it can't be undone.";
     case "refund":
       return amount
-        ? `this returns ${amount} to a customer.`
-        : "this returns money to a customer.";
+        ? `Returns ${amount} to a customer.`
+        : "Returns money to a customer.";
     case "payment":
       return amount
-        ? `this sends a payment of ${amount} out.`
-        : "this moves money out.";
+        ? `Sends a payment of ${amount} out.`
+        : "Moves money out.";
     default:
       return action.tier === 1
-        ? "read-only or reversible — runs automatically."
-        : "this changes something outside your workspace.";
+        ? "Read-only or reversible — runs automatically."
+        : "Changes something outside your workspace.";
   }
 }
 

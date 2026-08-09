@@ -196,7 +196,7 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
                   onPointerDown={startHold}
                   onPointerUp={cancelHold}
                   onPointerLeave={cancelHold}
-                  className="relative mt-4 w-full overflow-hidden rounded-btn bg-ink px-5 py-3 text-[0.9375rem] font-semibold text-cream"
+                  className="relative mt-4 w-full overflow-hidden rounded-btn bg-ink px-5 py-3 text-[1rem] font-semibold text-cream"
                 >
                   {/* hold progress fill */}
                   <span
@@ -204,7 +204,7 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
                     style={{ width: holding ? "100%" : "0%", transitionDuration: holding ? "950ms" : "150ms" }}
                     aria-hidden="true"
                   />
-                  <span className="relative">{holding ? "Keep holding…" : "Hold to Sign"}</span>
+                  <span className="relative">{holding ? "Keep holding…" : "Hold to sign"}</span>
                 </button>
                 <button
                   onClick={() => setDrawInstead(true)}
@@ -297,7 +297,7 @@ export function SignDialog({ action, saved, defaultName, scope, onAuthorize, onS
                     Executing…
                   </span>
                 )}
-                {phase === "completed" && <span className="text-signal">Completed ✓</span>}
+                {phase === "completed" && <span className="text-signal-ink">Completed ✓</span>}
               </div>
             </div>
           </div>

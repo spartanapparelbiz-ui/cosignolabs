@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   if (!secret) {
     // Not configured → the scheduler simply isn't on. Refuse loudly.
     return NextResponse.json(
-      { error: "not_configured", message: "the scheduler isn't enabled on this deployment." },
+      { error: "not_configured", message: "The scheduler isn't enabled on this deployment." },
       { status: 503 }
     );
   }

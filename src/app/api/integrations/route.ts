@@ -7,6 +7,7 @@ import { enforceLimit } from "@/lib/ratelimit";
 import { parseStrict, readJsonBody } from "@/lib/schemas";
 import { getStore } from "@/lib/store";
 import { AVAILABLE_INTEGRATIONS, INTEGRATION_KEYS } from "@/lib/integrations";
+import { PLANS, priceLabel } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,8 +57,8 @@ export async function POST(req: NextRequest) {
           402,
           "upgrade_required",
           planId === "free"
-            ? "free connects one integration. pro is $29/mo for unlimited."
-            : "you've reached your plan's integration limit."
+            ? `Free connects one integration. ${PLANS.pro.name} is ${priceLabel(PLANS.pro, "monthly")} for unlimited.`
+            : "You've reached your plan's integration limit."
         );
       }
     }

@@ -6,7 +6,7 @@ import { LivingLockup, LogoHome } from "@/components/brand/LivingLogo";
 export const metadata: Metadata = {
   title: "cosigno — demo workspace",
   description:
-    "the full approval loop, no account needed: command → action cards → your signature → executed. simulated tools, real model.",
+    "The full approval loop, no account needed: command → action cards → your signature → executed. Simulated tools, real model.",
   alternates: { canonical: "https://cosignolabs.com/demo" },
 };
 

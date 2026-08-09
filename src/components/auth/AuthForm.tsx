@@ -47,14 +47,14 @@ export interface AuthFormProps {
 const COPY = {
   "sign-in": {
     title: "welcome back",
-    sub: "sign in to your cosigno workspace.",
+    sub: "Sign in to your cosigno workspace.",
     submit: "sign in",
     switchPrompt: "new to cosigno?",
     switchCta: "create an account",
   },
   "sign-up": {
     title: "make it yours",
-    sub: "create your cosigno workspace in a few seconds.",
+    sub: "Create your cosigno workspace in a few seconds.",
     submit: "create account",
     switchPrompt: "already have an account?",
     switchCta: "sign in",

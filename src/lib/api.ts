@@ -72,7 +72,7 @@ export async function requireUser(): Promise<string> {
     throw new ApiError(
       503,
       "not_configured",
-      "cosigno is briefly unavailable. try again in a moment."
+      "cosigno is briefly unavailable. Try again in a moment."
     );
   }
   const userId = await getUserId();
@@ -132,14 +132,14 @@ export function errorResponse(err: unknown): NextResponse {
   const message = err instanceof Error ? err.message : "";
   if (message === "not_editable") {
     return NextResponse.json(
-      { error: "not_editable", message: "only proposed actions can be edited." },
+      { error: "not_editable", message: "Only proposed actions can be edited." },
       { status: 409 }
     );
   }
   if (message.startsWith("invalid_transition") || message.startsWith("injection_blocked")) {
     logSecurity("rejected_status_write", { detail: message });
     return NextResponse.json(
-      { error: "invalid_transition", message: "that status change isn't allowed." },
+      { error: "invalid_transition", message: "That status change isn't allowed." },
       { status: 409 }
     );
   }
@@ -147,7 +147,7 @@ export function errorResponse(err: unknown): NextResponse {
   const requestId = newRequestId();
   logError(requestId, err);
   return NextResponse.json(
-    { error: "internal", message: "something went wrong on our side. try again in a moment.", requestId },
+    { error: "internal", message: "Something went wrong on our side. Try again in a moment.", requestId },
     { status: 500 }
   );
 }

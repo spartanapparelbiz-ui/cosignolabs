@@ -162,7 +162,7 @@ async function buildMiddleware(): Promise<NextMiddleware> {
       }
       if (path.startsWith("/api/")) {
         return NextResponse.json(
-          { error: "not_configured", message: "cosigno is warming up — back shortly." },
+          { error: "not_configured", message: "Cosigno is warming up — back shortly." },
           { status: 503 }
         );
       }
@@ -238,7 +238,7 @@ async function buildMiddleware(): Promise<NextMiddleware> {
     // navigations go to our branded /sign-in with the destination preserved.
     if (path.startsWith("/api/")) {
       return NextResponse.json(
-        { error: "unauthorized", message: "sign in to continue." },
+        { error: "unauthorized", message: "Sign in to continue." },
         { status: 401 }
       );
     }

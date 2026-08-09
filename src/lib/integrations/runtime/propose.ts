@@ -39,8 +39,8 @@ export async function proposeConnectorAction(
 ): Promise<ProposeConnectorResult> {
   const store = getStore();
   const conn = await store.getConnection(userId, input.connectionId);
-  if (!conn) return { ok: false, error: "connection not found." };
-  if (conn.status === "revoked") return { ok: false, error: "this connection was disconnected." };
+  if (!conn) return { ok: false, error: "Connection not found." };
+  if (conn.status === "revoked") return { ok: false, error: "This connection was disconnected." };
 
   let risk: Parameters<typeof resolveTier>[0];
   let summary: string;
@@ -49,7 +49,7 @@ export async function proposeConnectorAction(
   if (conn.kind === "app") {
     const provider = getProvider(conn.provider_key);
     const cap = provider?.listActions().find((a) => a.id === input.capability);
-    if (!provider || !cap) return { ok: false, error: "that capability isn't available on this connection." };
+    if (!provider || !cap) return { ok: false, error: "That capability isn't available on this connection." };
     risk = cap as ProviderAction;
     summary = `${conn.display_name}: ${cap.summary}`;
     payload = { kind: "app", connection_id: conn.id, action: cap.id, args: input.args ?? {} };
@@ -58,16 +58,16 @@ export async function proposeConnectorAction(
     // stored on the action at add time (user may raise, never lower).
     const cfg = conn.metadata as unknown as CustomApiConfig;
     const action = cfg.actions?.find((a) => a.id === input.capability);
-    if (!action) return { ok: false, error: "that action isn't available on this connection." };
+    if (!action) return { ok: false, error: "That action isn't available on this connection." };
     risk = { mutates: true, risk: action.risk };
     summary = `${conn.display_name}: ${action.summary}`;
     payload = { kind: "custom", connection_id: conn.id, action: action.id, args: input.args ?? {} };
   } else {
     const tool = await store.getMcpTool(userId, conn.id, input.capability);
-    if (!tool) return { ok: false, error: "that tool isn't on this server anymore." };
+    if (!tool) return { ok: false, error: "That tool isn't on this server anymore." };
     // A tool can only be proposed once the user has enabled (and, if
     // sensitive, consented to) it — enforced again at execute time.
-    if (!isCallable(tool)) return { ok: false, error: "enable this tool before it can be used." };
+    if (!isCallable(tool)) return { ok: false, error: "Enable this tool before it can be used." };
     risk = { mutates: true, risk: mcpToolRisk(tool) };
     summary = `${conn.display_name}: run ${tool.name}`;
     payload = { kind: "mcp", connection_id: conn.id, tool: tool.name, args: input.args ?? {} };

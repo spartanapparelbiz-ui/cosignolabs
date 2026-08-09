@@ -48,7 +48,7 @@ describe("every refusal names what is missing", () => {
   });
 
   it("a workspace without secure storage says so, and why it matters", () => {
-    expect(PANEL).toMatch(/connecting apps isn't switched on for this workspace yet/);
+    expect(PANEL).toMatch(/connecting apps isn't switched on for this workspace yet/i);
     expect(PANEL).toMatch(/won't hold an account's keys until secure storage is turned on/);
     expect(PANEL).toMatch(/until an administrator enables it/);
   });

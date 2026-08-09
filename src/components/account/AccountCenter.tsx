@@ -24,12 +24,14 @@ import { badge, btn, card, field } from "@/components/ui/styles";
 import { ConnectionsPanel } from "./ConnectionsPanel";
 import { TrustCenter } from "@/components/trust/TrustCenter";
 
+// Same words, same casing as the rail — this is a second navigation into the
+// same product, so it cannot speak in a different voice.
 const TABS = [
-  { id: "profile", label: "profile", icon: UserRound },
-  { id: "permissions", label: "trust center", icon: SlidersHorizontal },
-  { id: "usage", label: "plan & usage", icon: Gauge },
-  { id: "integrations", label: "connections", icon: Boxes },
-  { id: "security", label: "security", icon: ShieldCheck },
+  { id: "profile", label: "Profile", icon: UserRound },
+  { id: "permissions", label: "Trust", icon: SlidersHorizontal },
+  { id: "usage", label: "Plan & usage", icon: Gauge },
+  { id: "integrations", label: "Connections", icon: Boxes },
+  { id: "security", label: "Security", icon: ShieldCheck },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -87,9 +89,13 @@ export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }
 
   return (
     <div className="mt-12 flex flex-1 flex-col gap-8 md:flex-row md:gap-14">
+      {/* On a phone the sections wrap onto two lines rather than scrolling
+          sideways. A horizontal scroller hid "Connections" and "Security"
+          behind a cut edge with nothing to say they were there — five short
+          labels fit across two rows, so show all five. */}
       <nav
         aria-label="account sections"
-        className="surface-scroll -mx-5 flex shrink-0 gap-1 overflow-x-auto px-5 pb-1 md:mx-0 md:w-44 md:flex-col md:overflow-visible md:px-0 md:pb-0"
+        className="flex shrink-0 flex-wrap gap-1 md:w-44 md:flex-col md:flex-nowrap"
       >
         {TABS.map((t) => {
           const Icon = t.icon;
@@ -99,7 +105,7 @@ export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }
               key={t.id}
               onClick={() => setTab(t.id)}
               aria-current={active ? "page" : undefined}
-              className={`inline-flex shrink-0 items-center gap-2.5 rounded-btn px-3 py-2 text-[0.875rem] transition-colors duration-fast ease-brand-out md:w-full ${
+              className={`inline-flex shrink-0 items-center gap-2.5 rounded-btn px-3 py-2 text-[0.9375rem] transition-colors duration-fast ease-brand-out md:w-full ${
                 active
                   ? "bg-ink/[0.07] font-semibold text-ink"
                   : "text-ink-soft hover:bg-ink/[0.04] hover:text-ink"
@@ -158,9 +164,9 @@ function SettingRow({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 border-t border-line/40 py-6 first:border-t-0 first:pt-0 sm:flex-row sm:items-center">
+    <div className="flex max-w-[46rem] flex-col gap-4 border-t border-line/40 py-6 first:border-t-0 first:pt-0 sm:flex-row sm:items-center">
       <div className="min-w-0 flex-1">
-        <p className="text-[0.9375rem] font-semibold">{title}</p>
+        <p className="text-[1rem] font-semibold">{title}</p>
         {detail && <p className="t-caption mt-0.5">{detail}</p>}
         {children}
       </div>
@@ -256,11 +262,11 @@ function ProfilePanel() {
       });
       if (!res.ok) {
         const b = await res.json().catch(() => ({}));
-        throw new Error(b.message || "couldn't delete the account.");
+        throw new Error(b.message || "Couldn't delete the account.");
       }
       window.location.href = "/";
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't delete the account.");
+      setError(e instanceof Error ? e.message : "Couldn't delete the account.");
       setBusy(false);
       setConfirming(false);
     }
@@ -271,12 +277,12 @@ function ProfilePanel() {
       <PanelHeading title="Profile" sub="Your name, your look." />
 
       {/* Identity */}
-      <div className="flex items-center gap-4">
+      <div className="flex max-w-[46rem] items-center gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-pill bg-ink text-[1rem] font-semibold uppercase text-cream">
           {initialsFor(display)}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-[0.9375rem] font-semibold">{display}</p>
+          <p className="truncate text-[1rem] font-semibold">{display}</p>
           <p className="t-caption truncate">your cosigno operator</p>
         </div>
         <button onClick={signOut} className={btn("ghost", "sm", "ml-auto")}>
@@ -339,8 +345,8 @@ function ProfilePanel() {
           sentence and a button that says what it does — not a hazard-striped
           panel, which is decoration standing in for the confirmation step that
           actually protects you. */}
-      <div className="mt-14 border-t border-line/40 pt-6">
-        <p className="text-[0.9375rem] font-semibold">Delete account</p>
+      <div className="mt-14 max-w-[46rem] border-t border-line/40 pt-6">
+        <p className="text-[1rem] font-semibold">Delete account</p>
         <p className="t-caption mt-1 max-w-[38rem]">
           Cancels any subscription and permanently erases your sessions, actions, audit
           trail and settings. This can&apos;t be undone.
@@ -398,7 +404,7 @@ function PermissionsPanel() {
         className="group mt-10 flex items-center justify-between gap-3 rounded-btn px-3 py-3 transition-colors duration-fast hover:bg-ink/[0.035]"
       >
         <span>
-          <span className="block text-[0.9375rem]">Safety rules</span>
+          <span className="block text-[1rem]">Safety rules</span>
           <span className="t-caption mt-0.5 block">
             Test a rule against your past work, then turn it on.
           </span>
@@ -419,11 +425,19 @@ function fmtDate(unixOrIso: number | string): string {
   return d.toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" });
 }
 
-/** 30-day actions/day sparkline derived from real action timestamps. */
+/**
+ * Thirty days of work, one bar a day.
+ *
+ * This used to be a stretched polyline, which is the wrong shape for sparse
+ * data: with a single action the line is a flat baseline and one diagonal
+ * spike, and it reads as a rendering glitch rather than as a quiet week. Bars
+ * degrade honestly — one day of work is one bar, and an empty month is an
+ * empty row rather than something that looks broken.
+ */
 function Sparkline({ actions }: { actions: ActionRecord[] }) {
   const days = 30;
   const counts = useMemo(() => {
-    const buckets = new Array(days).fill(0);
+    const buckets: number[] = new Array(days).fill(0);
     const now = Date.now();
     for (const a of actions) {
       const age = Math.floor((now - new Date(a.created_at).getTime()) / 86400000);
@@ -432,18 +446,24 @@ function Sparkline({ actions }: { actions: ActionRecord[] }) {
     return buckets;
   }, [actions]);
   const max = Math.max(1, ...counts);
-  const W = 220, H = 40, step = W / (days - 1);
-  const pts = counts.map((c, i) => `${(i * step).toFixed(1)},${(H - (c / max) * H).toFixed(1)}`).join(" ");
   const total = counts.reduce((a, b) => a + b, 0);
+  const label = `${total} ${total === 1 ? "action" : "actions"}`;
   return (
     <div>
-      <p className="t-eyebrow">Last 30 days · {total} actions</p>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="mt-1.5 w-full" preserveAspectRatio="none" aria-hidden="true">
-        <polyline points={pts} fill="none" stroke="rgb(var(--c-ink))" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
-        {counts.map((c, i) => c === max && max > 0 ? (
-          <circle key={i} cx={(i * step).toFixed(1)} cy={(H - (c / max) * H).toFixed(1)} r="2.4" fill="rgb(var(--c-signal))" />
-        ) : null)}
-      </svg>
+      <p className="t-eyebrow">Last 30 days · {label}</p>
+      <div
+        className="mt-2.5 flex h-10 max-w-[26rem] items-end gap-[3px]"
+        role="img"
+        aria-label={`${label} over the last 30 days`}
+      >
+        {counts.map((c, i) => (
+          <div
+            key={i}
+            className={`min-w-0 flex-1 rounded-[2px] ${c > 0 ? "bg-ink/60" : "bg-ink/[0.07]"}`}
+            style={{ height: c > 0 ? `${Math.max(18, (c / max) * 100)}%` : "2px" }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -462,10 +482,10 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
     try {
       const res = await fetch("/api/billing/refund", { method: "POST" });
       const b = await res.json();
-      if (!res.ok) throw new Error(b.message || "we couldn't process that refund.");
+      if (!res.ok) throw new Error(b.message || "We couldn't process that refund.");
       window.location.reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "we couldn't process that refund.");
+      setError(e instanceof Error ? e.message : "We couldn't process that refund.");
       setRefunding(false);
       setConfirmRefund(false);
     }
@@ -477,10 +497,10 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
     try {
       const res = await fetch("/api/billing/retention", { method: "POST" });
       const b = await res.json();
-      if (!res.ok) throw new Error(b.message || "that offer isn't available.");
+      if (!res.ok) throw new Error(b.message || "That offer isn't available.");
       setRetention("saved");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "that offer isn't available.");
+      setError(e instanceof Error ? e.message : "That offer isn't available.");
     } finally {
       setRetentionBusy(false);
     }
@@ -505,7 +525,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
         // Portal stays for managing an existing subscription (update card, etc).
         const res = await fetch("/api/billing/portal", { method: "POST" });
         const b = await res.json();
-        if (!res.ok) throw new Error(b.message || "couldn't open billing.");
+        if (!res.ok) throw new Error(b.message || "Couldn't open billing.");
         window.location.href = b.url;
       } else {
         // First purchase / upgrade goes to the embedded checkout with the plan
@@ -514,7 +534,7 @@ function UsagePanel({ usage, plan, actions }: { usage: UsageRecord | null; plan:
         window.location.href = `/checkout?plan=${target}&interval=monthly`;
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "something went wrong.");
+      setError(e instanceof Error ? e.message : "Something went wrong.");
       setBusy(null);
     }
   }
@@ -726,7 +746,7 @@ function SecurityPanel({ actions }: { actions: ActionRecord[] | null }) {
         ) : (
           <ul className="-mx-3 flex flex-col">
             {audit.slice(0, 5).map((e) => (
-              <li key={e.id} className="flex items-center gap-2 rounded-btn px-3 py-2.5 text-[0.875rem]">
+              <li key={e.id} className="flex items-center gap-2 rounded-btn px-3 py-2.5 text-[0.9375rem]">
                 <span>{AUDIT_LABEL[e.type] ?? e.type}</span>
                 {typeof e.detail?.category === "string" && <span className="t-caption">· {e.detail.category}</span>}
                 {typeof e.detail?.key === "string" && <span className="t-caption">· {e.detail.key}</span>}

@@ -50,31 +50,31 @@ export async function validateLinkUrl(
   raw: string
 ): Promise<{ ok: true; url: URL } | { ok: false; reason: string }> {
   const trimmed = raw.trim();
-  if (!trimmed) return { ok: false, reason: "enter a link first." };
+  if (!trimmed) return { ok: false, reason: "Enter a link first." };
   // Require an explicit scheme so we never guess http for a private host.
   if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
-    return { ok: false, reason: "add https:// to the front of the link." };
+    return { ok: false, reason: "Add https:// to the front of the link." };
   }
   let parsed: URL;
   try {
     parsed = new URL(trimmed);
   } catch {
-    return { ok: false, reason: "that doesn't look like a valid link." };
+    return { ok: false, reason: "That doesn't look like a valid link." };
   }
   if (parsed.protocol === "http:" && isProduction()) {
-    return { ok: false, reason: "links must start with https://." };
+    return { ok: false, reason: "Links must start with https://." };
   }
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    return { ok: false, reason: "only http and https links can be read." };
+    return { ok: false, reason: "Only http and https links can be read." };
   }
   try {
     const safe = await assertPublicUrl(trimmed);
     return { ok: true, url: safe };
   } catch (err) {
     if (err instanceof SsrfError) {
-      return { ok: false, reason: "that link points somewhere cosigno can't safely open." };
+      return { ok: false, reason: "That link points somewhere cosigno can't safely open." };
     }
-    return { ok: false, reason: "that link couldn't be checked." };
+    return { ok: false, reason: "That link couldn't be checked." };
   }
 }
 
@@ -190,13 +190,13 @@ export async function readLink(rawUrl: string): Promise<LinkResult> {
   } catch (err) {
     clearTimeout(timer);
     if (err instanceof SsrfError) {
-      return { ...base, status: "blocked", detail: { error: "this link can't be opened safely." } };
+      return { ...base, status: "blocked", detail: { error: "This link can't be opened safely." } };
     }
     const aborted = err instanceof Error && err.name === "AbortError";
     return {
       ...base,
       status: "could_not_access",
-      detail: { error: aborted ? "the page took too long to respond." : "couldn't reach the page." },
+      detail: { error: aborted ? "the page took too long to respond." : "Couldn't reach the page." },
     };
   }
   clearTimeout(timer);
@@ -207,11 +207,11 @@ export async function readLink(rawUrl: string): Promise<LinkResult> {
     return {
       ...base,
       status: login ? "login_required" : "blocked",
-      detail: { httpStatus: res.status, error: login ? "this page needs a sign-in cosigno doesn't have." : "the website blocked automated reading." },
+      detail: { httpStatus: res.status, error: login ? "this page needs a sign-in cosigno doesn't have." : "The website blocked automated reading." },
     };
   }
   if (res.status === 429) {
-    return { ...base, status: "blocked", detail: { httpStatus: 429, error: "the website is rate-limiting requests." } };
+    return { ...base, status: "blocked", detail: { httpStatus: 429, error: "The website is rate-limiting requests." } };
   }
   if (!res.ok) {
     return { ...base, status: "could_not_access", detail: { httpStatus: res.status, error: `the page returned ${res.status}.` } };
@@ -222,7 +222,7 @@ export async function readLink(rawUrl: string): Promise<LinkResult> {
     return {
       ...base,
       status: "could_not_access",
-      detail: { contentType: ctype, error: "that link isn't a readable web page." },
+      detail: { contentType: ctype, error: "That link isn't a readable web page." },
     };
   }
 
@@ -230,7 +230,7 @@ export async function readLink(rawUrl: string): Promise<LinkResult> {
   try {
     raw = await readCapped(res);
   } catch {
-    return { ...base, status: "could_not_access", detail: { error: "couldn't read the page contents." } };
+    return { ...base, status: "could_not_access", detail: { error: "Couldn't read the page contents." } };
   }
 
   const isHtml = /text\/html|application\/xhtml/.test(ctype) || /<html|<!doctype/i.test(raw.slice(0, 200));
@@ -249,7 +249,7 @@ export async function readLink(rawUrl: string): Promise<LinkResult> {
       ...base,
       title,
       status: "login_required",
-      detail: { httpStatus: res.status, error: "this page needs a sign-in cosigno doesn't have." },
+      detail: { httpStatus: res.status, error: "This page needs a sign-in cosigno doesn't have." },
     };
   }
   if (!text) {
@@ -257,7 +257,7 @@ export async function readLink(rawUrl: string): Promise<LinkResult> {
       ...base,
       title,
       status: "could_not_access",
-      detail: { httpStatus: res.status, error: "the page had no readable text." },
+      detail: { httpStatus: res.status, error: "The page had no readable text." },
     };
   }
 

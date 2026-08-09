@@ -104,7 +104,7 @@ export function scopeVerdict(
 export function scopeQuestion(step: MissionStepRecord): Omit<MissionQuestion, "step_id"> {
   return {
     question: `“${step.purpose}” wasn't in the plan you approved. run it?`,
-    why: "cosigno added this step after you signed, based on what it found while working. anything that changes something outside cosigno needs your decision, even mid-mission.",
+    why: "Cosigno added this step after you signed, based on what it found while working. Anything that changes something outside cosigno needs your decision, even mid-mission.",
     options: [SCOPE_APPROVE, SCOPE_REFUSE],
     recommended: undefined,
     effect: `${SCOPE_APPROVE} runs only this step. ${SCOPE_REFUSE} skips it and the mission carries on with the rest of the approved plan.`,

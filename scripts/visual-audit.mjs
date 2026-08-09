@@ -18,6 +18,21 @@ function dir(sub) {
 
 const browser = await chromium.launch({ executablePath: CHROME });
 
+/**
+ * The dev server paints its own build-status badge into the corner of every
+ * page. It is scaffolding, not product, and it has no business sitting in the
+ * record of what the product looks like.
+ */
+const hideDevOverlay = () => {
+  const apply = () => {
+    const s = document.createElement("style");
+    s.textContent = "nextjs-portal,[data-nextjs-toast],#__next-build-watcher{display:none!important}";
+    document.head.appendChild(s);
+  };
+  if (document.head) apply();
+  else document.addEventListener("DOMContentLoaded", apply);
+};
+
 async function shot(page, folder, file, note, { full = true } = {}) {
   const path = join(dir(folder), file);
   const errors = page.__errors ?? [];
@@ -44,11 +59,16 @@ function wireErrors(page) {
 async function goto(page, path, waitText) {
   await page.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 90_000 }).catch(() => {});
   if (waitText) await page.getByText(waitText).first().waitFor({ timeout: 15_000 }).catch(() => {});
+  // Skeletons shimmer while a panel fetches. Waiting for the last one to clear
+  // keeps loading states out of captures that are meant to document the real
+  // screen — a screenshot of a placeholder documents nothing.
+  await page.locator(".animate-shimmer").first().waitFor({ state: "detached", timeout: 15_000 }).catch(() => {});
   await page.waitForTimeout(700);
 }
 
 /* ------------------------------------------------------------ DESKTOP ---- */
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+await ctx.addInitScript(hideDevOverlay);
 // keep the app in its steady state (skip first-run intro except where captured)
 await ctx.addInitScript(() => {
   try {
@@ -219,16 +239,24 @@ await page.waitForTimeout(600);
 await shot(page, "10-settings", "account-desktop.png", "Account center");
 // try the permission board panel
 for (const [name, file, note] of [
-  ["trust center", "account-permissions-desktop.png", "Trust panel — what cosigno may do"],
-  ["profile", "account-profile-desktop.png", "Profile panel"],
-  ["security", "account-security-desktop.png", "Security panel"],
-  ["plan & usage", "account-usage-desktop.png", "Plan & usage panel"],
-  ["connections", "account-integrations-desktop.png", "Connections panel"],
+  ["Trust", "account-permissions-desktop.png", "Trust panel — what cosigno may do"],
+  ["Profile", "account-profile-desktop.png", "Profile panel"],
+  ["Security", "account-security-desktop.png", "Security panel"],
+  ["Plan & usage", "account-usage-desktop.png", "Plan & usage panel"],
+  ["Connections", "account-integrations-desktop.png", "Connections panel"],
 ]) {
   const btn = page.getByRole("button", { name: new RegExp(`^${name}$`, "i") }).first();
   if (await btn.isVisible().catch(() => false)) {
     await btn.click().catch(() => {});
-    await page.waitForTimeout(500);
+    // Panels that fetch (plan, usage, connections) paint skeletons first. Wait
+    // for the last one to clear so the capture shows the real reading, not the
+    // placeholder — a screenshot of a loading state documents nothing.
+    await page
+      .locator(".animate-shimmer")
+      .first()
+      .waitFor({ state: "detached", timeout: 15_000 })
+      .catch(() => {});
+    await page.waitForTimeout(700);
     await shot(page, "10-settings", file, note);
   } else {
     log.push({ folder: "10-settings", file, note, ok: false, reason: `panel tab "${name}" not found on /app/account` });
@@ -260,6 +288,7 @@ console.log("== empty state (fresh delegations) ==");
 {
   // A brand-new context with no data shows empty states cleanly.
   const ec = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await ec.addInitScript(hideDevOverlay);
   await ec.addInitScript(() => { try { localStorage.setItem("cosigno_intro_seen", "1"); } catch {} });
   const ep = await ec.newPage();
   wireErrors(ep);
@@ -276,6 +305,7 @@ await ctx.close();
 /* ------------------------------------------------------------- MOBILE ---- */
 console.log("== mobile ==");
 const mctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+await mctx.addInitScript(hideDevOverlay);
 await mctx.addInitScript(() => {
   try {
     localStorage.setItem("cosigno_intro_seen", "1");
@@ -288,16 +318,18 @@ wireErrors(mp);
 for (const [path, file, note, wait] of [
   ["/", "landing-mobile.png", "Landing (mobile)", null],
   ["/pricing", "pricing-mobile.png", "Pricing (mobile)", null],
-  ["/app", "now-home-mobile.png", "NOW / home (mobile)", "Now"],
-  ["/app/missions", "delegations-mobile.png", "Delegations (mobile)", "delegations"],
-  ["/app/objectives", "objectives-mobile.png", "Objectives (mobile)", "objectives"],
-  ["/app/focus", "boundary-focus-mobile.png", "Boundary / Focus (mobile)", null],
-  ["/app/watch", "watch-mobile.png", "Watch (mobile)", "watch"],
-  ["/app/activity", "activity-mobile.png", "Activity (mobile)", "activity"],
+  ["/app", "now-home-mobile.png", "Home (mobile)", "What should cosigno handle?"],
+  ["/app/missions", "delegations-mobile.png", "Missions (mobile)", "What is cosigno working on?"],
+  ["/app/objectives", "objectives-mobile.png", "Objectives (mobile)", "What are you trying to reach?"],
+  ["/app/focus", "boundary-focus-mobile.png", "Approvals / Focus (mobile)", null],
+  ["/app/watch", "watch-mobile.png", "Watch (mobile)", "What is cosigno watching?"],
+  ["/app/activity", "activity-mobile.png", "Activity (mobile)", "What changed?"],
   ["/app/connections", "connections-mobile.png", "Connections (mobile)", null],
+  ["/app/account", "account-mobile.png", "Account (mobile)", "What controls your workspace?"],
 ]) {
   await mp.goto(`${BASE}${path}`, { waitUntil: "load", timeout: 90_000 }).catch(() => {});
   if (wait) await mp.getByText(wait).first().waitFor({ timeout: 12_000 }).catch(() => {});
+  await mp.locator(".animate-shimmer").first().waitFor({ state: "detached", timeout: 12_000 }).catch(() => {});
   await mp.waitForTimeout(700);
   await shot(mp, "mobile", file, note);
 }

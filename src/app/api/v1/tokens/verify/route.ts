@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     const org = key ? orgForKey(key) : null;
     if (!org) {
       return NextResponse.json(
-        { error: "unauthorized", message: "provide a valid API key as a Bearer token." },
+        { error: "unauthorized", message: "Provide a valid API key as a Bearer token." },
         { status: 401 }
       );
     }

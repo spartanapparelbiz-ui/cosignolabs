@@ -6,7 +6,7 @@ import { Reveal } from "@/components/Reveal";
 export const metadata: Metadata = {
   title: "cosigno — security & trust",
   description:
-    "how cosigno keeps you in control: server-enforced approvals, injection defense, encrypted credentials, and a permanent audit trail.",
+    "How cosigno keeps you in control: server-enforced approvals, injection defense, encrypted credentials, and a permanent audit trail.",
   alternates: { canonical: "https://cosignolabs.com/security" },
 };
 
@@ -20,35 +20,35 @@ export const metadata: Metadata = {
 const GUARANTEES = [
   {
     title: "approval is enforced in the state machine, not the UI",
-    body: "nothing that changes anything outside cosigno executes without your signature — sending, posting, updating, spending, deleting, refunding, and every call to a connected tool. searching, summarising, and drafting clear automatically, because they read or produce text and a draft cannot transmit. every auto-cleared action is logged as auto-cleared, never as approved by you. destructive actions additionally require typed confirmation.",
+    body: "Nothing that changes anything outside cosigno executes without your signature — sending, posting, updating, spending, deleting, refunding, and every call to a connected tool. Searching, summarising, and drafting clear automatically, because they read or produce text and a draft cannot transmit. Every auto-cleared action is logged as auto-cleared, never as approved by you. Destructive actions additionally require typed confirmation.",
   },
   {
     title: "the agent can never escalate its own permissions",
-    body: "the server assigns every action's authority level from its risk class. a request for a lower level is clamped back up, flagged on the card, and logged as a security signal.",
+    body: "The server assigns every action's authority level from its risk class. A request for a lower level is clamped back up, flagged on the card, and logged as a security signal.",
   },
   {
     title: "external content is treated as an attacker",
-    body: "email bodies, tool outputs, and MCP responses are wrapped as untrusted data and injection-scanned. content that tries to direct the agent produces a flagged, non-executable card — flagged cards can never be approved by a shortcut.",
+    body: "Email bodies, tool outputs, and MCP responses are wrapped as untrusted data and injection-scanned. Content that tries to direct the agent produces a flagged, non-executable card — flagged cards can never be approved by a shortcut.",
   },
   {
     title: "credentials are encrypted and never leave the server",
-    body: "oauth tokens and API keys are encrypted at rest with AES-256-GCM, scoped to your user id, protected by row-level security, decrypted only at the moment of an approved call, and never written to a log or sent to the browser.",
+    body: "Oauth tokens and API keys are encrypted at rest with AES-256-GCM, scoped to your user id, protected by row-level security, decrypted only at the moment of an approved call, and never written to a log or sent to the browser.",
   },
   {
     title: "user-supplied endpoints can't reach our insides",
-    body: "every URL you connect is SSRF-checked: https only, private/reserved/metadata address ranges blocked, redirects refused, and the host re-verified at call time — with timeouts and response-size caps on every outbound call.",
+    body: "Every URL you connect is SSRF-checked: https only, private/reserved/metadata address ranges blocked, redirects refused, and the host re-verified at call time — with timeouts and response-size caps on every outbound call.",
   },
   {
     title: "spend is capped before the model is ever touched",
-    body: "unauthenticated requests are rejected before any AI call. per-user rate limits, a global daily circuit breaker, per-call token caps, and oversized-input rejection all run first.",
+    body: "Unauthenticated requests are rejected before any AI call. Per-user rate limits, a global daily circuit breaker, per-call token caps, and oversized-input rejection all run first.",
   },
   {
     title: "everything is auditable — by you",
-    body: "every proposal, approval, veto, and execution is permanently logged with its exact payload, who signed it, and the result. filterable and exportable from your account.",
+    body: "Every proposal, approval, veto, and execution is permanently logged with its exact payload, who signed it, and the result. Filterable and exportable from your account.",
   },
   {
     title: "the kill switch is immediate",
-    body: "disconnect any integration and its stored credentials are deleted at once; its proposals stop immediately. deleting your account cascades through every row you own.",
+    body: "Disconnect any integration and its stored credentials are deleted at once; its proposals stop immediately. Deleting your account cascades through every row you own.",
   },
 ] as const;
 

@@ -21,7 +21,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -65,7 +65,7 @@ export function DelegationActions({
         setBrief(d.brief);
       } catch {
         setBriefOpen(false);
-        toast("error", "couldn't load the brief.");
+        toast("error", "Couldn't load the brief.");
       }
     },
     [sessionId, toast]
@@ -89,7 +89,7 @@ export function DelegationActions({
         );
         onChanged();
       } catch (err) {
-        toast("error", err instanceof Error ? err.message : "couldn't continue that.");
+        toast("error", err instanceof Error ? err.message : "Couldn't continue that.");
       } finally {
         setBusy(null);
       }
@@ -162,7 +162,7 @@ export function DelegationActions({
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[0.75rem] font-semibold text-ink-soft">
                     <span>{MOMENTUM_LABEL[brief.momentum] ?? brief.momentum}</span>
                     <span>{brief.complete} complete</span>
-                    {brief.waiting > 0 && <span className="text-signal">{brief.waiting} at the boundary</span>}
+                    {brief.waiting > 0 && <span className="text-signal-ink">{brief.waiting} at the boundary</span>}
                     {brief.failed > 0 && <span>{brief.failed} failed</span>}
                   </div>
                   <p className="mt-3 text-sm">
@@ -179,7 +179,7 @@ export function DelegationActions({
                         setBriefOpen(false);
                         continueWork(brief.failed > 0 ? "rescue" : "finish", e);
                       }}
-                      className="mt-4 inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-ink shadow-rest"
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-on-signal shadow-rest"
                     >
                       {brief.failed > 0 ? (
                         <>

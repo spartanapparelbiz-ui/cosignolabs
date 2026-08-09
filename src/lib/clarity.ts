@@ -42,14 +42,14 @@ export function missionState(actions: readonly A[], planning: boolean): MissionS
     return {
       key: "planning",
       label: "creating the plan",
-      detail: "cosigno is turning your request into concrete steps. nothing has run yet.",
+      detail: "Cosigno is turning your request into concrete steps. Nothing has run yet.",
     };
   }
   if (actions.length === 0) {
     return {
       key: "idle",
       label: "ready for a task",
-      detail: "describe the result you want — cosigno will turn it into a plan.",
+      detail: "Describe the result you want — cosigno will turn it into a plan.",
     };
   }
   const proposed = actions.filter((a) => a.status === "proposed");
@@ -62,7 +62,7 @@ export function missionState(actions: readonly A[], planning: boolean): MissionS
     return {
       key: "executing",
       label: "executing approved action",
-      detail: "cosigno is carrying out a step you approved.",
+      detail: "Cosigno is carrying out a step you approved.",
     };
   }
   if (proposed.length > 0) {
@@ -70,7 +70,7 @@ export function missionState(actions: readonly A[], planning: boolean): MissionS
       return {
         key: "held",
         label: "held for safety",
-        detail: "outside content tried to steer this work, so it's locked until you re-issue the command yourself.",
+        detail: "Outside content tried to steer this work, so it's locked until you re-issue the command yourself.",
       };
     }
     return {
@@ -84,7 +84,7 @@ export function missionState(actions: readonly A[], planning: boolean): MissionS
     return {
       key: "completed",
       label: "completed",
-      detail: vetoed > 0 ? "finished — the steps you vetoed were never run." : "every step finished and was recorded.",
+      detail: vetoed > 0 ? "Finished — the steps you vetoed were never run." : "Every step finished and was recorded.",
     };
   }
   if (executed > 0 && failed > 0) {
@@ -98,13 +98,13 @@ export function missionState(actions: readonly A[], planning: boolean): MissionS
     return {
       key: "failed",
       label: "failed safely",
-      detail: "the steps didn't complete and no external changes were made.",
+      detail: "The steps didn't complete and no external changes were made.",
     };
   }
   return {
     key: "stopped",
     label: "stopped",
-    detail: "you vetoed the remaining steps — nothing else will run.",
+    detail: "You vetoed the remaining steps — nothing else will run.",
   };
 }
 
@@ -232,19 +232,19 @@ export function beforeApprovalLine(category: ActionCategory): string {
   switch (category) {
     case "send_email":
     case "draft":
-      return "nothing has been sent — this is only prepared.";
+      return "Nothing has been sent — this is only prepared.";
     case "post_content":
-      return "nothing has been published — this is only prepared.";
+      return "Nothing has been published — this is only prepared.";
     case "spend":
     case "payment":
     case "refund":
-      return "no money has moved — this is only prepared.";
+      return "No money has moved — this is only prepared.";
     case "delete":
-      return "nothing has been deleted — this is only staged.";
+      return "Nothing has been deleted — this is only staged.";
     case "update_record":
-      return "no data has changed — this is only prepared.";
+      return "No data has changed — this is only prepared.";
     default:
-      return "no external action has been taken yet.";
+      return "No external action has been taken yet.";
   }
 }
 
@@ -252,20 +252,20 @@ export function beforeApprovalLine(category: ActionCategory): string {
 export function afterApprovalLine(category: ActionCategory): string {
   switch (category) {
     case "send_email":
-      return "after approval, cosigno sends it and records the result on this card.";
+      return "After approval, cosigno sends it and records the result on this card.";
     case "post_content":
-      return "after approval, cosigno publishes it and records the result on this card.";
+      return "After approval, cosigno publishes it and records the result on this card.";
     case "spend":
     case "payment":
-      return "after approval, the payment is made and the receipt lands on this card.";
+      return "After approval, the payment is made and the receipt lands on this card.";
     case "refund":
-      return "after approval, the refund is issued and the receipt lands on this card.";
+      return "After approval, the refund is issued and the receipt lands on this card.";
     case "delete":
-      return "after typed approval, the deletion runs — it can't be automatically undone.";
+      return "After typed approval, the deletion runs — it can't be automatically undone.";
     case "update_record":
-      return "after approval, the change is written and the result lands on this card.";
+      return "After approval, the change is written and the result lands on this card.";
     default:
-      return "after approval, cosigno runs this step and records the result on this card.";
+      return "After approval, cosigno runs this step and records the result on this card.";
   }
 }
 
@@ -283,11 +283,11 @@ export interface MissionGuideView {
 }
 
 function approvalLineFor(a: A): string {
-  if (a.injection_flag) return "held — outside content tried to steer this step.";
+  if (a.injection_flag) return "Held — outside content tried to steer this step.";
   if (a.status === "approved" || a.status === "executing") return "approved — running now.";
-  if (a.tier === 1) return "no approval needed — read-only or reversible.";
-  if (a.tier === 3) return "waiting for your typed approval — destructive step.";
-  return "waiting for your approval.";
+  if (a.tier === 1) return "No approval needed — read-only or reversible.";
+  if (a.tier === 3) return "Waiting for your typed approval — destructive step.";
+  return "Waiting for your approval.";
 }
 
 /** The persistent "what is cosigno doing?" view, from real actions only. */
@@ -315,7 +315,7 @@ export function missionGuide(actions: readonly A[]): MissionGuideView {
       : null,
     next: next ? next.summary : null,
     changes,
-    noChangesLine: "no external changes have been made.",
+    noChangesLine: "No external changes have been made.",
   };
 }
 

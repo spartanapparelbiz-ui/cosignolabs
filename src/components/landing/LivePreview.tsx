@@ -55,17 +55,17 @@ interface DemoMission {
 }
 
 const RESULTS: Record<string, string> = {
-  search: "search completed — 47 matches (simulated).",
-  summarize: "summary generated and saved to this thread (simulated).",
-  draft: "draft saved. nothing was sent (simulated).",
-  send_email: "email queued (simulated).",
+  search: "Search completed — 47 matches (simulated).",
+  summarize: "Summary generated and saved to this thread (simulated).",
+  draft: "Draft saved. Nothing was sent (simulated).",
+  send_email: "Email queued (simulated).",
   update_record: "47 emails archived and labeled (simulated).",
-  spend: "spend recorded (simulated).",
-  webhook: "webhook fired (simulated).",
-  post_content: "content posted (simulated).",
-  delete: "deleted (simulated).",
-  refund: "refund issued (simulated).",
-  payment: "payment sent (simulated).",
+  spend: "Spend recorded (simulated).",
+  webhook: "Webhook fired (simulated).",
+  post_content: "Content posted (simulated).",
+  delete: "Deleted (simulated).",
+  refund: "Refund issued (simulated).",
+  payment: "Payment sent (simulated).",
 };
 
 function TierChip({ tier }: { tier: 1 | 2 | 3 }) {
@@ -124,7 +124,7 @@ export default function LivePreview() {
         body: JSON.stringify({ command: cmd }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "the sandbox hiccuped — try again.");
+      if (!res.ok) throw new Error(data.message || "The sandbox hiccuped — try again.");
       setUsed((u) => u + 1);
       const mission: DemoMission = {
         id: `m-${Date.now()}`,
@@ -147,7 +147,7 @@ export default function LivePreview() {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "the sandbox hiccuped — try again.");
+      setError(err instanceof Error ? err.message : "The sandbox hiccuped — try again.");
       setInput(cmd);
     } finally {
       setBusy(false);
@@ -159,7 +159,7 @@ export default function LivePreview() {
     setTimeout(() => {
       patch(id, {
         status: "executed",
-        result: RESULTS[category] ?? "done (simulated).",
+        result: RESULTS[category] ?? "Done (simulated).",
         audit: { via, at: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
       });
     }, 650);
@@ -169,7 +169,7 @@ export default function LivePreview() {
     if (card.injection_flag) {
       patch(card.id, {
         error:
-          "this card was held: external content attempted to direct the agent. it can't be executed — re-issue the command yourself if you want this done.",
+          "This card was held: external content attempted to direct the agent. It can't be executed — re-issue the command yourself if you want this done.",
       });
       return;
     }

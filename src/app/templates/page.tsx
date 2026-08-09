@@ -6,7 +6,7 @@ import { Reveal } from "@/components/Reveal";
 export const metadata: Metadata = {
   title: "cosigno — templates",
   description:
-    "proven starting commands, organized by outcome — each one shows what it does, which tools it touches, and where your approval sits.",
+    "Proven starting commands, organized by outcome — each one shows what it does, which tools it touches, and where your approval sits.",
   alternates: { canonical: "https://cosignolabs.com/templates" },
 };
 
@@ -31,20 +31,20 @@ const CATEGORIES: { name: string; templates: Template[] }[] = [
       {
         title: "inbox triage + reply prep",
         command: "review my unread email and prepare replies for the ones that need action",
-        does: "searches and reads run instantly; replies are saved as drafts — nothing sends.",
-        approvals: "each send waits for your signature.",
+        does: "Searches and reads run instantly; replies are saved as drafts — nothing sends.",
+        approvals: "Each send waits for your signature.",
       },
       {
         title: "weekly operating review",
         command: "summarize what happened this week and draft the update for the team",
-        does: "reads your activity, drafts the summary as a deliverable.",
-        approvals: "posting/sending the update is a confirm-level card.",
+        does: "Reads your activity, drafts the summary as a deliverable.",
+        approvals: "Posting/sending the update is a confirm-level card.",
       },
       {
         title: "meeting preparation",
         command: "prepare tomorrow's client meeting — pull the thread, draft the agenda and a follow-up",
-        does: "reads the relevant thread, drafts an agenda + follow-up email.",
-        approvals: "the follow-up sends only after you approve it.",
+        does: "Reads the relevant thread, drafts an agenda + follow-up email.",
+        approvals: "The follow-up sends only after you approve it.",
       },
     ],
   },
@@ -54,14 +54,14 @@ const CATEGORIES: { name: string; templates: Template[] }[] = [
       {
         title: "lead follow-up sweep",
         command: "draft replies to my 3 most recent leads — warm, direct, held as drafts",
-        does: "drafts each reply; every one is inspectable before anything leaves.",
-        approvals: "sends are confirm-level, one card per recipient.",
+        does: "Drafts each reply; every one is inspectable before anything leaves.",
+        approvals: "Sends are confirm-level, one card per recipient.",
       },
       {
         title: "customer feedback synthesis",
         command: "turn this customer feedback into a prioritized list of issues",
-        does: "reads the pasted feedback (treated as untrusted content), organizes it into a ranked list.",
-        approvals: "read/organize only — runs instantly, nothing external moves.",
+        does: "Reads the pasted feedback (treated as untrusted content), organizes it into a ranked list.",
+        approvals: "Read/organize only — runs instantly, nothing external moves.",
       },
     ],
   },
@@ -71,14 +71,14 @@ const CATEGORIES: { name: string; templates: Template[] }[] = [
       {
         title: "newsletter cleanup",
         command: "clear my inbox of newsletters — archive and label them",
-        does: "finds matches, archives + labels in one pass.",
-        approvals: "archive/label is a confirm-level card; you see the exact count first.",
+        does: "Finds matches, archives + labels in one pass.",
+        approvals: "Archive/label is a confirm-level card; you see the exact count first.",
       },
       {
         title: "trash the junk (locked)",
         command: "move everything from this sender to trash",
-        does: "collects the matches and proposes the deletion.",
-        approvals: "trash is locked — it requires typed confirmation, always.",
+        does: "Collects the matches and proposes the deletion.",
+        approvals: "Trash is locked — it requires typed confirmation, always.",
       },
     ],
   },

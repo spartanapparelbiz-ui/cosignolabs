@@ -32,11 +32,11 @@ export function StarterJobs() {
         body: JSON.stringify({ template: key }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || "couldn't start the mission.");
-      toast("success", "mission started.");
+      if (!res.ok) throw new Error(data.message || "Couldn't start the mission.");
+      toast("success", "Mission started.");
       router.push(`/app/missions/${data.mission.id}`);
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't start the mission.");
+      toast("error", e instanceof Error ? e.message : "Couldn't start the mission.");
       setBusy(null);
     }
   }

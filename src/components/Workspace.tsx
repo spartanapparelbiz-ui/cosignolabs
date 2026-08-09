@@ -35,7 +35,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(body.message || body.error || "something went wrong — try again.");
+    throw new Error(body.message || body.error || "Something went wrong — try again.");
   }
   return body;
 }
@@ -269,7 +269,7 @@ export function Workspace() {
       });
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "the command didn't go through — try again.");
+      setError(err instanceof Error ? err.message : "The command didn't go through — try again.");
       setCommand(cmd); // never lose the user's input
       pulse("error");
     } finally {
@@ -297,7 +297,7 @@ export function Workspace() {
           data.action.status === "executed" ? "success" : "error",
           data.action.status === "executed"
             ? "signed & executed."
-            : "the action didn't complete — check the card."
+            : "The action didn't complete — check the card."
         );
         return null;
       } catch (err) {
@@ -307,7 +307,7 @@ export function Workspace() {
           return next;
         });
         await refresh();
-        return err instanceof Error ? err.message : "approval didn't go through — try again.";
+        return err instanceof Error ? err.message : "Approval didn't go through — try again.";
       }
     },
     [refresh, toast, holdInStack]
@@ -330,7 +330,7 @@ export function Workspace() {
       }).catch(() => {});
     }
     await refresh();
-    toast("success", "mission stopped — the waiting steps were vetoed and nothing else will run.");
+    toast("success", "Mission stopped — the waiting steps were vetoed and nothing else will run.");
   }, [actions, refresh, toast]);
 
   const onVeto = useCallback(
@@ -342,7 +342,7 @@ export function Workspace() {
           body: JSON.stringify({ reason }),
         });
         await refresh();
-        toast("success", "vetoed — nothing was executed.");
+        toast("success", "Vetoed — nothing was executed.");
         return null;
       } catch (err) {
         setOptimistic((o) => {
@@ -351,7 +351,7 @@ export function Workspace() {
           return next;
         });
         await refresh();
-        return err instanceof Error ? err.message : "the veto didn't go through — try again.";
+        return err instanceof Error ? err.message : "The veto didn't go through — try again.";
       }
     },
     [refresh, toast]
@@ -367,7 +367,7 @@ export function Workspace() {
         await refresh();
         return null;
       } catch (err) {
-        return err instanceof Error ? err.message : "the edit didn't save — try again.";
+        return err instanceof Error ? err.message : "The edit didn't save — try again.";
       }
     },
     [refresh]
@@ -423,7 +423,7 @@ export function Workspace() {
 
           {suggestions.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[0.6875rem] font-semibold text-ink-soft">
+              <span className="text-[0.75rem] font-semibold text-ink-soft">
                 ↹ complete:
               </span>
               {suggestions.map((s, i) => (
@@ -466,7 +466,7 @@ export function Workspace() {
                   <button
                     key={ex}
                     onClick={() => submit(ex)}
-                    className="rounded-btn px-2 py-1.5 text-left text-[0.9375rem] text-ink-soft transition-colors duration-fast hover:text-ink"
+                    className="rounded-btn px-2 py-1.5 text-left text-[1rem] text-ink-soft transition-colors duration-fast hover:text-ink"
                   >
                     {ex}
                   </button>
@@ -479,7 +479,7 @@ export function Workspace() {
             m.role === "user" ? (
               <p
                 key={m.id}
-                className="self-end rounded-card rounded-br-md bg-ink px-4 py-2.5 text-[0.875rem] text-cream"
+                className="self-end rounded-card rounded-br-md bg-ink px-4 py-2.5 text-[0.9375rem] text-cream"
               >
                 {m.content}
               </p>

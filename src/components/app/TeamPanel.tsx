@@ -43,7 +43,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -69,7 +69,7 @@ export function TeamPanel() {
         setDecisions([]);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load your workspace.");
+      setError(e instanceof Error ? e.message : "Couldn't load your workspace.");
     }
   }, []);
 
@@ -84,7 +84,7 @@ export function TeamPanel() {
       if (okMsg) toast("success", okMsg);
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "that didn't work.");
+      toast("error", e instanceof Error ? e.message : "That didn't work.");
     } finally {
       setBusy(null);
     }
@@ -190,7 +190,7 @@ export function TeamPanel() {
                 )}
                 {((isOwner && m.role !== "owner") || (m.is_me && m.role !== "owner")) && (
                   <button
-                    onClick={() => call(m.id, () => jsonFetch(`/api/workspace/members/${m.id}`, { method: "DELETE" }), m.is_me ? "you left the workspace." : "removed.")}
+                    onClick={() => call(m.id, () => jsonFetch(`/api/workspace/members/${m.id}`, { method: "DELETE" }), m.is_me ? "You left the workspace." : "Removed.")}
                     disabled={busy === m.id}
                     className="min-h-[28px] rounded-pill px-2.5 py-0.5 text-[0.75rem] font-semibold text-ink-soft hover:bg-cream-deep"
                   >
@@ -247,8 +247,8 @@ export function TeamPanel() {
         </div>
         <p className="mt-1 text-xs text-ink-soft">
           {canDecide
-            ? "workspace-mates' pending tier-2 actions you can approve or veto. destructive actions never appear here — those stay with their owner."
-            : "you're a member: your own decisions stay yours, and approvers can sign off on your routine actions. ask the owner for the approver role to decide here."}
+            ? "Routine actions your teammates are waiting on, which you can approve or veto. Anything destructive stays with its owner and never appears here."
+            : "You're a member: your own decisions stay yours, and approvers can sign off on your routine actions. Ask the owner for the approver role to decide here."}
         </p>
         {canDecide && decisions.length === 0 && (
           <p className="mt-3 text-sm font-semibold text-ink-soft">Nothing waiting right now.</p>

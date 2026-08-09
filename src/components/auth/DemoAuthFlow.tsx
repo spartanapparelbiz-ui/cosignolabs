@@ -48,11 +48,11 @@ export function DemoAuthFlow({
       switchHref={switchHref}
       onSubmitCredentials={(email, password) => {
         if (!isValidEmail(email)) {
-          setError("that email doesn't look right.");
+          setError("That email doesn't look right.");
           return;
         }
         if (password.length < 8) {
-          setError("check your password — 8 characters or more.");
+          setError("Check your password — 8 characters or more.");
           return;
         }
         go();

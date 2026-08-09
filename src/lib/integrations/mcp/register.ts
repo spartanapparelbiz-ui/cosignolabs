@@ -41,13 +41,13 @@ export function validateMcpUrl(raw: string): { ok: boolean; url?: URL; reason?: 
   try {
     u = new URL(raw);
   } catch {
-    return { ok: false, reason: "that isn't a valid URL." };
+    return { ok: false, reason: "That isn't a valid URL." };
   }
   if (u.protocol !== "https:" && u.protocol !== "http:") {
     return { ok: false, reason: "the URL must start with https://" };
   }
   if (u.protocol === "http:" && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(u.hostname)) {
-    return { ok: false, reason: "use https:// for a remote server." };
+    return { ok: false, reason: "Use https:// for a remote server." };
   }
   return { ok: true, url: u };
 }
@@ -95,9 +95,9 @@ export async function registerMcp(
     await assertPublicUrl(input.url);
   } catch (err) {
     if (err instanceof SsrfError) {
-      return { ok: false, error: "that address isn't allowed (internal/private hosts are blocked)." };
+      return { ok: false, error: "That address isn't allowed (internal/private hosts are blocked)." };
     }
-    return { ok: false, error: "couldn't validate that URL." };
+    return { ok: false, error: "Couldn't validate that URL." };
   }
 
   const cfg = configFrom(input);
@@ -112,10 +112,10 @@ export async function registerMcp(
         kind === "auth"
           ? "the server rejected the credentials — check the token."
           : kind === "timeout"
-            ? "the server timed out. is the URL correct?"
+            ? "the server timed out. Is the URL correct?"
             : kind === "unreachable"
               ? "couldn't reach that server."
-              : "that server didn't speak MCP as expected.",
+              : "That server didn't speak MCP as expected.",
     };
   }
 

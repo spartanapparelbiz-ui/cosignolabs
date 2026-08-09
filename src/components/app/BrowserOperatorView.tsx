@@ -73,8 +73,8 @@ const SESSION_TONE: Record<string, string> = {
   Starting: "bg-cream-deep text-ink-soft",
   Active: "bg-ink text-cream",
   Reading: "bg-ink text-cream",
-  "Login required": "bg-signal text-ink",
-  "Waiting for you": "bg-signal text-ink",
+  "Login required": "bg-signal text-on-signal",
+  "Waiting for you": "bg-signal text-on-signal",
   Paused: "bg-cream-deep text-ink-soft",
   Completed: "bg-signal/20 text-ink",
   Blocked: "ring-1 ring-inset ring-ink/40 text-ink",
@@ -91,7 +91,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -135,7 +135,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
       setError(null);
       return d;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load the browser view.");
+      setError(e instanceof Error ? e.message : "Couldn't load the browser view.");
       return null;
     }
   }, [missionId]);
@@ -170,9 +170,9 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
     try {
       await jsonFetch(`/api/missions/${missionId}/browser`, { method: "POST", body: JSON.stringify({ op }) });
       await load();
-      if (op === "stop") toast("success", "browser stopped — everything found so far was kept.");
+      if (op === "stop") toast("success", "Browser stopped — everything found so far was kept.");
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "that didn't work.");
+      toast("error", e instanceof Error ? e.message : "That didn't work.");
     } finally {
       setBusy(null);
     }
@@ -184,7 +184,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
       await jsonFetch(`/api/missions/${missionId}/answer`, { method: "POST", body: JSON.stringify({ answer: value }) });
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "the answer didn't go through.");
+      toast("error", e instanceof Error ? e.message : "The answer didn't go through.");
     } finally {
       setBusy(null);
     }
@@ -246,7 +246,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
               href={rec.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-semibold text-ink shadow-rest transition-transform active:scale-95"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2.5 text-sm font-semibold text-on-signal shadow-rest transition-transform active:scale-95"
             >
               Open recommended product <ArrowUpRight size={15} />
             </a>
@@ -326,7 +326,7 @@ export function BrowserOperatorView({ missionId }: { missionId: string }) {
                 onClick={() => answer(o)}
                 disabled={busy === "answer"}
                 className={`rounded-btn px-3.5 py-1.5 text-xs font-semibold disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed ${
-                  o === mission.pending_question?.recommended ? "bg-signal text-ink" : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
+                  o === mission.pending_question?.recommended ? "bg-signal text-on-signal" : "ring-1 ring-inset ring-ink/30 hover:bg-cream-deep"
                 }`}
               >
                 {o}

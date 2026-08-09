@@ -46,7 +46,7 @@ export const PLANS: Record<PlanId, Plan> = {
   free: {
     id: "free",
     name: "free",
-    tagline: "try the operator on your own terms.",
+    tagline: "Try the operator on your own terms.",
     price: { monthly: 0, annual: 0 },
     actionLimit: 25,
     integrationLimit: 1,
@@ -54,7 +54,7 @@ export const PLANS: Record<PlanId, Plan> = {
     upgradeTo: "pro",
     strongerModel: false,
     canExportCsv: false,
-    features: ["25 AI operations / month", "1 connected app", "live preview", "activity log"],
+    features: ["25 AI operations / month", "1 connected app", "Live preview", "Activity log"],
     examples: ["plan a trip", "draft emails", "research products", "organize notes"],
   },
   pro: {
@@ -62,7 +62,7 @@ export const PLANS: Record<PlanId, Plan> = {
     // Display name only — the id stays "pro" everywhere it's stored (Stripe
     // metadata, subscription rows), so renaming can't orphan a subscription.
     name: "operator",
-    tagline: "delegate real work, every day.",
+    tagline: "Delegate real work, every day.",
     price: {
       monthly: 44.4,
       annual: 444,
@@ -77,9 +77,9 @@ export const PLANS: Record<PlanId, Plan> = {
     canExportCsv: true,
     features: [
       "1,000 AI operations / month",
-      "give cosigno your entire workflow — unlimited connected apps",
-      "connect AI to anything — your own APIs and MCP servers",
-      "never lose what AI accomplished — full history export",
+      "Unlimited connected apps",
+      "Your own APIs and MCP servers",
+      "Full history export",
     ],
     examples: ["run your inbox", "research competitors", "automate follow-ups", "connect every app"],
   },
@@ -87,7 +87,7 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "max",
     // Display name only — the id stays "max" in storage (see pro).
     name: "command",
-    tagline: "for teams running cosigno hard.",
+    tagline: "For teams running cosigno hard.",
     price: {
       monthly: 111,
       annual: 1110,
@@ -102,10 +102,10 @@ export const PLANS: Record<PlanId, Plan> = {
     canExportCsv: true,
     features: [
       "10,000 AI operations / month",
-      "everything in operator",
-      "premium AI routing — a stronger model when work demands it",
-      "webhook / API access",
-      "priority support",
+      "Everything in operator",
+      "A stronger model when the work demands it",
+      "Webhook and API access",
+      "Priority support",
     ],
     examples: ["run heavy volume", "premium AI routing", "webhook & API access", "priority support"],
   },

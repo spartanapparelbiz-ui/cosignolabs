@@ -43,7 +43,7 @@ export function ActivityStream() {
       const d = await r.json();
       setEvents(Array.isArray(d.events) ? d.events : []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load your activity.");
+      setError(e instanceof Error ? e.message : "Couldn't load your activity.");
     }
   }, []);
 
@@ -81,7 +81,7 @@ export function ActivityStream() {
             key={f.label}
             onClick={() => setActive(i)}
             aria-pressed={i === active}
-            className={`relative rounded-btn px-2.5 py-1.5 text-[0.8125rem] transition-colors duration-fast ${
+            className={`relative rounded-btn px-2.5 py-1.5 text-[0.875rem] transition-colors duration-fast ${
               i === active ? "font-semibold text-ink" : "text-ink-soft hover:text-ink"
             }`}
           >

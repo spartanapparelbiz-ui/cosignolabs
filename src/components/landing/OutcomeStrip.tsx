@@ -11,21 +11,21 @@ const OUTCOMES = [
   {
     icon: Inbox,
     title: "inbox cleared",
-    body: "clutter archived only after you sign — nothing is ever deleted.",
+    body: "Clutter archived only after you sign — nothing is ever deleted.",
   },
   {
     icon: Reply,
     title: "replies prepared",
     // "every waiting thread" claimed completeness the job cannot promise — it
     // drafts for the threads it found, which is a different sentence.
-    body: "drafts written and saved for the threads it finds waiting. drafts can't send.",
+    body: "Drafts written and saved for the threads it finds waiting. Drafts can't send.",
   },
   {
     icon: Sunrise,
     // "protected" says cosigno guards the calendar. It reads free/busy and
     // picks times around it; nothing is being defended.
     title: "calendar respected",
-    body: "send times and reminders checked against your real free/busy.",
+    body: "Send times and reminders checked against your real free/busy.",
   },
 ] as const;
 

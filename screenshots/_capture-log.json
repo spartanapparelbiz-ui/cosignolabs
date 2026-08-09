@@ -275,16 +275,16 @@
   {
     "folder": "10-settings",
     "file": "account-usage-desktop.png",
-    "note": "Usage / plan panel",
-    "ok": false,
-    "reason": "panel tab \"usage\" not found on /app/account"
+    "note": "Plan & usage panel",
+    "ok": true,
+    "errors": []
   },
   {
     "folder": "10-settings",
     "file": "account-integrations-desktop.png",
-    "note": "Integrations panel",
-    "ok": false,
-    "reason": "panel tab \"integrations\" not found on /app/account"
+    "note": "Connections panel",
+    "ok": true,
+    "errors": []
   },
   {
     "folder": "12-misc",
@@ -373,14 +373,14 @@
   {
     "folder": "mobile",
     "file": "now-home-mobile.png",
-    "note": "NOW / home (mobile)",
+    "note": "Home (mobile)",
     "ok": true,
     "errors": []
   },
   {
     "folder": "mobile",
     "file": "delegations-mobile.png",
-    "note": "Delegations (mobile)",
+    "note": "Missions (mobile)",
     "ok": true,
     "errors": []
   },
@@ -394,7 +394,7 @@
   {
     "folder": "mobile",
     "file": "boundary-focus-mobile.png",
-    "note": "Boundary / Focus (mobile)",
+    "note": "Approvals / Focus (mobile)",
     "ok": true,
     "errors": []
   },
@@ -416,6 +416,13 @@
     "folder": "mobile",
     "file": "connections-mobile.png",
     "note": "Connections (mobile)",
+    "ok": true,
+    "errors": []
+  },
+  {
+    "folder": "mobile",
+    "file": "account-mobile.png",
+    "note": "Account (mobile)",
     "ok": true,
     "errors": []
   },

@@ -17,7 +17,7 @@ const CONNECTIONS = readFileSync("src/components/account/ConnectionsPanel.tsx", 
 
 describe("mission control: what is cosigno doing right now?", () => {
   it("asks and answers the question in the header", () => {
-    expect(CONTROL).toMatch(/What is in motion\?/);
+    expect(CONTROL).toMatch(/What's running right now\?/);
   });
 
   it("shows only active work — finished missions are archived, not displayed", () => {

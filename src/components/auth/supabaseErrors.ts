@@ -63,6 +63,6 @@ export function friendlyAuthError(err: unknown, mode: "sign-in" | "sign-up"): st
     default:
       return mode === "sign-in"
         ? "we couldn't sign you in — check your details and try again."
-        : "we couldn't create your account — try again.";
+        : "We couldn't create your account — try again.";
   }
 }

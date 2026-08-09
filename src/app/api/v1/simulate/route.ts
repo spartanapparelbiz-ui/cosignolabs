@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       confidence = parsed.confidence;
     } else {
       return NextResponse.json(
-        { error: "invalid_input", message: "provide either `text` or `rule`." },
+        { error: "invalid_input", message: "Provide either `text` or `rule`." },
         { status: 400 }
       );
     }

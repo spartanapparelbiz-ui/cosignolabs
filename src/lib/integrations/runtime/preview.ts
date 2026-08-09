@@ -63,9 +63,9 @@ export async function previewConnectorAction(
 ): Promise<PreviewResult> {
   const store = getStore();
   const conn = await store.getConnection(userId, input.connectionId);
-  if (!conn) return { ok: false, rules: [], note: SAFE_NOTE, error: "connection not found." };
+  if (!conn) return { ok: false, rules: [], note: SAFE_NOTE, error: "Connection not found." };
   if (conn.status === "revoked") {
-    return { ok: false, rules: [], note: SAFE_NOTE, error: "this connection was disconnected." };
+    return { ok: false, rules: [], note: SAFE_NOTE, error: "This connection was disconnected." };
   }
 
   const args = input.args ?? {};
@@ -77,7 +77,7 @@ export async function previewConnectorAction(
     const provider = getProvider(conn.provider_key);
     const cap = provider?.listActions().find((a) => a.id === input.capability);
     if (!provider || !cap) {
-      return { ok: false, rules: [], note: SAFE_NOTE, error: "that capability isn't available on this connection." };
+      return { ok: false, rules: [], note: SAFE_NOTE, error: "That capability isn't available on this connection." };
     }
     risk = cap as ProviderAction;
     summary = `${conn.display_name}: ${cap.summary}`;
@@ -86,7 +86,7 @@ export async function previewConnectorAction(
     const cfg = conn.metadata as unknown as CustomApiConfig;
     const action = cfg.actions?.find((a) => a.id === input.capability);
     if (!action) {
-      return { ok: false, rules: [], note: SAFE_NOTE, error: "that action isn't available on this connection." };
+      return { ok: false, rules: [], note: SAFE_NOTE, error: "That action isn't available on this connection." };
     }
     risk = { mutates: true, risk: action.risk };
     summary = `${conn.display_name}: ${action.summary}`;
@@ -104,9 +104,9 @@ export async function previewConnectorAction(
     request = { kind: "custom", description: `${action.method} ${url}`, method: action.method, url, keyPlacement, args };
   } else {
     const tool = await store.getMcpTool(userId, conn.id, input.capability);
-    if (!tool) return { ok: false, rules: [], note: SAFE_NOTE, error: "that tool isn't on this server anymore." };
+    if (!tool) return { ok: false, rules: [], note: SAFE_NOTE, error: "That tool isn't on this server anymore." };
     if (!isCallable(tool)) {
-      return { ok: false, rules: [], note: SAFE_NOTE, error: "enable this tool before it can be used." };
+      return { ok: false, rules: [], note: SAFE_NOTE, error: "Enable this tool before it can be used." };
     }
     risk = { mutates: true, risk: mcpToolRisk(tool) };
     summary = `${conn.display_name}: run ${tool.name}`;

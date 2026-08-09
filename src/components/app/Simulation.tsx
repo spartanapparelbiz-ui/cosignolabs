@@ -115,12 +115,12 @@ export function Simulation() {
         }),
       ]);
       const sim = await simRes.json();
-      if (!simRes.ok) throw new Error(sim.message || "the simulation didn't run.");
+      if (!simRes.ok) throw new Error(sim.message || "The simulation didn't run.");
       setRes(sim);
       const prev = await prevRes.json().catch(() => null);
       setEnforced(prevRes.ok && prev?.description ? { description: prev.description } : null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "the simulation didn't run.");
+      setError(e instanceof Error ? e.message : "The simulation didn't run.");
     } finally {
       setBusy(false);
     }
@@ -137,12 +137,12 @@ export function Simulation() {
         body: JSON.stringify({ text: t }),
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.message || "the rule didn't save.");
+      if (!r.ok) throw new Error(data.message || "The rule didn't save.");
       setEnabled(true);
       setActiveRules((n) => n + 1);
-      toast("success", "rule enabled — it applies to the next thing cosigno tries.");
+      toast("success", "Rule enabled — it applies to the next thing cosigno tries.");
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "the rule didn't save.");
+      toast("error", e instanceof Error ? e.message : "The rule didn't save.");
     } finally {
       setEnabling(false);
     }
@@ -274,7 +274,7 @@ export function Simulation() {
               <button
                 onClick={enable}
                 disabled={!enforced || enabling || enabled}
-                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-semibold text-ink transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
+                className="rounded-btn bg-signal px-5 py-2.5 text-sm font-semibold text-on-signal transition-transform duration-fast active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:cursor-not-allowed"
               >
                 {enabled ? "enabled ✓" : enabling ? "enabling…" : "enable this rule"}
               </button>

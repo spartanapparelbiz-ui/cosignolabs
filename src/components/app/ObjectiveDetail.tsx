@@ -26,7 +26,7 @@ async function jsonFetch(url: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || body.error || "something went wrong.");
+  if (!res.ok) throw new Error(body.message || body.error || "Something went wrong.");
   return body;
 }
 
@@ -57,7 +57,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
       setDelegations(d.delegations ?? []);
       setProgress(d.progress ?? null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "couldn't load that objective.");
+      setError(e instanceof Error ? e.message : "Couldn't load that objective.");
     }
   }, [id]);
 
@@ -85,7 +85,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
       setLinkOpen(false);
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't link that.");
+      toast("error", e instanceof Error ? e.message : "Couldn't link that.");
     } finally {
       setBusy(false);
     }
@@ -100,7 +100,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
       });
       await load();
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't unlink that.");
+      toast("error", e instanceof Error ? e.message : "Couldn't unlink that.");
     } finally {
       setBusy(false);
     }
@@ -114,9 +114,9 @@ export function ObjectiveDetail({ id }: { id: string }) {
         body: JSON.stringify({ status }),
       });
       setObjective(d.objective);
-      toast("success", status === "achieved" ? "marked achieved." : `marked ${status}.`);
+      toast("success", status === "achieved" ? "Marked achieved." : `Marked ${status}.`);
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't update that.");
+      toast("error", e instanceof Error ? e.message : "Couldn't update that.");
     } finally {
       setBusy(false);
     }
@@ -127,10 +127,10 @@ export function ObjectiveDetail({ id }: { id: string }) {
     setBusy(true);
     try {
       await jsonFetch(`/api/objectives/${id}`, { method: "DELETE" });
-      toast("success", "objective deleted.");
+      toast("success", "Objective deleted.");
       router.push("/app/objectives");
     } catch (e) {
-      toast("error", e instanceof Error ? e.message : "couldn't delete that.");
+      toast("error", e instanceof Error ? e.message : "Couldn't delete that.");
       setBusy(false);
     }
   }
@@ -179,7 +179,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
         {(progress.needs_you > 0 || progress.blocked > 0) && (
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[0.75rem] font-semibold text-ink-soft">
             {progress.needs_you > 0 && (
-              <Link href="/app/focus" className="text-signal hover:underline">
+              <Link href="/app/focus" className="text-signal-ink hover:underline">
                 {progress.needs_you} at your boundary →
               </Link>
             )}
@@ -265,7 +265,7 @@ export function ObjectiveDetail({ id }: { id: string }) {
           <button
             onClick={() => setStatus("achieved")}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-ink shadow-rest disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-4 py-2 text-sm font-semibold text-on-signal shadow-rest disabled:bg-cream-deep disabled:text-on-signal-soft disabled:shadow-none disabled:cursor-not-allowed"
           >
             <Check size={14} strokeWidth={3} /> Mark achieved
           </button>

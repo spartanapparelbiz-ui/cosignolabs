@@ -58,8 +58,8 @@ export function CommandBarTrigger() {
       aria-label="search the workspace"
     >
       <Search size={15} strokeWidth={2} aria-hidden="true" />
-      <span className="text-[0.8125rem]">Search</span>
-      <kbd className="rounded bg-ink/[0.06] px-1.5 py-px text-[0.6875rem] font-semibold text-ink-soft">
+      <span className="text-[0.875rem]">Search</span>
+      <kbd className="rounded bg-ink/[0.06] px-1.5 py-px text-[0.75rem] font-semibold text-ink-soft">
         ⌘K
       </kbd>
     </button>
@@ -172,9 +172,9 @@ export function CommandBar() {
             }}
             placeholder="Search missions, apps, decisions…"
             aria-label="search"
-            className="min-h-[52px] flex-1 bg-transparent text-[0.9375rem] outline-none placeholder:text-ink-soft/60"
+            className="min-h-[52px] flex-1 bg-transparent text-[1rem] outline-none placeholder:text-ink-soft/60"
           />
-          <kbd className="shrink-0 rounded bg-ink/[0.06] px-1.5 py-px text-[0.6875rem] font-semibold text-ink-soft">
+          <kbd className="shrink-0 rounded bg-ink/[0.06] px-1.5 py-px text-[0.75rem] font-semibold text-ink-soft">
             esc
           </kbd>
         </div>
@@ -200,7 +200,7 @@ export function CommandBar() {
                       )}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[0.875rem] font-semibold">{r.title}</span>
+                      <span className="block truncate text-[0.9375rem] font-semibold">{r.title}</span>
                       {r.subtitle && <span className="t-caption block truncate">{r.subtitle}</span>}
                     </span>
                   </button>

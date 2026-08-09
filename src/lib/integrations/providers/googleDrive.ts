@@ -14,10 +14,10 @@ const UPLOAD = "https://www.googleapis.com/upload/drive/v3";
 const MAX_FILES = 25;
 
 const DRIVE_ACTIONS: ProviderAction[] = [
-  { id: "list_files", summary: "list files cosigno created in your Drive (read-only).", mutates: false, risk: "read" },
-  { id: "create_text_file", summary: "save a new text/markdown/csv file to your Drive.", mutates: true, risk: "write" },
-  { id: "update_text_file", summary: "replace the contents of a file cosigno created.", mutates: true, risk: "write" },
-  { id: "trash_file", summary: "move a file to Drive's trash (destructive — typed confirmation).", mutates: true, risk: "destructive" },
+  { id: "list_files", summary: "List files cosigno created in your Drive (read-only).", mutates: false, risk: "read" },
+  { id: "create_text_file", summary: "Save a new text/markdown/csv file to your Drive.", mutates: true, risk: "write" },
+  { id: "update_text_file", summary: "Replace the contents of a file cosigno created.", mutates: true, risk: "write" },
+  { id: "trash_file", summary: "Move a file to Drive's trash (destructive — typed confirmation).", mutates: true, risk: "destructive" },
 ];
 
 const TEXT_MIMES = new Set(["text/plain", "text/markdown", "text/csv"]);
@@ -70,7 +70,7 @@ async function driveExecute(
       // File names come from Drive — UNTRUSTED content, carried as data only.
       return {
         ok: true,
-        summary: `found ${files.length} file${files.length === 1 ? "" : "s"} cosigno can see (drive.file scope: only files it created or you opened with it).`,
+        summary: `Found ${files.length} file${files.length === 1 ? "" : "s"} cosigno can see (drive.file scope: only files it created or you opened with it).`,
         detail: { files: files.slice(0, MAX_FILES), untrusted: true },
       };
     }
@@ -78,48 +78,48 @@ async function driveExecute(
       const name = str(payload.name);
       const content = typeof payload.content === "string" ? payload.content : undefined;
       const mime = str(payload.mime) ?? "text/plain";
-      if (!name || content === undefined) return { ok: false, summary: "a file needs a name and content." };
-      if (!TEXT_MIMES.has(mime)) return { ok: false, summary: "only text, markdown, or csv files are supported." };
-      if (content.length > MAX_CONTENT) return { ok: false, summary: "that file is too large (200k character limit)." };
+      if (!name || content === undefined) return { ok: false, summary: "A file needs a name and content." };
+      if (!TEXT_MIMES.has(mime)) return { ok: false, summary: "Only text, markdown, or csv files are supported." };
+      if (content.length > MAX_CONTENT) return { ok: false, summary: "That file is too large (200k character limit)." };
       const { body, type } = multipart({ name, mimeType: mime }, content, mime);
       const created = await requestJson<{ id?: string; name?: string }>(
         `${UPLOAD}/files?uploadType=multipart&fields=id,name`,
         { method: "POST", headers: { ...bearer(creds), "content-type": type }, body }
       );
-      return { ok: true, summary: `saved “${created.name ?? name}” to your Drive.`, detail: { file_id: created.id } };
+      return { ok: true, summary: `Saved “${created.name ?? name}” to your Drive.`, detail: { file_id: created.id } };
     }
     case "update_text_file": {
       const id = str(payload.file_id) ?? str(payload.id);
       const content = typeof payload.content === "string" ? payload.content : undefined;
-      if (!id || content === undefined) return { ok: false, summary: "an update needs a file id and content." };
-      if (content.length > MAX_CONTENT) return { ok: false, summary: "that file is too large (200k character limit)." };
+      if (!id || content === undefined) return { ok: false, summary: "An update needs a file id and content." };
+      if (content.length > MAX_CONTENT) return { ok: false, summary: "That file is too large (200k character limit)." };
       await requestJson(`${UPLOAD}/files/${encodeURIComponent(id)}?uploadType=media`, {
         method: "PATCH",
         headers: { ...bearer(creds), "content-type": "text/plain" },
         body: content,
       });
-      return { ok: true, summary: "updated the file's contents." };
+      return { ok: true, summary: "Updated the file's contents." };
     }
     case "trash_file": {
       const id = str(payload.file_id) ?? str(payload.id);
-      if (!id) return { ok: false, summary: "no file id given." };
+      if (!id) return { ok: false, summary: "No file id given." };
       await requestJson(`${API}/files/${encodeURIComponent(id)}`, {
         method: "PATCH",
         headers: bearer(creds),
         body: { trashed: true },
       });
-      return { ok: true, summary: "moved the file to Drive's trash (recoverable there)." };
+      return { ok: true, summary: "Moved the file to Drive's trash (recoverable there)." };
     }
     default:
-      return { ok: false, summary: "unknown Drive action." };
+      return { ok: false, summary: "Unknown Drive action." };
   }
 }
 
 export const googleDriveProvider = makeOAuthProvider({
   key: "google-drive",
   name: "Google Drive",
-  detail: "save and update text files in your Drive — cosigno only sees files it created.",
-  scopeSummary: "drive: app-created files only",
+  detail: "Save and update text files in your Drive — cosigno only sees files it created.",
+  scopeSummary: "Only files cosigno created — never the rest of your Drive",
   homeUrl: "https://drive.google.com",
   tracks: ["files cosigno created", "recent documents"],
   authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",

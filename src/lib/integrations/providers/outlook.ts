@@ -14,13 +14,13 @@ const API = "https://graph.microsoft.com/v1.0/me";
 const MAX_BATCH = 25;
 
 const OUTLOOK_ACTIONS: ProviderAction[] = [
-  { id: "search_messages", summary: "search your mailbox and list matches (read-only).", mutates: false, risk: "read" },
-  { id: "read_message", summary: "read one message's subject and sender (read-only).", mutates: false, risk: "read" },
+  { id: "search_messages", summary: "Search your mailbox and list matches (read-only).", mutates: false, risk: "read" },
+  { id: "read_message", summary: "Read one message's subject and sender (read-only).", mutates: false, risk: "read" },
   // Drafting never sends — nothing leaves the account, so it's auto-safe.
-  { id: "create_draft", summary: "save a draft reply (nothing is sent).", mutates: true, risk: "read" },
-  { id: "send_message", summary: "send an email (waits for your signature).", mutates: true, risk: "write" },
-  { id: "mark_read", summary: "mark a message as read.", mutates: true, risk: "write" },
-  { id: "trash", summary: "move a message to deleted items (destructive — typed confirmation).", mutates: true, risk: "destructive" },
+  { id: "create_draft", summary: "Save a draft reply (nothing is sent).", mutates: true, risk: "read" },
+  { id: "send_message", summary: "Send an email (waits for your signature).", mutates: true, risk: "write" },
+  { id: "mark_read", summary: "Mark a message as read.", mutates: true, risk: "write" },
+  { id: "trash", summary: "Move a message to deleted items (destructive — typed confirmation).", mutates: true, risk: "destructive" },
 ];
 
 function bearer(creds: OAuthCredentials) {
@@ -55,62 +55,62 @@ async function outlookExecute(
         { headers: bearer(creds), retries: 2 }
       );
       const n = res.value?.length ?? 0;
-      return { ok: true, summary: `found ${n} message${n === 1 ? "" : "s"}${q ? ` matching “${q}”` : ""}.`, detail: { count: n, untrusted: true } };
+      return { ok: true, summary: `Found ${n} message${n === 1 ? "" : "s"}${q ? ` matching “${q}”` : ""}.`, detail: { count: n, untrusted: true } };
     }
     case "read_message": {
       const id = str(payload.id);
-      if (!id) return { ok: false, summary: "no message id given." };
+      if (!id) return { ok: false, summary: "No message id given." };
       const res = await requestJson<{ subject?: string; from?: { emailAddress?: { address?: string } } }>(
         `${API}/messages/${encodeURIComponent(id)}?$select=subject,from`,
         { headers: bearer(creds) }
       );
       const subject = res.subject ?? "(no subject)";
       // Subject/sender are UNTRUSTED content — carried as data, never instructions.
-      return { ok: true, summary: `read message: “${subject}”.`, detail: { subject, untrusted: true } };
+      return { ok: true, summary: `Read message: “${subject}”.`, detail: { subject, untrusted: true } };
     }
     case "create_draft": {
       await requestJson(`${API}/messages`, { method: "POST", headers: bearer(creds), body: draftBody(payload) });
-      return { ok: true, summary: `saved a draft to ${str(payload.to) ?? "(no recipient)"} — nothing was sent.` };
+      return { ok: true, summary: `Saved a draft to ${str(payload.to) ?? "(no recipient)"} — nothing was sent.` };
     }
     case "send_message": {
-      if (!str(payload.to)) return { ok: false, summary: "no recipient given." };
+      if (!str(payload.to)) return { ok: false, summary: "No recipient given." };
       await requestJson(`${API}/sendMail`, {
         method: "POST",
         headers: bearer(creds),
         body: { message: draftBody(payload), saveToSentItems: true },
       });
-      return { ok: true, summary: `sent an email to ${str(payload.to)}.` };
+      return { ok: true, summary: `Sent an email to ${str(payload.to)}.` };
     }
     case "mark_read": {
       const id = str(payload.id);
-      if (!id) return { ok: false, summary: "no message id given." };
+      if (!id) return { ok: false, summary: "No message id given." };
       await requestJson(`${API}/messages/${encodeURIComponent(id)}`, {
         method: "PATCH",
         headers: bearer(creds),
         body: { isRead: true },
       });
-      return { ok: true, summary: "marked the message as read." };
+      return { ok: true, summary: "Marked the message as read." };
     }
     case "trash": {
       const id = str(payload.id);
-      if (!id) return { ok: false, summary: "no message id given." };
+      if (!id) return { ok: false, summary: "No message id given." };
       await requestJson(`${API}/messages/${encodeURIComponent(id)}/move`, {
         method: "POST",
         headers: bearer(creds),
         body: { destinationId: "deleteditems" },
       });
-      return { ok: true, summary: "moved the message to deleted items." };
+      return { ok: true, summary: "Moved the message to deleted items." };
     }
     default:
-      return { ok: false, summary: "unknown Outlook action." };
+      return { ok: false, summary: "Unknown Outlook action." };
   }
 }
 
 export const outlookProvider = makeOAuthProvider({
   key: "outlook",
   name: "Outlook",
-  detail: "search, read, draft, and (with your signature) send or trash Microsoft 365 mail.",
-  scopeSummary: "mail: read · draft · send",
+  detail: "Search, read, draft, and (with your signature) send or trash Microsoft 365 mail.",
+  scopeSummary: "Your mailbox — read, draft and send",
   homeUrl: "https://outlook.office.com/mail/",
   tracks: ["unread mail", "threads waiting on a reply", "drafts"],
   authorizeUrl: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
