@@ -54,6 +54,33 @@ SQL editor, and point your scheduler at `/api/missions/tick` and
 
 ---
 
+## "The site looks old" — why new work sometimes isn't showing
+
+Netlify deploys **one branch**: `claude/cosigno-master-build-xhwvgf`. Every
+working session pushes its changes to its **own** branch first, and that work
+reaches the live site only when its pull request is **merged** into the branch
+above. So a stream of new commits on GitHub with an unchanged site usually
+means nothing is broken — the merges just haven't happened. **Check the open
+pull requests first**; merging them is what deploys them.
+
+Three ways to see exactly what's live, without guessing:
+
+1. **`https://cosignolabs.com/api/health`** — shows the short commit id and
+   build time of the running site (`{"ok":true,"commit":"…","built_at":"…"}`).
+   Compare the commit with the top of the branch on GitHub. (An older deploy
+   from before this telemetry shows only `{"ok":true}` — that by itself means
+   the site predates it.)
+2. **GitHub → Actions → "Probe production" → Run workflow** — prints which
+   version of the home page is live and the build info above, from neutral
+   ground.
+3. **"Verify live site"** now **fails on purpose** when the live commit is not
+   the one that was just pushed, and says so in plain words. (It used to go
+   red over one slow cold-start response or a network hiccup on GitHub's side
+   while the site itself was fine — both false alarms are fixed, so a red run
+   is worth reading now.)
+
+---
+
 ## "Every page is showing an error" — fix it in 4 checks
 
 Do these in order. Stop as soon as one fixes it.

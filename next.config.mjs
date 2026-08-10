@@ -64,10 +64,11 @@ const nextConfig = {
     BUILD_AT: new Date().toISOString(),
   },
   experimental: {
-    // Rewrite barrel imports to direct ones at build time (lucide-react is
-    // already in Next's default list; Clerk is added on top). Shrinks the
-    // module graph on every route that touches these packages.
-    optimizePackageImports: ["@clerk/nextjs"],
+    // Rewrite barrel imports to direct ones at build time. lucide-react is
+    // already in Next's default list; framer-motion is our one other
+    // many-entry package that appears on first-load paths. (The old entry
+    // here named Clerk, which left the dependency tree months ago.)
+    optimizePackageImports: ["framer-motion"],
     // Client router cache: reuse a dynamic page's RSC payload for 30s, so
     // rail navigation (home ↔ missions ↔ approvals ↔ activity) is instant
     // on back/forward instead of refetching the shell every time. Freshness

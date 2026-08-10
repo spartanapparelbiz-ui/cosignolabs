@@ -16,6 +16,12 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icon-32.png?v=5", sizes: "32x32", type: "image/png" },
       { src: "/icon-192.png?v=5", sizes: "192x192", type: "image/png" },
       { src: "/icon-512.png?v=5", sizes: "512x512", type: "image/png" },
+      // Maskable entries let Android shape the icon to its launcher (circle,
+      // squircle) instead of letterboxing it in a white tile. The plate
+      // already insets the glyph well inside the 80% safe zone, so the same
+      // art serves both purposes.
+      { src: "/icon-192.png?v=5", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/icon-512.png?v=5", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }
