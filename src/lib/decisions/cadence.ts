@@ -1,4 +1,5 @@
 import type { ActionRecord } from "../types";
+import { duration, minutesBetween } from "../time";
 
 /**
  * Decision cadence — the one prediction cosigno can make honestly, because it
@@ -46,27 +47,9 @@ export interface DecisionCadence {
 /** Statuses that mean the user actually decided (approve or veto). */
 const DECIDED = new Set(["executed", "vetoed", "failed"]);
 
-function minutesBetween(a: string, b: string): number | null {
-  const start = Date.parse(a);
-  const end = Date.parse(b);
-  if (Number.isNaN(start) || Number.isNaN(end) || end < start) return null;
-  return (end - start) / 60_000;
-}
-
-/** "about 20 minutes" / "about 3 hours" / "about 2 days" */
+/** "about 20 minutes" — the approx duration register from lib/time. */
 export function durationLabel(minutes: number): string {
-  if (minutes < 1) return "under a minute";
-  if (minutes < 90) {
-    const m = Math.round(minutes);
-    return `about ${m} minute${m === 1 ? "" : "s"}`;
-  }
-  const hours = minutes / 60;
-  if (hours < 36) {
-    const h = Math.round(hours);
-    return `about ${h} hour${h === 1 ? "" : "s"}`;
-  }
-  const d = Math.round(hours / 24);
-  return `about ${d} day${d === 1 ? "" : "s"}`;
+  return duration(minutes, "approx");
 }
 
 /**

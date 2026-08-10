@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { staggerDelay, STAGGER_MS } from "@/lib/motion";
+import { agoCompact } from "@/lib/time";
 
 /**
  * The one event card. Every timeline in cosigno renders through this.
@@ -47,16 +48,8 @@ const KIND_ICON: Record<ActivityKind, typeof Check> = {
   safety: AlertTriangle,
 };
 
-function when(iso: string): string {
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "";
-  const mins = Math.round((Date.now() - t) / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return new Date(t).toLocaleDateString([], { month: "short", day: "numeric" });
-}
+// Feed register from the one time vocabulary (lib/time).
+const when = agoCompact;
 
 export function EventCard({
   event,

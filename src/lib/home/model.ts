@@ -7,6 +7,7 @@ import type {
 import type { ConnectionView } from "../integrations/types";
 import type { BriefingLine } from "./briefing";
 import { toProgressive } from "../missions/narrate";
+import { untilLong } from "../time";
 
 /**
  * The operator home, as a pure view model.
@@ -278,17 +279,9 @@ export function todayTiles(input: TileInputs): TodayTile[] {
   ];
 }
 
-/** "in 20 minutes" / "in 3 hours" / "tomorrow" — never a raw timestamp. */
+/** "in 20 minutes" / "tomorrow" — the schedule register, from lib/time. */
 export function relativeTime(iso: string, now = new Date()): string {
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "";
-  const mins = Math.round((t - now.getTime()) / 60_000);
-  if (mins <= 0) return "now";
-  if (mins < 60) return `in ${plural(mins, "minute")}`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `in ${plural(hours, "hour")}`;
-  const days = Math.round(hours / 24);
-  return days === 1 ? "tomorrow" : `in ${plural(days, "day")}`;
+  return untilLong(iso, now);
 }
 
 /* ---------------------------------------------------------------- missions */

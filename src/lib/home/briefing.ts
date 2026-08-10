@@ -5,6 +5,7 @@ import type {
   MissionStepRecord,
 } from "../types";
 import type { ConnectionView } from "../integrations/types";
+import { agoLong } from "../time";
 import { RUNNING_STATES, WAITING_STATES, isToday, relativeTime } from "./model";
 
 /**
@@ -59,14 +60,9 @@ function partOfDay(now: Date): string {
   return "good evening";
 }
 
-/** "2 days" / "3 hours" / "20 minutes" — how long something has been sitting. */
+/** "2 days" / "3 hours" — the prose register from the one time vocabulary. */
 export function ageOf(iso: string, now = new Date()): string {
-  const mins = Math.max(0, Math.round((now.getTime() - Date.parse(iso)) / 60_000));
-  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"}`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"}`;
-  const days = Math.round(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"}`;
+  return agoLong(iso, now);
 }
 
 function plural(n: number, one: string, many = `${one}s`): string {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Radio, X } from "lucide-react";
 import { missionStatus, STATUS_TONE, type Status } from "@/lib/status";
+import { agoDetailed } from "@/lib/time";
 
 /**
  * Mission Control answers exactly one question: what is cosigno doing right
@@ -45,14 +46,9 @@ interface Snapshot {
   nodes: Node[];
 }
 
-function startedAgo(iso: string): string {
-  const mins = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins} min ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ${mins % 60}m ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
+// Live-ops register from the one time vocabulary (lib/time): the minutes
+// inside an hour matter when you're watching work in flight.
+const startedAgo = agoDetailed;
 
 export function MissionControl() {
   const [snap, setSnap] = useState<Snapshot | null>(null);

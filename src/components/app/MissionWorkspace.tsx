@@ -34,6 +34,7 @@ import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { MissionReplay } from "@/components/app/mission/MissionReplay";
 import { OperatorGraph } from "@/components/app/mission/OperatorGraph";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { agoDetailed } from "@/lib/time";
 
 /**
  * The mission workspace: the goal, what cosigno has finished, what it is doing
@@ -61,13 +62,9 @@ async function jsonFetch(url: string, init?: RequestInit) {
   return body;
 }
 
-function elapsed(iso: string): string {
-  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (mins < 60) return `${mins} min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ${mins % 60}m`;
-  return `${Math.floor(hrs / 24)}d`;
-}
+// Live-ops register from the one time vocabulary (lib/time). It carries its
+// own "ago", so the call sites read `started {startedAgo(...)}`.
+const startedAgo = agoDetailed;
 
 export function MissionWorkspace({ missionId }: { missionId: string }) {
   const toast = useToast();
@@ -232,7 +229,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           </p>
           <h1 className="mt-1 font-display text-xl font-bold sm:text-2xl">{mission.goal}</h1>
           <p className="mt-1 text-xs font-semibold text-ink-soft">
-            started {elapsed(mission.created_at)} ago
+            started {startedAgo(mission.created_at)}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -420,7 +417,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
                   )}
                   {narration.nowWorking.at && (
                     <p className="mt-0.5 text-[11px] text-ink-soft">
-                      started {elapsed(narration.nowWorking.at)} ago
+                      started {startedAgo(narration.nowWorking.at)}
                     </p>
                   )}
                 </div>

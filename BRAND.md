@@ -422,9 +422,49 @@ decrypts no credential, writes nothing. It opens with the sentence that
 nothing happened, in the same place every time, and marks the exact step where
 the action stops being recoverable.
 
+## The primitive map
+
+The product is built on a small set of named primitives. A new feature should
+be composed from these; needing special-case logic usually means a primitive
+is missing, and the right move is to extend the primitive — a design decision
+— rather than fork it inside a component. Several are guarded by sweep tests,
+so forking one is a failing build, not a review comment.
+
+| primitive | lives in | guarded by |
+| --- | --- | --- |
+| status vocabulary | `lib/status.ts` | `status-vocabulary.test.ts` |
+| time vocabulary (7 registers) | `lib/time.ts` | `one-time-language.test.ts` |
+| authority & risk (blast radius, tiers, rules) | `lib/authz/*`, `lib/tiers.ts`, `lib/rules.ts` | `authority-tiers`, `rules`, `safety-rules-*` |
+| the one activity timeline | `lib/activity/model.ts` → `EventCard` | `activity-model.test.ts` |
+| decision brief (derived, deterministic) | `lib/approvals/brief.ts` | `approval-brief.test.ts` |
+| simulation (runs the boundary, no side effects) | `lib/approvals/simulate.ts` | `simulate-invariants.test.ts` |
+| decision cadence (the one prediction) | `lib/decisions/cadence.ts` | `decision-cadence.test.ts` |
+| plan graph (read from depends_on) | `lib/missions/graph.ts` | `mission-graph.test.ts` |
+| replay (stored timestamps only) | `lib/missions/replay.ts`, `lib/state.ts` | `mission-replay.test.ts` |
+| execution map (lanes + bottleneck) | `lib/workspace/map.ts` | `execution-map.test.ts` |
+| home model & briefing | `lib/home/*` | `home-model`, `home-briefing` |
+| motion (registers, stagger caps, elevation) | `lib/motion.ts` + Tailwind tokens | reduced-motion rules in globals |
+| surface primitives | `components/ui/*` (Surface, StatTile, ProgressBar, EmptyState, SectionHeader, RelativeTime) | — |
+
+Two properties hold across every primitive, and they are the platform:
+**pure core, thin shell** (logic is a total function over records; components
+only lay results out), and **derived, never fabricated** (see "What a surface
+may assert").
+
 ## Voice
 
 Calm, confident, plain. One voice across UI copy, errors, and toasts.
+
+### The time vocabulary
+
+Times are worded once, in `lib/time.ts`, in seven named registers — compact
+("3m ago", feeds), detailed ("3h 12m ago", live ops), long ("3 hours", prose),
+precise ("45s ago", diagnostics), until long/compact ("in 3 hours" / "in 3h",
+schedules), and duration ("3 hours" / "about 3 hours", spans and statistics).
+The registers differ on purpose; what is forbidden is a component wording a
+time itself. `one-time-language.test.ts` sweeps for inline date-delta math and
+hand-built "ago" strings, so an eighth register is a change to the vocabulary,
+never a private helper.
 
 - Lowercase product name, always. Sentence-case or lowercase UI labels.
 - **No exclamation marks. No "oops". No robot-speak.**

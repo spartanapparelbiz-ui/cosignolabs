@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Activity, AlertTriangle, Plug, Search, ShieldCheck } from "lucide-react";
+import { agoPrecise } from "@/lib/time";
 
 /**
  * Live Monitoring — the operations view.
@@ -31,15 +32,9 @@ interface Snapshot {
   alerts: { level: "warn" | "critical"; title: string; detail: string }[];
 }
 
-function ago(ms: number | null): string {
-  if (ms === null) return "never";
-  const s = Math.round(ms / 1000);
-  if (s < 60) return `${s}s ago`;
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  return h < 48 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
-}
+// Diagnostics register from the one time vocabulary (lib/time): the only
+// register with a seconds tier, because this page watches machinery.
+const ago = agoPrecise;
 
 const SERVICE_TONE: Record<string, string> = {
   connected: "bg-signal/15 text-ink",

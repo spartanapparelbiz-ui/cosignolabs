@@ -16,6 +16,7 @@ import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { ConnectionInsight } from "@/components/account/ConnectionInsight";
 import { humanizeActionId, humanizeEndpoint } from "@/lib/integrations/engine/humanize";
 import { ruleAppliesToApp } from "@/lib/rules";
+import { agoCompact } from "@/lib/time";
 
 /**
  * The Connections screen: available third-party apps, the user's connected
@@ -810,15 +811,8 @@ function AppValue({
   );
 }
 
-/** Minutes/hours/days ago, for the last real health check. */
-function checkedAgo(iso: string): string {
-  const mins = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins} min ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
+// Feed register from the one time vocabulary (lib/time).
+const checkedAgo = agoCompact;
 
 /**
  * What cosigno actually did in this app lately — executed actions only (a

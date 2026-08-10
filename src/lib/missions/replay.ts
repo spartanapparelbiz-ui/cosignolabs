@@ -1,4 +1,5 @@
 import type { ActionRecord, MissionRecord, MissionStepRecord } from "../types";
+import { duration } from "../time";
 import { toProgressive } from "./narrate";
 
 /**
@@ -63,17 +64,9 @@ function ms(iso: string | null | undefined): number | null {
   return Number.isNaN(t) ? null : t;
 }
 
-/** "2 days" / "3 hours" / "12 minutes" for a stall label. */
+/** "12 minutes" / "under a minute" — the plain duration register, over ms. */
 export function spanLabel(msSpan: number): string {
-  const mins = Math.round(msSpan / 60_000);
-  // A fast mission is the good case — it must not read as "0 minutes",
-  // which sounds like a recording failure rather than a quick run.
-  if (mins < 1) return "under a minute";
-  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"}`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"}`;
-  const days = Math.round(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"}`;
+  return duration(msSpan / 60_000);
 }
 
 const TERMINAL_TEXT: Partial<Record<MissionRecord["state"], string>> = {

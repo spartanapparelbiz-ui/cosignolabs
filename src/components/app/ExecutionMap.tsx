@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { ExecutionMap as MapData } from "@/lib/workspace/map";
 import { mapHeadline } from "@/lib/workspace/map";
+import { untilCompact } from "@/lib/time";
 
 /**
  * The execution map — the whole workspace in four lanes, with the bottleneck
@@ -67,13 +68,8 @@ function Empty({ children }: { children: React.ReactNode }) {
 }
 
 export function ExecutionMap({ map, now }: { map: MapData; now: Date }) {
-  const relative = (iso: string) => {
-    const mins = Math.round((Date.parse(iso) - now.getTime()) / 60_000);
-    if (mins <= 0) return "due now";
-    if (mins < 60) return `in ${mins}m`;
-    const hours = Math.round(mins / 60);
-    return hours < 24 ? `in ${hours}h` : `in ${Math.round(hours / 24)}d`;
-  };
+  // Compact schedule register from the one time vocabulary (lib/time).
+  const relative = (iso: string) => untilCompact(iso, now);
 
   return (
     <section aria-label="execution map">
