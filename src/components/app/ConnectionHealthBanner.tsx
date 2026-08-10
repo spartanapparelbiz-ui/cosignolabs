@@ -65,7 +65,9 @@ export function ConnectionHealthBanner() {
   const names = broken.map((b) => b.display_name).join(", ");
   const one = broken.length === 1;
   return (
-    <div className="bg-signal/12 text-ink">
+    // A banner that appears without a sound is invisible to a screen reader
+    // until they stumble on it — status role announces the state change.
+    <div className="bg-signal/12 text-ink" role="status">
       <div className="mx-auto flex w-full max-w-none flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-center text-[12px] font-bold">
         <AlertTriangle size={14} className="shrink-0 text-signal" aria-hidden="true" />
         <span>
