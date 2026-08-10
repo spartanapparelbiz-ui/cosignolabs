@@ -71,24 +71,43 @@ function RailLink({
   Icon,
   active,
   badge,
+  muted = false,
 }: {
   href: string;
   label: string;
   Icon: LucideIcon;
   active: boolean;
   badge: number;
+  /**
+   * The deeper tools. They were already grouped below a divider, but every
+   * item rendered at identical weight, so eleven destinations read as one
+   * undifferentiated list and the grouping did no work. Muted items sit back
+   * — smaller, lighter, quieter — until you look for them or hover, which is
+   * what makes the daily five land first.
+   */
+  muted?: boolean;
 }) {
   return (
     <Link
       href={href}
       prefetch
       aria-current={active ? "page" : undefined}
-      className={`relative flex w-[60px] flex-col items-center gap-0.5 rounded-btn px-1 py-2 text-[10px] font-bold lowercase transition-colors ${
-        active ? "bg-ink text-cream" : "text-ink-soft hover:bg-cream-deep hover:text-ink"
+      className={`relative flex w-[60px] flex-col items-center gap-0.5 rounded-btn px-1 py-2 lowercase transition-all ${
+        muted ? "text-[9.5px] font-semibold" : "text-[10px] font-bold"
+      } ${
+        active
+          ? "bg-ink text-cream"
+          : muted
+            ? "text-ink-soft/55 hover:bg-cream-deep hover:text-ink"
+            : "text-ink-soft hover:bg-cream-deep hover:text-ink"
       }`}
     >
       <span className="relative">
-        <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
+        <Icon
+          size={muted ? 15 : 17}
+          strokeWidth={muted ? 1.9 : 2.2}
+          aria-hidden="true"
+        />
         {badge > 0 && <Badge count={badge} />}
       </span>
       {label}
@@ -206,7 +225,7 @@ export function AppRail() {
         />
       ))}
 
-      <span className="my-1 h-px w-7 bg-line" aria-hidden="true" />
+      <span className="my-2.5 h-px w-6 bg-line/70" aria-hidden="true" />
 
       {SECONDARY.map(({ href, label, icon: Icon }) => (
         <RailLink
@@ -216,6 +235,7 @@ export function AppRail() {
           Icon={Icon}
           active={isActive(pathname, href)}
           badge={0}
+          muted
         />
       ))}
 
@@ -226,6 +246,7 @@ export function AppRail() {
           Icon={Sparkles}
           active={false}
           badge={0}
+          muted
         />
       )}
     </aside>
