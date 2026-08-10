@@ -290,6 +290,64 @@ from step states, "completed today" from completion timestamps, "waiting on
 you" from the real proposal queue. Nothing is estimated and then displayed as
 though it were measured.
 
+### The briefing
+
+Home opens on what happened while you were away, not on a greeting. Built by
+`src/lib/home/briefing.ts` — derived, ordered, and capped at five lines.
+
+- **Ordered by what it costs to miss**: a hold, then decisions waiting on you,
+  then a connector that stopped responding, then work in flight, then what
+  finished. A briefing that buries the blocking item under a status update
+  *is* a status update.
+- **Every line names a real cost** and carries its own way out. A briefing
+  that says something is waiting and then makes you go find it has spent your
+  attention without saving you any.
+- **A percentage is only ever counted** from completed steps. It is the most
+  quotable thing on the screen — "the launch is 82% complete" gets repeated to
+  other people — so it is never produced from elapsed time or step position,
+  and never quoted at all for a mission whose steps aren't loaded.
+- **A quiet morning says so.** With nothing to report the briefing yields the
+  positioning line back rather than manufacturing a line to fill the space.
+
+There is no productivity score, no "you saved 42 minutes", no revenue trend.
+cosigno cannot measure those, and a number on this screen is read as a
+measurement.
+
+### The operator graph
+
+A mission's plan, drawn as the dependency graph it already is
+(`src/lib/missions/graph.ts`, rendered by `OperatorGraph`). A numbered list
+renders "these three run at once" and "these three run in order" identically,
+and those are different plans with different durations.
+
+- Edges are **read** from each step's `depends_on` — never inferred.
+- A step sits at the rank of its **longest** dependency chain, so horizontal
+  position is honestly "how early this can start". The shortest path would
+  show work starting before it possibly could.
+- An edge is solid only when its upstream step actually finished, so you can
+  see where work has reached.
+- The **critical path** is highlighted: the chain that sets the duration, where
+  a delay costs you and delays elsewhere are free.
+- Layout is deterministic — same plan, same picture — which is what lets it
+  animate between states instead of reshuffling on every completion.
+
+SVG note that cost a real bug: on an SVG element a CSS `transform` **replaces**
+the `transform` attribute rather than composing with it. Position and motion
+therefore live on separate nested `<g>` elements, and anything animated inside
+the diagram sets `transform-box: fill-box`.
+
+### The command palette
+
+⌘K composes and navigates. **It never authorises.** Typing a goal offers to
+delegate it — which means filling the ask box, where the normal
+understanding-and-confirm flow runs. A decision found by search is opened, not
+signed: a "quick approve" shortcut would let someone sign an outward-facing
+action from a text field without reading it, which is the exact failure this
+product exists to prevent. The footer says so on every render.
+
+Results are grouped in a fixed order (waiting on you → missions → files → apps
+→ pages) so the palette's shape is predictable enough to use without looking.
+
 ### The decision brief
 
 Every approval carries six derived facts, in a fixed order, so the fifth

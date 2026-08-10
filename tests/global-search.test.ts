@@ -166,7 +166,9 @@ describe("the command bar behaves", () => {
 
   it("says plainly when nothing matched", () => {
     // An empty box makes the reader guess whether it is broken or empty.
-    expect(BAR_SRC).toMatch(/Nothing matches/);
+    // Case-insensitive: the product's voice is lowercase, and pinning the
+    // capital would fail the copy for being written in the house style.
+    expect(BAR_SRC).toMatch(/nothing matches/i);
   });
 
   it("debounces rather than firing per keystroke", () => {

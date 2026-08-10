@@ -268,10 +268,13 @@ for (const vp of VIEWPORTS) {
     test("home: the operator workspace is useful before you type", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
 
-      // The positioning line, and the ask box your hands land on first.
-      await expect(
-        page.getByRole("heading", { name: /your approval-first AI operator/i })
-      ).toBeVisible();
+      // Home opens on a briefing when there is anything to report, and falls
+      // back to the positioning line when there genuinely isn't. Both are
+      // correct; what must always be true is that the h1 says something real
+      // rather than a spinner or an empty heading.
+      const h1 = page.getByRole("heading", { level: 1 }).first();
+      await expect(h1).toBeVisible();
+      await expect(h1).not.toHaveText(/^\s*$/);
       await expect(page.getByPlaceholder(/ask cosigno anything/i)).toBeVisible();
       await expect(page.getByRole("button", { name: /delegate/i }).first()).toBeVisible();
 
@@ -295,6 +298,35 @@ for (const vp of VIEWPORTS) {
 
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `dashboard-${vp.name}.png`), fullPage: true });
+    });
+
+    test("⌘K composes and navigates — it never authorises", async ({ page }) => {
+      await page.goto("/app", { waitUntil: "networkidle" });
+      await page.keyboard.press("ControlOrMeta+k");
+
+      const box = page.getByRole("combobox", { name: /search or delegate/i });
+      await expect(box).toBeVisible();
+
+      // The footer states the guarantee on every render.
+      await expect(page.getByText(/nothing here runs without your approval/i)).toBeVisible();
+
+      // A goal offers to delegate — which means filling the ask box, not
+      // starting anything.
+      await box.fill("draft the investor update");
+      const delegate = page.getByRole("option", { name: /Delegate: draft the investor update/i });
+      await expect(delegate).toBeVisible();
+      await expect(page.getByText(/confirm before anything runs/i)).toBeVisible();
+
+      // There is no approve/execute affordance anywhere in the palette.
+      await expect(page.getByRole("option", { name: /^approve/i })).toHaveCount(0);
+
+      // Choosing it lands on home with the ask box filled — and nothing sent.
+      await delegate.click();
+      await expect(page.getByPlaceholder(/ask cosigno anything/i)).toHaveValue(
+        /draft the investor update/
+      );
+      await noHorizontalScroll(page);
+      await page.screenshot({ path: join(OUT, `palette-${vp.name}.png`) });
     });
 
     test("home: an empty workspace still offers a real next move", async ({ page }) => {

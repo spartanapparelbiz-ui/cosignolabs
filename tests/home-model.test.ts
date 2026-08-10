@@ -123,7 +123,7 @@ function automation(over: Partial<AutomationRecord> = {}): AutomationRecord {
     name: "morning inbox",
     command: "review my unread email",
     interval_hours: 24,
-    mode: "propose",
+    mode: "prepare",
     enabled: true,
     last_run_at: null,
     next_run_at: "2026-08-10T16:00:00Z",

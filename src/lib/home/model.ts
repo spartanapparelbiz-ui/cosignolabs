@@ -5,6 +5,7 @@ import type {
   MissionStepRecord,
 } from "../types";
 import type { ConnectionView } from "../integrations/types";
+import type { BriefingLine } from "./briefing";
 import { toProgressive } from "../missions/narrate";
 
 /**
@@ -570,6 +571,11 @@ export function feedLines(
 
 export interface HomeModel {
   status: OperatorStatus;
+  /**
+   * The morning briefing's facts. The greeting half is composed on the client
+   * from the reader's own clock — see loadHome.
+   */
+  briefing: { headline: string; lines: BriefingLine[] };
   tiles: TodayTile[];
   missions: HomeMission[];
   apps: HomeApp[];

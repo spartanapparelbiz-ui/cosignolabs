@@ -13,6 +13,7 @@ import {
   WAITING_STATES,
   type HomeModel,
 } from "./model";
+import { buildBriefing } from "./briefing";
 
 /**
  * Everything home needs, in one wave.
@@ -59,8 +60,23 @@ export async function loadHome(userId: string): Promise<HomeModel> {
 
   const views = connections.map(toView);
 
+  // The briefing's FACTS are built here (counts, ages, percentages — all
+  // timezone-independent deltas). Its greeting is not: the part of day has to
+  // come from the reader's own clock, or a server in one region wishes someone
+  // in another "good evening" over breakfast. OperatorHome composes that half.
+  const briefing = buildBriefing({
+    name: "",
+    missions,
+    steps,
+    approvals,
+    connections: views,
+    automations,
+    held,
+  });
+
   return {
     status: operatorStatus(missions, approvals.length, held),
+    briefing: { headline: briefing.headline, lines: briefing.lines },
     tiles: todayTiles({
       missions,
       approvals: approvals.length,

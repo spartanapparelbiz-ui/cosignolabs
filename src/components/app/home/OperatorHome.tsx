@@ -8,6 +8,7 @@ import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonTiles } from "@/components/Skeleton";
+import { Briefing } from "./Briefing";
 import { OperatorStatusBar } from "./OperatorStatusBar";
 import { TodayOverview } from "./TodayOverview";
 import { SuggestionCards } from "./SuggestionCards";
@@ -91,17 +92,16 @@ export function OperatorHome({ initial }: { initial?: HomeModel }) {
       <header className="flex flex-col items-center gap-4 text-center">
         {home && <OperatorStatusBar status={home.status} />}
 
-        <div className="animate-blur-in">
-          <p className="text-xs font-bold lowercase tracking-wide text-ink-soft">
-            {greeting(displayName)}
-          </p>
-          <h1 className="mt-1.5 text-balance font-display text-display-lg font-bold">
-            your approval-first AI operator.
-          </h1>
-          <p className="mx-auto mt-3 max-w-md text-pretty text-sm font-semibold leading-relaxed text-ink-soft">
-            connect apps. delegate work. approve actions. stay in control.
-          </p>
-        </div>
+        {/* The briefing replaces the positioning line the moment there is
+            anything to report. A tagline is what you show someone who has
+            never seen the product; someone opening it for the fortieth time
+            wants to know what happened overnight. With nothing to report it
+            falls back to the tagline itself — see Briefing. */}
+        <Briefing
+          greeting={greeting(displayName)}
+          headline={home?.briefing.headline ?? ""}
+          lines={home?.briefing.lines ?? []}
+        />
       </header>
 
       <div className="mt-6">

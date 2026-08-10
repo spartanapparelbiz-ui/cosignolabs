@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { HomeApp } from "@/lib/home/model";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
+import { RelativeTime, checkedFormat } from "@/components/ui/RelativeTime";
 import { staggerDelay, STAGGER_MS } from "@/lib/motion";
 
 /**
@@ -18,19 +19,6 @@ import { staggerDelay, STAGGER_MS } from "@/lib/motion";
  * No green dots. Health here is the brand's own vocabulary: a working app is
  * quiet, and one needing attention wears the orange it earned.
  */
-
-function lastChecked(iso: string | null): string {
-  if (!iso) return "not checked yet";
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "not checked yet";
-  const mins = Math.round((Date.now() - t) / 60_000);
-  if (mins < 1) return "checked just now";
-  if (mins < 60) return `checked ${mins}m ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `checked ${hours}h ago`;
-  const days = Math.round(hours / 24);
-  return `checked ${days}d ago`;
-}
 
 export function ConnectedApps({ apps }: { apps: HomeApp[] }) {
   return (
@@ -76,9 +64,12 @@ export function ConnectedApps({ apps }: { apps: HomeApp[] }) {
                   {app.healthLabel}
                 </span>
               </span>
-              <span className="mt-0.5 block truncate text-[10px] font-semibold text-ink-soft/80">
-                {lastChecked(app.lastCheckedAt)}
-              </span>
+              {/* Relative, but never computed during SSR — see RelativeTime. */}
+              <RelativeTime
+                iso={app.lastCheckedAt}
+                format={checkedFormat}
+                className="mt-0.5 block truncate text-[10px] font-semibold text-ink-soft/80"
+              />
             </span>
           </Link>
         );

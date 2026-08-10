@@ -31,6 +31,8 @@ import { heroResult } from "@/lib/missions/today";
 import { missionStatus, STATUS_TONE } from "@/lib/status";
 import { INCREASE_STEPS, type BudgetState } from "@/lib/missions/budget";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
+import { OperatorGraph } from "@/components/app/mission/OperatorGraph";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 
 /**
  * The mission workspace: the goal, what cosigno has finished, what it is doing
@@ -429,6 +431,18 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
             )}
           </div>
 
+          {/* THE PLAN, as the graph it actually is.
+              A numbered list renders "these three run at once" and "these
+              three run in order" identically, and those are different plans
+              with different durations. The graph is where "why is this taking
+              so long" has a visible answer — and it is read from the steps'
+              own depends_on, never inferred. */}
+          {steps.length > 1 && (
+            <div className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
+              <OperatorGraph steps={steps} />
+            </div>
+          )}
+
           {/* THE FEED — accomplishments, oldest first, grouped by who did them. */}
           <div className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
             <ol className="flex flex-col">
@@ -515,12 +529,22 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
           <section className="rounded-card border border-line/70 bg-surface p-4 shadow-soft">
             <h2 className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">Progress</h2>
             <p className="mt-1.5 text-sm font-bold">{narration.status}</p>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-pill bg-cream-deep">
-              <div
-                className="h-full rounded-pill bg-signal transition-[width]"
-                style={{ width: `${steps.length ? Math.round((done / steps.length) * 100) : 0}%` }}
-              />
-            </div>
+            {steps.length > 0 && (
+              <>
+                <div className="mt-2.5">
+                  {/* Counted from step states — the shared bar, so mission
+                      progress here and on home can't drift into two different
+                      readings of the same work. */}
+                  <ProgressBar
+                    value={done / steps.length}
+                    label={`${done} of ${steps.length} steps completed`}
+                  />
+                </div>
+                <p className="mt-1.5 font-mono text-[10px] font-bold tabular-nums text-ink-soft">
+                  {done}/{steps.length} steps · {Math.round((done / steps.length) * 100)}%
+                </p>
+              </>
+            )}
           </section>
 
           {sources.length > 0 && (

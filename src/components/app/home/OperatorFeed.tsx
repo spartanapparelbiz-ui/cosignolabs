@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Check, PenLine } from "lucide-react";
 import type { FeedLine } from "@/lib/home/model";
+import { RelativeTime } from "@/components/ui/RelativeTime";
 import { staggerDelay, STAGGER_MS } from "@/lib/motion";
 
 /**
@@ -16,17 +17,6 @@ import { staggerDelay, STAGGER_MS } from "@/lib/motion";
  * Lines slide in from the left, the direction the timeline flows, so an
  * arriving event reads as a stream rather than a repaint.
  */
-
-function when(iso: string): string {
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "";
-  const mins = Math.round((Date.now() - t) / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return new Date(t).toLocaleDateString([], { month: "short", day: "numeric" });
-}
 
 function Marker({ kind }: { kind: FeedLine["kind"] }) {
   if (kind === "waiting") {
@@ -86,9 +76,11 @@ export function OperatorFeed({ lines }: { lines: FeedLine[] }) {
                 </span>
               )}
             </span>
-            <span className="shrink-0 pt-0.5 font-mono text-[10px] tabular-nums text-ink-soft/80">
-              {when(l.at)}
-            </span>
+            {/* Relative, but never computed during SSR — see RelativeTime. */}
+            <RelativeTime
+              iso={l.at}
+              className="shrink-0 pt-0.5 font-mono text-[10px] tabular-nums text-ink-soft/80"
+            />
           </>
         );
 
