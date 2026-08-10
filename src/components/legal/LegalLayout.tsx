@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LivingLockup, LogoHome } from "@/components/brand/LivingLogo";
+import { CONTACT_EMAIL } from "@/lib/brand";
 
 /**
  * Shared shell for the legal pages (/terms, /privacy). Branded header +
@@ -75,8 +76,8 @@ function LegalFooter() {
           <Link href="/terms" className="hover:text-ink">
             terms
           </Link>
-          <a href="mailto:hello@aethric.llc" className="hover:text-ink">
-            hello@aethric.llc
+          <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-ink">
+            {CONTACT_EMAIL}
           </a>
         </div>
       </div>

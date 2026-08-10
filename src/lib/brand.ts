@@ -20,3 +20,19 @@ export const LOGO_INK = "#171512"; // check + wordmark, light
 export const LOGO_CREAM = "#F7F0E5"; // check + wordmark, dark
 export const LOGO_WHITE = "#FFFFFF"; // wordmark, OLED
 export const LOGO_BLACK = "#090909"; // OLED background
+
+/* ------------------------------------------------------------------ contact */
+
+/**
+ * How to reach cosigno, in one place.
+ *
+ * These were hardcoded in eight files — the footer, the marketing shell, the
+ * app chrome, the legal layout, terms, privacy, pricing and the README — which
+ * is exactly how a stale address survives a rebrand. Anything that shows a way
+ * to contact us reads it from here.
+ */
+export const CONTACT_EMAIL = "cosignolabs@gmail.com";
+export const INSTAGRAM_HANDLE = "cosignolabs";
+export const INSTAGRAM_URL = `https://instagram.com/${INSTAGRAM_HANDLE}`;
+/** The operating entity, as it must appear in the legal pages. */
+export const LEGAL_ENTITY = "aethric llc";

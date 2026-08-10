@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AnchorHeading, LegalLayout } from "@/components/legal/LegalLayout";
+import { CONTACT_EMAIL } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "terms of service — cosigno",
@@ -260,7 +261,7 @@ export default function TermsPage() {
         <p>
           Aethric LLC
           <br />
-          Email: <a href="mailto:hello@aethric.llc">hello@aethric.llc</a>
+          Email: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
           <br />
           Florida, United States
         </p>

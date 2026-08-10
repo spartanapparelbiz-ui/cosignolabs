@@ -8,6 +8,7 @@ import { EmergencyStop } from "@/components/app/EmergencyStop";
 import { HoldBanner } from "@/components/app/HoldBanner";
 import { CommandBar } from "@/components/app/CommandBar";
 import { AccountChip } from "@/components/app/AccountChip";
+import { CONTACT_EMAIL } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -74,8 +75,8 @@ function Chrome({
               <Link href="/terms" className="hover:text-ink">
                 terms
               </Link>
-              <a href="mailto:hello@aethric.llc" className="hover:text-ink">
-                hello@aethric.llc
+              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-ink">
+                {CONTACT_EMAIL}
               </a>
             </div>
           </footer>

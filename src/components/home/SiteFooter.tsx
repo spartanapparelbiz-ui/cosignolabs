@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CONTACT_EMAIL, INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/brand";
 import { LivingLockup } from "@/components/brand/LivingLogo";
 
 /**
@@ -79,16 +80,16 @@ export function SiteFooter() {
               </p>
               <ul className="mt-3 space-y-2 text-[12px] font-bold lowercase">
                 <li>
-                  <a href="mailto:hello@aethric.llc" className="text-ink-soft hover:text-ink">
-                    hello@aethric.llc
+                  <a
+                    href={`mailto:${CONTACT_EMAIL}`}
+                    className="text-ink-soft hover:text-ink"
+                  >
+                    {CONTACT_EMAIL}
                   </a>
                 </li>
                 <li>
-                  <a
-                    href="https://instagram.com/aethric.hq"
-                    className="text-ink-soft hover:text-ink"
-                  >
-                    @aethric.hq
+                  <a href={INSTAGRAM_URL} className="text-ink-soft hover:text-ink">
+                    @{INSTAGRAM_HANDLE}
                   </a>
                 </li>
                 <li>

@@ -131,4 +131,4 @@ supabase/migrations/        schema + RLS + transition functions
 
 ---
 
-cosignolabs.com · [@aethric.hq](https://instagram.com/aethric.hq)
+cosignolabs.com — [@cosignolabs](https://instagram.com/cosignolabs) — cosignolabs@gmail.com

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LivingLockup, LogoHome } from "@/components/brand/LivingLogo";
 import { PricingCards } from "@/components/pricing/PricingCards";
 import { FaqAccordion } from "@/components/pricing/FaqAccordion";
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "pricing — cosigno",
@@ -91,7 +92,7 @@ export default function PricingPage() {
           <div className="flex items-center gap-4 font-semibold">
             <Link href="/pricing" className="hover:text-ink">pricing</Link>
             <a href="https://cosignolabs.com" className="hover:text-ink">cosignolabs.com</a>
-            <a href="https://instagram.com/aethric.hq" className="hover:text-ink">@aethric.hq</a>
+            <a href={INSTAGRAM_URL} className="hover:text-ink">@{INSTAGRAM_HANDLE}</a>
           </div>
         </div>
       </footer>

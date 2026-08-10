@@ -6,6 +6,7 @@ import { Check } from "lucide-react";
 import { PLAN_ORDER, PLANS, type Interval, type PlanId } from "@/lib/plans";
 import { useCountUp } from "@/lib/useCountUp";
 import { track } from "@/lib/analytics";
+import { CONTACT_EMAIL } from "@/lib/brand";
 
 /**
  * Pricing cards + monthly/annual toggle + an interactive actions slider.
@@ -221,7 +222,7 @@ export function PricingCards() {
             ))}
           </ul>
           <a
-            href="mailto:spartanapparelbiz@gmail.com?subject=cosigno%20enterprise"
+            href={`mailto:${CONTACT_EMAIL}?subject=cosigno%20enterprise`}
             className="mt-6 flex min-h-[44px] items-center justify-center rounded-btn bg-ink px-5 py-3 text-sm font-extrabold lowercase text-cream transition-transform duration-fast hover:-translate-y-px active:scale-95"
           >
             talk to us

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LivingLockup, LogoHome } from "@/components/brand/LivingLogo";
 import { PricingLink } from "@/components/landing/Track";
+import { CONTACT_EMAIL, INSTAGRAM_HANDLE, INSTAGRAM_URL } from "@/lib/brand";
 
 /**
  * Shared shell for the public marketing pages (/product, /security,
@@ -71,8 +72,8 @@ export function MarketingShell({
             <Link href="/pricing" className="hover:text-ink">pricing</Link>
             <Link href="/privacy" className="hover:text-ink">privacy</Link>
             <Link href="/terms" className="hover:text-ink">terms</Link>
-            <a href="mailto:hello@aethric.llc" className="hover:text-ink">hello@aethric.llc</a>
-            <a href="https://instagram.com/aethric.hq" className="hover:text-ink">@aethric.hq</a>
+            <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-ink">{CONTACT_EMAIL}</a>
+            <a href={INSTAGRAM_URL} className="hover:text-ink">@{INSTAGRAM_HANDLE}</a>
           </div>
         </div>
       </footer>

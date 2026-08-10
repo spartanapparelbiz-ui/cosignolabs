@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AnchorHeading, LegalLayout } from "@/components/legal/LegalLayout";
+import { CONTACT_EMAIL } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "privacy policy — cosigno",
@@ -36,7 +37,7 @@ export default function PrivacyPage() {
         <p>
           Aethric LLC, based in Florida, United States, is the controller of the
           personal information described in this Policy. You can reach us at{" "}
-          <a href="mailto:hello@aethric.llc">hello@aethric.llc</a>.
+          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
         </p>
       </section>
 
@@ -194,7 +195,7 @@ export default function PrivacyPage() {
           restrict certain processing. You can review and export your audit trail
           in the app, and you can delete your account at any time from your
           account settings. To make a request or ask a question, contact{" "}
-          <a href="mailto:hello@aethric.llc">hello@aethric.llc</a>. We will
+          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. We will
           respond as required by applicable law.
         </p>
       </section>
@@ -236,7 +237,7 @@ export default function PrivacyPage() {
         <p>
           Aethric LLC
           <br />
-          Email: <a href="mailto:hello@aethric.llc">hello@aethric.llc</a>
+          Email: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
           <br />
           Florida, United States
         </p>
