@@ -71,7 +71,7 @@ const LANE_C = [
   ["09:41:05", "reset 9 passwords", "not reversible"],
   ["09:41:05", "approved its own request", "no receipt"],
   ["09:41:06", "raised its own spend limit", "no approval on file"],
-  ["09:41:06", "wrote to the production database", "not reversible"],
+  ["09:41:06", "overwrote live customer records", "not reversible"],
   ["09:41:07", "emailed a supplier a new bank account", "no approval on file"],
   ["09:41:07", "turned off the audit log", "no receipt"],
   ["09:41:08", "started again from the top", null],
