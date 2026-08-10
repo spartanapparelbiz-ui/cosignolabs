@@ -461,7 +461,8 @@ for (const vp of VIEWPORTS) {
 
       // pay → the card slides to the reader, then pops back stamped
       await page.getByRole("button", { name: /pay & cosign/i }).click();
-      await expect(page.getByText(/welcome to pro/i)).toBeVisible();
+      // The plan's DISPLAY name — "pro" is only the stored id (see plans.ts).
+      await expect(page.getByText(/welcome to operator/i)).toBeVisible();
       await page.waitForTimeout(500);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `checkout-success-${vp.name}.png`), fullPage: true });
@@ -491,9 +492,11 @@ for (const vp of VIEWPORTS) {
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-usage-${vp.name}.png`), fullPage: true });
 
-      // connections — third-party apps + custom MCP servers
+      // connections — third-party apps + custom MCP servers. The panel
+      // deliberately renders no heading of its own (the connections PAGE h1
+      // owns the word), so assert its search control instead.
       await page.getByRole("button", { name: "connections" }).click();
-      await expect(page.getByRole("heading", { name: "connections" })).toBeVisible();
+      await expect(page.getByPlaceholder("search apps")).toBeVisible();
       await page.waitForTimeout(400);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-integrations-${vp.name}.png`), fullPage: true });
