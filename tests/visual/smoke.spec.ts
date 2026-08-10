@@ -148,7 +148,9 @@ for (const vp of VIEWPORTS) {
       const probe = page.locator("#probe");
       await expect(probe).toBeVisible();
       await probe.fill("5000");
-      await expect(page.getByText(/max covers 5,000 actions/i)).toBeVisible();
+      // The covering-tier line names the plan's REAL ceiling, not the number
+      // under the thumb (see PricingCards.tsx).
+      await expect(page.getByText(/covers that — [\d,]+ AI operations/i)).toBeVisible();
       // open a FAQ item (deep-linkable accordion)
       await page.getByRole("button", { name: /what counts as an action/i }).click();
       // toggle to annual to exercise the animated price count
@@ -265,16 +267,18 @@ for (const vp of VIEWPORTS) {
       await cta.screenshot({ path: join(OUT, `close-${vp.name}.png`) });
     });
 
-    test("home dashboard: the four-question layout", async ({ page }) => {
+    test("home dashboard: the ask-first layout", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "What should Cosigno handle?" })).toBeVisible();
-      // The ask box + the four honest section headings (stable regardless of
-      // how much data exists in the shared demo store).
-      await expect(page.getByPlaceholder(/Ask cosigno to handle something/)).toBeVisible();
-      await expect(page.getByRole("button", { name: /Start Mission/ })).toBeVisible();
-      await expect(page.getByText("In progress").first()).toBeVisible();
-      await expect(page.getByText("Needs your approval").first()).toBeVisible();
-      await expect(page.getByText("Connected apps").first()).toBeVisible();
+      // Only data-independent truths: the greeting, the one question the page
+      // exists to ask, and the composer. Sections (working / approval /
+      // completed) come and go with the shared demo store's state — earlier
+      // tests seed missions, so their presence is not stable across passes.
+      await expect(page.getByText(/good (morning|afternoon|evening)/i)).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: /what would you like cosigno to do/i })
+      ).toBeVisible();
+      await expect(page.getByPlaceholder(/Ask cosigno anything/)).toBeVisible();
+      await expect(page.getByRole("button", { name: /Delegate/ })).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `dashboard-${vp.name}.png`), fullPage: true });
     });
@@ -308,15 +312,17 @@ for (const vp of VIEWPORTS) {
       await expect(page.getByText("What it found")).toBeVisible();
       await expect(page.getByText("Changes made")).toBeVisible();
       await expect(page.getByText(/No external changes have been made/)).toBeVisible();
-      // Controls exist (pause/stop/refresh) — no dead buttons.
+      // Controls exist (pause/stop/refresh) — no dead buttons. `exact` keeps
+      // the mission Stop distinct from the global emergency stop in the header.
       await expect(page.getByRole("button", { name: /Pause|Resume/ })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `browser-view-${vp.name}.png`), fullPage: true });
 
       // Let the client poll drive the sandbox mission to completion, then the
-      // result screen appears with the recommendation + report.
-      await expect(page.getByText("Mission complete")).toBeVisible({ timeout: 90_000 });
+      // result screen appears with the recommendation + report. (`first` —
+      // the status line and the result heading both say it.)
+      await expect(page.getByText("Mission complete").first()).toBeVisible({ timeout: 90_000 });
       await expect(page.getByText("Recommended option")).toBeVisible();
       await expect(page.getByRole("link", { name: /Open comparison/ })).toBeVisible();
       await expect(page.getByText(/Prices and availability may change/)).toBeVisible();
@@ -327,13 +333,16 @@ for (const vp of VIEWPORTS) {
     test("app shell + templates + isolated mission workspace", async ({ page }) => {
       // Templates: only REAL installable jobs, each with the auto/signature split.
       await page.goto("/app/templates", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "templates" })).toBeVisible();
-      await expect(page.getByText("build tomorrow's meeting brief")).toBeVisible();
-      await expect(page.getByText("compare three laptops under $1,000")).toBeVisible();
-      await expect(page.getByText("clean up my inbox")).toBeVisible();
-      await expect(page.getByText("prepare my follow-ups")).toBeVisible();
-      await expect(page.getByText("build my morning brief")).toBeVisible();
-      await expect(page.getByText("needs your signature").first()).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Templates" })).toBeVisible();
+      // A spread across the catalog's categories — every one a REAL runnable
+      // job (see src/lib/templates/catalog.ts).
+      await expect(page.getByText("Build tomorrow's meeting brief")).toBeVisible();
+      await expect(page.getByText("Find the best laptop under $1,000")).toBeVisible();
+      await expect(page.getByText("Clean up my inbox")).toBeVisible();
+      await expect(page.getByText("Prepare my follow-ups")).toBeVisible();
+      await expect(page.getByText("Build my morning brief")).toBeVisible();
+      // The approval covenant is stated on the page itself.
+      await expect(page.getByText(/waits for your approval/i).first()).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `templates-${vp.name}.png`), fullPage: true });
 
@@ -344,11 +353,11 @@ for (const vp of VIEWPORTS) {
       expect(res.ok()).toBeTruthy();
       const { mission } = await res.json();
       await page.goto(`/app/missions/${mission.id}`, { waitUntil: "networkidle" });
-      await expect(page.getByText("Timeline")).toBeVisible();
-      await expect(page.getByText("Plan", { exact: true })).toBeVisible();
-      await expect(page.getByText(/steps complete/)).toBeVisible();
+      // The goal is the page's headline; the controls are alive. `exact`
+      // keeps the mission Stop distinct from the global emergency stop.
+      await expect(page.getByRole("heading", { name: /laptop/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /Pause|Resume/ })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Stop" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `mission-workspace-${vp.name}.png`), fullPage: true });
     });
@@ -378,17 +387,12 @@ for (const vp of VIEWPORTS) {
       await expect(box).toBeVisible();
       await box.fill("reprice these products for the summer sale");
       await page.keyboard.press("Enter");
-      await expect(page.getByText(/awaiting your sign-off/).first()).toBeVisible();
-      // The clarity system: mission state chip + the "what is cosigno doing?"
-      // guide with its honest no-changes line and the visible plan.
-      await expect(page.getByText("waiting for your approval").first()).toBeVisible();
-      const guide = page.getByRole("button", { name: /what is cosigno doing/i });
-      await expect(guide).toBeVisible();
-      await guide.click();
-      await expect(page.getByText(/waiting for your (typed )?approval\.?/).first()).toBeVisible();
+      // The proposed card arrives holding: the state is named plainly and the
+      // veto is as reachable as the approve — the covenant, on screen.
+      await expect(page.getByText(/waiting for your approval/i).first()).toBeVisible();
+      await expect(page.getByRole("button", { name: /veto/i }).first()).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `workspace-${vp.name}.png`), fullPage: true });
-      await guide.click();
     });
 
     test("living logo — one breather, and static under reduced motion", async ({
@@ -457,7 +461,7 @@ for (const vp of VIEWPORTS) {
 
       // pay → the card slides to the reader, then pops back stamped
       await page.getByRole("button", { name: /pay & cosign/i }).click();
-      await expect(page.getByText(/cosigned\. welcome to pro/i)).toBeVisible();
+      await expect(page.getByText(/welcome to pro/i)).toBeVisible();
       await page.waitForTimeout(500);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `checkout-success-${vp.name}.png`), fullPage: true });
@@ -473,16 +477,16 @@ for (const vp of VIEWPORTS) {
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-profile-${vp.name}.png`), fullPage: true });
 
-      // permissions — the three-column tier board
-      await page.getByRole("button", { name: "permissions" }).click();
-      await expect(page.getByRole("heading", { name: "permissions" })).toBeVisible();
+      // trust center — the tier board (renamed from "permissions")
+      await page.getByRole("button", { name: "trust center" }).click();
+      await expect(page.getByRole("heading", { name: "trust center" })).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-permissions-${vp.name}.png`), fullPage: true });
 
       // plan & usage — the usage ring + sparkline + plan card
       await page.getByRole("button", { name: "plan & usage" }).click();
-      await expect(page.getByText(/actions used this cycle/)).toBeVisible();
+      await expect(page.getByText(/AI operations used this cycle/)).toBeVisible();
       await page.waitForTimeout(250);
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `account-usage-${vp.name}.png`), fullPage: true });
