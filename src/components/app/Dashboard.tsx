@@ -249,7 +249,9 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           "nothing is waiting" panel is a row of furniture that says nothing. */}
       {approvals.length > 0 && (
         <Section title="Needs your approval" tone="attention">
-          <DecisionInbox initial={approvals} compact emptyFallback={null} />
+          {/* Three full cards at most — home stays one calm page; the whole
+              queue lives on approvals, one link away. */}
+          <DecisionInbox initial={approvals} compact emptyFallback={null} limit={3} />
         </Section>
       )}
       {approvals.length === 0 && waiting.length > 0 && (

@@ -71,6 +71,9 @@ describe("the embedded inbox stays honest about the shared queue", () => {
     // waiting that belong to something else entirely.
     expect(src).toMatch(/\{visible\.length\} decision/);
     expect(src).toMatch(/if \(visible\.length === 0\)/);
-    expect(src).toMatch(/\{visible\.map\(/);
+    // The rendered cards are a slice OF the scoped list — a limit changes
+    // how many show, never which queue they come from.
+    expect(src).toMatch(/const shown = limit \? visible\.slice\(0, limit\) : visible/);
+    expect(src).toMatch(/\{shown\.map\(/);
   });
 });

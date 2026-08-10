@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useId, useState } from "react";
 import type { ActionRecord, SignatureRecord } from "@/lib/types";
 import { ActionCard, type ApproveOpts } from "@/components/ActionCard";
@@ -32,6 +33,7 @@ export function DecisionInbox({
   only,
   compact = false,
   emptyFallback,
+  limit,
 }: {
   initial?: ActionRecord[];
   /**
@@ -44,6 +46,12 @@ export function DecisionInbox({
   compact?: boolean;
   /** What to render instead of the full-page empty state when embedded. */
   emptyFallback?: React.ReactNode;
+  /**
+   * Show at most this many cards; the rest become one "view all" line to the
+   * approvals page. For embedded copies on busy surfaces — a queue of full
+   * cards is right on the approvals page and wrong as a section of home.
+   */
+  limit?: number;
 }) {
   // When the server prefetched the queue it renders on first paint; the
   // mount load() below then revalidates in the background (SWR).
@@ -230,6 +238,9 @@ export function DecisionInbox({
     );
   }
 
+  const shown = limit ? visible.slice(0, limit) : visible;
+  const held = visible.length - shown.length;
+
   return (
     <div className="flex flex-col gap-3">
       {!compact && (
@@ -238,7 +249,7 @@ export function DecisionInbox({
           has been taken without you.
         </p>
       )}
-      {visible.map((a, i) => (
+      {shown.map((a, i) => (
         <ActionCard
           key={a.id}
           action={a}
@@ -251,6 +262,17 @@ export function DecisionInbox({
           onEdit={onEdit}
         />
       ))}
+      {held > 0 && (
+        <Link
+          href="/app/approvals"
+          className="group flex items-center justify-center gap-1.5 rounded-btn px-3 py-2.5 text-sm font-bold lowercase text-ink-soft transition-colors hover:bg-cream-deep/50 hover:text-ink"
+        >
+          {held} more waiting — open approvals
+          <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">
+            →
+          </span>
+        </Link>
+      )}
     </div>
   );
 }
