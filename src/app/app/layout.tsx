@@ -8,6 +8,7 @@ import { ConnectionHealthBanner } from "@/components/app/ConnectionHealthBanner"
 import { EmergencyStop } from "@/components/app/EmergencyStop";
 import { HoldBanner } from "@/components/app/HoldBanner";
 import { CommandBar } from "@/components/app/CommandBar";
+import { CommandButton } from "@/components/app/CommandButton";
 import { AccountChip } from "@/components/app/AccountChip";
 import { CONTACT_EMAIL } from "@/lib/brand";
 
@@ -63,6 +64,7 @@ function Chrome({
                 <LogoHome href="/app" label="cosigno workspace" size={26} textClass="text-xl" />
               </div>
               <div className="ml-auto flex items-center gap-3">
+                <CommandButton />
                 <EmergencyStop />
                 {userSlot}
               </div>

@@ -51,7 +51,9 @@ export function CommandBar() {
   const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Open on ⌘K / Ctrl+K from anywhere in the workspace.
+  // Open on ⌘K / Ctrl+K from anywhere in the workspace — or from the header
+  // search button, which dispatches the event (a keyboard-only door excludes
+  // every mouse and every phone).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -60,8 +62,13 @@ export function CommandBar() {
       }
       if (e.key === "Escape") setOpen(false);
     }
+    const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("cosigno:command-open", onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("cosigno:command-open", onOpen);
+    };
   }, []);
 
   useEffect(() => {
