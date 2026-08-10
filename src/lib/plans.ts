@@ -104,10 +104,10 @@ export const PLANS: Record<PlanId, Plan> = {
       "10,000 AI operations / month",
       "everything in operator",
       "a stronger model when the work demands it",
-      "webhook and API access",
+      "webhook / API access",
       "priority support",
     ],
-    examples: ["run heavy volume", "premium AI routing", "webhook & API access", "priority support"],
+    examples: ["run heavy volume", "premium AI routing", "webhook / API access", "priority support"],
   },
 };
 
