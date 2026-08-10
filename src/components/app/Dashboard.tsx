@@ -123,29 +123,46 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
     setSideLoaded(true);
   }, []);
 
-  const load = useCallback(async () => {
-    try {
-      // One wave: the missions call piggybacks active-mission steps
-      // (include=steps), so there's no second round of per-mission fetches.
-      const [m, a] = await Promise.all([
-        jsonFetch("/api/missions?include=steps").catch(() => ({ missions: [], steps: {} })),
-        jsonFetch("/api/actions?status=proposed&limit=20").catch(() => ({ actions: [] })),
-        loadSide(),
-      ]);
-      const ms: MissionRecord[] = m.missions ?? [];
-      setMissions(ms);
-      setSteps((m.steps ?? {}) as Record<string, MissionStepRecord[]>);
-      setApprovals((a.actions ?? []).filter((x: ActionRecord) => x.status === "proposed"));
-    } catch {
-      setMissions([]);
-    }
-  }, [loadSide]);
+  const load = useCallback(
+    async (withSide: boolean = true) => {
+      try {
+        // One wave: the missions call piggybacks active-mission steps
+        // (include=steps), so there's no second round of per-mission fetches.
+        const [m, a] = await Promise.all([
+          jsonFetch("/api/missions?include=steps").catch(() => ({ missions: [], steps: {} })),
+          jsonFetch("/api/actions?status=proposed&limit=20").catch(() => ({ actions: [] })),
+          ...(withSide === false ? [] : [loadSide()]),
+        ]);
+        const ms: MissionRecord[] = m.missions ?? [];
+        setMissions(ms);
+        setSteps((m.steps ?? {}) as Record<string, MissionStepRecord[]>);
+        setApprovals((a.actions ?? []).filter((x: ActionRecord) => x.status === "proposed"));
+      } catch {
+        setMissions([]);
+      }
+    },
+    [loadSide]
+  );
 
   useEffect(() => {
-    // SWR: when the server prefetched missions/steps/approvals, they're
-    // already on screen — this load() is a background revalidate (also
-    // covers a router-cache restore). Without prefetch it's the first load.
+    // SWR + stay-fresh: when the server prefetched missions/steps/approvals
+    // they're already on screen, so this first load() is a background
+    // revalidate. After that the page keeps itself true — "working right
+    // now" must not describe twenty minutes ago. The cadence poll skips the
+    // side extras (automations/connections/usage barely move); returning to
+    // the tab refreshes everything.
     load();
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "hidden") load(false);
+    }, 20000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [load]);
 
   const active = (missions ?? []).filter((m) => ACTIVE_STATES.has(m.state)).slice(0, 4);

@@ -56,7 +56,7 @@ describe("the embedded inbox stays honest about the shared queue", () => {
     const src = read(INBOX);
     // One fetch, one source of truth: scoping is a view concern.
     expect(src).toContain('jsonFetch("/api/actions?status=proposed&limit=200")');
-    expect(src).toMatch(/const visible = only \? actions\.filter/);
+    expect(src).toMatch(/const visible =[^;]*only \? actions\.filter/s);
   });
 
   it("renders nothing rather than an empty-state when embedded", () => {

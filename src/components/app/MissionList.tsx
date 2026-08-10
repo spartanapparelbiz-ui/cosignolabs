@@ -60,6 +60,13 @@ export function MissionList() {
 
   useEffect(() => {
     load();
+    // Catch up when the tab comes back — a mission that finished while the
+    // person was elsewhere should already read "complete" when they return.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, [load]);
 
   const missions = useMemo<MissionRow[] | null>(() => {
