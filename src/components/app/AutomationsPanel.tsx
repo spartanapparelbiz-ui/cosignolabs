@@ -299,7 +299,7 @@ export function AutomationsPanel() {
                     value={m.value}
                     checked={mode === m.value}
                     onChange={() => setMode(m.value)}
-                    className="mt-0.5 accent-[#FB4C20]"
+                    className="mt-0.5 accent-signal"
                   />
                   <span>
                     <span className="text-xs font-extrabold lowercase">{m.label}</span>

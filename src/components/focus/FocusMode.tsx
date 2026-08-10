@@ -592,7 +592,7 @@ export function FocusMode() {
                       else next.delete(a.id);
                       setSelected(next);
                     }}
-                    className="mt-1 accent-[#FB4C20]"
+                    className="mt-1 accent-signal"
                     aria-label={`include: ${a.summary}`}
                   />
                   <div className="min-w-0 flex-1">

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MotionValue } from "framer-motion";
 import { CosignoMark, LOGO_C_PATH, LOGO_CHECK_PATH } from "@/components/brand/Logo";
+import { LOGO_INK, SIGNAL } from "@/lib/brand";
 
 /**
  * The cosigno mark, in three dimensions.
@@ -117,8 +118,8 @@ function canRender3D(): boolean {
 function readBrandColors(el: HTMLElement): { c: string; check: string } {
   const style = getComputedStyle(el);
   return {
-    c: style.getPropertyValue("--logo-c").trim() || "#FB4C20",
-    check: style.getPropertyValue("--logo-check").trim() || "#171512",
+    c: style.getPropertyValue("--logo-c").trim() || SIGNAL,
+    check: style.getPropertyValue("--logo-check").trim() || LOGO_INK,
   };
 }
 

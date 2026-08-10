@@ -55,6 +55,8 @@ const config: Config = {
         // A hairline ring in the theme's own line colour — the alternative
         // to a border on surfaces that must not shift by 1px on hover.
         hairline: "0 0 0 1px rgb(var(--c-line) / 0.7)",
+        // A keycap's bottom ridge — the one shadow <kbd> elements wear.
+        key: "0 1px 0 1px rgba(20,20,20,0.12)",
         // The one sanctioned glow: an approval surface asking for a look.
         // Orange, low alpha, no spread creep.
         "signal-glow": "0 0 0 1px rgb(var(--c-signal) / 0.35), 0 8px 28px rgb(var(--c-signal) / 0.16)",

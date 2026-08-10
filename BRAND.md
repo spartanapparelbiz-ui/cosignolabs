@@ -451,6 +451,27 @@ Two properties hold across every primitive, and they are the platform:
 only lay results out), and **derived, never fabricated** (see "What a surface
 may assert").
 
+### The architecture defends itself
+
+Beyond the per-primitive sweeps, two suites encode the decisions that must
+outlive whoever made them:
+
+- **`architecture.test.ts`** — dependencies point one way (nothing under
+  `lib/` imports UI); the pure-primitive manifest (17 modules) can reach no
+  store, network, environment, or framework; the deterministic record-readers
+  (replay, graph) never consult a clock at all; the sample business dataset is
+  quarantined to `lib/autopilot` and the home surface can't import it; every
+  pending approval card renders its brief; the palette's action grammar is
+  pinned to compose-and-navigate.
+- **`design-invariants.test.ts`** — no arbitrary values on the tokenized
+  dimensions (`duration-[`, `ease-[`, `animate-[`, `shadow-[`, `accent-[#`),
+  and no raw hex in components outside a reasoned allowlist (third-party brand
+  marks, the logo's own identity table, physical prop materials). Allowlist
+  entries are themselves tested, so a stale exception is a failing build.
+
+The pattern for a new rule: make the decision once, write the sweep, and let
+CI have the argument next time.
+
 ## Voice
 
 Calm, confident, plain. One voice across UI copy, errors, and toasts.

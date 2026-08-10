@@ -122,7 +122,7 @@ export function AccountCenter({ initialTab = "profile" }: { initialTab?: TabId }
 /** A small 3D keycap — a physical-looking key for shortcut hints. */
 function Keycap({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-[5px] bg-cream px-1.5 font-mono text-[11px] font-bold text-ink ring-1 ring-inset ring-line shadow-[0_1px_0_1px_rgba(20,20,20,0.12)]">
+    <kbd className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-md bg-cream px-1.5 font-mono text-[11px] font-bold text-ink ring-1 ring-inset ring-line shadow-key">
       {children}
     </kbd>
   );

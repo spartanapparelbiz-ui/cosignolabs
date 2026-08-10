@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { INK } from "@/lib/brand";
 
 /**
  * The signature surface — a pointer-drawn ink canvas that works with mouse,
@@ -29,8 +30,6 @@ interface Point {
   y: number;
   t: number;
 }
-
-const INK = "#141414";
 
 export const SignaturePad = forwardRef<
   SignaturePadHandle,
