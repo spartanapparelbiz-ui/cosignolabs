@@ -1,0 +1,48 @@
+name: Probe production
+
+# Read-only diagnostic eyes on the LIVE site, run from a GitHub-hosted
+# runner (development sessions for this repo cannot reach the public
+# internet directly). Answers one question fast: WHICH build is production
+# actually serving? Prints the landing-page era (old vs. rebuilt home), the
+# build commit /api/health reports once freshness telemetry is deployed,
+# and the serving/cache headers. Uses no secrets and changes nothing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Base URL to probe"
+        required: false
+        default: "https://cosignolabs.com"
+  push:
+    branches: [claude/cosigno-features-deployment-diagnosis-skrnc8]
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe the live site
+        run: |
+          URL="${{ github.event.inputs.url || 'https://cosignolabs.com' }}"
+          echo "probing $URL"
+          echo
+          echo "== response headers =="
+          curl -sSI --max-time 30 "$URL" | sed -n '1,25p' || true
+          echo
+          echo "== /api/health =="
+          curl -sS --max-time 30 "$URL/api/health" || true
+          echo
+          echo
+          echo "== landing era =="
+          HTML="$(curl -sS --max-time 30 "$URL" || true)"
+          if printf '%s' "$HTML" | grep -qi "act without you"; then
+            echo "VERDICT: the REBUILT home page (commits a98d888..e1c5b70, merged 2026-08-10) is LIVE"
+          elif printf '%s' "$HTML" | grep -qi "keep the final say"; then
+            echo "VERDICT: the OLD home page (pre-rebuild, adbb9ec or earlier) is LIVE — production has NOT picked up the merge"
+          else
+            echo "VERDICT: neither known headline found — inspect the HTML excerpt below"
+            printf '%s' "$HTML" | head -c 600
+          fi
+          echo
+          echo "== build asset prefix (changes per deploy) =="
+          printf '%s' "$HTML" | grep -o '/_next/static/[^/"]*/' | sort -u | head -5 || true

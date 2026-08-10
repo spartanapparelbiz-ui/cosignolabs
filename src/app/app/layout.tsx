@@ -4,9 +4,11 @@ import { isGuestId } from "@/lib/publicMode";
 import { AppRail, AppBottomNav } from "@/components/AppRail";
 import { ToastProvider } from "@/components/Toast";
 import { LogoHome } from "@/components/brand/LivingLogo";
+import { ConnectionHealthBanner } from "@/components/app/ConnectionHealthBanner";
 import { EmergencyStop } from "@/components/app/EmergencyStop";
 import { HoldBanner } from "@/components/app/HoldBanner";
 import { CommandBar } from "@/components/app/CommandBar";
+import { CommandButton } from "@/components/app/CommandButton";
 import { AccountChip } from "@/components/app/AccountChip";
 import { CONTACT_EMAIL } from "@/lib/brand";
 
@@ -50,6 +52,9 @@ function Chrome({
               control the operator has to go looking for. Renders nothing when
               there is no hold. */}
           <HoldBanner />
+          {/* A connected app that lost its sign-in degrades missions quietly —
+              say so wherever the person is. Renders nothing while healthy. */}
+          <ConnectionHealthBanner />
           {/* ⌘K from anywhere in the workspace. Renders nothing until opened. */}
           <CommandBar />
           <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
@@ -58,7 +63,10 @@ function Chrome({
               <div className="lg:hidden">
                 <LogoHome href="/app" label="cosigno workspace" size={26} textClass="text-xl" />
               </div>
-              <div className="ml-auto flex items-center gap-3">
+              {/* gap-2 below sm: three controls plus the logo brush 390px —
+                  the wider gap returns the moment there's room for it. */}
+              <div className="ml-auto flex items-center gap-2 sm:gap-3">
+                <CommandButton />
                 <EmergencyStop />
                 {userSlot}
               </div>

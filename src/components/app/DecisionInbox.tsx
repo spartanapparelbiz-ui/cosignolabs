@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useId, useState } from "react";
 import type { ActionRecord, SignatureRecord } from "@/lib/types";
 import { ActionCard, type ApproveOpts } from "@/components/ActionCard";
 import { SkeletonCard } from "@/components/Skeleton";
 import { EmptyIllustration } from "@/components/EmptyIllustration";
 import { useToast } from "@/components/Toast";
 import { useDisplayName } from "@/lib/theme";
+import { getRealtimeClient } from "@/lib/client/realtime";
+import { useFaviconStatus } from "@/lib/useFaviconStatus";
 
 /**
  * The Decision Inbox — ONLY items that need human judgment: every proposed
@@ -30,6 +33,7 @@ export function DecisionInbox({
   only,
   compact = false,
   emptyFallback,
+  limit,
 }: {
   initial?: ActionRecord[];
   /**
@@ -42,6 +46,12 @@ export function DecisionInbox({
   compact?: boolean;
   /** What to render instead of the full-page empty state when embedded. */
   emptyFallback?: React.ReactNode;
+  /**
+   * Show at most this many cards; the rest become one "view all" line to the
+   * approvals page. For embedded copies on busy surfaces — a queue of full
+   * cards is right on the approvals page and wrong as a section of home.
+   */
+  limit?: number;
 }) {
   // When the server prefetched the queue it renders on first paint; the
   // mount load() below then revalidates in the background (SWR).
@@ -68,6 +78,49 @@ export function DecisionInbox({
       .then((d) => setSaved(d.signature ?? null))
       .catch(() => null);
   }, [load]);
+
+  // The queue keeps itself current. A page whose job is "wait here for
+  // decisions" must never need a manual reload: realtime pushes when
+  // Supabase is configured, a gentle visible-tab poll otherwise, and either
+  // way returning to the tab refreshes immediately.
+  const topic = useId();
+  useEffect(() => {
+    let channel: { unsubscribe: () => void } | null = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let cancelled = false;
+    getRealtimeClient().then((client) => {
+      if (cancelled) return;
+      if (client) {
+        channel = client
+          // Unique per mounted inbox — same-name channels collide when the
+          // dashboard's embedded copy and the approvals page coexist in the
+          // back/forward cache.
+          .channel(`actions-inbox-${topic}`)
+          .on(
+            "postgres_changes",
+            // Row-level security scopes the stream to this user's actions;
+            // any change to the queue is a reason to re-read it.
+            { event: "*", schema: "public", table: "actions" },
+            () => load()
+          )
+          .subscribe();
+      } else {
+        interval = setInterval(() => {
+          if (document.visibilityState !== "hidden") load();
+        }, 15000);
+      }
+    });
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      channel?.unsubscribe();
+      if (interval) clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [load, topic]);
 
   const onApprove = useCallback(
     async (id: string, opts: ApproveOpts): Promise<string | null> => {
@@ -138,6 +191,16 @@ export function DecisionInbox({
     [load]
   );
 
+  // Scoping happens at RENDER, not in the fetch: the queue is still the one
+  // shared list, so approving from an embedded copy and from the approvals
+  // page cannot drift apart. An embedded inbox simply shows less of it.
+  const visible = actions === null ? null : only ? actions.filter((a) => only.includes(a.id)) : actions;
+
+  // Tab badge while decisions wait — standing inbox only. Embedded copies
+  // leave the tab signal to the surface that owns the page (the workspace
+  // runs its own).
+  useFaviconStatus(!compact && (visible?.length ?? 0) > 0);
+
   if (error) {
     return (
       <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
@@ -152,7 +215,7 @@ export function DecisionInbox({
     );
   }
 
-  if (actions === null) {
+  if (visible === null) {
     return (
       <div className="flex flex-col gap-3" aria-busy="true" aria-label="loading decisions">
         <SkeletonCard />
@@ -160,11 +223,6 @@ export function DecisionInbox({
       </div>
     );
   }
-
-  // Scoping happens at RENDER, not in the fetch: the queue is still the one
-  // shared list, so approving from an embedded copy and from the approvals
-  // page cannot drift apart. An embedded inbox simply shows less of it.
-  const visible = only ? actions.filter((a) => only.includes(a.id)) : actions;
 
   if (visible.length === 0) {
     if (emptyFallback !== undefined) return <>{emptyFallback}</>;
@@ -180,6 +238,9 @@ export function DecisionInbox({
     );
   }
 
+  const shown = limit ? visible.slice(0, limit) : visible;
+  const held = visible.length - shown.length;
+
   return (
     <div className="flex flex-col gap-3">
       {!compact && (
@@ -188,7 +249,7 @@ export function DecisionInbox({
           has been taken without you.
         </p>
       )}
-      {visible.map((a, i) => (
+      {shown.map((a, i) => (
         <ActionCard
           key={a.id}
           action={a}
@@ -201,6 +262,17 @@ export function DecisionInbox({
           onEdit={onEdit}
         />
       ))}
+      {held > 0 && (
+        <Link
+          href="/app/approvals"
+          className="group flex items-center justify-center gap-1.5 rounded-btn px-3 py-2.5 text-sm font-bold lowercase text-ink-soft transition-colors hover:bg-cream-deep/50 hover:text-ink"
+        >
+          {held} more waiting — open approvals
+          <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">
+            →
+          </span>
+        </Link>
+      )}
     </div>
   );
 }

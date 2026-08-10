@@ -41,6 +41,32 @@ const ENTRY = ALL.filter((f) => {
   );
 });
 
+// Netlify functions live OUTSIDE src/ but import from it (the scheduler
+// pulls in src/lib/cron/dispatch.ts). Without these roots the sweep once
+// reported dispatch.ts as dead — one trusting delete away from silently
+// stopping every background mission. Seed the walk with whatever they
+// import from src/.
+const FN_DIR = join(ROOT, "netlify", "functions");
+if (existsSync(FN_DIR)) {
+  for (const name of readdirSync(FN_DIR)) {
+    if (!/\.(mts|ts|mjs|js)$/.test(name)) continue;
+    const text = readFileSync(join(FN_DIR, name), "utf8");
+    for (const m of text.matchAll(/from\s+["']([^"']+)["']/g)) {
+      // Bare "../../src/…" specifiers, with or without an extension.
+      const spec = m[1].replace(/\.(ts|tsx)$/, "");
+      const base = resolve(FN_DIR, spec);
+      const rel = relative(SRC, base);
+      if (rel.startsWith("..")) continue;
+      for (const cand of [base, base + ".ts", base + ".tsx"]) {
+        if (existsSync(cand) && statSync(cand).isFile()) {
+          ENTRY.push(cand);
+          break;
+        }
+      }
+    }
+  }
+}
+
 const EXTS = [".ts", ".tsx", "/index.ts", "/index.tsx"];
 
 /** Resolve an import specifier to a file under src/, or null if it's external. */

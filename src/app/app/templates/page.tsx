@@ -11,10 +11,10 @@ export const metadata = { title: "templates" };
  */
 export default function TemplatesPage() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-10 lg:px-10">
-      <h1 className="font-display text-3xl font-extrabold sm:text-4xl">Templates</h1>
-      <p className="mt-2 max-w-2xl text-base text-ink-soft">
-        Ready-made work. One click starts a real mission — read-only work runs on its
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-8 lg:px-10">
+      <h1 className="font-display text-2xl font-bold lowercase">templates</h1>
+      <p className="mt-1 max-w-2xl text-sm font-semibold text-ink-soft">
+        ready-made work. one click starts a real mission — read-only work runs on its
         own, and anything that changes your apps waits for your approval.
       </p>
       <div className="mt-8 flex-1">

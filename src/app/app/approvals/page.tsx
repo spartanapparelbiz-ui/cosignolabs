@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { getUserId } from "@/lib/auth";
 import { servingAllowed } from "@/lib/env";
@@ -36,6 +37,16 @@ export default async function ApprovalsPage() {
       <div className="mt-6 flex-1">
         <DecisionInbox initial={initial} />
       </div>
+      <p className="mt-8 text-center text-xs font-semibold text-ink-soft">
+        every decision you make here is kept —{" "}
+        <Link
+          href="/app/activity"
+          className="underline underline-offset-2 hover:text-ink"
+        >
+          activity
+        </Link>{" "}
+        holds the permanent record of what ran, what you vetoed, and why.
+      </p>
     </div>
   );
 }

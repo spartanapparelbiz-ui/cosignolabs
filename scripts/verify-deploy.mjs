@@ -29,13 +29,37 @@ function record(name, pass, detail, fix) {
 }
 const SKIP = Symbol("skip");
 
+/**
+ * fetch that rides out transient runner-network hiccups. GitHub-hosted
+ * runners intermittently throw `TypeError: fetch failed` (DNS/socket
+ * churn) on requests that succeed a second later — those retries must not
+ * fail a deploy verification whose subject is the SITE, not the runner.
+ */
+async function rFetch(url, init, tries = 3) {
+  let lastErr;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await fetch(url, { signal: AbortSignal.timeout(15000), ...init });
+    } catch (err) {
+      lastErr = err;
+      if (i < tries - 1) await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 async function timedFetch(url, init) {
   const start = Date.now();
-  const res = await fetch(url, init);
+  const res = await rFetch(url, init);
   return { res, ms: Date.now() - start };
 }
 
 async function main() {
+  // Warm the serverless function first and time the SECOND request. The
+  // speed budget is about what visitors feel steady-state; a one-off cold
+  // start after a fresh deploy is real but is not the page being slow.
+  await rFetch(BASE + "/").catch(() => {});
+
   // 1. landing
   try {
     const { res, ms } = await timedFetch(BASE + "/");
@@ -71,7 +95,7 @@ async function main() {
     for (const s of scripts) {
       if (leak) break;
       try {
-        const js = await (await fetch(s.startsWith("http") ? s : BASE + s)).text();
+        const js = await (await rFetch(s.startsWith("http") ? s : BASE + s)).text();
         if (VENDOR.test(js)) leak = s;
       } catch {
         /* ignore a chunk we couldn't fetch */
@@ -91,16 +115,32 @@ async function main() {
   await simpleStatus("GET /pricing → 200", "/pricing", (s) => s === 200,
     "pricing is a public marketing page — if it 500s, the deploy is broken or predates the fail-closed fix.");
 
-  // 3. health
+  // 3. health — also the freshness source (build commit stamped at build time)
+  let health = null;
   try {
     const { res } = await timedFetch(BASE + "/api/health");
-    let json = null;
-    try { json = await res.json(); } catch { /* not json */ }
-    record("GET /api/health → 200 JSON", res.status === 200 && json !== null,
+    try { health = await res.json(); } catch { /* not json */ }
+    record("GET /api/health → 200 JSON", res.status === 200 && health !== null,
       `status ${res.status}`,
       "the health route needs no keys. A failure means functions aren't running — check @netlify/plugin-nextjs.");
   } catch (err) {
     record("GET /api/health → 200 JSON", false, String(err), "functions aren't reachable — check the Netlify Next runtime plugin.");
+  }
+
+  // 3b. freshness — the LIVE build is the commit we just pushed. This is the
+  // check that catches a deploy pipeline that silently stopped publishing:
+  // every other check here passes on a healthy but months-old deploy.
+  const expect = (process.env.EXPECT_COMMIT || "").slice(0, 7);
+  if (!expect) {
+    record("live build matches the pushed commit", SKIP, "no EXPECT_COMMIT provided", "");
+  } else if (!health?.commit) {
+    record("live build matches the pushed commit", false,
+      `live site reports no build commit; expected ${expect}`,
+      "the live deploy predates freshness telemetry — production is serving an old build. In Netlify → Deploys: confirm the production branch, that auto-publishing is ON, and that the latest production build succeeded.");
+  } else {
+    record("live build matches the pushed commit", health.commit === expect,
+      `live ${health.commit} (built ${health.built_at || "unknown"}), expected ${expect}`,
+      "Netlify published a different commit than the one just pushed — open Netlify → Deploys and check whether the latest build failed, was cancelled, or auto-publishing is locked to an older deploy.");
   }
 
   // 4. preview mock command
@@ -138,7 +178,7 @@ async function main() {
   // 8. HTTPS cert valid (only meaningful for https on a real host)
   if (BASE.startsWith("https://")) {
     try {
-      await fetch(BASE + "/api/health"); // throws on cert error
+      await rFetch(BASE + "/api/health"); // throws on cert error
       record("HTTPS certificate valid for the domain", true, "TLS handshake ok",
         "");
     } catch (err) {
@@ -156,7 +196,7 @@ async function main() {
   if (BASE.startsWith("https://") && isApex) {
     try {
       const wwwUrl = `https://www.${host}/`;
-      const res = await fetch(wwwUrl, { redirect: "manual" });
+      const res = await rFetch(wwwUrl, { redirect: "manual" });
       const loc = res.headers.get("location") || "";
       const redirects = res.status >= 300 && res.status < 400 && new URL(loc, wwwUrl).host === host;
       record("www → apex redirect", redirects, `status ${res.status} → ${loc || "(none)"}`,

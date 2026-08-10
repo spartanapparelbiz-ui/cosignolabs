@@ -407,7 +407,13 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               </div>
             ) : (
               <p className="mt-2 text-sm font-bold">
-                {narration.finished ? "Everything finished." : "Nothing running right now."}
+                {/* A live mission between steps isn't idle — saying "nothing
+                    running" under a Working chip reads as a stall. */}
+                {narration.finished
+                  ? "Everything finished."
+                  : mission && MISSION_ACTIVE.has(mission.state)
+                    ? "Lining up the next step."
+                    : "Nothing running right now."}
               </p>
             )}
 

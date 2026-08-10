@@ -53,11 +53,22 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Build provenance, stamped into the bundle at build time. COMMIT_REF and
+  // BRANCH are set by Netlify's build environment, GITHUB_SHA by CI; both are
+  // empty in local dev. /api/health serves these so verify:deploy can prove
+  // the LIVE site runs the commit that was just pushed — a deploy pipeline
+  // that silently stops publishing looks exactly like a healthy site without
+  // this.
+  env: {
+    BUILD_COMMIT: (process.env.COMMIT_REF || process.env.GITHUB_SHA || "").slice(0, 7),
+    BUILD_AT: new Date().toISOString(),
+  },
   experimental: {
-    // Rewrite barrel imports to direct ones at build time (lucide-react is
-    // already in Next's default list; Clerk is added on top). Shrinks the
-    // module graph on every route that touches these packages.
-    optimizePackageImports: ["@clerk/nextjs"],
+    // Rewrite barrel imports to direct ones at build time. lucide-react is
+    // already in Next's default list; framer-motion is our one other
+    // many-entry package that appears on first-load paths. (The old entry
+    // here named Clerk, which left the dependency tree months ago.)
+    optimizePackageImports: ["framer-motion"],
     // Client router cache: reuse a dynamic page's RSC payload for 30s, so
     // rail navigation (home ↔ missions ↔ approvals ↔ activity) is instant
     // on back/forward instead of refetching the shell every time. Freshness
