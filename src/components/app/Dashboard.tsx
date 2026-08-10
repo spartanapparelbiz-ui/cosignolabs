@@ -33,16 +33,12 @@ function greeting(name: string): string {
 }
 
 /**
- * Starting points, phrased as things a person would actually say. Shown only
- * when nothing is running — once there is real work on the page, suggestions
- * are noise competing with it.
+ * Starting points live in ONE place: the chips directly under the ask box
+ * (SourceComposer). There used to be a second "Try asking" card grid here
+ * saying three of the same four things in a heavier visual language — two
+ * ways to do one thing, and the largest block of clutter on the page. The
+ * chips win because they sit against the input they fill.
  */
-const PROMPTS = [
-  "Prepare tomorrow's meeting",
-  "Review my unread email",
-  "Research the best option",
-  "Follow up on unanswered threads",
-] as const;
 
 async function jsonFetch(url: string, init?: RequestInit) {
   const res = await fetch(url, {
@@ -157,17 +153,29 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
 
   const digest = todayDigest(missions ?? [], steps);
 
-  /** Put a suggestion into the ask box rather than starting it silently. */
-  function askFor(text: string) {
-    window.dispatchEvent(new CustomEvent("cosigno:compose", { detail: { text } }));
-  }
-
   const working = digest.lines.filter((l) => l.kind === "doing");
   const waiting = digest.lines.filter((l) => l.kind === "waiting");
   const finished = digest.lines.filter((l) => l.kind === "done" || l.kind === "failed");
 
+  /**
+   * A clear desk. With nothing running the page used to sit jammed against
+   * the top with two thirds of the screen empty below it, which reads as
+   * content that failed to load rather than a workspace at rest. Centring the
+   * ask makes the same emptiness look deliberate.
+   *
+   * Gated on `missions !== null` so it settles once, on data — the server
+   * prefetches the overview, so in the real product this is already true at
+   * first paint and nothing moves.
+   */
+  const quiet =
+    missions !== null && working.length === 0 && waiting.length === 0 && finished.length === 0;
+
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-10 sm:pt-16">
+    <div
+      className={`mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pb-16 ${
+        quiet ? "justify-center pb-24 pt-8" : "pt-10 sm:pt-16"
+      }`}
+    >
       {/* ------------------------------ the ask ------------------------------ */}
       {/* The page opens on the thing it is for. Everything else is a
           consequence of what you type here, so it comes after. */}
@@ -194,31 +202,6 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
           }
         />
       </div>
-
-      {/* Prompt cards, not chips — something you actually want to click. */}
-      {working.length === 0 && waiting.length === 0 && (
-        <section className="mt-6">
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
-            Try asking
-          </p>
-          <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
-            {PROMPTS.map((p) => (
-              <button
-                key={p}
-                onClick={() => askFor(p)}
-                className="group rounded-card border border-line bg-surface px-4 py-3 text-left text-sm font-semibold shadow-soft transition-all hover:-translate-y-0.5 hover:border-signal hover:shadow-depth"
-              >
-                {p}
-                <ArrowRight
-                  size={13}
-                  className="ml-1.5 inline text-ink-soft transition-transform group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* --------------------------- working now --------------------------- */}
       {working.length > 0 && (
@@ -270,13 +253,10 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
         </Section>
       )}
 
-      {/* Nothing running, nothing waiting, nothing finished today. Say what
-          the product is for rather than reporting an absence. */}
-      {working.length === 0 && waiting.length === 0 && finished.length === 0 && missions !== null && (
-        <p className="mt-10 text-center text-sm font-semibold text-ink-soft">
-          cosigno is ready.
-        </p>
-      )}
+      {/* A clear desk needs no caption. There used to be a "cosigno is ready."
+          line orphaned in the dead space below — a sentence that reported an
+          absence and gave nobody anything to do. The composer above already
+          says what the page is for. */}
     </div>
   );
 }
