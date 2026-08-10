@@ -84,6 +84,16 @@ export function OperatorHome({ initial }: { initial?: HomeModel }) {
   const feed = home?.feed ?? [];
   const approvals = home?.approvalsCount ?? 0;
 
+  /**
+   * The workspace assembles itself: sections rise in top-to-bottom, each a
+   * beat after the last, so opening the page reads as the operator laying
+   * out your desk rather than a document popping into existence. Fixed slot
+   * delays (not index-based): a section that happens to be absent leaves an
+   * imperceptible gap instead of reshuffling everyone after it. The whole
+   * sequence is over in 400ms, and reduced-motion zeroes the delays.
+   */
+  const slot = (n: number) => ({ animationDelay: `${n * 70}ms` });
+
   return (
     <div className="mx-auto w-full max-w-5xl px-4 pb-20 pt-8 sm:pt-12">
       {/* ------------------------------- the ask ------------------------------- */}
@@ -104,7 +114,7 @@ export function OperatorHome({ initial }: { initial?: HomeModel }) {
         />
       </header>
 
-      <div className="mt-6">
+      <div className="mt-6 animate-rise-in" style={slot(1)}>
         {/* Home shows the starting points as cards below, so the composer's
             own example chips would be the same four prompts twice. */}
         <SourceComposer onStarted={load} showExamples={false} />
@@ -113,7 +123,7 @@ export function OperatorHome({ initial }: { initial?: HomeModel }) {
       {/* Suggestions are for a workspace with room for them. Once real work is
           on the page, a row of ideas is noise competing with it. */}
       {home && missions.length === 0 && approvals === 0 && (
-        <section className="mt-8">
+        <section className="mt-8 animate-rise-in" style={slot(2)}>
           <SectionHeader title="start here" />
           <div className="mt-3">
             <SuggestionCards suggestions={home.suggestions} />
@@ -122,7 +132,7 @@ export function OperatorHome({ initial }: { initial?: HomeModel }) {
       )}
 
       {/* ------------------------------- today ------------------------------- */}
-      <section className="mt-10">
+      <section className="mt-10 animate-rise-in" style={slot(3)}>
         <SectionHeader
           title="today"
           href="/app/activity"
@@ -136,7 +146,7 @@ export function OperatorHome({ initial }: { initial?: HomeModel }) {
 
       {/* --------------------------- work in flight --------------------------- */}
       {missions.length > 0 && (
-        <section className="mt-10">
+        <section className="mt-10 animate-rise-in" style={slot(4)}>
           <SectionHeader
             title="in flight"
             tone="live"
@@ -153,7 +163,7 @@ export function OperatorHome({ initial }: { initial?: HomeModel }) {
 
       {/* ------------------------- waiting on your call ------------------------ */}
       {approvals > 0 && (
-        <section className="mt-10">
+        <section className="mt-10 animate-rise-in" style={slot(5)}>
           <SectionHeader
             title="waiting on you"
             tone="attention"
@@ -166,8 +176,11 @@ export function OperatorHome({ initial }: { initial?: HomeModel }) {
         </section>
       )}
 
-      {/* ---------------------------- the two columns --------------------------- */}
-      <div className="mt-10 grid gap-8 lg:grid-cols-[1.15fr_1fr]">
+      {/* ------------------------ the feed and the rail ------------------------ */}
+      {/* The ambient column: the feed carries the width (it is prose), the
+          rail holds the glanceables and stays put while the feed scrolls —
+          the closest thing a single page has to mission control's side wall. */}
+      <div className="mt-10 grid animate-rise-in gap-8 lg:grid-cols-[minmax(0,1fr)_320px]" style={slot(6)}>
         <section>
           <SectionHeader title="operator feed" href="/app/activity" />
           <div className="mt-3">
@@ -187,7 +200,7 @@ export function OperatorHome({ initial }: { initial?: HomeModel }) {
           </div>
         </section>
 
-        <section>
+        <section className="lg:sticky lg:top-20 lg:self-start">
           <SectionHeader
             title="connected apps"
             count={apps.length}

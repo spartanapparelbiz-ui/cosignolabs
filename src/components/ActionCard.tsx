@@ -36,6 +36,7 @@ import { afterApprovalLine, approveLabel, beforeApprovalLine } from "@/lib/clari
 import { signRequired } from "@/lib/sign";
 import dynamic from "next/dynamic";
 import { TierBadge } from "./TierBadge";
+import { spotlight } from "./ui/Surface";
 import { DecisionBrief } from "./approvals/DecisionBrief";
 import { PayloadPreview } from "./approvals/PayloadPreview";
 
@@ -306,12 +307,15 @@ function ActionCardInner({
       style={enterDelay}
       tabIndex={pending ? 0 : undefined}
       onKeyDown={pending ? onCardKeyDown : undefined}
+      onPointerMove={pending ? spotlight : undefined}
       className={`relative animate-card-in overflow-hidden rounded-card bg-surface/80 p-4 transition-shadow duration-base ease-brand-out focus:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
         pending
           ? // A pending card is the only surface in the product allowed the
             // signal ring at rest: it is literally the thing asking to be
-            // looked at, and it stops asking the moment it's resolved.
-            "shadow-e3 ring-1 ring-inset ring-signal/25"
+            // looked at, and it stops asking the moment it's resolved. It
+            // also carries the hover light — the card asking for your hand
+            // is the one that should respond to it.
+            "spot shadow-e3 ring-1 ring-inset ring-signal/25"
           : "shadow-e2 ring-1 ring-inset ring-line/60"
       } ${action.status === "vetoed" ? "opacity-70 grayscale" : ""}`}
     >

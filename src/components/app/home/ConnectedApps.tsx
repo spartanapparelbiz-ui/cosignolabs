@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { HomeApp } from "@/lib/home/model";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
+import { spotlight } from "@/components/ui/Surface";
 import { RelativeTime, checkedFormat } from "@/components/ui/RelativeTime";
 import { staggerDelay, STAGGER_MS } from "@/lib/motion";
 
@@ -22,7 +23,10 @@ import { staggerDelay, STAGGER_MS } from "@/lib/motion";
 
 export function ConnectedApps({ apps }: { apps: HomeApp[] }) {
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+    // Fluid columns: full-width this flows 3–4 across; inside home's 320px
+    // rail it stacks to one column of readable cards instead of cramming
+    // four 70px stubs. One layout rule, every container width.
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2.5">
       {apps.map((app, i) => {
         const attention = app.health === "attention";
         return (
@@ -30,8 +34,9 @@ export function ConnectedApps({ apps }: { apps: HomeApp[] }) {
             key={app.connectionId}
             href="/app/connections"
             prefetch
+            onPointerMove={spotlight}
             style={staggerDelay(i, STAGGER_MS.tiles)}
-            className={`group flex animate-tile-in items-center gap-2.5 rounded-card bg-surface/70 p-3 shadow-e1 ring-1 ring-inset transition-[transform,box-shadow] duration-fast ease-brand-out hover:-translate-y-0.5 hover:shadow-e3 active:translate-y-0 motion-reduce:hover:translate-y-0 ${
+            className={`spot group relative flex animate-tile-in items-center gap-2.5 rounded-card bg-surface/70 p-3 shadow-e1 ring-1 ring-inset transition-[transform,box-shadow] duration-fast ease-brand-out hover:-translate-y-0.5 hover:shadow-e3 active:translate-y-0 motion-reduce:hover:translate-y-0 ${
               attention ? "ring-signal/40" : "ring-line/60"
             }`}
           >

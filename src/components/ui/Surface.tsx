@@ -1,5 +1,22 @@
+"use client";
+
 import Link from "next/link";
 import { staggerDelay, STAGGER_MS } from "@/lib/motion";
+
+/**
+ * Feed the cursor position to the `.spot` hover light (see globals.css).
+ *
+ * Written straight onto the element as CSS variables — no state, no
+ * re-render, no rAF. The browser repaints one gradient overlay; React never
+ * hears about it. Exported so the few interactive cards not built on
+ * Surface (suggestions, connected apps, approval cards) can carry the same
+ * light — one lighting model, however the card is built.
+ */
+export function spotlight(e: React.PointerEvent<HTMLElement>) {
+  const r = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.style.setProperty("--spot-x", `${e.clientX - r.left}px`);
+  e.currentTarget.style.setProperty("--spot-y", `${e.clientY - r.top}px`);
+}
 
 /**
  * The one card in the product.
@@ -72,7 +89,7 @@ export function Surface({
     attention ? "ring-1 ring-inset ring-signal/40 shadow-signal-glow" : "",
     index !== undefined ? "animate-tile-in" : "",
     clickable
-      ? "cursor-pointer text-left transition-[transform,box-shadow,border-color] duration-fast ease-brand-out hover:-translate-y-0.5 hover:shadow-e3 active:translate-y-0 active:scale-[0.995] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+      ? "spot cursor-pointer text-left transition-[transform,box-shadow,border-color] duration-fast ease-brand-out hover:-translate-y-0.5 hover:shadow-e3 active:translate-y-0 active:scale-[0.995] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
       : "transition-[box-shadow] duration-fast ease-brand-out",
     className,
   ]
@@ -80,17 +97,33 @@ export function Surface({
     .join(" ");
 
   const style = index !== undefined ? staggerDelay(index, step) : undefined;
+  // The hover light tracks the pointer on anything clickable.
+  const onPointerMove = clickable ? spotlight : undefined;
 
   if (href) {
     return (
-      <Link href={href} prefetch className={classes} style={style} aria-label={ariaLabel}>
+      <Link
+        href={href}
+        prefetch
+        className={classes}
+        style={style}
+        aria-label={ariaLabel}
+        onPointerMove={onPointerMove}
+      >
         {children}
       </Link>
     );
   }
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={classes} style={style} aria-label={ariaLabel}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={classes}
+        style={style}
+        aria-label={ariaLabel}
+        onPointerMove={onPointerMove}
+      >
         {children}
       </button>
     );

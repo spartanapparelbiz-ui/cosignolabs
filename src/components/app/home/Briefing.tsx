@@ -70,12 +70,24 @@ export function Briefing({
   return (
     <div className="animate-blur-in">
       <p className="text-xs font-bold lowercase tracking-wide text-ink-soft">{greeting}</p>
-      <h1 className="mt-1.5 text-balance font-display text-display-lg font-bold">
+      {/* The one line you could read from across the room — full display
+          scale on desktop, a step down on phones so it never wraps past two
+          lines. */}
+      <h1 className="mt-1.5 text-balance font-display text-display-lg font-bold sm:text-display-xl">
         {headline}
       </h1>
 
+      {/* The editorial rule between the headline and its lines — a hairline
+          with the brand's i-dot at its centre. It marks where the verdict
+          ends and the evidence begins. */}
+      <span className="mx-auto mt-5 flex w-24 items-center gap-2" aria-hidden="true">
+        <span className="h-px flex-1 bg-line" />
+        <span className="h-1 w-1 rounded-pill bg-signal" />
+        <span className="h-px flex-1 bg-line" />
+      </span>
+
       {lines.length > 0 && (
-        <ul className="mx-auto mt-5 flex max-w-xl flex-col gap-0.5">
+        <ul className="mx-auto mt-4 flex max-w-xl flex-col gap-0.5">
           {lines.map((line, i) => {
             const tone = TONE[line.tone];
             const body = (

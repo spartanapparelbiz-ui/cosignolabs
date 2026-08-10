@@ -2,6 +2,7 @@
 
 import { ArrowUpRight } from "lucide-react";
 import type { Suggestion } from "@/lib/home/model";
+import { spotlight } from "@/components/ui/Surface";
 import { staggerDelay, STAGGER_MS } from "@/lib/motion";
 
 /**
@@ -29,8 +30,9 @@ export function SuggestionCards({ suggestions }: { suggestions: Suggestion[] }) 
         <button
           key={s.prompt}
           onClick={() => compose(s.prompt)}
+          onPointerMove={spotlight}
           style={staggerDelay(i, STAGGER_MS.tiles)}
-          className="group relative flex animate-tile-in items-start gap-3 overflow-hidden rounded-card bg-surface/70 p-3.5 text-left shadow-e1 ring-1 ring-inset ring-line/60 transition-[transform,box-shadow] duration-fast ease-brand-out hover:-translate-y-0.5 hover:shadow-e3 hover:ring-signal/40 active:translate-y-0 active:scale-[0.99] motion-reduce:hover:translate-y-0"
+          className="spot group relative flex animate-tile-in items-start gap-3 overflow-hidden rounded-card bg-surface/70 p-3.5 text-left shadow-e1 ring-1 ring-inset ring-line/60 transition-[transform,box-shadow] duration-fast ease-brand-out hover:-translate-y-0.5 hover:shadow-e3 hover:ring-signal/40 active:translate-y-0 active:scale-[0.99] motion-reduce:hover:translate-y-0"
         >
           <span
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-btn bg-cream-deep text-base transition-transform duration-base ease-spring group-hover:scale-110 motion-reduce:group-hover:scale-100"

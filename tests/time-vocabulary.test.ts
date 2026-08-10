@@ -51,6 +51,12 @@ describe("agoLong — the prose register", () => {
     expect(agoLong(ago(3 * 60), NOW)).toBe("3 hours");
     expect(agoLong(ago(60 * 24 * 2), NOW)).toBe("2 days");
   });
+
+  it("a fresh moment never reads '0 minutes' — a briefing said that once", () => {
+    // "the oldest has been 0 minutes" shipped to a screenshot before this
+    // floor existed.
+    expect(agoLong(ago(0.3), NOW)).toBe("under a minute");
+  });
 });
 
 describe("until — schedules", () => {

@@ -121,6 +121,9 @@ export function agoDetailed(iso: string, now: Now = Date.now()): string {
 export function agoLong(iso: string, now: Now = Date.now()): string {
   const mins = minutesSince(iso, now);
   if (mins === null) return "";
+  // Same floor as duration(): "the oldest has been 0 minutes" reads as a
+  // broken clock, and a fresh arrival is the calm case.
+  if (mins < 1) return "under a minute";
   if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"}`;
   const hours = Math.round(mins / 60);
   if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"}`;

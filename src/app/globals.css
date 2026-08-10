@@ -173,6 +173,34 @@ html {
   animation: skeleton-wave 1.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
 
+/* Cursor-aware hover lighting — the one piece of "expensive" a card is
+   allowed. A faint warm light follows the pointer across an interactive
+   surface, so hovering feels like holding the card under a lamp rather than
+   tripping a boolean. Implementation is deliberately cheap: the component
+   writes two CSS variables straight onto the element (no React state, no
+   re-render) and this overlay paints a radial gradient there. Hover-capable
+   pointers only — on touch the light would just be stuck wherever the last
+   tap landed. */
+@media (hover: hover) {
+  .spot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    background: radial-gradient(
+      340px circle at var(--spot-x, 50%) var(--spot-y, 40%),
+      rgb(var(--c-signal) / 0.07),
+      transparent 65%
+    );
+  }
+  .spot:hover::after {
+    opacity: 1;
+  }
+}
+
 /* Text that must never be cut mid-word at the end of a heading. */
 .text-balance {
   text-wrap: balance;
