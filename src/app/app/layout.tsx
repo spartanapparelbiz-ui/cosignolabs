@@ -4,6 +4,7 @@ import { isGuestId } from "@/lib/publicMode";
 import { AppRail, AppBottomNav } from "@/components/AppRail";
 import { ToastProvider } from "@/components/Toast";
 import { LogoHome } from "@/components/brand/LivingLogo";
+import { ConnectionHealthBanner } from "@/components/app/ConnectionHealthBanner";
 import { EmergencyStop } from "@/components/app/EmergencyStop";
 import { HoldBanner } from "@/components/app/HoldBanner";
 import { CommandBar } from "@/components/app/CommandBar";
@@ -50,6 +51,9 @@ function Chrome({
               control the operator has to go looking for. Renders nothing when
               there is no hold. */}
           <HoldBanner />
+          {/* A connected app that lost its sign-in degrades missions quietly —
+              say so wherever the person is. Renders nothing while healthy. */}
+          <ConnectionHealthBanner />
           {/* ⌘K from anywhere in the workspace. Renders nothing until opened. */}
           <CommandBar />
           <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
