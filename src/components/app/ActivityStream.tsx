@@ -51,19 +51,25 @@ export function ActivityStream() {
 
   if (error) {
     return (
-      <div className="mt-6 rounded-card border border-line bg-surface p-6">
+      <div className="mt-6 rounded-card bg-surface p-6 shadow-e1 ring-1 ring-inset ring-line/60">
         <p className="text-sm font-semibold">{error}</p>
         <button
           onClick={load}
-          className="mt-3 rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink hover:bg-cream-deep"
+          className="mt-3 rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink transition-transform duration-fast hover:bg-cream-deep active:scale-95"
         >
-          Retry
+          try again
         </button>
       </div>
     );
   }
 
-  if (events === null) return <SkeletonRows />;
+  if (events === null) {
+    return (
+      <div className="mt-5" aria-busy="true" aria-label="loading your activity">
+        <SkeletonRows rows={6} />
+      </div>
+    );
+  }
 
   const kinds = FILTERS[active].kinds;
   const visible = kinds.length === 0 ? events : events.filter((e) => kinds.includes(e.kind));
@@ -76,8 +82,10 @@ export function ActivityStream() {
             key={f.label}
             onClick={() => setActive(i)}
             aria-pressed={i === active}
-            className={`rounded-pill px-3 py-1 text-xs font-bold transition-colors ${
-              i === active ? "bg-ink text-cream" : "bg-cream-deep text-ink-soft hover:text-ink"
+            className={`rounded-pill px-3 py-1.5 text-xs font-bold transition-[background-color,color,transform] duration-fast ease-brand-out active:scale-95 ${
+              i === active
+                ? "bg-ink text-cream shadow-e1"
+                : "bg-cream-deep text-ink-soft hover:text-ink"
             }`}
           >
             {f.label}

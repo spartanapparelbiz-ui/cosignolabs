@@ -15,7 +15,8 @@ import type { ActionRecord, MissionRecord } from "../src/lib/types";
 
 /** Every surface that could carry a status. None may invent its own words. */
 const FILES = [
-  "src/components/app/Dashboard.tsx",
+  "src/components/app/home/OperatorHome.tsx",
+  "src/components/app/home/LiveMissionCard.tsx",
   "src/components/app/MissionWorkspace.tsx",
   "src/components/app/MissionRunner.tsx",
   "src/components/ActionCard.tsx",

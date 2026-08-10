@@ -14,14 +14,14 @@ import { readFileSync } from "node:fs";
 
 const read = (p: string) => readFileSync(p, "utf8");
 
-const DASHBOARD = "src/components/app/Dashboard.tsx";
+const HOME = "src/components/app/home/OperatorHome.tsx";
 const WORKSPACE = "src/components/app/MissionWorkspace.tsx";
 const RUNNER = "src/components/app/MissionRunner.tsx";
 const INBOX = "src/components/app/DecisionInbox.tsx";
 
 describe("approvals are actionable where the work is", () => {
   it.each([
-    ["home", DASHBOARD],
+    ["home", HOME],
     ["the mission workspace", WORKSPACE],
     ["the missions list", RUNNER],
   ])("%s embeds the real decision inbox", (_label, path) => {
@@ -40,7 +40,7 @@ describe("approvals are actionable where the work is", () => {
   });
 
   it("no longer sends people to another page to make the decision", () => {
-    for (const path of [DASHBOARD, WORKSPACE, RUNNER]) {
+    for (const path of [HOME, WORKSPACE, RUNNER]) {
       const src = read(path);
       // A link to the approvals page is fine to keep elsewhere; what must be
       // gone is it being the ONLY way to act on a waiting card.

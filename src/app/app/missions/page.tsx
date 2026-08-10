@@ -29,11 +29,11 @@ export default async function MissionsPage() {
     // fall through — MissionRunner fetches client-side exactly as before
   }
   return (
-    <div className="mx-auto flex w-full max-w-none flex-1 flex-col px-6 lg:px-10 py-8">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="mx-auto flex w-full max-w-none flex-1 flex-col px-6 py-10 lg:px-10">
+      <div className="flex animate-blur-in flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
-          <h1 className="font-display text-2xl font-bold lowercase">delegations</h1>
-          <p className="mt-1 text-sm font-semibold text-ink-soft">
+          <h1 className="font-display text-display-md font-bold lowercase">delegations</h1>
+          <p className="mt-2 max-w-xl text-pretty text-sm font-semibold leading-relaxed text-ink-soft">
             every outcome you&apos;ve handed to cosigno — with its real momentum,
             derived from what actually executed, what you vetoed, and what
             still needs you. delegate outcomes, not steps.
@@ -42,7 +42,7 @@ export default async function MissionsPage() {
         <Link
           href="/app"
           prefetch
-          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-on-signal shadow-soft transition-transform duration-fast hover:-translate-y-px active:scale-95"
+          className="rounded-btn bg-signal px-4 py-2.5 text-sm font-extrabold text-on-signal shadow-soft transition-[transform,box-shadow] duration-fast ease-brand-out hover:-translate-y-px hover:shadow-lift active:translate-y-0 active:scale-95 motion-reduce:hover:translate-y-0"
         >
           new delegation
         </Link>

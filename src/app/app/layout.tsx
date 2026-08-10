@@ -52,13 +52,18 @@ function Chrome({
           <HoldBanner />
           {/* ⌘K from anywhere in the workspace. Renders nothing until opened. */}
           <CommandBar />
-          <header className="sticky top-0 z-10 bg-cream/90 shadow-soft backdrop-blur">
-            <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
+          {/* The header floats over scrolling content, so it is glass rather
+              than a solid bar: the page visibly moves underneath it, which is
+              what keeps a sticky strip from reading as a dead frame. The
+              hairline is a shadow, not a border, so nothing shifts by a pixel
+              when it gains one. */}
+          <header className="glass sticky top-0 z-10 shadow-hairline">
+            <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-2.5">
               {/* mobile shows the logo up top; desktop's logo lives in the rail */}
               <div className="lg:hidden">
-                <LogoHome href="/app" label="cosigno workspace" size={26} textClass="text-xl" />
+                <LogoHome href="/app" label="cosigno workspace" size={26} />
               </div>
-              <div className="ml-auto flex items-center gap-3">
+              <div className="ml-auto flex items-center gap-2.5">
                 <EmergencyStop />
                 {userSlot}
               </div>

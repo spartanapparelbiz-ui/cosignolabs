@@ -76,10 +76,46 @@ a component.
 
 - Radius: **14px** cards (`rounded-card`), **10px** buttons/inputs/wells
   (`rounded-btn`), pills for badges (`rounded-pill`).
-- **Soft shadows only** — `shadow-soft` (resting) and `shadow-lift` (raised:
-  pending cards, hero panels). Low opacity, large blur, to match the logo's
-  soft 3D weight. No hard borders except the veto outline.
+- **Soft shadows only** — low opacity, large blur, to match the logo's soft
+  3D weight. No hard borders except the veto outline.
 - One icon set: **lucide-react**, default stroke width.
+
+### The elevation ladder
+
+Surfaces pick a **height**, not a shadow. Four steps, each keeping the same
+1px inset top highlight so a surface reads as the same material wherever it
+sits, and each blur roughly double the last so the ladder is legible without
+anything looking heavy. Named in `ELEVATION` (`src/lib/motion.ts`).
+
+| token | height | use |
+| --- | --- | --- |
+| `shadow-e1` | resting | a tile inside a grid |
+| `shadow-e2` | raised | the default for anything interactive |
+| `shadow-e3` | lifted | hover, and a card that needs a decision |
+| `shadow-e4` | overlay | menus, popovers, dialogs |
+
+Two more, for jobs a height can't do: `shadow-hairline` (a 1px ring in the
+theme's line colour, for chrome that must not resize by a pixel when it gains
+one) and `shadow-signal-glow` (the ONE sanctioned glow — an approval surface
+asking to be looked at).
+
+**One hover gesture.** Interactive surfaces rise 2px and gain one step of
+elevation over `fast`, and give way under the press (`HOVER_LIFT` + `PRESS`).
+Declared once so every card in the product moves the same amount at the same
+speed. The lift collapses under `prefers-reduced-motion`.
+
+**Glass is for chrome only** (`.glass`): the app header, the command bar, the
+mobile nav — surfaces that float OVER content and must stay legible while the
+page moves underneath. Never a card in the page flow, where it only makes text
+harder to read. It ships an opaque fallback first, so a browser without
+`backdrop-filter` gets a solid surface rather than a transparent one.
+
+### The display type ladder
+
+Each size ships with the leading and tracking it actually wants, so a heading
+is one token rather than a size plus two guesses: `text-display-xl` / `-lg` /
+`-md` / `-sm`, and `text-eyebrow` for the uppercase section labels. Page
+titles are `display-md`; the home headline is `display-lg`.
 
 ## Motion
 
@@ -101,9 +137,41 @@ Named animations (Tailwind `animate-*`): `settle`, `float`, `rise-in`,
 `check-pop`, `modal-in`, `fade-through`, `orb-*`, `toast-in`, `shimmer`,
 `logo-breath`, `logo-check`.
 
+**The operator surface** adds the motion a live workspace needs. All
+transform/opacity/filter only, so every one composites on the GPU:
+
+| animation | what it's for |
+| --- | --- |
+| `tile-in` | panels and tiles arriving, meant to be staggered across a grid |
+| `blur-in` | real data resolving out of a blur, replacing a skeleton |
+| `feed-in` | a line landing in a feed, from the side the timeline flows |
+| `bar-grow` / `bar-travel` | determinate fill / indeterminate travel |
+| `step-live` | the step currently executing |
+| `rail-mark` | the nav's selected indicator growing into place |
+| `pop-in` | popovers, menus, autocomplete |
+| `skeleton-wave` | the travelling highlight inside a skeleton |
+| `status-ping` | a live status dot's halo (box-shadow — layout-stable) |
+| `sheen` | a light sweep across a surface that just changed |
+
+**Staggers are capped.** `staggerDelay(i, step)` clamps against
+`STAGGER_CAP_MS` (400ms): 45ms across eight tiles is a flourish, the same 45ms
+across forty rows is a page that takes two seconds to finish appearing. Steps:
+`words` 80 · `cards` 60 · `tiles` 45 · `rows` 32.
+
 Rules: **transform/opacity only** (never animate layout properties), 60fps,
 capped element counts, and everything collapses to an instant state change
-under `prefers-reduced-motion` (globals.css + `useReveal` start-shown).
+under `prefers-reduced-motion` (globals.css + `useReveal` start-shown) —
+including inline `animation-delay`, so a reduced-motion visitor never waits
+out a stagger in front of a blank grid.
+
+### Progress bars tell the truth
+
+`ProgressBar` is determinate ONLY when the value comes from something counted
+— steps completed, items processed. Everything else is indeterminate, which
+says "running" honestly and says nothing about how long. A bar that advances
+because time passed is a claim about work that isn't happening, and it is the
+fastest way to lose trust in a screen. The fill is a `scaleX` transform, not a
+width, so a bar animating never reflows its row.
 
 - Card propose: `animate-card-in` / `animate-spring-in` — slide + fade.
 - Execute: `animate-check-pop` + `animate-check-draw` — the orange check
@@ -187,8 +255,12 @@ final states under `prefers-reduced-motion`.
 - **Card depth**: `shadow-depth` / `shadow-depth-lift` (1px inset top
   highlight over layered ambient shadows), `shadow-well` (recessed payload
   block), and `.tier3-texture` (faint diagonal hazard band on locked cards).
-- **Empty states**: `EmptyIllustration` — flat ink line-work with one orange
-  accent, no people (`workspace` / `activity` / `integrations`).
+- **Empty states**: `EmptyState` wraps `EmptyIllustration` (flat ink line-work
+  with one orange accent, no people — `workspace` / `activity` /
+  `integrations`). The rule: **never report an absence and stop.** "No
+  missions running" is a fact the reader already had; what they don't have is
+  the next move, so every empty state carries a real one — a button that fills
+  the ask box, a link to the apps that would put something here.
 - **Mark**: an **orange C** opening right, a **check** completing it (theme-ink
   → cream on dark), and a floating **orange accent dot** at the top of the
   opening. Monochrome variant = one ink color. Geometry is the single source
@@ -200,6 +272,54 @@ final states under `prefers-reduced-motion`.
 - **`prefers-reduced-motion`**: globals.css collapses every animation and
   transition to an instant state change.
 - Easing: `cubic-bezier(0.22, 1, 0.36, 1)`. Nothing linear except spinners.
+
+## What a surface may assert
+
+Two rules decide what is allowed to appear as a fact. Both are enforced by
+pure, unit-tested modules rather than by review — `src/lib/home/model.ts` and
+`src/lib/approvals/brief.ts`.
+
+**An unconnected source produces an invitation, never a metric.** "Unread
+email 0" is a measurement of an inbox cosigno cannot see; it reads as a fact
+and is not one. A tile with no source says what to connect. A tile whose
+answer needs a live API call (inbox, calendar) offers the one-tap mission that
+would answer it, rather than printing a number nobody measured.
+
+**A count is only shown when something counted it.** Mission progress comes
+from step states, "completed today" from completion timestamps, "waiting on
+you" from the real proposal queue. Nothing is estimated and then displayed as
+though it were measured.
+
+### The decision brief
+
+Every approval carries six derived facts, in a fixed order, so the fifth
+approval of the day is read in the same places as the first: **why you're
+being asked · risk · rollback · confidence · affects · takes**. All are
+deterministic and pure — nothing comes from model prose, for the same reason
+the authorization engine is not a model call: a brief a model could word
+differently on a second pass is a brief that can be talked into understating
+an effect.
+
+- **The irreversible line is the only one allowed to be loud.** Rollback
+  prints at full ink weight when the answer is no, and drops to muted when
+  it's yes. Everything else stays quiet so that line carries.
+- **Rollback takes the pessimistic reading of every tie.** An update whose
+  previous values were never captured says exactly that, rather than implying
+  a restore that would silently fail.
+- **Confidence measures specification, never success.** cosigno cannot know
+  whether an email will bounce. It can check whether the proposal contains
+  everything its category requires. The caption saying so ships with the
+  number every time and is never dropped for space.
+- **Affected apps are never guessed.** Only what the payload names, plus the
+  category's unambiguous surface ("your email"). A wrong connector here makes
+  the whole brief untrustworthy.
+
+**Simulate first** (`src/lib/approvals/simulate.ts`) does not model the
+boundary, it RUNS it — `applyRules` → `applyRequirementToTier` → `holdBlocks`,
+the same path a real approval takes, then stops. It calls no provider,
+decrypts no credential, writes nothing. It opens with the sentence that
+nothing happened, in the same place every time, and marks the exact step where
+the action stops being recoverable.
 
 ## Voice
 

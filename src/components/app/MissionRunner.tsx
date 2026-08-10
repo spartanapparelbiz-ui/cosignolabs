@@ -21,6 +21,9 @@ import {
 } from "lucide-react";
 import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/lib/types";
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
+import { toProgressive } from "@/lib/missions/narrate";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { staggerDelay, STAGGER_MS } from "@/lib/motion";
 import { useToast } from "@/components/Toast";
 import { useBackgroundExecution } from "./useBackgroundExecution";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
@@ -457,8 +460,18 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
         const mySteps = steps[m.id] ?? [];
         const done = mySteps.filter((s) => s.state === "completed").length;
         const usesBrowser = mySteps.some((s) => s.tool.startsWith("laptop.") || s.tool.startsWith("browser."));
+        // What the mission is doing this second, so a collapsed row still
+        // answers "is anything happening?" without being opened.
+        const runningStep = mySteps.find((s) =>
+          ["running", "verifying", "retrying"].includes(s.state)
+        );
         return (
-          <div key={m.id} className="rounded-card bg-surface/60 shadow-soft">
+          <div
+            key={m.id}
+            className={`overflow-hidden rounded-card bg-surface/70 shadow-e2 ring-1 ring-inset transition-shadow duration-base ease-brand-out hover:shadow-e3 ${
+              m.state === "awaiting_approval" ? "ring-signal/30" : "ring-line/60"
+            }`}
+          >
             <button
               onClick={async () => {
                 setOpenId(open ? null : m.id);
@@ -473,11 +486,36 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                   started {new Date(m.created_at).toLocaleString()} · plan v{m.plan_version}
                   {mySteps.length > 0 && ` · ${done} of ${mySteps.length} steps completed`}
                 </span>
+                {/* Counted from step states — never from elapsed time. A bar
+                    that advances because seconds passed is a claim about work
+                    that isn't happening. */}
+                {mySteps.length > 0 && (
+                  <span className="mt-2 block max-w-md">
+                    <ProgressBar
+                      value={done / mySteps.length}
+                      label={`${m.goal}: ${done} of ${mySteps.length} steps completed`}
+                      size="sm"
+                    />
+                  </span>
+                )}
+                {runningStep && (
+                  <span className="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold text-ink">
+                    <span className="relative flex h-1.5 w-1.5 shrink-0" aria-hidden="true">
+                      <span className="absolute inset-0 animate-status-ping rounded-pill bg-signal" />
+                      <span className="relative h-1.5 w-1.5 rounded-pill bg-signal" />
+                    </span>
+                    {toProgressive(runningStep.purpose)}
+                  </span>
+                )}
               </span>
               <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-[11px] font-bold ${STATUS_TONE[missionStatus(m.state)]}`}>
                 {missionStatus(m.state)}
               </span>
-              <ChevronDown size={15} className={`shrink-0 text-ink-soft transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+              <ChevronDown
+                size={15}
+                className={`shrink-0 text-ink-soft transition-transform duration-base ease-brand-out ${open ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
             </button>
 
             {open && (
@@ -585,21 +623,34 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                 )}
 
                 {/* steps */}
-                <ol className="flex flex-col gap-2">
-                  {mySteps.map((s) => {
+                <ol className="relative flex flex-col gap-2">
+                  {/* The spine connecting the step markers, so a plan reads as
+                      one sequence rather than a stack of unrelated lines. */}
+                  {mySteps.length > 1 && (
+                    <span
+                      className="pointer-events-none absolute bottom-3 left-[7px] top-3 w-px bg-line/70"
+                      aria-hidden="true"
+                    />
+                  )}
+                  {mySteps.map((s, si) => {
                     const Icon = STEP_ICON[s.state];
                     const summary = typeof s.output?.summary === "string" ? s.output.summary : null;
                     const planNote = typeof s.output?.plan_note === "string" ? s.output.plan_note : null;
                     const verif = s.verification as { ok?: boolean; detail?: string; simulated?: boolean } | null;
+                    const active = ["running", "retrying", "verifying"].includes(s.state);
                     return (
-                      <li key={s.id} className="flex items-start gap-2 text-xs">
+                      <li
+                        key={s.id}
+                        style={staggerDelay(si, STAGGER_MS.rows)}
+                        className="relative flex animate-feed-in items-start gap-2 text-xs"
+                      >
                         <Icon
                           size={15}
-                          className={`mt-px shrink-0 ${
+                          className={`relative z-10 mt-px shrink-0 bg-surface ${
                             s.state === "completed"
                               ? "text-signal"
-                              : ["running", "retrying", "verifying"].includes(s.state)
-                                ? "animate-orb-pulse text-ink"
+                              : active
+                                ? "animate-orb-pulse text-signal"
                                 : "text-ink-soft"
                           }`}
                           aria-hidden="true"
@@ -612,6 +663,20 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                             {OPERATOR_PROFILES[s.operator]?.name ?? s.operator} ·{" "}
                             {summary ?? s.error ?? STEP_NOTE[s.state]}
                           </span>
+                          {/* The running step gets a travelling bar, not a
+                              filling one: cosigno knows the step is in flight,
+                              it does not know how long the other end will
+                              take, and a bar creeping toward 100% would be
+                              inventing that. */}
+                          {active && (
+                            <span className="mt-1.5 block max-w-[240px]">
+                              <ProgressBar
+                                value={null}
+                                label={`${s.purpose} — running`}
+                                size="sm"
+                              />
+                            </span>
+                          )}
                           {s.sources.length > 0 && (
                             <span className="block text-[11px] text-ink-soft/80">
                               sources: {s.sources.map((src) => `${src.name}${src.simulated ? " (sandbox)" : ""}`).join(" · ")}

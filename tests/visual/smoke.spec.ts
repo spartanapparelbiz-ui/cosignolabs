@@ -265,18 +265,53 @@ for (const vp of VIEWPORTS) {
       await cta.screenshot({ path: join(OUT, `close-${vp.name}.png`) });
     });
 
-    test("home dashboard: the four-question layout", async ({ page }) => {
+    test("home: the operator workspace is useful before you type", async ({ page }) => {
       await page.goto("/app", { waitUntil: "networkidle" });
-      await expect(page.getByRole("heading", { name: "What should Cosigno handle?" })).toBeVisible();
-      // The ask box + the four honest section headings (stable regardless of
-      // how much data exists in the shared demo store).
-      await expect(page.getByPlaceholder(/Ask cosigno to handle something/)).toBeVisible();
-      await expect(page.getByRole("button", { name: /Start Mission/ })).toBeVisible();
-      await expect(page.getByText("In progress").first()).toBeVisible();
-      await expect(page.getByText("Needs your approval").first()).toBeVisible();
-      await expect(page.getByText("Connected apps").first()).toBeVisible();
+
+      // The positioning line, and the ask box your hands land on first.
+      await expect(
+        page.getByRole("heading", { name: /your approval-first AI operator/i })
+      ).toBeVisible();
+      await expect(page.getByPlaceholder(/ask cosigno anything/i)).toBeVisible();
+      await expect(page.getByRole("button", { name: /delegate/i }).first()).toBeVisible();
+
+      // The operator's own status — always a sentence, never a spinner.
+      await expect(page.getByText(/ready|working on|waiting on you|on hold/i).first()).toBeVisible();
+
+      // Today's overview, and the sections that make home a workspace rather
+      // than a chat box. These headings are stable however much data the
+      // shared demo store happens to hold.
+      await expect(page.getByText("today", { exact: true }).first()).toBeVisible();
+      await expect(page.getByText("operator feed").first()).toBeVisible();
+      await expect(page.getByText("connected apps").first()).toBeVisible();
+
+      // Every counted tile shows a number; the two that would need a live API
+      // call show an invitation instead of a fabricated zero.
+      // Exact: the status bar's detail line also contains this phrase, and on
+      // mobile that line is CSS-hidden — a substring match picks it up and
+      // then fails on visibility.
+      await expect(page.getByText("waiting on you", { exact: true }).first()).toBeVisible();
+      await expect(page.getByText(/connect gmail or outlook|ask cosigno to review it/i)).toBeVisible();
+
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `dashboard-${vp.name}.png`), fullPage: true });
+    });
+
+    test("home: an empty workspace still offers a real next move", async ({ page }) => {
+      await page.goto("/app", { waitUntil: "networkidle" });
+      // Empty states never just report an absence. Whichever ones are showing,
+      // each carries an action — that is the property worth pinning.
+      const empties = page.getByText(
+        /nothing has happened yet|no apps connected yet|you're all caught up/i
+      );
+      if (await empties.count()) {
+        await expect(
+          page.getByRole("button", { name: /review my email/i }).or(
+            page.getByRole("link", { name: /connect an app/i })
+          ).first()
+        ).toBeVisible();
+      }
+      await noHorizontalScroll(page);
     });
 
     test("ask box: file + link controls, and the paste-a-link field fits", async ({ page }) => {

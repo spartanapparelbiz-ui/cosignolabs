@@ -15,8 +15,11 @@ import {
   X,
 } from "lucide-react";
 import type { MissionSourceRecord, MissionSourceStatus } from "@/lib/types";
+import type { ConnectionView } from "@/lib/integrations/types";
 import { classifyDelegation, returnCondition } from "@/lib/delegate";
+import { toHandle, type MentionApp } from "@/lib/compose/autocomplete";
 import { useToast } from "@/components/Toast";
+import { AskField } from "./AskField";
 import { useBackgroundExecution } from "./useBackgroundExecution";
 
 /**
@@ -157,10 +160,17 @@ function SourceRow({ source, onRemove }: { source: MissionSourceRecord; onRemove
 export function SourceComposer({
   onStarted,
   suggestions,
+  showExamples = true,
 }: {
   onStarted: () => void;
   /** Contextual delegation prompts (from real connected apps); defaults to the generic set. */
   suggestions?: string[];
+  /**
+   * Home renders the same starting points as full cards directly below the
+   * composer, so it turns these off. Two rows saying the same four things is
+   * how a page ends up looking busy while offering nothing extra.
+   */
+  showExamples?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -207,6 +217,10 @@ export function SourceComposer({
 
   const [preview, setPreview] = useState<CompilePreview | null>(null);
   const [busy, setBusy] = useState(false);
+  // The apps offered after an @. Only live connections — completing a mention
+  // for an app that isn't connected writes a request that cannot be carried
+  // out, which teaches people to distrust the whole suggestion list.
+  const [mentionApps, setMentionApps] = useState<MentionApp[]>([]);
 
   const loadSources = useCallback(async () => {
     try {
@@ -220,6 +234,28 @@ export function SourceComposer({
   useEffect(() => {
     loadSources();
   }, [loadSources]);
+
+  useEffect(() => {
+    let alive = true;
+    jsonFetch("/api/connections")
+      .then((d) => {
+        if (!alive) return;
+        const connected: ConnectionView[] = (d.connections ?? []).filter(
+          (c: ConnectionView) => c.status === "connected"
+        );
+        setMentionApps(
+          connected.map((c) => ({
+            handle: toHandle(c.display_name || c.provider_key),
+            name: c.display_name || c.provider_key,
+            providerKey: c.provider_key,
+          }))
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const all = [...sources, ...pending];
   const anyWorking = all.some((s) => IN_PROGRESS.includes(s.status));
@@ -391,7 +427,7 @@ export function SourceComposer({
     const p = preview.plan;
     const returns = returnCondition(goal);
     return (
-      <div className="mt-5 flex flex-col gap-4 rounded-card border border-line/70 bg-cream/40 p-5">
+      <div className="mt-5 flex animate-blur-in flex-col gap-4 rounded-card bg-surface/70 p-5 shadow-e2 ring-1 ring-inset ring-line/60">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-widest text-ink-soft">
             I&apos;ll handle this.
@@ -483,7 +519,7 @@ export function SourceComposer({
 
   /* ---------------- ask box ---------------- */
   const controlBtn =
-    "inline-flex items-center gap-1.5 rounded-pill border border-line/70 bg-cream/40 px-3.5 py-1.5 text-sm font-bold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink";
+    "inline-flex items-center gap-1.5 rounded-pill bg-cream/40 px-3.5 py-1.5 text-xs font-bold text-ink-soft ring-1 ring-inset ring-line/70 transition-[color,box-shadow,transform] duration-fast hover:-translate-y-px hover:text-ink hover:ring-ink/25 active:translate-y-0 motion-reduce:hover:translate-y-0";
 
   /* ---- drop zone: give cosigno context by dropping it anywhere here ---- */
   function onDrop(e: React.DragEvent) {
@@ -512,31 +548,23 @@ export function SourceComposer({
       }}
       onDragLeave={() => setDragOver(false)}
       onDrop={onDrop}
-      className={dragOver ? "rounded-card ring-2 ring-signal/60" : undefined}
+      className={`rounded-card transition-[box-shadow,background-color] duration-fast ease-brand-out ${
+        dragOver ? "bg-signal/5 ring-2 ring-signal/60" : ""
+      }`}
     >
       {dragOver && (
-        <p className="mt-3 rounded-btn bg-signal/10 px-3 py-2 text-center text-xs font-extrabold text-ink">
-          Drop it — cosigno will take it from here.
+        <p className="mt-3 animate-pop-in rounded-btn bg-signal/10 px-3 py-2 text-center text-xs font-extrabold text-ink">
+          drop it — cosigno will take it from here.
         </p>
       )}
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <input
+      <div className="mt-5">
+        <AskField
           value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && review()}
-          maxLength={500}
-          id="cosigno-ask"
-          placeholder="Ask cosigno anything…"
-          aria-label="what do you need handled"
-          className="w-full rounded-btn border border-line/70 bg-cream/40 px-4 py-3.5 text-base font-semibold shadow-well placeholder:font-medium placeholder:text-ink-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
+          onChange={setGoal}
+          onSubmit={review}
+          apps={mentionApps}
+          busy={busy}
         />
-        <button
-          onClick={review}
-          disabled={busy || !goal.trim()}
-          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-btn bg-signal px-6 py-3.5 text-base font-extrabold text-on-signal shadow-soft transition-transform active:scale-95 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
-        >
-          <Sparkles size={16} /> {busy ? "Reading…" : "Delegate"}
-        </button>
       </div>
 
       {/* control row */}
@@ -556,6 +584,12 @@ export function SourceComposer({
             <Loader2 size={11} className="animate-spin" aria-hidden="true" /> finishing your files…
           </span>
         )}
+        {/* The shortcuts, stated once where they're used. An affordance
+            nobody is told about is an affordance nobody has. */}
+        <span className="ml-auto hidden items-center gap-2 text-[10px] font-bold lowercase text-ink-soft/70 sm:flex">
+          <kbd className="rounded bg-cream-deep px-1 font-mono">/</kbd> ways of working
+          <kbd className="rounded bg-cream-deep px-1 font-mono">@</kbd> an app
+        </span>
       </div>
 
       {/* compact link field */}
@@ -601,12 +635,13 @@ export function SourceComposer({
       )}
 
       {/* examples */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {(suggestions ?? EXAMPLES).map((ex) => (
+      <div className={`mt-3 flex-wrap gap-2 ${showExamples ? "flex" : "hidden"}`}>
+        {(suggestions ?? EXAMPLES).map((ex, i) => (
           <button
             key={ex}
             onClick={() => setGoal(ex)}
-            className="rounded-pill border border-line/70 bg-cream/40 px-3.5 py-1.5 text-sm font-semibold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
+            style={{ animationDelay: `${Math.min(i * 45, 300)}ms` }}
+            className="animate-tile-in rounded-pill bg-cream/40 px-3.5 py-1.5 text-xs font-semibold text-ink-soft ring-1 ring-inset ring-line/70 transition-[color,box-shadow,transform] duration-fast hover:-translate-y-px hover:text-ink hover:ring-ink/25 active:translate-y-0 motion-reduce:hover:translate-y-0"
           >
             {ex}
           </button>

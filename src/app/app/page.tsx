@@ -1,43 +1,38 @@
-import { Dashboard, type DashboardInitial } from "@/components/app/Dashboard";
+import { OperatorHome } from "@/components/app/home/OperatorHome";
 import { FirstRunIntro } from "@/components/FirstRunIntro";
 import { getUserId } from "@/lib/auth";
 import { servingAllowed } from "@/lib/env";
-import { loadMissionOverview } from "@/lib/missions/overview";
-import { getStore } from "@/lib/store";
+import { loadHome } from "@/lib/home/load";
+import type { HomeModel } from "@/lib/home/model";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "home" };
 
 /**
- * Home — the clean dashboard. Four questions, one calm page: what to ask,
- * what's in progress, what needs approval, what's finished.
+ * Home — the operator's workspace.
  *
- * The primary content (missions + steps + approvals) is loaded HERE, on the
- * server, in parallel — so the first paint already shows real work instead
- * of skeletons waiting on a hydrate-then-fetch round trip. Any failure falls
- * back to the client-side loader; the page itself never breaks on data.
+ * The whole model (missions with live steps, the decision queue, connected
+ * apps and their health, today's counts, the feed) is loaded HERE, on the
+ * server, in one parallel wave — so first paint already shows the state of
+ * the work instead of eight skeletons waiting on a hydrate-then-fetch round
+ * trip. Any failure falls back to the client-side loader; the page itself
+ * never breaks on data.
  */
 export default async function AppPage() {
-  let initial: DashboardInitial | undefined;
+  let initial: HomeModel | undefined;
   try {
     if (servingAllowed()) {
       const userId = await getUserId();
-      if (userId) {
-        const [overview, approvals] = await Promise.all([
-          loadMissionOverview(userId),
-          getStore().listActions(userId, { status: "proposed", limit: 20 }),
-        ]);
-        initial = { missions: overview.missions, steps: overview.steps, approvals };
-      }
+      if (userId) initial = await loadHome(userId);
     }
   } catch {
-    // fall through — the Dashboard fetches client-side exactly as before
+    // fall through — OperatorHome fetches /api/home client-side exactly as before
   }
   return (
     <>
       <FirstRunIntro />
-      <Dashboard initial={initial} />
+      <OperatorHome initial={initial} />
     </>
   );
 }

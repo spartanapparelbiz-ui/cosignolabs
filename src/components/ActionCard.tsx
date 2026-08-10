@@ -7,6 +7,7 @@ import {
   Banknote,
   ChevronDown,
   Database,
+  FlaskConical,
   Megaphone,
   Pencil,
   PenLine,
@@ -24,16 +25,18 @@ import type { ActionCategory, ActionRecord, SignatureRecord } from "@/lib/types"
 import { CREAM } from "@/lib/brand";
 import {
   effectLine,
-  extractDiff,
   impactChips,
   resultPreview,
   reversibilityChip,
   operatorOf,
 } from "@/lib/actionPresentation";
+import { approvalBrief } from "@/lib/approvals/brief";
 import { afterApprovalLine, approveLabel, beforeApprovalLine } from "@/lib/clarity";
 import { signRequired } from "@/lib/sign";
 import dynamic from "next/dynamic";
 import { TierBadge } from "./TierBadge";
+import { DecisionBrief } from "./approvals/DecisionBrief";
+import { PayloadPreview } from "./approvals/PayloadPreview";
 
 // Both are open-on-click overlays (the sign dialog drags in the whole
 // signature-pad canvas machinery) — split out of the workspace/approvals
@@ -43,6 +46,11 @@ const SignDialog = dynamic(() =>
 );
 const ReceiptModal = dynamic(() =>
   import("./sign/ReceiptModal").then((m) => m.ReceiptModal)
+);
+// The dry run is opened by a minority of cards; it stays out of the approvals
+// chunk until someone actually asks "what would happen?".
+const SimulationPanel = dynamic(() =>
+  import("./approvals/SimulationPanel").then((m) => m.SimulationPanel)
 );
 
 export interface ApproveOpts {
@@ -158,6 +166,8 @@ function ActionCardInner({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [rawOpen, setRawOpen] = useState(false);
+  const [simOpen, setSimOpen] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [signOpen, setSignOpen] = useState(false);
@@ -171,9 +181,11 @@ function ActionCardInner({
   const Glyph = CATEGORY_GLYPH[action.category] ?? PenLine;
   const effect = effectLine(action);
   const chips = impactChips(action);
-  const diff = extractDiff(action.payload);
   const result = resultPreview(action.result);
   const risk = reversibilityChip(action.category, action.tier);
+  // The six facts behind the decision. Deterministic and derived from this
+  // action alone — see lib/approvals/brief.
+  const brief = approvalBrief(action);
 
   async function run(fn: () => Promise<string | null>) {
     setBusy(true);
@@ -285,8 +297,13 @@ function ActionCardInner({
       style={enterDelay}
       tabIndex={pending ? 0 : undefined}
       onKeyDown={pending ? onCardKeyDown : undefined}
-      className={`relative animate-card-in overflow-hidden rounded-card bg-surface/70 p-4 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
-        pending ? "shadow-depth-lift" : "shadow-depth"
+      className={`relative animate-card-in overflow-hidden rounded-card bg-surface/80 p-4 transition-shadow duration-base ease-brand-out focus:outline-none focus-visible:ring-2 focus-visible:ring-signal ${
+        pending
+          ? // A pending card is the only surface in the product allowed the
+            // signal ring at rest: it is literally the thing asking to be
+            // looked at, and it stops asking the moment it's resolved.
+            "shadow-e3 ring-1 ring-inset ring-signal/25"
+          : "shadow-e2 ring-1 ring-inset ring-line/60"
       } ${action.status === "vetoed" ? "opacity-70 grayscale" : ""}`}
     >
       {/* Tier-3 (locked) cards wear a faint diagonal hazard band down the edge. */}
@@ -366,6 +383,11 @@ function ActionCardInner({
         </p>
       )}
 
+      {/* The decision brief. Pending cards only: once something has run, the
+          question is no longer "should this happen" and a brief arguing about
+          risk is answering a question nobody has any more. */}
+      {pending && <DecisionBrief brief={brief} />}
+
       {flagged && (
         <div className="mt-3 flex items-start gap-1.5 rounded-btn bg-signal/10 px-2.5 py-2 text-[11px] font-bold lowercase leading-snug text-signal ring-1 ring-inset ring-signal/30">
           <ShieldAlert size={13} strokeWidth={2.5} className="mt-px shrink-0" aria-hidden="true" />
@@ -379,46 +401,32 @@ function ActionCardInner({
         </p>
       )}
 
-      {/* exact payload / diff — collapsed by default */}
+      {/* exactly what would be sent — shaped when the payload has a shape,
+          raw when it doesn't, and raw is always one click away either way. */}
       <div className="mt-2.5">
         <button
           onClick={() => setDetailsOpen((v) => !v)}
-          className="inline-flex items-center gap-1 text-xs font-bold lowercase text-ink-soft underline underline-offset-2"
+          className="inline-flex items-center gap-1 rounded-btn px-1 py-0.5 text-xs font-bold lowercase text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink"
           aria-expanded={detailsOpen}
         >
           <ChevronDown
             size={12}
-            className={`transition-transform duration-base ${detailsOpen ? "rotate-180" : ""}`}
+            className={`transition-transform duration-base ease-brand-out ${detailsOpen ? "rotate-180" : ""}`}
             aria-hidden="true"
           />
-          {detailsOpen ? "hide details" : "view details"}
+          {detailsOpen ? "hide details" : "details"}
         </button>
         <Collapse open={detailsOpen && mode !== "edit"}>
-          {diff ? (
-            <div className="mt-2 overflow-hidden rounded-btn bg-cream-deep shadow-well">
-              <p className="px-3 pt-2 text-[10px] font-bold lowercase tracking-widest text-ink-soft">
-                before → after
-              </p>
-              <table className="w-full font-mono text-[11px] leading-relaxed">
-                <tbody>
-                  {diff.map((row) => (
-                    <tr key={row.field} className="border-t border-line/50 first:border-0">
-                      <td className="px-3 py-1.5 align-top font-bold text-ink-soft">{row.field}</td>
-                      <td className="px-2 py-1.5 align-top text-ink-soft line-through decoration-ink/40">
-                        {row.before}
-                      </td>
-                      <td className="px-1 py-1.5 align-top text-ink-soft" aria-hidden="true">→</td>
-                      <td className="px-3 py-1.5 align-top font-bold text-ink">{row.after}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <pre className="mt-2 max-h-48 overflow-auto rounded-btn bg-cream-deep px-3 py-2.5 font-mono text-[11px] leading-relaxed text-ink shadow-well">
-              {JSON.stringify(action.payload, null, 2)}
-            </pre>
-          )}
+          <div className="mt-2">
+            <PayloadPreview action={action} raw={rawOpen} />
+            <button
+              onClick={() => setRawOpen((v) => !v)}
+              className="mt-1.5 rounded-btn px-1 py-0.5 text-[11px] font-bold lowercase text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink"
+              aria-pressed={rawOpen}
+            >
+              {rawOpen ? "show it as it will be sent" : "show the exact payload"}
+            </button>
+          </div>
         </Collapse>
         {mode === "edit" && (
           <div className="mt-2">
@@ -528,6 +536,10 @@ function ActionCardInner({
         </p>
       )}
 
+      {/* The dry run, when asked for. It sits directly above the buttons it is
+          describing, so the answer and the decision are in the same glance. */}
+      {pending && simOpen && <SimulationPanel actionId={action.id} />}
+
       {pending && mode !== "edit" && (
         <footer className="mt-4 flex flex-wrap items-center gap-2">
           <span title={flagged ? INJECTION_TOOLTIP : undefined}>
@@ -536,7 +548,7 @@ function ActionCardInner({
               disabled={busy || flagged}
               aria-disabled={flagged || undefined}
               title={flagged ? INJECTION_TOOLTIP : undefined}
-              className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2 text-sm font-extrabold text-on-signal shadow-soft transition-transform hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 rounded-btn bg-signal px-5 py-2 text-sm font-extrabold text-on-signal shadow-soft transition-[transform,box-shadow] duration-fast ease-brand-out hover:-translate-y-px hover:shadow-lift active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:scale-100 disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed motion-reduce:hover:translate-y-0"
             >
               {busy ? (
                 <>
@@ -570,19 +582,37 @@ function ActionCardInner({
               )}
             </button>
           </span>
+          {/* "What would this do?" answered without doing it. Offered on every
+              pending card — including flagged ones, where understanding what
+              was attempted is exactly what the reader needs. */}
+          <button
+            onClick={() => setSimOpen((v) => !v)}
+            disabled={busy}
+            aria-expanded={simOpen}
+            className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-sm font-bold text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FlaskConical size={13} strokeWidth={2.5} aria-hidden="true" />
+            {simOpen ? "hide simulation" : "simulate first"}
+          </button>
           <button
             onClick={() => setMode("edit")}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-btn px-4 py-2 text-sm font-bold text-ink-soft transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 rounded-btn px-3.5 py-2 text-sm font-bold text-ink-soft transition-colors duration-fast hover:bg-cream-deep hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Pencil size={13} strokeWidth={2.5} aria-hidden="true" />
             edit
           </button>
           {mode !== "veto" ? (
+            /* The reject control keeps the product's own word. Every other
+               surface — the endpoint, the resulting status, the toast, the
+               receipt — says "vetoed", and one button saying "reject" while
+               the confirmation says "vetoed" is precisely the drift the
+               status vocabulary exists to prevent. Ink outline, never red:
+               refusing is a decision, not an error. */
             <button
               onClick={() => setMode("veto")}
               disabled={busy}
-              className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink transition-colors hover:bg-cream-deep disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-btn px-4 py-2 text-sm font-bold ring-1 ring-inset ring-ink transition-[colors,transform] duration-fast hover:bg-cream-deep active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               veto
             </button>

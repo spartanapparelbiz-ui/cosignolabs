@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ActionRecord, SignatureRecord } from "@/lib/types";
 import { ActionCard, type ApproveOpts } from "@/components/ActionCard";
 import { SkeletonCard } from "@/components/Skeleton";
-import { EmptyIllustration } from "@/components/EmptyIllustration";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/Toast";
 import { useDisplayName } from "@/lib/theme";
 
@@ -140,11 +140,11 @@ export function DecisionInbox({
 
   if (error) {
     return (
-      <div className="rounded-card bg-surface/60 p-6 text-center shadow-soft">
+      <div className="rounded-card bg-surface/60 p-6 text-center shadow-e1 ring-1 ring-inset ring-line/60">
         <p className="text-sm font-semibold text-ink-soft">{error}</p>
         <button
           onClick={load}
-          className="mt-3 rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink hover:bg-cream-deep"
+          className="mt-3 rounded-btn px-4 py-2 text-sm font-bold lowercase ring-1 ring-inset ring-ink transition-transform duration-fast hover:bg-cream-deep active:scale-95"
         >
           try again
         </button>
@@ -169,14 +169,15 @@ export function DecisionInbox({
   if (visible.length === 0) {
     if (emptyFallback !== undefined) return <>{emptyFallback}</>;
     return (
-      <div className="flex flex-col items-center gap-3 rounded-card bg-surface/40 px-6 py-12 text-center shadow-soft">
-        <EmptyIllustration kind="workspace" />
-        <p className="text-sm font-extrabold lowercase">nothing needs your decision.</p>
-        <p className="max-w-sm text-xs text-ink-soft">
-          when the operator prepares an action that needs your sign-off, it
-          lands here — and nothing moves until you decide.
-        </p>
-      </div>
+      <EmptyState
+        kind="workspace"
+        title="you're all caught up."
+        body="when cosigno prepares something that needs your sign-off, it lands here — and nothing moves until you decide."
+        actions={[
+          { label: "give cosigno a job", href: "/app" },
+          { label: "see what's running", href: "/app/missions" },
+        ]}
+      />
     );
   }
 

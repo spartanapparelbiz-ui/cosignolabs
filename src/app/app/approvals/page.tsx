@@ -27,13 +27,17 @@ export default async function ApprovalsPage() {
     // fall through — DecisionInbox fetches client-side exactly as before
   }
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8">
-      <h1 className="font-display text-2xl font-bold lowercase">approvals</h1>
-      <p className="mt-1 text-sm font-semibold text-ink-soft">
-        every action waiting for your signature, across all your missions.
-        approving executes it; vetoing kills it. nothing runs on its own.
-      </p>
-      <div className="mt-6 flex-1">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-10">
+      <header className="animate-blur-in">
+        <h1 className="font-display text-display-md font-bold lowercase">approvals</h1>
+        <p className="mt-2 max-w-xl text-pretty text-sm font-semibold leading-relaxed text-ink-soft">
+          every action waiting for your signature, across all your missions.
+          each one carries what it does, what it touches, and whether it can be
+          undone — approving executes it, vetoing kills it, and nothing runs on
+          its own.
+        </p>
+      </header>
+      <div className="mt-7 flex-1">
         <DecisionInbox initial={initial} />
       </div>
     </div>

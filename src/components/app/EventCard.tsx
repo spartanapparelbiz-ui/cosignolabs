@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
+import { staggerDelay, STAGGER_MS } from "@/lib/motion";
 
 /**
  * The one event card. Every timeline in cosigno renders through this.
@@ -109,7 +110,7 @@ export function EventCard({
     </>
   );
 
-  const className = `group flex w-full items-start gap-2.5 rounded-btn px-2.5 py-2 text-left transition-colors ${
+  const className = `group flex w-full items-start gap-2.5 rounded-btn px-2.5 py-2 text-left transition-colors duration-fast ${
     event.pinned ? "bg-signal/10 ring-1 ring-inset ring-signal/30" : "hover:bg-cream-deep/50"
   }`;
 
@@ -153,8 +154,10 @@ export function EventStream({
   }
   return (
     <ol className="flex flex-col gap-0.5">
-      {events.map((e) => (
-        <li key={e.id}>
+      {events.map((e, i) => (
+        // Rows arrive staggered, capped so a 200-event history still finishes
+        // appearing in well under half a second.
+        <li key={e.id} style={staggerDelay(i, STAGGER_MS.rows)} className="animate-feed-in">
           <EventCard event={e} onSelect={onSelect} />
         </li>
       ))}

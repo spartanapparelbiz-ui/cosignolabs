@@ -42,9 +42,60 @@ export const LOGO_BREATH = {
 } as const;
 
 /** Stagger step between sequential items (headline words, card stacks). */
-export const STAGGER_MS = { words: 80, cards: 60 } as const;
+export const STAGGER_MS = {
+  words: 80,
+  cards: 60,
+  /** Dashboard tiles in a grid — tighter, because there are more of them. */
+  tiles: 45,
+  /** Rows in a feed or list. Tighter still; a long list must not crawl in. */
+  rows: 32,
+} as const;
 
-/** Inline-style helper for stagger delays. */
-export function staggerDelay(index: number, step = STAGGER_MS.cards): React.CSSProperties {
-  return { animationDelay: `${index * step}ms` };
+/**
+ * How long a stagger is allowed to run in total.
+ *
+ * A per-item delay is only pleasant while the last item still arrives
+ * promptly: 45ms across eight tiles is a flourish, the same 45ms across
+ * forty rows is a page that takes two seconds to finish appearing. Every
+ * staggered surface caps its index against this, so a grid's entrance costs
+ * the same whether it holds six items or six hundred.
+ */
+export const STAGGER_CAP_MS = 400;
+
+/** Inline-style helper for stagger delays, capped so long lists stay fast. */
+export function staggerDelay(index: number, step: number = STAGGER_MS.cards): React.CSSProperties {
+  return { animationDelay: `${Math.min(index * step, STAGGER_CAP_MS)}ms` };
 }
+
+/**
+ * The elevation ladder, named. Mirrors the `shadow-e1..e4` tokens in the
+ * Tailwind theme (see BRAND.md → "Shape & depth"). Components reach for a
+ * *height* — resting, raised, lifted, overlay — rather than picking a
+ * shadow, which is what kept surfaces at four subtly different heights.
+ */
+export const ELEVATION = {
+  /** A tile at rest inside a grid. */
+  resting: "shadow-e1",
+  /** A card you can pick up: the default for anything interactive. */
+  raised: "shadow-e2",
+  /** Mid-lift — hover, or a card that needs a decision. */
+  lifted: "shadow-e3",
+  /** Above the page: menus, popovers, dialogs. */
+  overlay: "shadow-e4",
+} as const;
+
+/**
+ * The one hover gesture for an interactive surface: rise 2px and gain a
+ * step of elevation, over `fast`. Declared once so every card in the
+ * product lifts by the same amount at the same speed — the difference
+ * between a system and a pile of cards that each move slightly differently.
+ */
+export const HOVER_LIFT =
+  "transition-[transform,box-shadow] duration-fast ease-brand-out hover:-translate-y-0.5 hover:shadow-e3 motion-reduce:hover:translate-y-0";
+
+/**
+ * The press gesture. Paired with HOVER_LIFT on anything clickable — a
+ * surface that lifts to meet the pointer must also give way under it, or
+ * the click has no physical answer.
+ */
+export const PRESS = "active:translate-y-0 active:scale-[0.99]";
