@@ -63,7 +63,9 @@ function Chrome({
               <div className="lg:hidden">
                 <LogoHome href="/app" label="cosigno workspace" size={26} textClass="text-xl" />
               </div>
-              <div className="ml-auto flex items-center gap-3">
+              {/* gap-2 below sm: three controls plus the logo brush 390px —
+                  the wider gap returns the moment there's room for it. */}
+              <div className="ml-auto flex items-center gap-2 sm:gap-3">
                 <CommandButton />
                 <EmergencyStop />
                 {userSlot}

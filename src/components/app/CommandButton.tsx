@@ -20,7 +20,7 @@ export function CommandButton() {
     <button
       onClick={() => window.dispatchEvent(new CustomEvent("cosigno:command-open"))}
       aria-label="search the workspace"
-      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-btn border border-line bg-surface px-3 py-1.5 text-xs font-bold text-ink-soft transition-colors duration-fast hover:border-signal hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-btn border border-line bg-surface px-2.5 py-1.5 text-xs font-bold text-ink-soft transition-colors duration-fast hover:border-signal hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal sm:px-3"
     >
       <Search size={13} aria-hidden="true" />
       <span className="hidden sm:inline">search</span>
