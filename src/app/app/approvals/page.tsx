@@ -1,5 +1,6 @@
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { getUserId } from "@/lib/auth";
+import { decisionCadence, type DecisionCadence } from "@/lib/decisions/cadence";
 import { servingAllowed } from "@/lib/env";
 import { getStore } from "@/lib/store";
 import type { ActionRecord } from "@/lib/types";
@@ -16,11 +17,22 @@ export const metadata = { title: "approvals" };
  */
 export default async function ApprovalsPage() {
   let initial: ActionRecord[] | undefined;
+  // The user's decision cadence — the median time-to-decision from their own
+  // resolved history. Computed here, once, from records that already exist;
+  // the inbox uses it to flag a card that has waited far longer than this
+  // person usually takes, with the evidence base printed in the sentence.
+  let cadence: DecisionCadence | null = null;
   try {
     if (servingAllowed()) {
       const userId = await getUserId();
       if (userId) {
-        initial = await getStore().listActions(userId, { status: "proposed", limit: 200 });
+        const store = getStore();
+        const [proposed, recent] = await Promise.all([
+          store.listActions(userId, { status: "proposed", limit: 200 }),
+          store.listActions(userId, { limit: 200 }),
+        ]);
+        initial = proposed;
+        cadence = decisionCadence(recent);
       }
     }
   } catch {
@@ -38,7 +50,7 @@ export default async function ApprovalsPage() {
         </p>
       </header>
       <div className="mt-7 flex-1">
-        <DecisionInbox initial={initial} />
+        <DecisionInbox initial={initial} cadence={cadence} />
       </div>
     </div>
   );

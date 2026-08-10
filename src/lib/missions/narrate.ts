@@ -226,7 +226,7 @@ export interface MissionNarration {
 /* ------------------------------------------------------------------ tense */
 
 /** Verbs that need their final consonant doubled before -ing. */
-const DOUBLES = new Set(["run", "set", "put", "cut", "get", "plan", "stop", "begin", "submit"]);
+const DOUBLES = new Set(["run", "set", "put", "cut", "get", "plan", "stop", "begin", "submit", "scan", "drop", "ship", "log", "tag", "map", "wrap"]);
 
 /**
  * Turn an imperative into its -ing form: "Read your repositories" becomes

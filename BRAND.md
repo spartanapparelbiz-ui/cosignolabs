@@ -348,6 +348,49 @@ product exists to prevent. The footer says so on every render.
 Results are grouped in a fixed order (waiting on you → missions → files → apps
 → pages) so the palette's shape is predictable enough to use without looking.
 
+### Decision cadence — the one prediction
+
+cosigno makes exactly one prediction, because it is the one it can make
+honestly (`src/lib/decisions/cadence.ts`): the median time-to-decision,
+computed from the user's own resolved approvals. "You usually decide within
+about 20 minutes, and this card has waited 4 hours" is arithmetic over stored
+timestamps, not clairvoyance.
+
+- **The evidence base is part of the sentence** — "based on your last 24
+  decisions" — never a tooltip.
+- **Small samples say nothing** (below 5 resolved decisions, no cadence is
+  claimed), tier-1 auto actions are excluded (they never waited on a person),
+  and the median is used so one abandoned card doesn't define the person.
+- **Only meaningful exceedances speak**: nothing under an hour is ever
+  flagged, and an ordinary wait gets no line at all. An assessment on every
+  card would train people to skip the one that matters.
+- The header line is a **description of the past, never a forecast**.
+
+### Mission replay
+
+A finished mission's recorded history, scrubbable
+(`src/lib/missions/replay.ts`). Every moment is a stored timestamp — mission
+accepted, step started/finished, decision asked/made — so two viewings can
+never disagree; nothing is re-narrated after the fact.
+
+The scrubber is proportional to REAL time, which is the point: outcomes hide
+where time went, and the replay shows the two-day mission was a minute of work
+and one long wait on a decision. Stalls are derived from the assembled
+timeline, only named when they are the story (≥10 minutes AND ≥25% of the
+span), and attributed honestly — "waiting on a decision" after a boundary,
+"nothing was recorded" otherwise.
+
+### The execution map
+
+The workspace in four lanes — moving, stopped on you, standing, landed today
+(`src/lib/workspace/map.ts`) — with the bottleneck on top: the OLDEST waiting
+decision, because age is the one dimension that worsens entirely by itself and
+needs no judgment call to rank. "Bottleneck" is only said when missions are
+actually stopped behind the queue; a fresh, lone decision is "next decision".
+The headline directs ("2 decisions waiting — 2 missions are stopped behind
+them."), it never merely describes. Lanes are states, not machinery: no
+leases, workers, or queue depths.
+
 ### The decision brief
 
 Every approval carries six derived facts, in a fixed order, so the fifth

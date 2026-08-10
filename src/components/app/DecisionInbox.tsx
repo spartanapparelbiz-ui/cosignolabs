@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ActionRecord, SignatureRecord } from "@/lib/types";
+import { assessWait, cadenceLine, type DecisionCadence } from "@/lib/decisions/cadence";
 import { ActionCard, type ApproveOpts } from "@/components/ActionCard";
 import { SkeletonCard } from "@/components/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -30,6 +31,7 @@ export function DecisionInbox({
   only,
   compact = false,
   emptyFallback,
+  cadence = null,
 }: {
   initial?: ActionRecord[];
   /**
@@ -42,6 +44,12 @@ export function DecisionInbox({
   compact?: boolean;
   /** What to render instead of the full-page empty state when embedded. */
   emptyFallback?: React.ReactNode;
+  /**
+   * The user's own decision cadence (median time-to-decision, with its
+   * sample size). When present, a card that has waited far longer than this
+   * person usually takes carries a quiet, evidenced note saying so.
+   */
+  cadence?: DecisionCadence | null;
 }) {
   // When the server prefetched the queue it renders on first paint; the
   // mount load() below then revalidates in the background (SWR).
@@ -181,13 +189,24 @@ export function DecisionInbox({
     );
   }
 
+  const cadenceNote = cadenceLine(cadence);
+
   return (
     <div className="flex flex-col gap-3">
       {!compact && (
-        <p className="text-xs font-bold lowercase tracking-wide text-ink-soft" role="status">
-          {visible.length} decision{visible.length === 1 ? "" : "s"} waiting — nothing
-          has been taken without you.
-        </p>
+        <div>
+          <p className="text-xs font-bold lowercase tracking-wide text-ink-soft" role="status">
+            {visible.length} decision{visible.length === 1 ? "" : "s"} waiting — nothing
+            has been taken without you.
+          </p>
+          {/* A description of the past, never a forecast — and only when
+              there is a real sample behind it. */}
+          {cadenceNote && (
+            <p className="mt-0.5 text-[11px] font-semibold lowercase text-ink-soft/80">
+              {cadenceNote}
+            </p>
+          )}
+        </div>
       )}
       {visible.map((a, i) => (
         <ActionCard
@@ -196,6 +215,7 @@ export function DecisionInbox({
           index={i}
           savedSignature={saved}
           signerName={displayName.trim() || "Operator"}
+          waitNote={assessWait(a, cadence, new Date())?.text ?? null}
           onSaveSignature={onSaveSignature}
           onApprove={onApprove}
           onVeto={onVeto}

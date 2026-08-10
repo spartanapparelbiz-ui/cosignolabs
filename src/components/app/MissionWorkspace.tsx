@@ -22,7 +22,7 @@ import {
   Square,
   XCircle,
 } from "lucide-react";
-import type { MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/lib/types";
+import type { ActionRecord, MissionRecord, MissionSourceRecord, MissionStepRecord } from "@/lib/types";
 import { OPERATOR_PROFILES } from "@/lib/missions/operators";
 import { useToast } from "@/components/Toast";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
@@ -31,6 +31,7 @@ import { heroResult } from "@/lib/missions/today";
 import { missionStatus, STATUS_TONE } from "@/lib/status";
 import { INCREASE_STEPS, type BudgetState } from "@/lib/missions/budget";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
+import { MissionReplay } from "@/components/app/mission/MissionReplay";
 import { OperatorGraph } from "@/components/app/mission/OperatorGraph";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 
@@ -76,6 +77,10 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [budget, setBudget] = useState<BudgetState | null>(null);
+  // The mission's decision records, fetched once it is over — the replay
+  // needs their boundary/decision timestamps, and a live mission shows its
+  // decisions inline instead.
+  const [replayActions, setReplayActions] = useState<ActionRecord[] | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -117,6 +122,22 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [load, missionId]);
+
+  // Once the mission is over, fetch its decision records once for the replay.
+  // Live missions never do this — their decisions are on screen already, and
+  // a replay of something still happening is just the page, slower.
+  const terminal = mission !== null && TERMINAL.has(mission.state);
+  const sessionId = mission?.session_id ?? null;
+  useEffect(() => {
+    if (!terminal || !sessionId || replayActions !== null) return;
+    let alive = true;
+    jsonFetch(`/api/actions?session=${encodeURIComponent(sessionId)}&limit=100`)
+      .then((d) => alive && setReplayActions((d.actions ?? []) as ActionRecord[]))
+      .catch(() => alive && setReplayActions([]));
+    return () => {
+      alive = false;
+    };
+  }, [terminal, sessionId, replayActions]);
 
   async function control(op: "pause" | "resume" | "stop") {
     setBusy(op);
@@ -522,6 +543,13 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
               })}
             </ol>
           </div>
+
+          {/* THE REPLAY — recorded history, scrubbable, for finished missions.
+              Outcomes hide where time went; the replay shows that the two-day
+              mission was a minute of work and one long wait on a decision. */}
+          {terminal && replayActions !== null && (
+            <MissionReplay mission={mission} steps={steps} actions={replayActions} />
+          )}
         </section>
 
         {/* right panel: plan, sources, results, usage */}

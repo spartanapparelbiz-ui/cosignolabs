@@ -70,6 +70,9 @@ describe("the current step says what it is doing", () => {
     ["Run the tests", "Running the tests"],
     ["Create a pull request", "Creating a pull request"],
     ["Analyze the repository", "Analyzing the repository"],
+    // Consonant doubling: "scaning the inbox" shipped once. Never again.
+    ["Scan the inbox for newsletter clutter", "Scanning the inbox for newsletter clutter"],
+    ["Map the dependencies", "Mapping the dependencies"],
   ])("%j reads as %j while running", (purpose, expected) => {
     expect(toProgressive(purpose)).toBe(expected);
   });

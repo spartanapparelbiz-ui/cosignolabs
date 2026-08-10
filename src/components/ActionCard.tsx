@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Database,
   FlaskConical,
+  Hourglass,
   Megaphone,
   Pencil,
   PenLine,
@@ -69,6 +70,13 @@ interface Props {
   savedSignature?: SignatureRecord | null;
   /** Default name for a fresh signature ("Signed by …"). */
   signerName?: string;
+  /**
+   * An evidenced note that this card has waited unusually long against the
+   * user's OWN decision history (see lib/decisions/cadence). Rendered only
+   * when present — an assessment on every card would train people to skip
+   * the one that matters.
+   */
+  waitNote?: string | null;
   /** Persist a newly drawn signature for next time (best effort). */
   onSaveSignature?: (name: string, image: string) => Promise<void>;
   onApprove: (id: string, opts: ApproveOpts) => Promise<string | null>;
@@ -151,6 +159,7 @@ function ActionCardInner({
   showKeyHints = false,
   savedSignature = null,
   signerName = "",
+  waitNote = null,
   onSaveSignature,
   onApprove,
   onVeto,
@@ -380,6 +389,15 @@ function ActionCardInner({
       {pending && !flagged && (
         <p className="mt-2 pl-12 text-[11px] font-semibold text-ink-soft">
           {beforeApprovalLine(action.category)} {afterApprovalLine(action.category)}
+        </p>
+      )}
+
+      {/* This card has waited far longer than this person usually takes —
+          said with its evidence, and only on the card where it's true. */}
+      {pending && waitNote && (
+        <p className="mt-2 flex items-start gap-1.5 pl-12 text-[11px] font-bold text-signal">
+          <Hourglass size={12} strokeWidth={2.5} className="mt-px shrink-0" aria-hidden="true" />
+          {waitNote}
         </p>
       )}
 
@@ -686,6 +704,7 @@ export const ActionCard = memo(
     prev.action === next.action &&
     prev.index === next.index &&
     prev.showKeyHints === next.showKeyHints &&
+    prev.waitNote === next.waitNote &&
     prev.savedSignature === next.savedSignature &&
     prev.signerName === next.signerName &&
     prev.onSaveSignature === next.onSaveSignature &&
