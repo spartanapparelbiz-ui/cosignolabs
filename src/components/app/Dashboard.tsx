@@ -201,9 +201,13 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
         <SourceComposer
           onStarted={load}
           suggestions={
-            connections.some((c) => c.provider_key.startsWith("google"))
-              ? ["prepare tomorrow's meeting", "review my unread emails", "follow up on unanswered threads", "research the best option"]
-              : undefined
+            working.length === 0 && waiting.length === 0
+              ? // Idle: the "Try asking" cards below own the suggestions —
+                // chips saying the same things twice is noise, not help.
+                []
+              : connections.some((c) => c.provider_key.startsWith("google"))
+                ? ["prepare tomorrow's meeting", "review my unread emails", "follow up on unanswered threads", "research the best option"]
+                : undefined
           }
         />
       </div>

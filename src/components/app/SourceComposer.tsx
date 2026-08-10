@@ -600,18 +600,21 @@ export function SourceComposer({
         </div>
       )}
 
-      {/* examples */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {(suggestions ?? EXAMPLES).map((ex) => (
-          <button
-            key={ex}
-            onClick={() => setGoal(ex)}
-            className="rounded-pill border border-line/70 bg-cream/40 px-3.5 py-1.5 text-sm font-semibold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
-          >
-            {ex}
-          </button>
-        ))}
-      </div>
+      {/* examples — pass [] to render none (the surface has its own
+          suggestion system and two at once compete). */}
+      {(suggestions ?? EXAMPLES).length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(suggestions ?? EXAMPLES).map((ex) => (
+            <button
+              key={ex}
+              onClick={() => setGoal(ex)}
+              className="rounded-pill border border-line/70 bg-cream/40 px-3.5 py-1.5 text-sm font-semibold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
