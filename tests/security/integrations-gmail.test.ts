@@ -128,7 +128,19 @@ describe("custom MCP output can't self-execute or self-escalate", () => {
       metadata: { url: "https://mcp.example.com" },
     });
     await store.saveMcpTools("u1", c.id, [
-      { name: tool.name, description: "x", input_schema: {}, enabled: tool.enabled, sensitive: tool.sensitive, consented_at: tool.consented_at },
+      {
+        name: tool.name,
+        description: "x",
+        input_schema: {},
+        enabled: tool.enabled,
+        sensitive: tool.sensitive,
+        consented_at: tool.consented_at,
+        // Unclassified on purpose: this exercises the name-based fallback in
+        // mcpToolRisk, which is what rows written before classification hit.
+        category: null,
+        confidence: null,
+        classified_by: null,
+      },
     ]);
     return c.id;
   }

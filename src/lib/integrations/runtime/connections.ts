@@ -11,6 +11,7 @@ import type {
   Credentials,
   DiscoveryResult,
   McpCredentials,
+  McpTransport,
   OAuthCredentials,
 } from "../types";
 
@@ -70,9 +71,22 @@ async function freshOAuth(
 function mcpConfig(c: ConnectionRecord): McpConfig {
   const creds = decryptCreds(c) as McpCredentials;
   const url = String((c.metadata as { url?: string }).url ?? "");
-  const transport = (c.metadata as { transport?: "http" | "sse" }).transport ?? "http";
+  const transport = (c.metadata as { transport?: McpTransport }).transport ?? "http";
   return { url, transport, bearer: creds.bearer, headers: creds.headers };
 }
+
+/**
+ * A local-process (stdio) server cosigno has stored but cannot contact from a
+ * hosted deployment. Kept as one predicate because three call sites need to
+ * agree on it, and because "pending" must never decay into "error" — the
+ * config is right, the route to it doesn't exist yet.
+ */
+function isLocalProcess(c: ConnectionRecord): boolean {
+  return (c.metadata as { transport?: string }).transport === "stdio";
+}
+
+const LOCAL_NOTE =
+  "this server runs on your own machine. cosigno runs in the cloud, so it can't reach it yet — the configuration is saved.";
 
 /** Health-check a connection and persist the resulting status + timestamp. */
 export async function checkHealth(
@@ -86,6 +100,12 @@ export async function checkHealth(
 
   try {
     if (c.kind === "mcp") {
+      // Checking the health of something we have no route to would report a
+      // failure the user cannot act on. It stays pending, honestly.
+      if (isLocalProcess(c)) {
+        await store.updateConnection(userId, connectionId, { status: "pending", last_health_at: now });
+        return { status: "pending" };
+      }
       await handshakeAndList(mcpConfig(c), 8000);
       await store.updateConnection(userId, connectionId, { status: "connected", last_health_at: now });
       return { status: "connected" };
@@ -195,6 +215,7 @@ export async function runMcpTool(
   const store = getStore();
   const c = await store.getConnection(userId, connectionId);
   if (!c || c.kind !== "mcp") return { ok: false, summary: "MCP connection not found." };
+  if (isLocalProcess(c)) return { ok: false, summary: LOCAL_NOTE };
   const tool = await store.getMcpTool(userId, connectionId, toolName);
   if (!tool) return { ok: false, summary: "that tool isn't on this server anymore." };
   // Belt-and-suspenders: consent is checked at enable time AND here.

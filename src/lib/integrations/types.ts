@@ -5,14 +5,28 @@
  * secret-free; a connection is per-user and holds encrypted credentials.
  */
 
-export type AuthType = "oauth2" | "apikey" | "mcp_remote";
+export type AuthType = "oauth2" | "apikey" | "mcp_remote" | "mcp_local";
 
-/** How a connection is doing right now — surfaced verbatim in the UI. */
+/**
+ * How a connection is doing right now — surfaced verbatim in the UI.
+ *
+ * `pending` is the honest state for a connection that is correctly configured
+ * but not yet reachable — today that means a local-process (stdio) MCP server,
+ * which cosigno cannot connect to from a hosted environment. It exists so that
+ * "we can't run this yet" never has to borrow `error`, which tells the user
+ * they did something wrong when they didn't.
+ *
+ * The transient states people see while working — connecting, testing, running,
+ * streaming — are deliberately NOT here. They belong to a request in flight,
+ * not to a stored row, and persisting them would leave a connection stuck
+ * "running" forever the moment a serverless function is recycled mid-call.
+ */
 export type ConnectionStatus =
   | "connected"
   | "needs_reauth"
   | "error"
-  | "revoked";
+  | "revoked"
+  | "pending";
 
 export type ConnectionKind = "app" | "mcp" | "custom";
 
@@ -40,7 +54,13 @@ export interface CustomApiConfig {
   actions: CustomApiAction[];
 }
 
-export type McpTransport = "http" | "sse";
+/**
+ * How cosigno talks to an MCP server. "http" (Streamable HTTP) and "sse" are
+ * remote and reachable from the server. "stdio" is a local process: parsed,
+ * stored and displayed, but not runnable from a hosted deployment — see the
+ * `pending` connection status.
+ */
+export type McpTransport = "http" | "sse" | "stdio";
 
 /** A typed action a provider exposes to the rest of the app. */
 /**
@@ -248,4 +268,18 @@ export interface McpToolRecord {
   sensitive: boolean;
   /** When the user consented (required before a sensitive tool is callable). */
   consented_at: string | null;
+  /**
+   * What kind of thing this tool does — one of the nine categories in
+   * ./mcp/classify. The server maps it to an approval tier; no connector picks
+   * its own. Null only for rows written before classification existed, which
+   * fall back to the name-based rule in ./tiers.
+   */
+  category: string | null;
+  /** 0–1: how decisive the classifier was. Null for user-set categories. */
+  confidence: number | null;
+  /**
+   * "auto" — cosigno classified it. "user" — a human settled it, and
+   * re-discovery must not overwrite their answer.
+   */
+  classified_by: "auto" | "user" | null;
 }

@@ -48,6 +48,7 @@ import type {
   ActivityFilter,
   ConnectionInsert,
   ConnectionPatch,
+  McpToolPatch,
   OAuthStateRow,
   Store,
 } from "./index";
@@ -436,11 +437,23 @@ export class MemoryStore implements Store {
     this.mcpTools = this.mcpTools.filter((t) => t.connection_id !== connectionId);
     for (const t of tools) {
       const was = prior.get(t.name);
+      // Mirrors the Supabase store exactly: a category a human settled is
+      // theirs, and re-discovery must not re-guess it. Keeping the two stores
+      // identical is what stops "works locally, wrong in production".
+      const userOwned = was?.classified_by === "user";
       this.mcpTools.push({
         ...t,
         connection_id: connectionId,
         enabled: was?.enabled ?? t.enabled,
         consented_at: was?.consented_at ?? t.consented_at,
+        ...(userOwned
+          ? {
+              category: was.category,
+              confidence: was.confidence,
+              classified_by: was.classified_by,
+              sensitive: was.sensitive,
+            }
+          : {}),
       });
     }
     void userId;
@@ -464,7 +477,7 @@ export class MemoryStore implements Store {
     userId: string,
     connectionId: string,
     name: string,
-    patch: { enabled?: boolean; consented_at?: string | null }
+    patch: McpToolPatch
   ): Promise<void> {
     void userId;
     const t = this.mcpTools.find((x) => x.connection_id === connectionId && x.name === name);

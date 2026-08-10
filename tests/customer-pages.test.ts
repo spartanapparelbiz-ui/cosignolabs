@@ -153,10 +153,24 @@ describe("the twin concept is gone; connections is the complete app experience",
     expect(CONNECTIONS).toMatch(/completed automatically/);
   });
 
-  it("apps are searchable, and no match says so rather than showing an empty list", () => {
-    expect(CONNECTIONS).toMatch(/aria-label="search apps"/);
+  /*
+   * Search used to cover the fixed list of apps. Connections are now
+   * open-ended — any MCP server, and the tools inside it — so the same rule is
+   * asserted against the wider surface: one search box, and an empty result
+   * that says so instead of rendering three blank sections.
+   */
+  it("connections are searchable, and no match says so rather than showing an empty list", () => {
+    expect(CONNECTIONS).toMatch(/aria-label="search your connections"/);
     expect(CONNECTIONS).toMatch(/visibleProviders/);
-    expect(CONNECTIONS).toMatch(/no app matches/);
+    expect(CONNECTIONS).toMatch(/nothingMatches/);
+    expect(CONNECTIONS).toMatch(/nothing you&apos;ve connected matches/);
+  });
+
+  it("search reaches inside a server, to the tools it offers", () => {
+    // A server's value is its tools; finding it by name alone would miss the
+    // case the search exists for ("which of these can send email?").
+    expect(CONNECTIONS).toMatch(/function matchesQuery/);
+    expect(CONNECTIONS).toMatch(/t\.name\.toLowerCase\(\)\.includes\(q\)/);
   });
 
   it("open-app links go to the app's real declared home, never a guessed URL", async () => {

@@ -48,6 +48,7 @@ import type {
   ActivityFilter,
   ConnectionInsert,
   ConnectionPatch,
+  McpToolPatch,
   OAuthStateRow,
   Store,
 } from "./index";
@@ -550,15 +551,22 @@ export class SupabaseStore implements Store {
     if (tools.length === 0) return;
     const rows = tools.map((t) => {
       const was = prior.get(t.name);
+      // A category a HUMAN settled outlives re-discovery. Re-running the
+      // classifier over it would quietly undo their decision — and the whole
+      // point of asking was that the machine wasn't sure.
+      const userOwned = was?.classified_by === "user";
       return {
         connection_id: connectionId,
         user_id: userId,
         name: t.name,
         description: t.description,
         input_schema: t.input_schema,
-        sensitive: t.sensitive,
+        sensitive: userOwned ? was.sensitive : t.sensitive,
         enabled: was?.enabled ?? t.enabled,
         consented_at: was?.consented_at ?? t.consented_at,
+        category: userOwned ? was.category : t.category,
+        confidence: userOwned ? was.confidence : t.confidence,
+        classified_by: userOwned ? "user" : t.classified_by,
       };
     });
     const { error } = await this.client.from("mcp_tools").insert(rows);
@@ -574,6 +582,9 @@ export class SupabaseStore implements Store {
       enabled: Boolean(r.enabled),
       sensitive: Boolean(r.sensitive),
       consented_at: (r.consented_at as string | null) ?? null,
+      category: (r.category as string | null) ?? null,
+      confidence: typeof r.confidence === "number" ? r.confidence : null,
+      classified_by: (r.classified_by as "auto" | "user" | null) ?? null,
     };
   }
 
@@ -607,7 +618,7 @@ export class SupabaseStore implements Store {
     userId: string,
     connectionId: string,
     name: string,
-    patch: { enabled?: boolean; consented_at?: string | null }
+    patch: McpToolPatch
   ): Promise<void> {
     const { error } = await this.client
       .from("mcp_tools")

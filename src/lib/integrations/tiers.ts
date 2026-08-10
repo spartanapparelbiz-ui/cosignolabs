@@ -1,5 +1,6 @@
 import type { Tier } from "../types";
 import type { CapabilityRisk, ProviderAction } from "./types";
+import { CATEGORY_RISK, toCategory } from "./mcp/classify";
 
 /**
  * Capability → approval tier. This is the SERVER's rule, and it is the only
@@ -58,8 +59,26 @@ export function customActionRisk(name: string, method: string): CapabilityRisk {
   return "write";
 }
 
-/** MCP tools carry a sensitive flag + name; map to a safe default risk class. */
-export function mcpToolRisk(tool: { name: string; sensitive: boolean }): CapabilityRisk {
+/**
+ * The risk class of an MCP tool.
+ *
+ * The authority is the tool's CATEGORY — one of the nine the classifier
+ * assigns at discovery, or the one a human settled. That mapping lives in
+ * ./mcp/classify (CATEGORY_RISK) so there is exactly one table saying what
+ * "delete" or "payment" means.
+ *
+ * The name-based rule below is the fallback for rows written before
+ * classification existed. It stays deliberately conservative: anything not
+ * provably read-only is a write.
+ */
+export function mcpToolRisk(tool: {
+  name: string;
+  sensitive: boolean;
+  category?: string | null;
+}): CapabilityRisk {
+  const category = toCategory(tool.category);
+  if (category) return CATEGORY_RISK[category];
+
   // Normalize snake_case / kebab-case so word boundaries match each segment
   // ("wipe_database" → "wipe database").
   const n = tool.name.toLowerCase().replace(/[_-]+/g, " ").trim();

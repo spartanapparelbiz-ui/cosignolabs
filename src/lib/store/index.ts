@@ -101,6 +101,22 @@ export interface ConnectionPatch {
   last_health_at?: string | null;
 }
 
+/**
+ * A partial update to one cached MCP tool. Enable/consent is the everyday
+ * path; the classification fields are written only when a human settles a
+ * category the classifier wasn't sure about — which is why `classified_by`
+ * is part of the patch rather than inferred, so that decision is explicit at
+ * every call site that records one.
+ */
+export interface McpToolPatch {
+  enabled?: boolean;
+  consented_at?: string | null;
+  category?: string | null;
+  confidence?: number | null;
+  classified_by?: "auto" | "user" | null;
+  sensitive?: boolean;
+}
+
 export interface OAuthStateRow {
   state: string;
   user_id: string;
@@ -343,9 +359,9 @@ export interface Store {
   /** connected_at timestamps keyed by integration key. */
   integrationConnectedAt(userId: string): Promise<Record<string, string>>;
 
-  /* --- Connections v2: third-party apps + custom MCP servers. Credentials
-     are stored ENCRYPTED (ciphertext in) and returned as-is (decryption is
-     the caller's job, in the runtime layer). --- */
+  /* --- Connections v2: MCP servers, native adapters, custom API tools.
+     Credentials are stored ENCRYPTED (ciphertext in) and returned as-is
+     (decryption is the caller's job, in the runtime layer). --- */
   createConnection(input: ConnectionInsert): Promise<ConnectionRecord>;
   getConnection(userId: string, id: string): Promise<ConnectionRecord | null>;
   listConnections(userId: string): Promise<ConnectionRecord[]>;
@@ -363,7 +379,7 @@ export interface Store {
     userId: string,
     connectionId: string,
     name: string,
-    patch: { enabled?: boolean; consented_at?: string | null }
+    patch: McpToolPatch
   ): Promise<void>;
   /** OAuth CSRF/PKCE state — created before redirect, consumed once on callback. */
   createOAuthState(row: OAuthStateRow): Promise<void>;

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { ConnectionInsight } from "@/components/account/ConnectionInsight";
+import { AddConnection } from "@/components/connections/AddConnection";
 import { humanizeActionId, humanizeEndpoint } from "@/lib/integrations/engine/humanize";
 import { ruleAppliesToApp } from "@/lib/rules";
 
@@ -84,7 +85,7 @@ interface ConnectionView {
   provider_key: string;
   kind: "app" | "mcp" | "custom";
   display_name: string;
-  status: "connected" | "needs_reauth" | "error" | "revoked";
+  status: "connected" | "needs_reauth" | "error" | "revoked" | "pending";
   scopes: string | null;
   metadata: Record<string, unknown>;
   /** When the connection last passed its real health check. */
@@ -110,6 +111,34 @@ interface McpTool {
   sensitive: boolean;
   consented_at: string | null;
   tier?: 1 | 2 | 3;
+  /** One of the nine categories the classifier assigns. Null on old rows. */
+  category?: string | null;
+  /** How sure the classifier was. Null once a human has settled it. */
+  confidence?: number | null;
+  classified_by?: "auto" | "user" | null;
+}
+
+/** The categories a human may pick from when the classifier wasn't sure. */
+const CATEGORY_CHOICES = [
+  "read",
+  "search",
+  "create",
+  "update",
+  "send",
+  "delete",
+  "payment",
+  "admin",
+  "execute",
+] as const;
+
+/** Below this the classifier is guessing, and the row asks rather than asserts. */
+const LOW_CONFIDENCE = 0.45;
+
+function needsReview(tool: McpTool): boolean {
+  return (
+    tool.classified_by !== "user" &&
+    (!tool.category || (typeof tool.confidence === "number" && tool.confidence < LOW_CONFIDENCE))
+  );
 }
 interface Data {
   providers: ProviderMeta[];
@@ -120,9 +149,12 @@ interface Data {
 
 const STATUS_STYLE: Record<ConnectionView["status"], { label: string; cls: string }> = {
   connected: { label: "connected", cls: "bg-signal text-cream" },
-  needs_reauth: { label: "needs re-auth", cls: "ring-1 ring-inset ring-signal text-signal" },
+  needs_reauth: { label: "needs attention", cls: "ring-1 ring-inset ring-signal text-signal" },
   error: { label: "error", cls: "ring-1 ring-inset ring-ink/40 text-ink-soft" },
   revoked: { label: "disconnected", cls: "ring-1 ring-inset ring-ink/30 text-ink-soft" },
+  // Configured correctly, no route to it yet (a local stdio server). This is
+  // not a failure and must not be dressed as one.
+  pending: { label: "waiting on bridge", cls: "ring-1 ring-inset ring-ink/25 text-ink-soft" },
 };
 
 /**
@@ -188,6 +220,7 @@ export function ConnectionsPanel() {
   const [busy, setBusy] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addApiOpen, setAddApiOpen] = useState(false);
+  const [addConnectionOpen, setAddConnectionOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   // Provider key that JUST completed OAuth — its card pulses once on return.
   const [justConnected, setJustConnected] = useState<string | null>(null);
@@ -253,14 +286,44 @@ export function ConnectionsPanel() {
     }
   }, []);
 
+  /**
+   * The OpenAPI / HTTP-API paths in the add dialog hand off to the builder that
+   * already lives on this page rather than a second copy of it. The dialog
+   * closes and asks the page to open that section.
+   */
+  useEffect(() => {
+    const open = () => {
+      setAddApiOpen(true);
+      // The builder is far down the page; landing on it beats leaving someone
+      // on an unchanged screen wondering whether the button worked.
+      requestAnimationFrame(() =>
+        document
+          .getElementById("custom-api-tools")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" })
+      );
+    };
+    window.addEventListener("cosigno:open-api-tool", open);
+    return () => window.removeEventListener("cosigno:open-api-tool", open);
+  }, []);
+
   const connByProvider = new Map(
     (data?.connections ?? []).filter((c) => c.kind === "app").map((c) => [c.provider_key, c])
   );
 
   const q = query.trim().toLowerCase();
-  const visibleProviders = (data?.providers ?? []).filter(
-    (p) => !q || p.name.toLowerCase().includes(q) || p.detail.toLowerCase().includes(q)
-  );
+  /**
+   * This page now shows what you HAVE, not a catalogue of what you could have.
+   * An app you haven't connected lives in the gallery inside "add connection",
+   * alongside every MCP server — which is the point of the rearchitecture: no
+   * connector is privileged by having its own permanent card on the screen.
+   *
+   * The one exception is a provider that just finished OAuth: its card is kept
+   * on screen for the celebration pulse even before `load()` returns its row.
+   */
+  const visibleProviders = (data?.providers ?? []).filter((p) => {
+    if (!connByProvider.has(p.key) && justConnected !== p.key) return false;
+    return !q || p.name.toLowerCase().includes(q) || p.detail.toLowerCase().includes(q);
+  });
 
   /**
    * What cosigno has actually done in one app, from the ledger. Executed =
@@ -277,8 +340,29 @@ export function ConnectionsPanel() {
       recent: done.slice(0, 3),
     };
   }
-  const mcps = (data?.connections ?? []).filter((c) => c.kind === "mcp");
-  const customs = (data?.connections ?? []).filter((c) => c.kind === "custom");
+  /**
+   * Search spans everything you've connected AND the tools inside it — an MCP
+   * server's value is its tools, so "the thing that sends email" has to find
+   * the server that offers `send_email` even when the server is called
+   * something else entirely.
+   */
+  function matchesQuery(c: ConnectionView): boolean {
+    if (!q) return true;
+    if (c.display_name.toLowerCase().includes(q)) return true;
+    if (String(c.metadata?.url ?? "").toLowerCase().includes(q)) return true;
+    return (data?.tools[c.id] ?? []).some(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        t.description.toLowerCase().includes(q) ||
+        (t.category ?? "").includes(q)
+    );
+  }
+
+  const mcps = (data?.connections ?? []).filter((c) => c.kind === "mcp" && matchesQuery(c));
+  const customs = (data?.connections ?? []).filter((c) => c.kind === "custom" && matchesQuery(c));
+  /** Nothing you have matches what you typed — say so instead of three blanks. */
+  const nothingMatches =
+    Boolean(q) && visibleProviders.length === 0 && mcps.length === 0 && customs.length === 0;
 
   /**
    * Start connecting an app — or say exactly why it can't be started.
@@ -418,31 +502,44 @@ export function ConnectionsPanel() {
         </p>
       )}
 
-      {/* ---- third-party apps ---- */}
+      {/* ---- the primary action: add anything ---- */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => requireVault() && setAddConnectionOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-btn bg-ink px-4 py-2.5 text-sm font-bold text-cream transition-transform duration-fast ease-brand-out hover:-translate-y-0.5"
+        >
+          <Plus size={14} /> add connection
+        </button>
+        <label className="relative w-full sm:w-64">
+          <Search
+            size={14}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
+          />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="search your connections"
+            aria-label="search your connections"
+            className="w-full rounded-pill bg-cream-deep py-2 pl-8 pr-3 text-xs font-semibold outline-none ring-1 ring-inset ring-transparent transition-all duration-fast placeholder:text-ink-soft/60 focus:ring-ink/25"
+          />
+        </label>
+        <p className="text-[11px] text-ink-soft sm:ml-auto">
+          any MCP server works — its tools are discovered and tiered for you.
+        </p>
+      </div>
+
+      {nothingMatches && (
+        <p className="rounded-card bg-surface/40 px-4 py-6 text-center text-xs text-ink-soft">
+          nothing you&apos;ve connected matches &ldquo;{query}&rdquo;. if there&apos;s an MCP
+          server for it, <strong className="font-bold">add connection</strong> will find it.
+        </p>
+      )}
+
+      {/* ---- connected apps (native adapters) ---- */}
       <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        {visibleProviders.length > 0 && (
           <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">apps</h4>
-          {(data?.providers.length ?? 0) > 3 && (
-            <label className="relative w-full sm:w-64">
-              <Search
-                size={14}
-                aria-hidden="true"
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft"
-              />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="search apps"
-                aria-label="search apps"
-                className="w-full rounded-pill bg-cream-deep py-2 pl-8 pr-3 text-xs font-semibold outline-none ring-1 ring-inset ring-transparent transition-all duration-fast placeholder:text-ink-soft/60 focus:ring-ink/25"
-              />
-            </label>
-          )}
-        </div>
-        {visibleProviders.length === 0 && (
-          <p className="rounded-card bg-surface/40 px-4 py-6 text-center text-xs text-ink-soft">
-            no app matches &ldquo;{query}&rdquo;.
-          </p>
         )}
         {visibleProviders.map((p, i) => {
           const conn = connByProvider.get(p.key);
@@ -672,18 +769,16 @@ export function ConnectionsPanel() {
         })}
       </section>
 
-      {/* ---- custom MCP servers ---- */}
+      {/* ---- MCP servers ---- */}
       <section className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">
-            custom MCP servers
-          </h4>
+          <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">MCP servers</h4>
           <button
             onClick={() => requireVault() && setAddOpen((v) => !v)}
-            className="inline-flex items-center gap-1 rounded-btn bg-ink px-3 py-1.5 text-xs font-bold text-cream disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 rounded-btn px-3 py-1.5 text-xs font-bold text-ink-soft hover:bg-cream-deep hover:text-ink"
           >
             {addOpen ? <X size={12} /> : <Plus size={12} />}
-            {addOpen ? "cancel" : "add server"}
+            {addOpen ? "cancel" : "enter details manually"}
           </button>
         </div>
 
@@ -691,8 +786,10 @@ export function ConnectionsPanel() {
 
         {mcps.length === 0 && !addOpen && (
           <p className="rounded-card bg-surface/40 px-4 py-5 text-xs text-ink-soft shadow-soft">
-            no custom servers yet. add a remote MCP endpoint to expose its tools
-            to your operator — each tool stays off until you enable it.
+            no servers yet. <strong className="font-bold">add connection</strong> and paste
+            an MCP configuration — cosigno discovers every tool it offers, sorts
+            each one by what it does, and keeps them all off until you say
+            otherwise.
           </p>
         )}
 
@@ -719,7 +816,7 @@ export function ConnectionsPanel() {
       </section>
 
       {/* ---- custom API-key tools ---- */}
-      <section className="flex flex-col gap-2.5">
+      <section id="custom-api-tools" className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold lowercase tracking-wide text-ink-soft">
             custom API tools
@@ -768,6 +865,20 @@ export function ConnectionsPanel() {
       </section>
 
       {preview && <PreviewModal preview={preview} onClose={() => setPreview(null)} />}
+
+      <AddConnection
+        open={addConnectionOpen}
+        onClose={() => setAddConnectionOpen(false)}
+        vaultReady={Boolean(data?.vaultReady)}
+        onConnectProvider={(key) => {
+          setAddConnectionOpen(false);
+          connect(key);
+        }}
+        onAdded={async (message) => {
+          setNotice(message);
+          await load();
+        }}
+      />
     </div>
   );
 }
@@ -1141,6 +1252,29 @@ function ToolRow({
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [classifying, setClassifying] = useState(false);
+
+  /**
+   * Settle a category cosigno wasn't sure about. Asked once, then remembered —
+   * re-discovery will not overwrite the answer. The tier that follows from the
+   * category is still the server's decision, not a choice offered here.
+   */
+  async function classify(category: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      await api(`/api/connections/mcp/${conn.id}/classify`, {
+        method: "POST",
+        body: JSON.stringify({ name: tool.name, category }),
+      });
+      setClassifying(false);
+      await onReload();
+    } catch (e) {
+      setError(readable(e));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function set(enabled: boolean, consent = false) {
     setBusy(true);
@@ -1176,6 +1310,20 @@ function ToolRow({
             needs to match it against the server's own docs. */}
         <span className="text-[12px] font-bold">{humanizeActionId(tool.name)}</span>
         <span className="font-mono text-[10px] text-ink-soft/70">{tool.name}</span>
+        {tool.category && (
+          <button
+            onClick={() => setClassifying((v) => !v)}
+            className="rounded-pill bg-cream px-1.5 py-0.5 text-[9px] font-bold lowercase text-ink-soft hover:bg-cream-deep"
+            title={
+              tool.classified_by === "user"
+                ? "you set this category"
+                : "cosigno classified this — click to change it"
+            }
+          >
+            {tool.category}
+            {tool.classified_by === "user" ? " ·" : ""}
+          </button>
+        )}
         {tool.tier && <TierBadge tier={tool.tier} />}
         {tool.sensitive && (
           <span className="inline-flex items-center gap-1 rounded-pill bg-signal/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-signal">
@@ -1194,6 +1342,50 @@ function ToolRow({
         </button>
       </div>
       <p className="mt-0.5 text-[11px] text-ink-soft">{tool.description || "(no description)"}</p>
+
+      {/* The classifier admits when it's guessing. Asking once beats a badge
+          nobody can trust — and the answer is kept, so it is asked once. */}
+      {needsReview(tool) && !classifying && (
+        <button
+          onClick={() => setClassifying(true)}
+          className="mt-1 text-[11px] font-bold text-signal underline underline-offset-2"
+        >
+          cosigno isn&apos;t sure what this does — tell it once
+        </button>
+      )}
+      {classifying && (
+        <div className="mt-2 rounded-btn bg-cream p-2.5 ring-1 ring-inset ring-ink/15">
+          <p className="text-[11px] font-semibold">what does this tool do?</p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {CATEGORY_CHOICES.map((c) => (
+              <button
+                key={c}
+                onClick={() => classify(c)}
+                disabled={busy}
+                className={`rounded-pill px-2.5 py-1 text-[10px] font-bold lowercase ring-1 ring-inset disabled:opacity-50 ${
+                  tool.category === c
+                    ? "bg-ink text-cream ring-ink"
+                    : "ring-ink/20 hover:bg-cream-deep"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[10px] text-ink-soft">
+            cosigno decides the approval each one needs — you&apos;re naming what it
+            does, not how freely it may run. changing this to something riskier
+            asks for your consent again.
+          </p>
+          <button
+            onClick={() => setClassifying(false)}
+            className="mt-1 text-[10px] font-bold text-ink-soft underline underline-offset-2"
+          >
+            cancel
+          </button>
+        </div>
+      )}
+
       {confirming && (
         <div className="mt-2 rounded-btn bg-cream p-2 ring-1 ring-inset ring-signal/40">
           <p className="text-[11px] font-semibold text-ink">

@@ -1,18 +1,16 @@
-/**
- * Consent + sensitivity for MCP tools. Nothing an external server advertises
- * is callable until the user turns it on, and a tool that could WRITE or
- * EXFILTRATE data additionally requires an explicit consent acknowledgement.
- * The classifier is intentionally conservative: when unsure, mark sensitive.
- */
+import { categoryIsSensitive, classifyTool } from "./classify";
 
-// Verbs/nouns that imply a write, a send, a deletion, money, or data egress.
-const SENSITIVE_HINTS = [
-  "write", "create", "update", "delete", "remove", "drop", "send", "email",
-  "post", "publish", "push", "deploy", "execute", "run", "exec", "shell",
-  "command", "pay", "charge", "refund", "transfer", "purchase", "order",
-  "upload", "export", "download", "share", "grant", "revoke", "password",
-  "secret", "token", "credential", "key", "wire", "sms", "call",
-];
+/**
+ * Consent for MCP tools. Nothing an external server advertises is callable
+ * until the user turns it on, and a tool that could WRITE or EXFILTRATE data
+ * additionally requires an explicit consent acknowledgement.
+ *
+ * Sensitivity is no longer a separate keyword list — it is derived from the
+ * tool's classified category, so the badge the user reads ("sends something out
+ * of your account") and the gate they pass through are guaranteed to agree.
+ * Two lists would drift, and the day they disagree is the day the UI promises
+ * one thing and the engine does another.
+ */
 
 /** True if the tool looks like it writes or moves sensitive data. */
 export function isSensitiveTool(tool: {
@@ -20,14 +18,8 @@ export function isSensitiveTool(tool: {
   description: string;
   input_schema?: Record<string, unknown>;
 }): boolean {
-  const hay = `${tool.name} ${tool.description}`.toLowerCase();
-  if (SENSITIVE_HINTS.some((h) => hay.includes(h))) return true;
-  // A tool that declares required input parameters is doing more than a
-  // trivial read — treat it as sensitive unless it clearly reads.
-  const props = tool.input_schema?.properties;
-  const hasParams = props && typeof props === "object" && Object.keys(props).length > 0;
-  const looksReadOnly = /\b(list|get|read|search|fetch|find|show|view)\b/.test(hay);
-  return Boolean(hasParams) && !looksReadOnly;
+  const { category, needsReview } = classifyTool(tool);
+  return categoryIsSensitive(category, needsReview);
 }
 
 /**

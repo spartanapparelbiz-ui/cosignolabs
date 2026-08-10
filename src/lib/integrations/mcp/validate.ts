@@ -36,8 +36,15 @@ export interface RawTool {
   input_schema?: unknown;
 }
 
+/**
+ * A tool that survived validation. Deliberately only the three fields the
+ * server actually advertised — sensitivity, category and consent are decided
+ * downstream by the classifier and the user, never carried in from outside.
+ */
+export type DiscoveredTool = Pick<McpToolRecord, "name" | "description" | "input_schema">;
+
 export interface ValidationOutcome {
-  tools: Omit<McpToolRecord, "connection_id" | "enabled" | "consented_at">[];
+  tools: DiscoveredTool[];
   /** Tools rejected outright, with a reason (surfaced to the user). */
   rejected: { name: string; reason: string }[];
   /** Names whose description looked like an injection attempt. */
@@ -128,12 +135,7 @@ export function validateTools(raw: unknown): ValidationOutcome {
     }
 
     seen.add(name);
-    out.tools.push({
-      name,
-      description,
-      input_schema: schema,
-      sensitive: false, // set by the consent layer
-    });
+    out.tools.push({ name, description, input_schema: schema });
   }
   return out;
 }

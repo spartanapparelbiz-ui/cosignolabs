@@ -43,6 +43,22 @@ export interface McpConfig {
   headers?: Record<string, string>;
 }
 
+/**
+ * This client speaks HTTP. A "stdio" server is a process on the user's own
+ * machine, which a hosted deployment has no route to — so it is refused HERE,
+ * once, rather than in each of the four call sites that would otherwise try to
+ * fetch an empty URL and report a confusing network error.
+ */
+export function assertRemote(cfg: McpConfig): void {
+  if (cfg.transport === "stdio") {
+    throw new McpError(
+      "unreachable",
+      "this server runs as a local process — cosigno can't reach it from the cloud"
+    );
+  }
+  if (!cfg.url) throw new McpError("unreachable", "this connection has no server URL");
+}
+
 interface JsonRpcResponse {
   jsonrpc: "2.0";
   id: number | string;
@@ -164,6 +180,7 @@ export async function handshakeAndList(
   cfg: McpConfig,
   timeoutMs = DEFAULT_TIMEOUT
 ): Promise<HandshakeResult> {
+  assertRemote(cfg);
   const init = await rpc(
     cfg,
     "initialize",
@@ -202,6 +219,7 @@ export async function callTool(
   args: Record<string, unknown>,
   timeoutMs = DEFAULT_TIMEOUT
 ): Promise<McpCallResult> {
+  assertRemote(cfg);
   // A fresh session per operation keeps stateless serverless calls simple.
   const init = await rpc(
     cfg,
