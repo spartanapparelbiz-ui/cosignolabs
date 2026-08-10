@@ -32,6 +32,9 @@ jobs:
       # verify-deploy.mjs is dependency-free (global fetch) — no npm ci needed.
       # One retry absorbs a serverless cold start on the first hit.
       - name: Verify the live site
+        env:
+          # Freshness gate: the live site must report this very commit.
+          EXPECT_COMMIT: ${{ github.sha }}
         run: |
           URL="${{ github.event.inputs.url || 'https://cosignolabs.com' }}"
           if node scripts/verify-deploy.mjs "$URL"; then exit 0; fi

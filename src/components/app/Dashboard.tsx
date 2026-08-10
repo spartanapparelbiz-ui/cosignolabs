@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useDisplayName } from "@/lib/theme";
-import { ArrowRight, Check, Loader2, ShieldQuestion, X } from "lucide-react";
+import { ArrowRight, Check, Clock, Loader2, ShieldQuestion, X } from "lucide-react";
 import type { ActionRecord, AutomationRecord, MissionRecord, MissionStepRecord } from "@/lib/types";
-import { ConnectorLogo } from "@/components/integrations/ConnectorLogo";
 import { SourceComposer } from "@/components/app/SourceComposer";
 import { DecisionInbox } from "@/components/app/DecisionInbox";
 import { todayDigest } from "@/lib/missions/today";
@@ -66,13 +65,6 @@ const ACTIVE_STATES = new Set([
   "blocked",
 ]);
 
-/** The connected apps a mission touches, derived from its step tools. */
-const TOOL_PROVIDER: Record<string, string> = {
-  "calendar.find_event": "google-calendar",
-  "gmail.search_related": "google",
-  "drive.search_files": "google-drive",
-};
-
 function timeUntil(iso: string): string {
   const mins = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
   if (mins <= 0) return "due now";
@@ -110,10 +102,13 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
   // The quiet value line under the greeting — the real usage-meter count.
   // Rendered only when it's non-zero; a zero reinforces nothing.
   const [opsThisMonth, setOpsThisMonth] = useState(0);
-
+  // Flips once the side data (automations, connections) has answered, so
+  // anything conditioned on "no connections" waits for the truth instead of
+  // flashing a nudge at someone whose apps simply haven't loaded yet.
+  const [sideLoaded, setSideLoaded] = useState(false);
 
   const loadSide = useCallback(async () => {
-    // The right-column extras (next automation, connected apps).
+    // The quiet extras (next automation, connected apps, usage).
     const [au, c, u] = await Promise.all([
       jsonFetch("/api/automations").catch(() => ({ automations: [] })),
       jsonFetch("/api/connections").catch(() => ({ connections: [] })),
@@ -125,6 +120,7 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
     setAutomation(enabled[0] ?? null);
     const appConns = (c.connections ?? []).filter((x: ConnectionView) => x.kind === "app");
     setConnections(appConns.filter((x: ConnectionView) => x.status === "connected"));
+    setSideLoaded(true);
   }, []);
 
   const load = useCallback(async () => {
@@ -270,12 +266,38 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
         </Section>
       )}
 
+      {/* ------------------------------ scheduled ------------------------------ */}
+      {/* The fifth question the page answers: what will cosigno do NEXT,
+          without being asked. One line, only when a recurring job really is
+          armed — a person who set one up gets to see it's alive. */}
+      {automation && (
+        <Section title="Scheduled">
+          <Row href="/app/automations" icon={<Clock size={14} className="text-ink-soft" />}>
+            {automation.name} · runs {timeUntil(automation.next_run_at)}
+          </Row>
+        </Section>
+      )}
+
       {/* Nothing running, nothing waiting, nothing finished today. Say what
-          the product is for rather than reporting an absence. */}
+          the product is for rather than reporting an absence — and when the
+          workspace has no connected apps yet, point at the one setup step
+          that gives cosigno hands. */}
       {working.length === 0 && waiting.length === 0 && finished.length === 0 && missions !== null && (
-        <p className="mt-10 text-center text-sm font-semibold text-ink-soft">
-          cosigno is ready.
-        </p>
+        <div className="mt-10 text-center">
+          <p className="text-sm font-semibold text-ink-soft">cosigno is ready.</p>
+          {sideLoaded && connections.length === 0 && (
+            <p className="mt-1.5 text-[13px] font-semibold text-ink-soft">
+              give it hands —{" "}
+              <Link
+                href="/app/connections"
+                className="text-ink underline underline-offset-2 hover:text-signal"
+              >
+                connect gmail, calendar, or drive
+              </Link>{" "}
+              in about two minutes.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );
