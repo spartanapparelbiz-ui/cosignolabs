@@ -174,7 +174,7 @@ export function DecisionInbox({
       <EmptyState
         illustration={<EmptyIllustration kind="workspace" />}
         title="Nothing needs you"
-        description="When cosigno prepares something that requires your signature, it lands here. Nothing moves until you decide."
+        description="When cosigno prepares something that needs your decision, it lands here. Nothing moves until you say so."
       />
     );
   }

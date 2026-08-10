@@ -189,7 +189,7 @@ for (const vp of VIEWPORTS) {
       // --- approval story (§3 script): approve card 1, then the tier-3 refund
       // (typed-confirm) card slides in — a stable, filmable mid-story state.
       const story = page.locator("section", {
-        hasText: "one command. one signature. done.",
+        hasText: "one command. one approval. done.",
       });
       await story.scrollIntoViewIfNeeded();
       await expect(story.getByText(/draft replies to your 3 most recent leads/i)).toBeVisible();
@@ -308,7 +308,7 @@ for (const vp of VIEWPORTS) {
       expect(res.ok()).toBeTruthy();
       const { mission } = await res.json();
       await page.goto(`/app/missions/${mission.id}`, { waitUntil: "networkidle" });
-      await expect(page.getByText(/waiting for your signature/i).first()).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText(/waiting on your approval/i).first()).toBeVisible({ timeout: 15_000 });
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `inbox-mission-${vp.name}.png`), fullPage: true });
 

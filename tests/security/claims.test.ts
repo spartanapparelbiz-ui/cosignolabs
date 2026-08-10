@@ -56,7 +56,9 @@ describe("no page claims a signature is required for everything", () => {
   });
 
   it("the security page states the real boundary instead", () => {
-    expect(SECURITY).toMatch(/nothing that changes anything outside cosigno executes without your signature/i);
+    expect(SECURITY).toMatch(/nothing that changes anything outside cosigno executes without your approval/i);
+    // …and it must not overclaim a signature it no longer demands.
+    expect(SECURITY).not.toMatch(/without your signature/i);
     // And names what does clear on its own, rather than leaving it implied.
     expect(SECURITY.toLowerCase()).toContain("searching, summarising, and drafting clear automatically");
   });

@@ -191,7 +191,7 @@
   {
     "folder": "06-boundary",
     "file": "sign-dialog-desktop.png",
-    "note": "Cosigno Sign — signature surface",
+    "note": "Approve — signing offered, never required",
     "ok": true,
     "errors": []
   },
@@ -443,7 +443,7 @@
   {
     "folder": "mobile",
     "file": "sign-dialog-mobile.png",
-    "note": "Cosigno Sign (mobile)",
+    "note": "Approve dialog (mobile)",
     "ok": true,
     "errors": []
   }

@@ -40,7 +40,7 @@ const AUTHORITY = [
   },
   {
     name: "confirm",
-    tier: "waits for your signature",
+    tier: "waits for your approval",
     body: "Anything that sends, posts, changes, or spends stops at an action card until you approve it.",
   },
   {

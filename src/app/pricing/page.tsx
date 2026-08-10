@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description:
     `Cosigno pricing: ${PLANS.free.name}, ${PLANS.pro.name} (${priceLabel(PLANS.pro, "monthly")}), and ` +
     `${PLANS.max.name} (${priceLabel(PLANS.max, "monthly")}). Every plan is approval-first — ` +
-    "the agent never spends without your signature.",
+    "the agent never spends without your approval.",
   alternates: { canonical: "https://cosignolabs.com/pricing" },
 };
 
@@ -33,7 +33,7 @@ const FAQ = [
   {
     id: "approval-first-billing",
     q: "how does approval-first keep billing safe?",
-    a: "The operator can never spend money or take a paid action on its own — every send, change, or payment stops at a card for your signature, and tier-3 actions need typed confirmation. Your plan only meters the operator's planning and the actions you approve.",
+    a: "The operator can never spend money or take a paid action on its own — every send, change, or payment stops at a card for your approval, and irreversible actions need a typed confirmation. Your plan only meters the operator's planning and the actions you approve.",
   },
   {
     id: "annual-refunds",

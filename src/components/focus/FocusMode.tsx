@@ -8,6 +8,7 @@ import type { CosignoState } from "@/lib/state";
 import { effectLine } from "@/lib/actionPresentation";
 import { afterApprovalLine, beforeApprovalLine, whyMe } from "@/lib/clarity";
 import { signRequired } from "@/lib/sign";
+import type { Authorization } from "@/components/sign/SignDialog";
 import dynamic from "next/dynamic";
 
 // The sign dialog (and its signature-pad canvas) loads when the user actually
@@ -49,6 +50,19 @@ function emailFields(payload: Record<string, unknown>) {
 }
 
 type Phase = "review" | "returning";
+
+/**
+ * What may ride in a bundle.
+ *
+ * Not flagged content — external text that tried to steer the agent is held,
+ * and a batch is exactly where a held card would slip through unread. And not
+ * tier 3: a delete, a refund or a payment is decided on its own, with its
+ * word typed. That matches the engine, which already refuses to let a
+ * workspace-mate approve tier 3 on someone's behalf.
+ */
+function bundleable(a: ActionRecord): boolean {
+  return !a.injection_flag && a.tier !== 3;
+}
 
 export function FocusMode() {
   const [queue, setQueue] = useState<ActionRecord[] | null>(null);
@@ -98,7 +112,7 @@ export function FocusMode() {
 
   const action = queue?.[0] ?? null;
   const email = useMemo(() => (action ? emailFields(action.payload) : null), [action]);
-  const needsSign = action ? signRequired(action.category, action.tier) : false;
+  const opensDialog = action ? signRequired(action.category, action.tier) : false;
 
   // Reset per-decision state whenever the front of the queue changes.
   useEffect(() => {
@@ -113,7 +127,7 @@ export function FocusMode() {
 
   // Bundle selection defaults to every eligible (unflagged) decision.
   useEffect(() => {
-    if (queue) setSelected(new Set(queue.filter((a) => !a.injection_flag).map((a) => a.id)));
+    if (queue) setSelected(new Set(queue.filter(bundleable).map((a) => a.id)));
   }, [queue?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** The handshake completion: work returns to cosigno, queue advances. */
@@ -192,22 +206,20 @@ export function FocusMode() {
 
   /* ------------------------------- approval bundle ----------------------- */
 
-  const bundleActions = (queue ?? []).filter((a) => selected.has(a.id) && !a.injection_flag);
-  const bundleNeedsSign = bundleActions.some((a) => signRequired(a.category, a.tier));
+  const bundleActions = (queue ?? []).filter((a) => selected.has(a.id) && bundleable(a));
 
   /** Authorize every selected action — one pass, one record each. */
   const authorizeBundle = useCallback(
-    async (signature?: { name: string; image?: string }): Promise<string | null> => {
+    async (auth: Authorization = {}): Promise<string | null> => {
       setBusy(true);
       let failures = 0;
       for (const a of bundleActions) {
         try {
           await jsonFetch(`/api/actions/${a.id}/approve`, {
             method: "POST",
-            body: JSON.stringify({
-              ...(a.tier === 3 && signature ? { confirmation: a.category } : {}),
-              ...(signature ? { signature } : {}),
-            }),
+            // Nothing in this loop is irreversible — bundleable() keeps tier 3
+            // out — so the request body carries the signature and nothing else.
+            body: JSON.stringify(auth.signature ? { signature: auth.signature } : {}),
           });
         } catch {
           failures += 1;
@@ -221,14 +233,14 @@ export function FocusMode() {
         toast("error", `${failures} of ${bundleActions.length} didn't complete — they stay in the queue.`);
         return `${failures} actions didn't complete.`;
       }
-      toast("success", `${bundleActions.length} authorized — cosigno continues.`);
+      toast("success", `${bundleActions.length} approved — cosigno continues.`);
       return null;
     },
     [bundleActions, load, toast]
   );
 
   const approve = useCallback(
-    async (signature?: { name: string; image?: string }): Promise<string | null> => {
+    async (auth: Authorization = {}): Promise<string | null> => {
       if (!action) return null;
       setBusy(true);
       setError(null);
@@ -242,11 +254,14 @@ export function FocusMode() {
         await jsonFetch(`/api/actions/${action.id}/approve`, {
           method: "POST",
           body: JSON.stringify({
-            ...(action.tier === 3 && signature ? { confirmation: action.category } : {}),
-            ...(signature ? { signature } : {}),
+            // Both are optional and neither is invented here: the typed word
+            // comes from the person who typed it, the signature only if they
+            // chose to add one.
+            ...(auth.confirmation ? { confirmation: auth.confirmation } : {}),
+            ...(auth.signature ? { signature: auth.signature } : {}),
           }),
         });
-        toast("success", signature ? "signed — cosigno continues." : "Approved — cosigno continues.");
+        toast("success", auth.signature ? "Signed — cosigno continues." : "Approved — cosigno continues.");
         returnToCosigno();
         return null;
       } catch (e) {
@@ -497,13 +512,13 @@ export function FocusMode() {
             <p className="t-caption">Ready when you are.</p>
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
               {!action.injection_flag &&
-                (needsSign ? (
+                (opensDialog ? (
                   <button
                     onClick={() => setSignOpen(true)}
                     disabled={busy}
                     className={btn("sign", "md")}
                   >
-                    <PenLine size={14} strokeWidth={2} /> Sign
+                    <Check size={14} strokeWidth={2.4} /> Approve
                   </button>
                 ) : (
                   <button
@@ -567,7 +582,7 @@ export function FocusMode() {
           </p>
           <ul className="mt-2 flex flex-col gap-2">
             {queue.map((a) => {
-              const disabled = a.injection_flag;
+              const disabled = !bundleable(a);
               const checked = selected.has(a.id) && !disabled;
               return (
                 <li key={a.id} className="flex items-start gap-2.5">
@@ -587,8 +602,11 @@ export function FocusMode() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold leading-snug">{a.summary}</p>
                     <p className="text-[0.75rem] text-ink-soft">
-                      {signRequired(a.category, a.tier) ? "requires signature" : "one-click approve"}
-                      {disabled && " · held: external content tried to direct it"}
+                      {a.injection_flag
+                        ? "Held: external content tried to direct it"
+                        : a.tier === 3
+                          ? "Decide this one on its own — it can't be undone"
+                          : "One-press approve"}
                     </p>
                   </div>
                 </li>
@@ -597,24 +615,22 @@ export function FocusMode() {
           </ul>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
-              onClick={() => (bundleNeedsSign ? setBundleSignOpen(true) : authorizeBundle())}
+              onClick={() => authorizeBundle()}
               disabled={busy || bundleActions.length === 0}
-              className={`inline-flex items-center gap-1.5 rounded-btn px-5 py-2.5 text-sm font-semibold shadow-rest transition-transform active:scale-[0.98] disabled:opacity-50 ${
-                bundleNeedsSign ? "bg-ink text-cream" : "bg-signal text-on-signal"
-              }`}
+              className={btn("sign", "md")}
             >
-              {bundleNeedsSign ? (
-                <>
-                  <PenLine size={14} strokeWidth={2.6} /> Sign bundle ({bundleActions.length})
-                </>
-              ) : (
-                <>
-                  <Check size={14} strokeWidth={3} /> Approve {bundleActions.length}
-                </>
-              )}
+              <Check size={14} strokeWidth={3} /> Approve {bundleActions.length}
             </button>
-            <p className="text-[0.75rem] font-semibold text-ink-soft">
-              Exactly the checked actions run — each gets its own authorization record.
+            <button
+              onClick={() => setBundleSignOpen(true)}
+              disabled={busy || bundleActions.length === 0}
+              className={btn("ghost", "md")}
+            >
+              <PenLine size={14} strokeWidth={2} /> Sign them instead
+            </button>
+            <p className="t-caption w-full">
+              Exactly the checked actions run — each gets its own authorization record. Signing is
+              optional either way.
             </p>
           </div>
         </div>
@@ -625,7 +641,7 @@ export function FocusMode() {
           action={action}
           saved={saved}
           defaultName={displayName.trim() || "Operator"}
-          onAuthorize={(sig) => approve(sig)}
+          onAuthorize={(auth) => approve(auth)}
           onSaveSignature={onSaveSignature}
           onClose={() => setSignOpen(false)}
         />
@@ -636,7 +652,7 @@ export function FocusMode() {
           saved={saved}
           defaultName={displayName.trim() || "Operator"}
           scope={bundleActions.map((a) => a.summary)}
-          onAuthorize={(sig) => authorizeBundle(sig)}
+          onAuthorize={(auth) => authorizeBundle(auth)}
           onSaveSignature={onSaveSignature}
           onClose={() => setBundleSignOpen(false)}
         />

@@ -31,6 +31,7 @@ import {
 } from "@/lib/actionPresentation";
 import { afterApprovalLine, approveLabel, beforeApprovalLine } from "@/lib/clarity";
 import { signRequired } from "@/lib/sign";
+import type { Authorization } from "./sign/SignDialog";
 import dynamic from "next/dynamic";
 import { TierBadge } from "./TierBadge";
 import { badge, btn, card, field, type BadgeTone } from "@/components/ui/styles";
@@ -192,13 +193,20 @@ function ActionCardInner({
     return err;
   }
 
-  // SIGN actions (tier 3, and outward-facing tier 2 like external email or
-  // spend) authorize through the signature surface; the rest are one click.
-  const needsSign = signRequired(action.category, action.tier);
+  /**
+   * Which actions open the authorization dialog before running: tier 3, and
+   * the outward-facing tier-2 work (external email, publishing, spend,
+   * webhooks). Everything else runs from the card in one click.
+   *
+   * The dialog is a confirmation step, NOT a signature requirement — inside
+   * it, Approve is one press and signing is offered beside it. The name
+   * `needsSign` would say otherwise, so it doesn't have it.
+   */
+  const opensDialog = signRequired(action.category, action.tier);
 
   async function handleApprove() {
     if (flagged) return; // held for review — server refuses too
-    if (needsSign) {
+    if (opensDialog) {
       setSignOpen(true);
       return;
     }
@@ -206,13 +214,16 @@ function ActionCardInner({
     if (!err) setMode("view");
   }
 
-  /** The SignDialog's authorize hook — same engine door, signature attached. */
-  async function authorizeSigned(signature: { name: string; image?: string }) {
-    // Tier 3 keeps its server confirmation contract; the deliberate human
-    // step is now the drawn signature, which supplies it.
+  /**
+   * The dialog's authorize hook — the same engine door the one-click path
+   * uses. Both halves come from the dialog and both are optional there: the
+   * signature only when the user drew or held one, the typed confirmation
+   * only for tier 3. Neither is filled in on the user's behalf.
+   */
+  async function authorizeFromDialog(auth: Authorization) {
     return onApprove(action.id, {
-      confirmation: action.tier === 3 ? action.category : undefined,
-      signature,
+      confirmation: auth.confirmation,
+      signature: auth.signature,
     });
   }
 
@@ -502,13 +513,12 @@ function ActionCardInner({
                       replaced. */}
                   Approving…
                 </>
-              ) : needsSign ? (
-                <>
-                  <PenLine size={14} strokeWidth={2} aria-hidden="true" />
-                  Sign
-                </>
               ) : (
                 <>
+                  {/* Every primary button says what pressing it does. It used
+                      to read "Sign" on outward-facing work, which promised a
+                      signature pad and a drawing — the dialog behind it now
+                      approves in one press, so the label says approve. */}
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path
                       d="M4.5 12.5 10 18 20 6.5"
@@ -580,7 +590,7 @@ function ActionCardInner({
           action={action}
           saved={savedSignature}
           defaultName={signerName}
-          onAuthorize={authorizeSigned}
+          onAuthorize={authorizeFromDialog}
           onSaveSignature={async (n, img) => onSaveSignature?.(n, img)}
           onClose={() => setSignOpen(false)}
         />

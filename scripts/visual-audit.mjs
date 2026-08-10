@@ -186,12 +186,22 @@ await shot(page, "06-boundary", "live-takeover-desktop.png", "Live Takeover — 
 await page.getByRole("button", { name: /Cosigno, continue/i }).click().catch(() => {});
 await page.waitForTimeout(900);
 await shot(page, "06-boundary", "continue-from-here-desktop.png", "Continue From Here — handed back", { full: false });
-// sign dialog
+// the authorization dialog — Approve is one press, signing is the offer
 await page.getByText(/I need your decision/i).waitFor({ timeout: 15_000 }).catch(() => {});
-await page.getByRole("button", { name: /^Sign$/i }).first().click().catch(() => {});
+await page.getByRole("button", { name: /^Approve$/i }).first().click().catch(() => {});
 await page.waitForTimeout(600);
-await shot(page, "06-boundary", "sign-dialog-desktop.png", "Cosigno Sign — signature surface", { full: false });
-// draw signature
+await shot(page, "06-boundary", "sign-dialog-desktop.png", "Approve — signing offered, never required", { full: false });
+// open the optional signature panel and draw one
+await page.getByRole("button", { name: /Add my signature|Sign it instead/i }).first().click().catch(() => {});
+await page.waitForTimeout(400);
+// A workspace that already has a saved signature offers Hold-to-sign first;
+// the pad is one press further in. Without this the two signature captures
+// were silently skipped and the old ones stayed on disk looking current.
+const drawFresh = page.getByRole("button", { name: /Draw it fresh instead/i });
+if (await drawFresh.isVisible().catch(() => false)) {
+  await drawFresh.click().catch(() => {});
+  await page.waitForTimeout(300);
+}
 const canvas = page.locator("canvas");
 if (await canvas.isVisible().catch(() => false)) {
   const b = await canvas.boundingBox();
@@ -202,10 +212,16 @@ if (await canvas.isVisible().catch(() => false)) {
   await page.getByLabel(/your name for the signature record/i).fill("Nicholas").catch(() => {});
   await page.waitForTimeout(300);
   await shot(page, "06-boundary", "signature-drawn-desktop.png", "Signature drawn, ready to authorize", { full: false });
-  await page.getByRole("button", { name: /Sign to authorize/i }).click().catch(() => {});
+  await page.getByRole("button", { name: /Approve with my signature/i }).click().catch(() => {});
   await page.waitForTimeout(700);
   await shot(page, "06-boundary", "signature-sealed-desktop.png", "Signature sealing — Signed by Nicholas", { full: false });
   await page.waitForTimeout(2600);
+} else {
+  // Say so rather than leaving a stale file behind pretending to be fresh.
+  for (const f of ["signature-drawn-desktop.png", "signature-sealed-desktop.png"]) {
+    log.push({ folder: "06-boundary", file: f, note: "optional signature pad", ok: false, reason: "signature pad never became visible" });
+    console.log(`  ✗ 06-boundary/${f} — signature pad never became visible`);
+  }
 }
 
 console.log("== receipts / seal ==");
@@ -336,9 +352,9 @@ for (const [path, file, note, wait] of [
 // mobile sign dialog
 await mp.goto(`${BASE}/app/focus`, { waitUntil: "load", timeout: 90_000 }).catch(() => {});
 await mp.getByText(/I need your decision/i).waitFor({ timeout: 12_000 }).catch(() => {});
-await mp.getByRole("button", { name: /Sign →/i }).first().click().catch(() => {});
+await mp.getByRole("button", { name: /^Approve$/i }).first().click().catch(() => {});
 await mp.waitForTimeout(600);
-await shot(mp, "mobile", "sign-dialog-mobile.png", "Cosigno Sign (mobile)", { full: false });
+await shot(mp, "mobile", "sign-dialog-mobile.png", "Approve dialog (mobile)", { full: false });
 await mctx.close();
 
 await browser.close();

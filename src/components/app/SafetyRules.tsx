@@ -86,7 +86,7 @@ function listNames(items: { label: string }[]): string {
  */
 const PROMISE: Record<string, string> = {
   approve: "cosigno asks you first",
-  sign: "cosigno needs your signature before it goes ahead",
+  sign: "cosigno stops for your decision before it goes ahead",
   never: "cosigno will not do this at all",
   auto: "cosigno keeps the checks it already had",
 };

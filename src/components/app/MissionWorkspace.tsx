@@ -309,7 +309,7 @@ export function MissionWorkspace({ missionId }: { missionId: string }) {
 
       {mission.state === "awaiting_approval" && (
         <p className="t-caption">
-          One step is waiting for your signature. The mission carries on the moment you
+          One step is waiting on your approval. The mission carries on the moment you
           decide.
         </p>
       )}

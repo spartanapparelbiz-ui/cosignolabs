@@ -104,7 +104,7 @@ export default function LandingPage() {
             />
             <p className="mt-5 max-w-xl text-lg font-semibold text-ink-soft animate-word-in [animation-delay:520ms]">
               cosigno handles inbox, follow-ups, calendar work, and updates
-              across your apps — then stops for your signature before anything
+              across your apps — then stops for your approval before anything
               important happens.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 animate-word-in [animation-delay:600ms]">
@@ -151,7 +151,7 @@ export default function LandingPage() {
 
             <Reveal className="mt-10 flex flex-col items-center gap-4">
               <p className="max-w-md text-center text-sm font-bold lowercase text-ink">
-                one command. one signature. done.
+                one command. one approval. done.
               </p>
               <p className="-mt-2 max-w-md text-center text-sm font-semibold text-ink-soft">
                 you&apos;re the operator. approve two actions — then catch the
@@ -211,11 +211,11 @@ export default function LandingPage() {
           <Reveal className="flex flex-col items-center">
             <BenefitGlyph kind="check" />
             <h2 className="mt-4 text-center text-2xl font-extrabold lowercase sm:text-3xl">
-              how the signature system works
+              how approval works
             </h2>
             <p className="mt-3 max-w-2xl text-center text-base leading-relaxed text-ink-soft">
               anything that sends, posts, changes, or spends stops at an action
-              card and waits for your signature. destructive moves need typed
+              card and waits for your approval. destructive moves need typed
               confirmation on top. every action sits in a tier — auto, approve,
               or locked — and the agent can never escalate its own permissions.
             </p>
@@ -224,7 +224,7 @@ export default function LandingPage() {
             {[
               ["command", "tell it what you want in plain language."],
               ["proposal", "it plans and lays out action cards — exact payloads, plain english, risk tier."],
-              ["signature", "you approve, edit, or veto. locked actions need typed confirmation."],
+              ["approve", "you approve, edit, or veto. locked actions need typed confirmation."],
               ["receipt", "approved actions execute, get verified, and land in your permanent audit trail."],
             ].map(([title, body], i) => (
               <Reveal key={title} delay={i * 80} className="rounded-card bg-surface/70 p-4 shadow-soft">
@@ -255,7 +255,7 @@ export default function LandingPage() {
               </h2>
               <p className="mx-auto mt-3 max-w-xl text-sm font-semibold text-ink-soft">
                 every template is a job that actually runs end to end — with its
-                auto/signature split spelled out before you start it.
+                auto/approval split spelled out before you start it.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {TEMPLATE_TITLES.map((t) => (
@@ -358,7 +358,7 @@ export default function LandingPage() {
               <p className="mt-4 max-w-xl text-sm font-semibold leading-relaxed text-ink-soft">
                 cosigno is built independently, in the open, on one conviction:
                 an AI that acts in your accounts should show you exactly what it
-                will do and wait for your signature — every time, enforced by
+                will do and wait for your approval — every time, enforced by
                 the server, never by promises. that&apos;s the whole product.
               </p>
               <div className="mt-6">

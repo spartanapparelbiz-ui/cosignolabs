@@ -323,10 +323,17 @@ export function describeRule(r: ParsedRule): string {
   return `${scope}${cond} — ${REQUIREMENT_SENTENCE[r.requirement]}.`;
 }
 
+/**
+ * `sign` and `approve` are the same server rule — both hold the action at
+ * tier 2 for a person to decide. The wording used to promise a signature,
+ * which the product no longer demands of anyone: the signature is offered
+ * beside Approve, not in front of it. So the sentence says what the rule
+ * actually does.
+ */
 const REQUIREMENT_SENTENCE: Record<RuleRequirement, string> = {
   auto: "runs automatically",
   approve: "waits for your approval",
-  sign: "requires your signature",
+  sign: "waits for you to approve or sign",
   never: "is never allowed",
 };
 

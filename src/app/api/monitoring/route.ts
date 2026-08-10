@@ -104,7 +104,7 @@ export async function GET() {
       alerts.push({
         level: "warn",
         title: "approval waiting over an hour",
-        detail: `"${longest.summary}" has been waiting for your signature.`,
+        detail: `"${longest.summary}" has been waiting on your approval.`,
       });
     }
     const failed = byMissionState.failed ?? 0;

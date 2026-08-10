@@ -20,8 +20,8 @@ import { CosignoMark } from "@/components/brand/Logo";
 /** The permission that gated this action — plain language, from category/tier. */
 function permissionUsed(action: Pick<ActionRecord, "category" | "tier">): string {
   const op = operatorOf(action.category);
-  if (action.tier === 3) return `${op} — locked, signature required`;
-  if (signRequired(action.category, 2)) return `${op} — external, signature required`;
+  if (action.tier === 3) return `${op} — locked, typed confirmation required`;
+  if (signRequired(action.category, 2)) return `${op} — external, your approval required`;
   if (action.tier === 2) return `${op} — approval required`;
   return `${op} — auto (read-only / reversible)`;
 }

@@ -29,7 +29,7 @@ const OPERATORS = [
   },
   {
     name: "communication",
-    job: "Prepares replies, updates, and posts — and sends only with your signature.",
+    job: "Prepares replies, updates, and posts — and sends only with your approval.",
     caps: "draft · send_email · post_content",
     authority: "prepare runs instantly · sending waits for confirm",
     detail:
@@ -65,7 +65,7 @@ const OPERATORS = [
     caps: "connection_call",
     authority: "tiered per capability — read 1 · write 2 · destructive 3",
     detail:
-      "Every connected capability gets a server-assigned authority level from its risk. A connector can propose, but anything that changes something outside cosigno waits for your signature — and it can never talk its way into a weaker approval.",
+      "Every connected capability gets a server-assigned authority level from its risk. A connector can propose, but anything that changes something outside cosigno waits for your approval — and it can never talk its way into a weaker one.",
   },
 ] as const;
 

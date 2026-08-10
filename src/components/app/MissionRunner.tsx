@@ -531,7 +531,7 @@ export function MissionRunner({ initial }: { initial?: MissionRecord[] }) {
                 {m.state === "awaiting_approval" && (
                   <>
                     <p className="rounded-btn bg-cream-deep px-3 py-2 text-xs font-semibold">
-                      a consequential step is waiting for your signature. the mission
+                      a consequential step is waiting on your approval. the mission
                       resumes automatically after you decide.
                     </p>
                     {/* Decide right here, on the mission that raised it. Scoped
