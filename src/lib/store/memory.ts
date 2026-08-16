@@ -161,6 +161,23 @@ export class MemoryStore implements Store {
     return rows.slice(0, filter.limit ?? 500);
   }
 
+  async listDecisionHeads(
+    userId: string,
+    limit: number
+  ): Promise<import("./index").DecisionHead[]> {
+    return this.actions
+      .filter((a) => a.user_id === userId && a.status !== "proposed")
+      .slice(0, limit)
+      .map(({ id, category, status, veto_reason, created_at, resolved_at }) => ({
+        id,
+        category,
+        status,
+        veto_reason,
+        created_at,
+        resolved_at,
+      }));
+  }
+
   async listActionHeads(userId: string, limit: number): Promise<ActionHead[]> {
     return this.actions
       .filter((a) => a.user_id === userId)
@@ -285,6 +302,27 @@ export class MemoryStore implements Store {
     return this.events.filter(
       (e) => e.user_id === userId && wanted.has(e.action_id)
     );
+  }
+
+  async listUserEditedActionIds(
+    userId: string,
+    actionIds: string[]
+  ): Promise<string[]> {
+    if (actionIds.length === 0) return [];
+    const wanted = new Set(actionIds);
+    return [
+      ...new Set(
+        this.events
+          .filter(
+            (e) =>
+              e.user_id === userId &&
+              e.type === "edited" &&
+              e.actor === "user" &&
+              wanted.has(e.action_id)
+          )
+          .map((e) => e.action_id)
+      ),
+    ];
   }
 
   async getTierSettings(userId: string): Promise<TierSettingRecord[]> {
@@ -893,6 +931,7 @@ export class MemoryStore implements Store {
         user_id: userId,
         memory_enabled: true,
         action_budget: DEFAULT_ACTION_BUDGET,
+        muted_preferences: [],
       }
     );
   }
@@ -901,6 +940,28 @@ export class MemoryStore implements Store {
     // Merge — writing one preference must not silently reset the others.
     const prev = await this.getPrefs(userId);
     this.prefs.set(userId, { ...prev, memory_enabled: enabled });
+  }
+
+  async setPreferenceMuted(
+    userId: string,
+    key: string,
+    muted: boolean
+  ): Promise<string[]> {
+    // Read and write without awaiting in between. An `await` here would yield
+    // the microtask queue mid-update, so two concurrent mutes of different
+    // keys could each write a copy built from the same pre-state and one would
+    // be lost — a race the in-memory store should not invent on its own.
+    const prev = this.prefs.get(userId) ?? {
+      user_id: userId,
+      memory_enabled: true,
+      action_budget: DEFAULT_ACTION_BUDGET,
+      muted_preferences: [] as string[],
+    };
+    const next = muted
+      ? [...new Set([...prev.muted_preferences, key])].sort()
+      : prev.muted_preferences.filter((k) => k !== key);
+    this.prefs.set(userId, { ...prev, muted_preferences: next });
+    return next;
   }
 
   async setActionBudget(userId: string, budget: number): Promise<void> {

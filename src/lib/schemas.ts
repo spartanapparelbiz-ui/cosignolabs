@@ -313,6 +313,23 @@ export const memoryPrefsSchema = z
   .object({ memory_enabled: z.boolean() })
   .strict();
 
+/**
+ * Mute or unmute one learned preference. The key is a derived identifier
+ * (`avoid:send_email`, `constraint:weekend`), so the pattern is tight enough
+ * that nothing else can be smuggled into the stored array.
+ */
+export const preferenceMuteSchema = z
+  .object({
+    preference_key: z
+      .string()
+      .trim()
+      .min(3)
+      .max(80)
+      .regex(/^[a-z]+:[a-z0-9_']+$/, "that isn't a preference we recognise."),
+    muted: z.boolean(),
+  })
+  .strict();
+
 /* ---------------------------------------------------- permission rules */
 
 /** Create a permission rule from plain language (parsed server-side). */

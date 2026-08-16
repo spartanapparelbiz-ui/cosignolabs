@@ -505,6 +505,13 @@ export interface UserPrefs {
   memory_enabled: boolean;
   /** The default action budget every new mission runs under. */
   action_budget: number;
+  /**
+   * Learned-preference keys the user has switched off. Preferences are derived
+   * from decision history rather than stored, so this list is the only
+   * persisted part of learning — and it exists so a user can overrule what
+   * cosigno concluded about them without deleting the decisions behind it.
+   */
+  muted_preferences: string[];
 }
 
 /* ------------------------------------------------------------------ files */

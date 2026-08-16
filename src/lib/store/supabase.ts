@@ -180,6 +180,23 @@ export class SupabaseStore implements Store {
     return data ?? [];
   }
 
+  async listDecisionHeads(
+    userId: string,
+    limit: number
+  ): Promise<import("./index").DecisionHead[]> {
+    // Both the projection and the "decided" predicate are pushed down, so a
+    // pile of pending cards can't shrink the window and no payload moves.
+    const { data, error } = await this.client
+      .from("actions")
+      .select("id, category, status, veto_reason, created_at, resolved_at")
+      .eq("user_id", userId)
+      .neq("status", "proposed")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as import("./index").DecisionHead[];
+  }
+
   async listActionHeads(userId: string, limit: number): Promise<ActionHead[]> {
     // Projection only — payload/result JSON never leaves the database.
     const { data, error } = await this.client
@@ -337,6 +354,30 @@ export class SupabaseStore implements Store {
       out.push(...(data ?? []));
     }
     return out.sort((a, b) => a.created_at.localeCompare(b.created_at));
+  }
+
+  async listUserEditedActionIds(
+    userId: string,
+    actionIds: string[]
+  ): Promise<string[]> {
+    if (actionIds.length === 0) return [];
+    const found = new Set<string>();
+    // Projection + predicate pushed to the database: one short column back,
+    // and event bodies (which can carry a signature image) never move.
+    for (let i = 0; i < actionIds.length; i += 100) {
+      const { data, error } = await this.client
+        .from("action_events")
+        .select("action_id")
+        .eq("user_id", userId)
+        .eq("type", "edited")
+        .eq("actor", "user")
+        .in("action_id", actionIds.slice(i, i + 100));
+      if (error) throw new Error(error.message);
+      for (const row of (data ?? []) as Array<{ action_id: string }>) {
+        found.add(row.action_id);
+      }
+    }
+    return [...found];
   }
 
   async getTierSettings(userId: string): Promise<TierSettingRecord[]> {
@@ -1186,6 +1227,7 @@ export class SupabaseStore implements Store {
       user_id: userId,
       memory_enabled: row?.memory_enabled ?? true,
       action_budget: row?.action_budget ?? DEFAULT_ACTION_BUDGET,
+      muted_preferences: row?.muted_preferences ?? [],
     };
   }
 
@@ -1194,6 +1236,28 @@ export class SupabaseStore implements Store {
       .from("user_prefs")
       .upsert({ user_id: userId, memory_enabled: enabled, updated_at: new Date().toISOString() });
     if (error) throw new Error(error.message);
+  }
+
+  async setPreferenceMuted(
+    userId: string,
+    key: string,
+    muted: boolean
+  ): Promise<string[]> {
+    // Read-modify-write on a single-row-per-user table. The array is the
+    // user's own short list, edited one key at a time from one screen, so the
+    // simple path is honest here — and a lost concurrent mute costs a click,
+    // never authority.
+    const current = await this.getPrefs(userId);
+    const next = muted
+      ? [...new Set([...current.muted_preferences, key])].sort()
+      : current.muted_preferences.filter((k) => k !== key);
+    const { error } = await this.client.from("user_prefs").upsert({
+      user_id: userId,
+      muted_preferences: next,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+    return next;
   }
 
   async setActionBudget(userId: string, budget: number): Promise<void> {
