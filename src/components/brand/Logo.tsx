@@ -2,68 +2,86 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 
 /**
- * The cosigno mark — one unified, proprietary symbol: a bold open ORANGE C
- * (opening on the right) with a real CHECK rising through the opening. The C is
- * cosigno; the check is approval / permission / completion / signing off. No
- * circle, no shield, no signature, no gradient/shadow/glow. No dot on the icon
- * — the orange dot lives over the "i" in the wordmark.
+ * The cosigno mark — one unified, proprietary symbol: a soft ORANGE triangle
+ * with a soft triangular counter knocked out of it. The counter is a real HOLE,
+ * not a second coloured shape, so the mark sits correctly on cream, on ink, on
+ * OLED black and on the orange itself without ever needing a matched backdrop.
+ * No circle, no shield, no signature, no gradient/shadow/glow.
  *
- * Colors are driven entirely by CSS custom properties so the mark flips with
+ * Colours are driven entirely by CSS custom properties so the mark flips with
  * the theme WITHOUT a flash (data-theme is set before paint) and stays
  * hydration-safe (no JS/state):
- *   --logo-c         the C                — #FB4C20 in every theme
- *   --logo-check     the checkmark        — #171512 light / #F7F0E5 dark / #FB4C20 oled
- *   --logo-wordmark  the wordmark         — #171512 light / #F7F0E5 dark / #FFFFFF oled
- *   --logo-dot       the i-dot            — #FB4C20 in every theme
+ *   --logo-mark      the mark      — #FB4C20 in every theme
+ *   --logo-counter   the counter   — transparent everywhere, so the surface
+ *                                    shows through. Surfaces that need a
+ *                                    painted counter (the progressive auth
+ *                                    mark, the status light) set it locally.
+ *   --logo-wordmark  the wordmark  — #171512 light / #F7F0E5 dark / #FFFFFF oled
  * An explicit `theme` prop overrides these inline (OLED, or a known fixed
  * light/dark surface such as the OG image or a dark footer).
  *
- * Geometry mirrors scripts/logo-geometry.mjs (viewBox 0 0 160 160). The check
- * stays fully recognizable at a 20px mark; strokes carry no thin details.
+ * Geometry mirrors scripts/logo-geometry.mjs (viewBox 0 0 160 160). The mark is
+ * a single closed band with no thin details, so it survives down to the 11px
+ * uses inside receipts and file rows.
  */
 
 /* --- shared geometry (single source; mirrored in scripts/logo-geometry.mjs) */
 export const LOGO_VIEWBOX = "0 0 160 160";
-export const LOGO_C_PATH =
-  "M 70.5 16.44 C 57.77 18.37, 48.31 22.33, 38.54 29.81 C 21.17 43.11, 11 66.97, 13.93 87.6 C 15.73 100.3, 20.58 111.26, 28.77 121.1 C 36.28 130.12, 45.93 136.74, 57.35 140.71 C 63.74 142.94, 68.73 143.86, 76.25 144.19 C 98.96 145.2, 120.62 134.14, 133.15 115.13 C 136.96 109.34, 137.35 108.43, 137.09 105.75 C 136.93 104.12, 136.53 103.08, 135.73 102.31 C 134.56 101.17, 120.58 94.48, 119.35 94.48 C 117.11 94.48, 115.46 95.92, 112.37 100.55 C 108.24 106.77, 103.78 110.86, 97.8 113.91 C 91.25 117.27, 87.7 118.24, 80.92 118.55 C 71.49 118.99, 63.88 116.93, 56.43 111.95 C 50.48 107.97, 46.21 103.19, 43.25 97.2 C 40.26 91.14, 39.38 87.93, 39.07 81.86 C 38.53 71.6, 42.24 61.96, 49.83 53.95 C 61.7 41.4, 80.68 37.99, 96.16 45.6 C 98.26 46.63, 100.14 47.48, 100.35 47.48 C 100.55 47.48, 103.39 45.56, 106.65 43.22 C 109.91 40.88, 114.7 37.64, 117.3 36.02 C 119.89 34.4, 122.02 32.92, 122.02 32.72 C 122.02 31.8, 113.87 25.97, 109.22 23.56 C 103.29 20.47, 101.83 19.91, 94.72 17.97 C 89.97 16.68, 88.7 16.54, 80.71 16.39 C 75.88 16.3, 71.29 16.32, 70.5 16.44";
-export const LOGO_CHECK_PATH = "M 141.25 35.34 C 124.28 41.92, 104.95 55.37, 86.12 73.71 C 82.43 77.3, 79.24 80.24, 79.03 80.24 C 78.82 80.24, 75.74 77.39, 72.2 73.9 C 65.01 66.83, 63.97 66.25, 59.07 66.56 C 56.67 66.71, 55.63 67.04, 54.02 68.17 C 51.22 70.13, 49.65 73.11, 49.63 76.47 C 49.61 79.78, 50.62 81.43, 57.24 88.87 C 59.87 91.83, 64.17 96.82, 66.8 99.97 C 69.43 103.12, 72.14 106.06, 72.82 106.5 C 75.05 107.97, 78.47 108.48, 81.49 107.8 C 84.76 107.07, 85.83 106.06, 99.03 91.16 C 114.24 73.98, 131.81 54.32, 139.69 45.63 C 143.81 41.08, 147.18 37, 147.18 36.56 C 147.18 35.6, 145.72 34.17, 144.77 34.21 C 144.4 34.22, 142.81 34.73, 141.25 35.34";
-export const LOGO_C_WIDTH = 22;
-export const LOGO_CHECK_WIDTH = 20;
+/** Outer soft triangle. */
+export const LOGO_SHELL_PATH =
+  "M 125.357 28.491 A 36.9 36.9 0 0 0 70.982 16.933 A 221.401 221.401 0 0 0 13.797 80.443 A 36.9 36.9 0 0 0 30.976 133.312 A 221.401 221.401 0 0 0 114.569 151.08 A 36.9 36.9 0 0 0 151.765 109.769 A 221.401 221.401 0 0 0 125.357 28.491 Z";
+/** The counter, knocked out of the shell. */
+export const LOGO_COUNTER_PATH =
+  "M 71.687 50.014 A 22.14 22.14 0 0 0 49.358 74.813 A 126.515 126.515 0 0 0 64.406 121.125 A 22.14 22.14 0 0 0 97.047 128.063 A 126.515 126.515 0 0 0 129.63 91.875 A 22.14 22.14 0 0 0 119.318 60.138 A 126.515 126.515 0 0 0 71.687 50.014 Z";
+/** The mark as shipped. MUST be filled with fill-rule="evenodd" — that is what
+ *  turns the counter into a hole instead of a second stacked shape. */
+export const LOGO_MARK_PATH = `${LOGO_SHELL_PATH} ${LOGO_COUNTER_PATH}`;
 
 export type LogoTheme = "light" | "dark" | "oled" | "auto";
 
 /** Inline CSS-var overrides for an explicit theme; `auto` inherits the globals. */
 const THEME_VARS: Record<Exclude<LogoTheme, "auto">, CSSProperties> = {
-  light: { "--logo-c": "#FB4C20", "--logo-check": "#171512", "--logo-wordmark": "#171512", "--logo-dot": "#FB4C20" } as CSSProperties,
-  dark: { "--logo-c": "#FB4C20", "--logo-check": "#F7F0E5", "--logo-wordmark": "#F7F0E5", "--logo-dot": "#FB4C20" } as CSSProperties,
-  oled: { "--logo-c": "#FB4C20", "--logo-check": "#FB4C20", "--logo-wordmark": "#FFFFFF", "--logo-dot": "#FB4C20" } as CSSProperties,
+  light: { "--logo-mark": "#FB4C20", "--logo-wordmark": "#171512" } as CSSProperties,
+  dark: { "--logo-mark": "#FB4C20", "--logo-wordmark": "#F7F0E5" } as CSSProperties,
+  oled: { "--logo-mark": "#FB4C20", "--logo-wordmark": "#FFFFFF" } as CSSProperties,
 };
 
 /**
- * The bare icon (C + real checkmark). `mono` renders it in a single color
- * (currentColor) for one-color contexts; otherwise the C is orange and the
- * check is theme-aware. `checkClassName` lets the living-logo drive the check.
+ * The bare icon. `mono` renders it in currentColor for one-colour contexts;
+ * otherwise it is the brand orange. The counter stays a hole either way.
+ * `markClassName` lets the living logo drive the mark's idle opacity drift.
  */
 export function CosignoMark({
   size = 28,
-  checkClassName = "",
+  markClassName = "",
   mono = false,
 }: {
   size?: number;
-  checkClassName?: string;
+  markClassName?: string;
   mono?: boolean;
 }) {
-  const cColor = mono ? "currentColor" : "var(--logo-c)";
-  const checkColor = mono ? "currentColor" : "var(--logo-check)";
   return (
     <svg width={size} height={size} viewBox={LOGO_VIEWBOX} fill="none" aria-hidden="true">
-      <path d={LOGO_C_PATH} fill={cColor} />
-      <path d={LOGO_CHECK_PATH} fill={checkColor} className={checkClassName} />
+      <path
+        d={LOGO_MARK_PATH}
+        fillRule="evenodd"
+        clipRule="evenodd"
+        fill={mono ? "currentColor" : "var(--logo-mark)"}
+        className={markClassName}
+      />
+      {/*
+       * The counter is transparent by default, so this paints nothing and the
+       * surface behind the mark shows through the hole. It exists so contexts
+       * that DO want a filled counter — the auth mark completing itself as the
+       * form fills, the status light pulsing — have a real element to animate
+       * by setting --logo-counter locally.
+       */}
+      <path d={LOGO_COUNTER_PATH} fill="var(--logo-counter)" />
     </svg>
   );
 }
 
-/** Lowercase "cosigno" wordmark with the orange i-dot over a dotless "ı". */
+/** Lowercase "cosigno" wordmark, set in the brand face. */
 export function CosignoWordmark({ className = "" }: { className?: string }) {
   return (
     <span
@@ -71,20 +89,15 @@ export function CosignoWordmark({ className = "" }: { className?: string }) {
       className={`whitespace-nowrap lowercase ${className}`}
       style={{
         color: "var(--logo-wordmark)",
-        fontFamily: "var(--font-wordmark), system-ui, sans-serif",
-        // 800 is the only wordmark weight shipped; naming it here rather than
+        fontFamily: "var(--font-wordmark), Georgia, serif",
+        // 500 is the only wordmark weight shipped; naming it here rather than
         // via a utility class keeps the lockup identical wherever it lands,
         // including inside prose that sets its own weight.
-        fontWeight: 800,
-        letterSpacing: "-0.025em",
+        fontWeight: 500,
+        letterSpacing: "-0.005em",
       }}
     >
-      cos
-      <span className="cosigno-i">
-        ı
-        <span className="cosigno-dot" />
-      </span>
-      gno
+      cosigno
     </span>
   );
 }
@@ -153,11 +166,9 @@ export function CosignoLogo({
       <Link href={href} prefetch className={`${shell} ${className}`} style={style}>
         {/*
          * The accessible name comes from this text node, not from an
-         * aria-label. The wordmark renders a dotless "ı" so the orange dot can
-         * sit above it, and an aria-label whose text can never match that
-         * rendered glyph trips axe's label-content-name-mismatch rule. Naming
-         * the link from hidden content sidesteps the rule entirely and
-         * announces exactly the same thing it did before.
+         * aria-label: naming a link from hidden content keeps axe's
+         * label-content-name-mismatch rule satisfied however the wordmark is
+         * drawn, and announces exactly what it always did.
          */}
         <span className="sr-only">{`${label} home`}</span>
         {inner}

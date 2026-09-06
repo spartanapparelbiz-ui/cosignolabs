@@ -186,23 +186,23 @@ const config: Config = {
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         // --- living logo: the one idle "breath" (see LOGO_BREATH in motion.ts).
-        // Scale on the mark; opacity on the check. Compositor-only.
+        // Scale on the wrapper; opacity on the mark itself. Compositor-only.
         "logo-breath": {
           "0%, 100%": { transform: "scale(1)" },
           "50%": { transform: "scale(1.015)" },
         },
-        "logo-check": {
+        "logo-glow": {
           "0%, 100%": { opacity: "0.92" },
           "50%": { opacity: "1" },
         },
         // --- LogoStatus: the mark as the live status indicator ---
-        // A short highlight segment travels the C's arc (normalized via
+        // A short highlight segment travels the mark's band (normalized via
         // pathLength=1); speed is overridden per state with animationDuration.
         "logo-travel": {
           "0%": { "stroke-dashoffset": "1" },
           "100%": { "stroke-dashoffset": "-1" },
         },
-        // Decisive check stroke-draw on execution (pathLength=1 space).
+        // Decisive stroke-draw on execution (pathLength=1 space).
         "logo-draw": {
           "0%": { "stroke-dashoffset": "1" },
           "100%": { "stroke-dashoffset": "0" },
@@ -257,7 +257,7 @@ const config: Config = {
         shimmer: "shimmer 1.6s ease-in-out infinite",
         "toast-in": "toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "logo-breath": "logo-breath 5s ease-in-out infinite",
-        "logo-check": "logo-check 5s ease-in-out infinite",
+        "logo-glow": "logo-glow 5s ease-in-out infinite",
         "logo-travel": "logo-travel 2.4s linear infinite",
         "logo-draw": "logo-draw 360ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "sig-reveal": "sig-reveal 700ms cubic-bezier(0.22, 1, 0.36, 1) both",

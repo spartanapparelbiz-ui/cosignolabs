@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { MotionValue } from "framer-motion";
-import { CosignoMark, LOGO_C_PATH, LOGO_CHECK_PATH } from "@/components/brand/Logo";
+import { CosignoMark, LOGO_COUNTER_PATH, LOGO_MARK_PATH } from "@/components/brand/Logo";
 
 /**
  * The cosigno mark, in three dimensions.
@@ -37,12 +37,12 @@ export interface Mark3DProps {
   /** Drives rotation and dolly. 0 → 1 across the owning section. */
   progress?: MotionValue<number>;
   /**
-   * The check's home. `false` floats it out of the C along its own axis;
-   * flipping to `true` springs it back — the signature landing, in space.
+   * The plug's home. `false` floats it out of the counter along its own
+   * axis; flipping to `true` springs it back — the signature landing, in space.
    */
   sealed?: boolean;
   /**
-   * The same idea, scrubbed: 0 keeps the check out at arm's length and 1 has
+   * The same idea, scrubbed: 0 keeps the plug out at arm's length and 1 has
    * it home. Given a motion value the seal follows the scrollbar frame by
    * frame instead of springing on a state change, which is what lets the mark
    * assemble itself as you read rather than snapping when you arrive.
@@ -114,11 +114,13 @@ function canRender3D(): boolean {
 }
 
 /** Read the brand's own CSS variables so the object matches the theme exactly. */
-function readBrandColors(el: HTMLElement): { c: string; check: string } {
+function readBrandColors(el: HTMLElement): { mark: string; plug: string } {
   const style = getComputedStyle(el);
   return {
-    c: style.getPropertyValue("--logo-c").trim() || "#FB4C20",
-    check: style.getPropertyValue("--logo-check").trim() || "#171512",
+    mark: style.getPropertyValue("--logo-mark").trim() || "#FB4C20",
+    // The counter is a hole in the flat mark; as an object it needs a real
+    // material, so it reads its own token (see --logo-plug in globals.css).
+    plug: style.getPropertyValue("--logo-plug").trim() || "#171512",
   };
 }
 
@@ -220,43 +222,43 @@ export function Mark3D({
       }
 
       // Depth is deliberately shallow. The mark has to read as the mark first
-      // and as an object second; a deep extrusion turns the C into a slab and
+      // and as an object second; a deep extrusion turns the band into a slab and
       // the silhouette stops matching the favicon sitting in the same tab.
-      const cGeom = buildGeometry(LOGO_C_PATH, 10);
-      const checkGeom = buildGeometry(LOGO_CHECK_PATH, 11.5);
+      const markGeom = buildGeometry(LOGO_MARK_PATH, 10);
+      const plugGeom = buildGeometry(LOGO_COUNTER_PATH, 11.5);
 
       // Centre both on the mark's shared 160×160 canvas, not on their own
-      // bounds, or the check would recentre itself out of the C's opening.
+      // bounds, or the plug would recentre itself out of the counter it fills.
       const CANVAS = 160;
       const SCALE = 2.55 / CANVAS;
-      for (const g of [cGeom, checkGeom]) {
+      for (const g of [markGeom, plugGeom]) {
         g.translate(-CANVAS / 2, -CANVAS / 2, -7);
         g.scale(SCALE, SCALE, SCALE);
       }
 
-      const { c: cColor, check: checkColor } = readBrandColors(hostRef.current);
+      const { mark: markColor, plug: plugColor } = readBrandColors(hostRef.current);
       // MeshStandardMaterial, not MeshPhysical: clearcoat roughly doubles the
       // shader compile, and on a throttled phone that compile is the whole
       // budget. The sheen here comes from the light rig.
-      const cMaterial = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(cColor),
+      const markMaterial = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(markColor),
         roughness: 0.33,
         metalness: 0.06,
       });
-      const checkMaterial = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(checkColor),
+      const plugMaterial = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(plugColor),
         roughness: 0.28,
         metalness: 0.08,
       });
 
-      const cMesh = new THREE.Mesh(cGeom, cMaterial);
-      const checkMesh = new THREE.Mesh(checkGeom, checkMaterial);
+      const markMesh = new THREE.Mesh(markGeom, markMaterial);
+      const plugMesh = new THREE.Mesh(plugGeom, plugMaterial);
 
       // SVG's y axis points down; three's points up. A rotation rather than a
       // negative scale, so winding — and therefore lighting — stays correct.
       const inner = new THREE.Group();
       inner.rotation.x = Math.PI;
-      inner.add(cMesh, checkMesh);
+      inner.add(markMesh, plugMesh);
 
       const rig = new THREE.Group();
       rig.add(inner);
@@ -307,7 +309,7 @@ export function Mark3D({
       const touch = () => {
         dirty = true;
       };
-      // The check's distance from home: 1 while unsigned, eased to 0 on seal.
+      // The plug's distance from home: 1 while unsigned, eased to 0 on seal.
       let apart = sealedRef.current ? 0 : 1;
       let visible = true;
       let clock = 0;
@@ -374,7 +376,7 @@ export function Mark3D({
         // reader is what makes the object read as an object rather than a
         // picture. The budget is arithmetic, not hope — scroll 0.78 plus
         // drift 0.16 plus pointer 0.26, against a face that stops reading at
-        // 1.57 (90°). Worst case lands near 66°, where the C and the check
+        // 1.57 (90°). Worst case lands near 66°, where the band and the plug
         // both still read and the extrusion is at its most legible.
         const drift = stillRef.current || !drifts ? 0 : (t - clock) / 1000;
         const turn = eased - 0.5; // -0.5 → 0.5, so the middle of the scroll is level
@@ -396,13 +398,13 @@ export function Mark3D({
           // that. The mark is not a symmetrical object: there is a front, and
           // the front is the logo. So spin sweeps ±42° instead, and spends the
           // motion budget on roll and dolly, which read as depth without ever
-          // turning the C into an edge.
+          // turning the mark into an edge.
           rig.rotation.y = Math.sin(eased * Math.PI * 2) * 0.74 + Math.sin(drift * 0.3) * 0.05;
           rig.rotation.x = 0.1 - Math.sin(eased * Math.PI) * 0.26 + Math.sin(drift * 0.33) * 0.04;
           rig.rotation.z = Math.sin(eased * Math.PI * 2) * 0.2 + Math.sin(drift * 0.27) * 0.03;
         } else if (SCATTER) {
           // Without a signature the object never settles: it tumbles, and the
-          // check has already left. This is the only mark on the page allowed
+          // plug has already left. This is the only mark on the page allowed
           // to look unsettled — but it is still the logo, so the tumble is
           // bounded to the same readable window as everything else rather than
           // rolling through the back of the mark.
@@ -438,7 +440,8 @@ export function Mark3D({
           eased * (AMBIENT || SPIN || SCATTER ? 1.5 : 3.2) -
           Math.sin(eased * Math.PI) * 0.6;
 
-        // The check leaves and returns along its own axis, never through the C.
+        // The plug lifts straight out of its counter and drops back in, never
+        // through the band.
         // A scrubbed seal is read straight off the scrollbar; a boolean one is
         // eased, so answering a card still springs rather than snaps.
         const scrub = sealRef.current?.get();
@@ -449,8 +452,8 @@ export function Mark3D({
           apart += (want - apart) * 0.09;
           if (Math.abs(want - apart) < 0.001) apart = want;
         }
-        checkMesh.position.set(apart * 15, apart * -11, apart * 30);
-        checkMesh.rotation.set(apart * 0.34, apart * -0.46, apart * 0.24);
+        plugMesh.position.set(apart * 15, apart * -11, apart * 30);
+        plugMesh.rotation.set(apart * 0.34, apart * -0.46, apart * 0.24);
 
         renderer.render(scene, camera);
       }
@@ -498,10 +501,10 @@ export function Mark3D({
         window.removeEventListener("pointermove", onPointer);
         renderer.domElement.removeEventListener("webglcontextlost", onLost);
         renderer.domElement.remove();
-        cGeom.dispose();
-        checkGeom.dispose();
-        cMaterial.dispose();
-        checkMaterial.dispose();
+        markGeom.dispose();
+        plugGeom.dispose();
+        markMaterial.dispose();
+        plugMaterial.dispose();
         renderer.dispose();
       };
     }

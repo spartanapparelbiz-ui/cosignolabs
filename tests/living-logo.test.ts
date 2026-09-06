@@ -45,14 +45,14 @@ describe("living logo — single-breather coordinator", () => {
 });
 
 describe("living logo — breath token", () => {
-  it("is a slow, subtle scale + check-opacity drift (the only idle variant)", () => {
+  it("is a slow, subtle scale + mark-opacity drift (the only idle variant)", () => {
     expect(LOGO_BREATH.durationMs).toBe(5000);
     expect(LOGO_BREATH.ease).toBe("ease-in-out");
     // Subtle by design — a hair over 1, never a bounce.
     expect(LOGO_BREATH.scale.rest).toBe(1);
     expect(LOGO_BREATH.scale.peak).toBeGreaterThan(1);
     expect(LOGO_BREATH.scale.peak).toBeLessThanOrEqual(1.02);
-    expect(LOGO_BREATH.checkOpacity.low).toBeGreaterThanOrEqual(0.9);
-    expect(LOGO_BREATH.checkOpacity.high).toBe(1);
+    expect(LOGO_BREATH.markOpacity.low).toBeGreaterThanOrEqual(0.9);
+    expect(LOGO_BREATH.markOpacity.high).toBe(1);
   });
 });

@@ -25,7 +25,7 @@ export function LogoLoader({
       className={`flex flex-col items-center gap-3 ${className}`}
     >
       <span className="inline-flex [transform-origin:center] motion-safe:animate-logo-breath">
-        <CosignoMark size={size} checkClassName="motion-safe:animate-logo-check" />
+        <CosignoMark size={size} markClassName="motion-safe:animate-logo-glow" />
       </span>
       {label ? (
         <span className="text-xs font-bold lowercase tracking-widest text-ink-soft">

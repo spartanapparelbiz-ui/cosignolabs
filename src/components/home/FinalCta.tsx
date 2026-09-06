@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { motion, useInView, useTransform } from "framer-motion";
-import { CosignoMark, LOGO_C_PATH, LOGO_CHECK_PATH, LOGO_VIEWBOX } from "@/components/brand/Logo";
+import { CosignoMark, LOGO_MARK_PATH, LOGO_VIEWBOX } from "@/components/brand/Logo";
 import { Chip, DrawnCheck, PayloadWell } from "./ui";
 import { Mark3D } from "./Mark3D";
 import { EASE_SPRING, MaskedLines, useSectionProgress, useSmoothed, useStillness } from "./primitives";
@@ -62,8 +62,7 @@ export function FinalCta({ terms }: { terms: string }) {
         }
       >
         <svg viewBox={LOGO_VIEWBOX} fill="none" className="w-full">
-          <path d={LOGO_C_PATH} fill="var(--logo-c)" />
-          <path d={LOGO_CHECK_PATH} fill="var(--logo-check)" />
+          <path d={LOGO_MARK_PATH} fillRule="evenodd" clipRule="evenodd" fill="var(--logo-mark)" />
         </svg>
       </motion.div>
 
