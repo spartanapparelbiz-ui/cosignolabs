@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import { MemoryStore } from "../src/lib/store/memory";
 import { advanceMission } from "../src/lib/missions/engine";
 import { instantiateCompiledMission } from "../src/lib/missions/create";
@@ -148,6 +149,56 @@ describe("open-ended research takes its subject from the goal", () => {
     expect(q).toContain("ucf");
     expect(q).not.toContain("research");
     expect(q).not.toContain("create");
+  });
+});
+
+describe("a goal with no capability behind it is refused, not researched", () => {
+  /**
+   * Everything that matched no shape used to fall through to web research and
+   * then report COMPLETED. "organize my files into a sensible structure" came
+   * back having searched the web for those words and recommended one of the
+   * results — a confident, useless answer to a question nobody asked.
+   */
+  it("file management says so instead of searching the web for the words", async () => {
+    const r = await compileMission("user-a", "Go through my files and organize them into a sensible structure");
+    expect(r.shape).toBe("unsupported");
+    expect(r.blocked).toBe(true);
+    expect(r.plan.steps).toHaveLength(0);
+    // The reason names the real gap, and what it can do instead.
+    expect(r.understood.boundary.toLowerCase()).toMatch(/organize, rename, or move/);
+    expect(r.understood.boundary.toLowerCase()).toMatch(/attach a file/);
+  });
+
+  it("writing a piece from scratch says so, and points at what it can do", async () => {
+    const r = await compileMission("user-a", "Write a blog post about what changed this week");
+    expect(r.blocked).toBe(true);
+    expect(r.understood.boundary.toLowerCase()).toMatch(/research the subject/);
+  });
+
+  it("the refusals stay narrow — real work is never caught by them", async () => {
+    // Each of these has tools behind it and must still compile and run.
+    for (const goal of [
+      "Review my unread email and draft replies to anyone waiting on me",
+      "Compare the best apartments near campus under $1,500 and rank them",
+      "Research this company before my interview and create a comparison",
+      "Find the best price for a 14-inch laptop under $1,000",
+    ]) {
+      const r = await compileMission("user-a", goal);
+      expect(r.blocked, `“${goal}” must not be refused`).toBe(false);
+      expect(r.plan.steps.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("every starting point offered on home is one the product can actually run", async () => {
+    // The home cards are entry points; one that produces a confident wrong
+    // answer is worse than one that isn't there.
+    const dashboard = readFileSync("src/components/app/Dashboard.tsx", "utf8");
+    const fills = [...dashboard.matchAll(/fill:\s*"([^"]+)"/g)].map((m) => m[1]);
+    expect(fills.length).toBeGreaterThan(4);
+    for (const fill of fills) {
+      const r = await compileMission("user-a", fill);
+      expect(r.blocked, `home offers “${fill}” but the compiler refuses it`).toBe(false);
+    }
   });
 });
 

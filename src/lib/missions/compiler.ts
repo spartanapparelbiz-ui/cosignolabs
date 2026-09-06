@@ -117,6 +117,35 @@ function classify(goal: string): GoalShape {
   if (/\b(pay|send money|wire|transfer|invest|trade|publish|post to)\b/.test(g)) {
     return "unsupported";
   }
+  // Capabilities that genuinely do not exist yet.
+  //
+  // Everything used to fall through to the research shape, which meant a goal
+  // the product cannot serve was answered with web research and then reported
+  // COMPLETED. "organize my files into a sensible structure" came back having
+  // searched the web for the words "organize files sensible structure" and
+  // recommended one of the results. A wrong answer delivered confidently is
+  // worse than an honest refusal, so these say so instead.
+  //
+  // Both patterns need an intent AND a subject, and both stand down where a
+  // tool does exist: cosigno really can draft an email reply, and "create a
+  // comparison" is research with a deliverable on the end.
+  const emailContext = /\b(email|emails|inbox|reply|replies|message|messages|thread|threads|follow[\s-]?up)\b/.test(g);
+  const researchContext = /\b(research|compare|comparison|find|price|options?)\b/.test(g);
+  if (
+    /\b(organi[sz]e|rename|sort|tidy|declutter|clean up|move)\b/.test(g) &&
+    /\b(files?|folders?|documents?|photos?|downloads?|drive|desktop)\b/.test(g) &&
+    !emailContext
+  ) {
+    return "unsupported";
+  }
+  if (
+    /\b(write|draft|compose|create|generate|design|make|build)\b/.test(g) &&
+    /\b(essay|post|posts|blog|article|story|script|copy|deck|slides?|presentation|newsletter|brief|memo|letter|website|app)\b/.test(g) &&
+    !emailContext &&
+    !researchContext
+  ) {
+    return "unsupported";
+  }
   return "research"; // default to a safe read-only research shape
 }
 
@@ -270,6 +299,25 @@ function researchPlan(goal: string, manifest: CapabilityManifest): CompiledPlan 
   };
 }
 
+/**
+ * Why this goal can't run, in the words of the thing that's actually missing.
+ *
+ * A single catch-all sentence about money and publishing was wrong for two of
+ * the three cases it covered, and being told the wrong reason is barely better
+ * than being told nothing. Each branch also says what cosigno CAN do, because
+ * "no" without a next step is where a person gives up on the product.
+ */
+function unsupportedReason(goal: string): string {
+  const g = goal.toLowerCase();
+  if (/\b(files?|folders?|documents?|photos?|downloads?|drive|desktop)\b/.test(g)) {
+    return "cosigno can read files you attach to a mission, but it can't yet organize, rename, or move the files in your storage — so it won't pretend to. attach a file and it will use what's in it.";
+  }
+  if (/\b(essay|post|posts|blog|article|story|script|copy|deck|slides?|presentation|newsletter|brief|memo|letter|website|app)\b/.test(g)) {
+    return "cosigno writes up what it researched, but it can't yet be asked to write a piece from scratch — so it won't hand you one and call it done. ask it to research the subject and it will give you the material, with sources.";
+  }
+  return "this goal requires moving money or publishing through a connection that isn't available — cosigno can research and prepare, but can't complete it.";
+}
+
 function unsupportedPlan(goal: string): CompiledPlan {
   return {
     normalizedGoal: goal,
@@ -281,9 +329,7 @@ function unsupportedPlan(goal: string): CompiledPlan {
     approvalCheckpoints: [],
     verificationRequirements: [],
     riskSummary: "this goal needs a capability cosigno doesn't have yet.",
-    unsupported: [
-      "this goal requires moving money or publishing through a connection that isn't available — cosigno can research and prepare, but can't complete it.",
-    ],
+    unsupported: [unsupportedReason(goal)],
   };
 }
 

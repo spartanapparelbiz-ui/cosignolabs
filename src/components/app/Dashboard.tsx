@@ -41,14 +41,14 @@ function greeting(name: string): string {
  * something" is a box you still have to write.
  */
 const PROMPTS: { label: string; fill: string }[] = [
-  { label: "plan a trip", fill: "Plan a weekend in Miami for under $800 and build the itinerary" },
-  { label: "research something", fill: "Research this company and summarise what I should know before my interview" },
+  { label: "plan a trip", fill: "Research a weekend in Miami for under $800 and compare the options" },
+  { label: "research something", fill: "Research this company and tell me what I should know before my interview" },
   { label: "find the best price", fill: "Find the best price for a 14-inch laptop under $1,000" },
   { label: "compare options", fill: "Compare the best apartments near campus under $1,500 and rank them" },
   { label: "handle my inbox", fill: "Review my unread email and draft replies to anyone waiting on me" },
-  { label: "organize my files", fill: "Go through my files and organize them into a sensible structure" },
-  { label: "create something", fill: "Write a one-page brief on what changed this week" },
-  { label: "do something on the web", fill: "Find me the best flight to Mexico under $400 and organize the options" },
+  { label: "prepare for a meeting", fill: "Prepare for my next meeting and draft the agenda" },
+  { label: "chase what i'm owed", fill: "Find the threads waiting on a reply from me and draft the follow-ups" },
+  { label: "do something on the web", fill: "Find the best flight to Mexico under $400 and compare the options" },
 ];
 
 async function jsonFetch(url: string, init?: RequestInit) {
