@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Activity,
+  ChevronUp,
   Gauge,
+  MoreHorizontal,
   Radar,
   FlaskConical,
   Home,
@@ -22,11 +24,11 @@ import { LogoHome } from "@/components/brand/LivingLogo";
 
 /**
  * The app's navigation chrome: a compact left rail on desktop, a bottom bar
- * on mobile. The seven everyday destinations — nothing else lives here (no
- * upgrade ads, per the shell rules). The approvals item carries a count badge
- * ONLY when something actually needs a signature. Advanced surfaces (memory,
- * team, health, automations, files) stay reachable from their in-page links
- * and settings.
+ * on mobile. The five everyday destinations, with the deeper tools folded
+ * behind "more" — nothing else lives here (no upgrade ads, per the shell
+ * rules). The approvals item carries a count badge ONLY when something
+ * actually needs a signature. Advanced surfaces (memory, team, health,
+ * automations, files) stay reachable from their in-page links and settings.
  */
 
 /**
@@ -43,10 +45,18 @@ const PRIMARY = [
 ] as const;
 
 /**
- * The deeper tools. Every one of them still works and is one click away —
- * they sit below a divider because none of them is part of a normal day, and
- * eleven equal-weight destinations made the first screen read as a control
- * panel rather than a workspace.
+ * The deeper tools — FOLDED AWAY by default.
+ *
+ * These used to sit under a divider, which is a weaker idea than it looks: a
+ * divider changes the spacing and nothing else, so the first screen still
+ * presented eleven equal-weight destinations and still read as a control
+ * panel. "simulate", "monitoring" and "live work" are not part of anybody's
+ * normal day, and putting them at the same visual weight as "home" tells a
+ * new person this is a product they have to learn.
+ *
+ * So the rail opens on the daily five and one "more". Nothing is removed and
+ * nothing is more than one click further away; the group also opens itself
+ * whenever the current page is inside it, so where you are is never hidden.
  */
 const SECONDARY = [
   { href: "/app/trust", label: "trust", icon: ShieldCheck },
@@ -98,6 +108,40 @@ function RailLink({
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/app" ? pathname === "/app" : pathname.startsWith(href);
+}
+
+const MORE_KEY = "cosigno_rail_more";
+
+/**
+ * Whether the deeper tools are showing.
+ *
+ * Two things can open them: the person opened them (remembered, because
+ * someone who lives in monitoring shouldn't re-open it every visit), or they
+ * are currently ON one of those pages — a rail that hides the page you are
+ * looking at is worse than one that shows too much.
+ */
+function useMoreOpen(pathname: string): [boolean, () => void] {
+  const onSecondary = SECONDARY.some((s) => isActive(pathname, s.href));
+  const [chosen, setChosen] = useState(false);
+  useEffect(() => {
+    try {
+      setChosen(window.localStorage.getItem(MORE_KEY) === "1");
+    } catch {
+      // storage unavailable → the rail simply starts folded
+    }
+  }, []);
+  const toggle = () => {
+    setChosen((v) => {
+      const next = !v;
+      try {
+        window.localStorage.setItem(MORE_KEY, next ? "1" : "0");
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+  return [chosen || onSecondary, toggle];
 }
 
 /**
@@ -187,6 +231,7 @@ export function AppRail() {
   const pathname = usePathname();
   const pending = usePendingCount();
   const isFree = useIsFreePlan();
+  const [moreOpen, toggleMore] = useMoreOpen(pathname);
   return (
     <aside
       className="sticky top-0 hidden h-screen w-[76px] shrink-0 flex-col items-center gap-1 border-r border-line/60 bg-cream/80 py-4 lg:flex"
@@ -208,16 +253,38 @@ export function AppRail() {
 
       <span className="my-1 h-px w-7 bg-line" aria-hidden="true" />
 
-      {SECONDARY.map(({ href, label, icon: Icon }) => (
-        <RailLink
-          key={href}
-          href={href}
-          label={label}
-          Icon={Icon}
-          active={isActive(pathname, href)}
-          badge={0}
-        />
-      ))}
+      <button
+        type="button"
+        onClick={toggleMore}
+        aria-expanded={moreOpen}
+        aria-controls="rail-more"
+        className="flex w-[60px] flex-col items-center gap-0.5 rounded-btn px-1 py-2 text-[10px] font-bold lowercase text-ink-soft transition-colors hover:bg-cream-deep hover:text-ink"
+      >
+        {moreOpen ? (
+          <ChevronUp size={17} strokeWidth={2.2} aria-hidden="true" />
+        ) : (
+          <MoreHorizontal size={17} strokeWidth={2.2} aria-hidden="true" />
+        )}
+        {moreOpen ? "less" : "more"}
+      </button>
+
+      {/* `hidden` rather than unmounted: the links stay in the accessibility
+          tree's document order and nothing re-mounts on every toggle.
+          The flex utility is applied only when open — `display: flex` from a
+          class beats the `hidden` attribute's `display: none`, so leaving it
+          on would render the group permanently visible. */}
+      <div id="rail-more" hidden={!moreOpen} className={moreOpen ? "flex flex-col items-center gap-1" : undefined}>
+        {SECONDARY.map(({ href, label, icon: Icon }) => (
+          <RailLink
+            key={href}
+            href={href}
+            label={label}
+            Icon={Icon}
+            active={isActive(pathname, href)}
+            badge={0}
+          />
+        ))}
+      </div>
 
       {isFree && (
         <RailLink

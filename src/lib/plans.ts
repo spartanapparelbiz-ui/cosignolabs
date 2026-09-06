@@ -46,7 +46,7 @@ export const PLANS: Record<PlanId, Plan> = {
   free: {
     id: "free",
     name: "free",
-    tagline: "try the operator on your own terms.",
+    tagline: "hand over your first jobs, free.",
     price: { monthly: 0, annual: 0 },
     actionLimit: 25,
     integrationLimit: 1,
@@ -61,7 +61,7 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "pro",
     // Display name only — the id stays "pro" everywhere it's stored (Stripe
     // metadata, subscription rows), so renaming can't orphan a subscription.
-    name: "operator",
+    name: "pro",
     tagline: "delegate real work, every day.",
     price: {
       monthly: 44.4,
@@ -86,7 +86,7 @@ export const PLANS: Record<PlanId, Plan> = {
   max: {
     id: "max",
     // Display name only — the id stays "max" in storage (see pro).
-    name: "command",
+    name: "power",
     tagline: "for teams running cosigno hard.",
     price: {
       monthly: 111,
@@ -102,7 +102,7 @@ export const PLANS: Record<PlanId, Plan> = {
     canExportCsv: true,
     features: [
       "10,000 AI operations / month",
-      "everything in operator",
+      "everything in pro",
       "a stronger model when the work demands it",
       "webhook / API access",
       "priority support",
