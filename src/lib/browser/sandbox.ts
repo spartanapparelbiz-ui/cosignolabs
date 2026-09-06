@@ -127,8 +127,95 @@ function genericObservation(url: string): PageObservation {
   };
 }
 
+/**
+ * A DOMAIN-AGNOSTIC sandbox result set, derived from the query itself.
+ *
+ * The laptop catalog above is a fixed fixture, which is fine for the tools
+ * built around it and useless for everything else — a mission about
+ * apartments got laptop pages back. This builds a small, deterministic result
+ * set for ANY query so the full research loop is exercisable without a live
+ * provider, in any domain.
+ *
+ * The candidates are openly synthetic: the option names are literally the
+ * user's own query plus an option number, every field carries the query, and
+ * every observation is `simulated: true` and warns in its own text. Nothing
+ * here can be mistaken for a real listing, because there is no real-looking
+ * detail to mistake — that is the point. Real results need a live provider.
+ */
+const SANDBOX_RESULT_COUNT = 4;
+
+function seededInt(seed: string, min: number, max: number): number {
+  const h = createHash("sha256").update(seed).digest();
+  return min + (h.readUInt32BE(0) % Math.max(1, max - min + 1));
+}
+
+export function sandboxResultUrl(query: string, n: number): string {
+  return `https://sandbox.example/${encodeURIComponent(query.slice(0, 40).trim().replace(/\s+/g, "-").toLowerCase() || "results")}/option-${n}`;
+}
+
+function sandboxCandidateObservation(query: string, n: number): PageObservation {
+  const url = sandboxResultUrl(query, n);
+  // A price-shaped number so comparison/ranking logic has something to sort,
+  // deterministic per (query, option) so runs are reproducible.
+  const value = seededInt(`${query}#${n}`, 100, 2000);
+  return {
+    url,
+    title: `example option ${n} for “${query}” (sandbox)`,
+    summary: `sandbox example option ${n} for “${query}”. indicative figure $${value}. this is generated example data, not a real listing.`,
+    headings: [`example option ${n}`, "details"],
+    links: [],
+    buttons: [],
+    formFields: [],
+    tables: [
+      {
+        caption: "details",
+        rows: [
+          ["option", `example option ${n}`],
+          ["query", query],
+          ["indicative figure", `$${value}`],
+          ["source", "generated sandbox data"],
+        ],
+      },
+    ],
+    downloads: [],
+    warnings: ["sandbox result — connect a live browser provider for real pages."],
+    loginRequired: false,
+    simulated: true,
+  };
+}
+
+/** The result page for an arbitrary query, linking to the candidates. */
+function sandboxQueryResults(query: string): PageObservation {
+  const links = Array.from({ length: SANDBOX_RESULT_COUNT }, (_, i) => ({
+    text: `example option ${i + 1} for “${query}”`,
+    href: sandboxResultUrl(query, i + 1),
+  }));
+  return {
+    url: `https://sandbox.example/search?q=${encodeURIComponent(query)}`,
+    title: `“${query}” — sandbox results`,
+    summary: `${links.length} sandbox example results for “${query}”. these are generated, not real listings.`,
+    headings: ["results"],
+    links,
+    buttons: [],
+    formFields: [],
+    tables: [],
+    downloads: [],
+    warnings: ["sandbox results — connect a live browser provider for real pages."],
+    loginRequired: false,
+    simulated: true,
+  };
+}
+
 function observationFor(url: string): PageObservation {
   if (CATALOG[url]) return productObservation(url, CATALOG[url]);
+  // A generated candidate page — reachable by inspecting a link from a
+  // query-derived result set, so the research loop works in any domain.
+  const candidate = /^https:\/\/sandbox\.example\/(.+)\/option-(\d+)$/.exec(url);
+  if (candidate) {
+    return sandboxCandidateObservation(decodeURIComponent(candidate[1]).replace(/-/g, " "), Number(candidate[2]));
+  }
+  const generated = /^https:\/\/sandbox\.example\/search\?q=(.*)$/.exec(url);
+  if (generated) return sandboxQueryResults(decodeURIComponent(generated[1]));
   if (url.startsWith(SANDBOX_SEARCH_URL) || url.includes("/search")) return searchObservation();
   return genericObservation(url);
 }
@@ -163,7 +250,10 @@ export class SandboxBrowserProvider implements BrowserProvider {
         return { ok: true, summary: `read ${obs.title}.`, observation: obs, simulated: true };
       }
       case "searchWithinPage": {
-        const obs = searchObservation();
+        // A query gets a result set derived from that query, in any domain.
+        // Without one there is nothing to derive from, so the fixed catalog
+        // stands in.
+        const obs = target?.trim() ? sandboxQueryResults(target.trim()) : searchObservation();
         return { ok: true, summary: `searched for “${target ?? ""}” — ${obs.links.length} results.`, observation: obs, simulated: true };
       }
       case "captureScreenshot":

@@ -53,6 +53,9 @@ const TOOL_SUMMARY: Record<string, string> = {
   "approval.offer_send": "offer a follow-up email for approval, then verify the send",
   "mission.receipt": "write the mission receipt",
   "browser.research": "research public pages through the browser (read-only)",
+  "web.research": "research any subject on the open web — works out what to search for from the goal, opens the results, and records only what the pages showed (read-only)",
+  "analyze.compare": "rank what the research found against the criteria in the goal",
+  "deliverable.report": "write the findings up as a versioned report titled from the goal",
   "deliverable.comparison": "write a comparison deliverable as a versioned file",
   "browser.prepare_purchase": "prepare (never complete) a purchase for approval, then verify the stage",
   "laptop.confirm": "confirm the budget, requirements, and country",
@@ -122,6 +125,7 @@ const PROVIDER_TOOL: Record<string, string> = {
 /** Tools that use the browser service. */
 const BROWSER_TOOLS = new Set([
   "browser.research",
+  "web.research",
   "browser.prepare_purchase",
   "laptop.search",
   "laptop.review",

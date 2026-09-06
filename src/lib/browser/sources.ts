@@ -68,7 +68,54 @@ export const ALLOWED_SOURCES: ResearchSource[] = [
 ];
 
 /** Sandbox hosts stay allowed so the labeled offline loop keeps working. */
-const SANDBOX_HOSTS = new Set(["sandbox.shop"]);
+const SANDBOX_HOSTS = new Set(["sandbox.shop", "sandbox.example"]);
+
+/**
+ * General research sources — where OPEN-ENDED research starts.
+ *
+ * The list above is a product allowlist: it exists so the purchase-shaped
+ * flow can only ever wander among retailers it was built for. Open research
+ * has the opposite requirement — a question about apartments, flights, or a
+ * company is not answerable from a laptop retailer, and pre-listing every
+ * site a person might ask about is exactly the per-website work this product
+ * exists to avoid.
+ *
+ * So general research starts from a public search engine and follows what it
+ * finds. The safety that matters is kept and is enforced elsewhere, per
+ * action rather than per host: every fetch is SSRF-validated (no localhost,
+ * no private ranges, https only), every research action is READ-ONLY, and
+ * page content is carried as untrusted data that can never become an
+ * instruction. Consequential steps do not run here at all — they can only
+ * ever become an approval card.
+ */
+export const GENERAL_SOURCES: ResearchSource[] = [
+  {
+    host: "duckduckgo.com",
+    name: "web search",
+    searchUrl: (q) => `https://duckduckgo.com/?q=${encodeURIComponent(q)}`,
+  },
+];
+
+/**
+ * May open-ended research open this URL? Public https only — the host is not
+ * pre-listed, because open research cannot be. `assertPublicUrl` still runs
+ * at fetch time and is what actually blocks private and loopback addresses.
+ */
+export function isAllowedResearchTarget(rawUrl: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:") return false;
+  const host = url.hostname.toLowerCase();
+  if (SANDBOX_HOSTS.has(host)) return true;
+  // Reject anything that is obviously not a public name before the request is
+  // ever made. The authoritative check is assertPublicUrl at fetch time.
+  if (!host.includes(".") || host.endsWith(".local") || host.endsWith(".internal")) return false;
+  return true;
+}
 
 function hostOf(rawUrl: string): string | null {
   try {

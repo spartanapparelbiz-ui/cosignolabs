@@ -1,6 +1,7 @@
 import type { CapabilityManifest } from "./capabilities";
 import { buildCapabilityManifest } from "./capabilities";
 import { validatePlan, type CompiledPlan, type ValidationResult } from "./validate";
+import { planAdaptively } from "./planner";
 import type { MissionSourceKind, MissionSourceStatus } from "../types";
 
 /**
@@ -95,7 +96,18 @@ function classify(goal: string): GoalShape {
   if (/\b(meeting|standup|sync|call|1:1|one-on-one)\b/.test(g) && /\b(prepare|prep|brief|ready)\b/.test(g)) {
     return "meeting_prep";
   }
-  if (/\b(compare|comparison|best|cheapest|vs\.?|versus|shop|buy|purchase|price)\b/.test(g)) {
+  // The product-compare shape is the LAPTOP slice: its tools search laptop
+  // retailers, its first step asks laptop requirements, and its report is a
+  // laptop report. So it may only claim goals that are actually about one.
+  //
+  // It used to claim any goal containing "compare", "best", "cheapest", or
+  // "price" — which is most shopping-shaped sentences ever written. "research
+  // the best apartments near UCF" matched on "best" and came back with laptop
+  // listings. A shape must never claim work its tools can't do; everything
+  // else belongs to the domain-agnostic research shape below.
+  const shoppingIntent = /\b(compare|comparison|best|cheapest|vs\.?|versus|shop|buy|purchase|price)\b/.test(g);
+  const laptopSubject = /\b(laptop|laptops|notebook|macbook|chromebook|ultrabook|computer|computers|pc|pcs)\b/.test(g);
+  if (shoppingIntent && laptopSubject) {
     return "product_compare";
   }
   if (/\b(research|find|review|check|look up|investigate|analy[sz]e|gather)\b/.test(g)) {
@@ -238,10 +250,17 @@ function researchPlan(goal: string, manifest: CapabilityManifest): CompiledPlan 
       browserLive ? "researches live public pages" : "no live browser provider — research runs in a clearly-labeled sandbox",
     ],
     questions: [],
+    // The domain-agnostic research tools, NOT the laptop-shaped ones. This
+    // shape is the catch-all — it receives every goal the other shapes don't
+    // claim — so it has to take its subject from the goal rather than from a
+    // fixture. `browser.research` opened the same three laptop pages whatever
+    // the mission was about, which made a report about apartments come back
+    // full of laptops.
     steps: [
-      { idx: 0, purpose: "research public pages through the browser", operator: "browser", tool: "browser.research", dependsOn: [] },
-      { idx: 1, purpose: "compile the findings into a cited deliverable", operator: "files", tool: "deliverable.comparison", dependsOn: [0] },
-      { idx: 2, purpose: "write the mission receipt", operator: "chief", tool: "mission.receipt", dependsOn: [] },
+      { idx: 0, purpose: "search for what the goal is actually about, and read the results", operator: "browser", tool: "web.research", dependsOn: [] },
+      { idx: 1, purpose: "rank what was found against what the goal asked for", operator: "research", tool: "analyze.compare", dependsOn: [0] },
+      { idx: 2, purpose: "write up the findings with their sources", operator: "files", tool: "deliverable.report", dependsOn: [1] },
+      { idx: 3, purpose: "write the mission receipt", operator: "chief", tool: "mission.receipt", dependsOn: [] },
     ],
     expectedDeliverables: ["findings deliverable with sources"],
     approvalCheckpoints: [],
@@ -328,6 +347,62 @@ export async function compileMission(
 ): Promise<CompileResult> {
   const manifest = await buildCapabilityManifest(userId);
   const shape = classify(goal);
+
+  /**
+   * ADAPTIVE FIRST, SHAPES AS THE FLOOR.
+   *
+   * The shapes below are good at the handful of goals they were written for
+   * and silently wrong outside them — a request about apartments matched the
+   * "compare" keyword and got the plan built for laptops. So when a planner is
+   * configured, the goal is planned against the live capability manifest
+   * instead, which is what lets cosigno take on work nobody wrote a shape for.
+   *
+   * The adaptive plan is already validated by the time it arrives (the planner
+   * discards anything that doesn't pass), and it is built from the same tool
+   * registry, so it inherits every approval gate and verification rule. If
+   * there is no planner, or it returns nothing usable, the deterministic shape
+   * runs exactly as before — the adaptive path can improve a plan, never
+   * weaken one.
+   */
+  const adaptive =
+    shape === "unsupported"
+      ? null
+      : await planAdaptively({
+          userId,
+          goal,
+          manifest,
+          plan: "unknown",
+          // Names and read-status only. Extracted file/page CONTENT never
+          // reaches the planner, so a poisoned source cannot shape the plan.
+          sourceNotes: sources.map(describeSource),
+        });
+
+  if (adaptive) {
+    const willDo = willDoFrom(adaptive);
+    const usableSources = sources.filter(sourceIsUsable);
+    if (usableSources.length > 0) {
+      willDo.unshift(
+        `read the ${usableSources.length} source${usableSources.length === 1 ? "" : "s"} you provided and use ${usableSources.length === 1 ? "it" : "them"} as context`
+      );
+    }
+    return {
+      understood: {
+        normalizedGoal: adaptive.normalizedGoal,
+        willDo,
+        boundary:
+          adaptive.approvalCheckpoints[0] ??
+          (adaptive.unsupported[0]
+            ? `boundary: ${adaptive.unsupported[0]}`
+            : "cosigno will research and prepare — nothing consequential runs without your approval."),
+        informationProvided: [`Your request: "${goal.trim()}"`, ...sources.map(describeSource)],
+      },
+      plan: adaptive,
+      validation: { ok: true, issues: [] },
+      blocked: false,
+      shape,
+    };
+  }
+
   let plan = buildPlan(shape, goal, manifest);
 
   const informationProvided = [`Your request: "${goal.trim()}"`, ...sources.map(describeSource)];
