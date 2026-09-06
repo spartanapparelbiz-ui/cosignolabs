@@ -56,6 +56,8 @@ const TOOL_SUMMARY: Record<string, string> = {
   "web.research": "research any subject on the open web — works out what to search for from the goal, opens the results, and records only what the pages showed (read-only)",
   "analyze.compare": "rank what the research found against the criteria in the goal",
   "deliverable.report": "write the findings up as a versioned report titled from the goal",
+  "deliverable.write": "write a document from what this mission gathered and what you attached",
+  "files.organize": "rename the workspace files so they read consistently (approval-gated; contents untouched)",
   "deliverable.comparison": "write a comparison deliverable as a versioned file",
   "browser.prepare_purchase": "prepare (never complete) a purchase for approval, then verify the stage",
   "laptop.confirm": "confirm the budget, requirements, and country",
@@ -88,6 +90,7 @@ const TOOL_SUMMARY: Record<string, string> = {
  * the other.
  */
 const CONSEQUENTIAL_TOOLS = new Set([
+  "files.organize",
   "github.propose_issue",
   "approval.offer_send",
   "browser.prepare_purchase",
@@ -97,6 +100,7 @@ const CONSEQUENTIAL_TOOLS = new Set([
 ]);
 /** Tools with a post-execution verification hook. */
 const VERIFIABLE_TOOLS = new Set([
+  "files.organize",
   "github.propose_issue",
   "approval.offer_send",
   "browser.prepare_purchase",
@@ -157,19 +161,34 @@ export async function buildCapabilityManifest(userId: string): Promise<Capabilit
   const healthy = new Set(connections.filter((c) => c.healthy).map((c) => c.provider_key));
   const browserLive = isLiveBrowser();
 
-  const tools: ToolCapability[] = Object.keys(TOOLS).map((id) => {
-    const providerKey = PROVIDER_TOOL[id];
-    const usesBrowser = BROWSER_TOOLS.has(id);
-    const live = providerKey ? healthy.has(providerKey) : usesBrowser ? browserLive : true;
-    return {
-      id,
-      operator: operatorOfTool(id),
-      consequential: CONSEQUENTIAL_TOOLS.has(id),
-      verifiable: VERIFIABLE_TOOLS.has(id),
-      live,
-      summary: TOOL_SUMMARY[id] ?? id,
-    };
-  });
+  /**
+   * Tools that need the AI operator to do their job at all.
+   *
+   * Withheld from the manifest — not merely marked unavailable — when no
+   * planner is configured, because the manifest is what the compiler plans
+   * against and what `validatePlan` checks. A tool that isn't here cannot be
+   * planned, so a deployment without a planner can never produce a mission
+   * step that would have had to invent its own output to complete. The goal
+   * is refused up front with a reason instead.
+   */
+  const NEEDS_PLANNER = new Set(["deliverable.write"]);
+  const plannerReady = plannerConfigured();
+
+  const tools: ToolCapability[] = Object.keys(TOOLS)
+    .filter((id) => plannerReady || !NEEDS_PLANNER.has(id))
+    .map((id) => {
+      const providerKey = PROVIDER_TOOL[id];
+      const usesBrowser = BROWSER_TOOLS.has(id);
+      const live = providerKey ? healthy.has(providerKey) : usesBrowser ? browserLive : true;
+      return {
+        id,
+        operator: operatorOfTool(id),
+        consequential: CONSEQUENTIAL_TOOLS.has(id),
+        verifiable: VERIFIABLE_TOOLS.has(id),
+        live,
+        summary: TOOL_SUMMARY[id] ?? id,
+      };
+    });
 
   return {
     tools,

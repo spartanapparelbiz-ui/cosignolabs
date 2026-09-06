@@ -62,10 +62,54 @@ const HANDLERS: Readonly<Record<ActionCategory, Handler>> = Object.freeze({
     sim(`email drafted to ${str(payload.to) ?? "recipient"}.`, { subject: payload.subject ?? null }),
   post_content: async (payload) =>
     sim(`content prepared for ${str(payload.destination) ?? "destination"}.`),
-  update_record: async (payload) =>
-    sim(`record ${str(payload.record_id) ?? ""} update prepared.`.replace("  ", " "), {
+  update_record: async (payload, ctx) => {
+    // ONE real operation lives inside this otherwise-sandbox category:
+    // renaming documents in cosigno's own workspace. It is real because the
+    // files are real and cosigno owns them, and it is narrow on purpose —
+    // the shape is checked field by field, the ids are only ever the user's
+    // own (the store scopes every read and write by user_id), and nothing
+    // outside cosigno is touched. Everything else stays a labeled sandbox
+    // result, as before.
+    if (payload.operation === "rename_workspace_files" && ctx.userId) {
+      const renames = Array.isArray(payload.renames) ? payload.renames : [];
+      const valid = renames.filter(
+        (r): r is { file_id: string; to: string } =>
+          typeof r === "object" &&
+          r !== null &&
+          typeof (r as { file_id?: unknown }).file_id === "string" &&
+          typeof (r as { to?: unknown }).to === "string" &&
+          (r as { to: string }).to.trim().length > 0 &&
+          (r as { to: string }).to.length <= 120
+      );
+      if (valid.length === 0) {
+        return { ok: false, summary: "no valid renames were on the card — nothing was changed." };
+      }
+      const { getStore } = await import("../store");
+      const store = getStore();
+      let applied = 0;
+      const failed: string[] = [];
+      for (const r of valid) {
+        // A rename touches only `name`; content is never passed here, so a
+        // malformed card cannot rewrite a document.
+        const updated = await store
+          .updateFile(ctx.userId, r.file_id, { name: r.to.trim() })
+          .catch(() => null);
+        if (updated) applied += 1;
+        else failed.push(r.file_id);
+      }
+      return {
+        ok: applied === valid.length,
+        summary:
+          applied === valid.length
+            ? `renamed ${applied} file${applied === 1 ? "" : "s"}. contents are unchanged.`
+            : `renamed ${applied} of ${valid.length} files — ${failed.length} could not be found.`,
+        detail: { applied, expected: valid.length, failed },
+      };
+    }
+    return sim(`record ${str(payload.record_id) ?? ""} update prepared.`.replace("  ", " "), {
       changes: payload.changes ?? payload,
-    }),
+    });
+  },
   spend: async (payload) => sim(`spend of ${str(payload.amount) ?? "amount"} recorded.`),
   webhook: async () => sim("webhook prepared for your configured endpoint."),
   delete: async (payload) => sim(`deletion of ${str(payload.target) ?? "target"} prepared.`),

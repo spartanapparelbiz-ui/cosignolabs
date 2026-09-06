@@ -67,7 +67,14 @@ export function sourceIsUsable(s: SourceContext): boolean {
  * manifest, not from free-form model output.
  */
 
-export type GoalShape = "meeting_prep" | "product_compare" | "github" | "research" | "unsupported";
+export type GoalShape =
+  | "meeting_prep"
+  | "product_compare"
+  | "github"
+  | "research"
+  | "organize_files"
+  | "write"
+  | "unsupported";
 
 export interface CompileResult {
   understood: {
@@ -117,34 +124,33 @@ function classify(goal: string): GoalShape {
   if (/\b(pay|send money|wire|transfer|invest|trade|publish|post to)\b/.test(g)) {
     return "unsupported";
   }
-  // Capabilities that genuinely do not exist yet.
+  // Work on the workspace itself, and writing.
   //
   // Everything used to fall through to the research shape, which meant a goal
-  // the product cannot serve was answered with web research and then reported
-  // COMPLETED. "organize my files into a sensible structure" came back having
-  // searched the web for the words "organize files sensible structure" and
-  // recommended one of the results. A wrong answer delivered confidently is
-  // worse than an honest refusal, so these say so instead.
+  // like "organize my files into a sensible structure" came back having
+  // searched the WEB for the words "organize files sensible structure" and
+  // recommended one of the results. Both of these now have real tools behind
+  // them, so they get their own shapes rather than a refusal or a wrong turn.
   //
-  // Both patterns need an intent AND a subject, and both stand down where a
-  // tool does exist: cosigno really can draft an email reply, and "create a
-  // comparison" is research with a deliverable on the end.
+  // Each pattern needs an intent AND a subject, and each stands down where
+  // another tool fits better: cosigno really can draft an email reply, and
+  // "create a comparison" is research with a deliverable on the end.
   const emailContext = /\b(email|emails|inbox|reply|replies|message|messages|thread|threads|follow[\s-]?up)\b/.test(g);
   const researchContext = /\b(research|compare|comparison|find|price|options?)\b/.test(g);
   if (
-    /\b(organi[sz]e|rename|sort|tidy|declutter|clean up|move)\b/.test(g) &&
-    /\b(files?|folders?|documents?|photos?|downloads?|drive|desktop)\b/.test(g) &&
+    /\b(organi[sz]e|rename|sort|tidy|declutter|clean up)\b/.test(g) &&
+    /\b(files?|folders?|documents?|workspace|deliverables?)\b/.test(g) &&
     !emailContext
   ) {
-    return "unsupported";
+    return "organize_files";
   }
   if (
-    /\b(write|draft|compose|create|generate|design|make|build)\b/.test(g) &&
-    /\b(essay|post|posts|blog|article|story|script|copy|deck|slides?|presentation|newsletter|brief|memo|letter|website|app)\b/.test(g) &&
+    /\b(write|draft|compose|create|generate)\b/.test(g) &&
+    /\b(essay|post|posts|blog|article|story|script|copy|newsletter|brief|memo|letter|summary|report|document|write[\s-]?up)\b/.test(g) &&
     !emailContext &&
     !researchContext
   ) {
-    return "unsupported";
+    return "write";
   }
   return "research"; // default to a safe read-only research shape
 }
@@ -299,6 +305,65 @@ function researchPlan(goal: string, manifest: CapabilityManifest): CompiledPlan 
   };
 }
 
+function organizeFilesPlan(goal: string): CompiledPlan {
+  return {
+    normalizedGoal: goal,
+    successCriteria: [
+      "every renamed file is listed on the approval card before anything changes",
+      "the new names are read back from storage as evidence",
+      "no file's contents are altered and nothing is deleted",
+    ],
+    assumptions: [
+      "this organizes the documents in your cosigno workspace — it does not reach into your computer's own folders or a connected drive.",
+    ],
+    questions: [],
+    steps: [
+      { idx: 0, purpose: "work out a consistent name for each file", operator: "files", tool: "files.organize", dependsOn: [] },
+      { idx: 1, purpose: "write the mission receipt", operator: "chief", tool: "mission.receipt", dependsOn: [] },
+    ],
+    expectedDeliverables: ["a consistently named workspace"],
+    approvalCheckpoints: ["renaming your files requires your approval — every rename is on the card"],
+    verificationRequirements: ["files.organize: read the names back from storage after the rename"],
+    riskSummary:
+      "renames only, and only after you approve them. contents are never edited and nothing is ever deleted.",
+    unsupported: [
+      "files stored outside cosigno — on your computer, or in a connected drive — can't be renamed or moved.",
+    ],
+  };
+}
+
+/**
+ * Writing something. The research step comes FIRST and is not optional: a
+ * document written from nothing is the failure mode this whole shape exists
+ * to avoid, so the plan gathers material before it writes, and the writing
+ * tool marks the document when the material turned out not to cover it.
+ */
+function writePlan(goal: string, manifest: CapabilityManifest): CompiledPlan {
+  const canWrite = manifest.tools.some((t) => t.id === "deliverable.write");
+  if (!canWrite) return unsupportedPlan(goal);
+  return {
+    normalizedGoal: goal,
+    successCriteria: [
+      "the document is written from material this mission actually gathered or you attached",
+      "anything the material didn't cover is said plainly rather than invented",
+    ],
+    assumptions: [
+      "cosigno researches the subject first, then writes from what it found and from anything you attached.",
+    ],
+    questions: [],
+    steps: [
+      { idx: 0, purpose: "gather material on the subject", operator: "browser", tool: "web.research", dependsOn: [] },
+      { idx: 1, purpose: "write the document", operator: "files", tool: "deliverable.write", dependsOn: [0] },
+      { idx: 2, purpose: "write the mission receipt", operator: "chief", tool: "mission.receipt", dependsOn: [] },
+    ],
+    expectedDeliverables: ["a written document, saved to your files"],
+    approvalCheckpoints: [],
+    verificationRequirements: [],
+    riskSummary: "entirely read-only — the document is saved to your cosigno files and sent nowhere.",
+    unsupported: [],
+  };
+}
+
 /**
  * Why this goal can't run, in the words of the thing that's actually missing.
  *
@@ -309,11 +374,8 @@ function researchPlan(goal: string, manifest: CapabilityManifest): CompiledPlan 
  */
 function unsupportedReason(goal: string): string {
   const g = goal.toLowerCase();
-  if (/\b(files?|folders?|documents?|photos?|downloads?|drive|desktop)\b/.test(g)) {
-    return "cosigno can read files you attach to a mission, but it can't yet organize, rename, or move the files in your storage — so it won't pretend to. attach a file and it will use what's in it.";
-  }
   if (/\b(essay|post|posts|blog|article|story|script|copy|deck|slides?|presentation|newsletter|brief|memo|letter|website|app)\b/.test(g)) {
-    return "cosigno writes up what it researched, but it can't yet be asked to write a piece from scratch — so it won't hand you one and call it done. ask it to research the subject and it will give you the material, with sources.";
+    return "writing a document needs the AI operator, which isn't configured on this deployment — so cosigno won't hand you a page and call it written. ask it to research the subject and it will give you the material, with sources.";
   }
   return "this goal requires moving money or publishing through a connection that isn't available — cosigno can research and prepare, but can't complete it.";
 }
@@ -375,6 +437,10 @@ function buildPlan(shape: GoalShape, goal: string, manifest: CapabilityManifest)
       return githubPlan(goal);
     case "research":
       return researchPlan(goal, manifest);
+    case "organize_files":
+      return organizeFilesPlan(goal);
+    case "write":
+      return writePlan(goal, manifest);
     default:
       return unsupportedPlan(goal);
   }

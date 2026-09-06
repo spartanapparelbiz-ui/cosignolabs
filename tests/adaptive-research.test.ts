@@ -159,14 +159,15 @@ describe("a goal with no capability behind it is refused, not researched", () =>
    * back having searched the web for those words and recommended one of the
    * results — a confident, useless answer to a question nobody asked.
    */
-  it("file management says so instead of searching the web for the words", async () => {
+  it("file management goes to the file tools, never to a web search for the words", async () => {
     const r = await compileMission("user-a", "Go through my files and organize them into a sensible structure");
-    expect(r.shape).toBe("unsupported");
-    expect(r.blocked).toBe(true);
-    expect(r.plan.steps).toHaveLength(0);
-    // The reason names the real gap, and what it can do instead.
-    expect(r.understood.boundary.toLowerCase()).toMatch(/organize, rename, or move/);
-    expect(r.understood.boundary.toLowerCase()).toMatch(/attach a file/);
+    // It has real tools behind it now. What must never come back is the old
+    // answer: a web search for the phrase "organize files sensible structure".
+    expect(r.shape).toBe("organize_files");
+    expect(r.plan.steps.map((s) => s.tool)).not.toContain("web.research");
+    expect(r.plan.steps.map((s) => s.tool)).toContain("files.organize");
+    // And the one thing it changes is gated.
+    expect(r.plan.approvalCheckpoints.length).toBeGreaterThan(0);
   });
 
   it("writing a piece from scratch says so, and points at what it can do", async () => {

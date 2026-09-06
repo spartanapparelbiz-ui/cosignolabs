@@ -55,7 +55,7 @@ export const OPERATOR_PROFILES: Record<string, OperatorProfile> = {
     key: "files",
     name: "File Operator",
     responsibility: "inspects approved files and writes mission deliverables.",
-    tools: ["drive.search_files", "deliverable.brief", "deliverable.agenda", "deliverable.comparison", "deliverable.daily_brief", "deliverable.report", "laptop.report"],
+    tools: ["drive.search_files", "deliverable.brief", "deliverable.agenda", "deliverable.comparison", "deliverable.daily_brief", "deliverable.report", "deliverable.write", "files.organize", "laptop.report"],
     maxRuntimeMs: 25_000,
     maxRetries: 2,
     never: "deletes or shares externally without an approved card.",
