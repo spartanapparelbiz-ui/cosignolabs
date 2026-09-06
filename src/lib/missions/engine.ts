@@ -8,6 +8,7 @@ import type {
   MissionStepRecord,
   MissionStepState,
 } from "../types";
+import { isConsequentialTool } from "./capabilities";
 import { OPERATOR_PROFILES, operatorAllows } from "./operators";
 import { TOOLS, type ToolContext, type ToolResult } from "./tools";
 import { contractCutoff, scopeQuestion, scopeVerdict } from "./contract";
@@ -352,6 +353,129 @@ async function settleApprovalSteps(
   return settled.some(Boolean);
 }
 
+/**
+ * How many independent steps may run at the same time.
+ *
+ * Steps that don't depend on each other are genuinely separate work — the
+ * flights leg of a trip plan learns nothing from the hotels leg — and running
+ * them one after another only makes the user wait longer for the same answer.
+ * Four is a deliberate ceiling rather than "as many as are ready": every step
+ * in a wave holds a provider call open, and one pass still has to finish well
+ * inside a serverless invocation.
+ */
+const MAX_PARALLEL_STEPS = 4;
+
+/** One step's tool run, before anything has been written down. */
+type StepOutcome =
+  | { step: MissionStepRecord; ok: true; result: ToolResult }
+  | { step: MissionStepRecord; ok: false; error: unknown };
+
+/**
+ * Record a step's failure, consuming a retry if it has one left. Shared by the
+ * serial and parallel paths so a failure is handled identically either way.
+ */
+async function recordStepFailure(
+  userId: string,
+  missionId: string,
+  step: MissionStepRecord,
+  err: unknown
+): Promise<void> {
+  const store = getStore();
+  const message = err instanceof Error ? err.message : "the step didn't complete.";
+  // A forbidden capability is a decision, not a transient failure. Retrying
+  // it would burn attempts to arrive at the same refusal, and would read in
+  // the log as if cosigno kept trying to do the thing you said never.
+  if (err instanceof EngineError && err.code === "forbidden") {
+    await store.updateMissionStep(userId, step.id, { state: "failed", error: message });
+    return;
+  }
+  const retries = step.retry_count + 1;
+  if (retries > step.max_retries) {
+    await store.updateMissionStep(userId, step.id, {
+      state: "failed",
+      retry_count: retries,
+      error: `${message} (gave up after ${retries} attempt${retries === 1 ? "" : "s"})`,
+    });
+  } else {
+    await store.updateMissionStep(userId, step.id, {
+      state: "retrying",
+      retry_count: retries,
+      error: `${message} (will retry — attempt ${retries} of ${step.max_retries + 1})`,
+    });
+  }
+  logError(newRequestId(), err, { event: "mission_step_failed", missionId, tool: step.tool });
+}
+
+/**
+ * Run several independent steps at once.
+ *
+ * The tools EXECUTE concurrently and their results are COMMITTED one at a
+ * time. That split is the whole safety argument: two tools that both expand
+ * the plan would otherwise compute the same next index and write over each
+ * other, so nothing that touches mission state runs in parallel — only the
+ * waiting does.
+ *
+ * Only read-only steps ever reach here. Consequential work stays on the
+ * serial path below, where the action budget is checked between steps and
+ * therefore stops the mission ON its limit rather than four steps past it.
+ */
+async function runWave(
+  userId: string,
+  mission: MissionRecord,
+  missionId: string,
+  wave: MissionStepRecord[]
+): Promise<void> {
+  const store = getStore();
+  const now = new Date().toISOString();
+
+  await Promise.all(
+    wave.map((step) =>
+      store.updateMissionStep(userId, step.id, {
+        state: "running",
+        started_at: step.started_at ?? now,
+      })
+    )
+  );
+  // Counted up front, for the whole wave: a cap that is only charged after
+  // the work finishes is not a cap.
+  await store.updateMission(userId, missionId, {
+    state: "running",
+    tool_calls: mission.tool_calls + wave.length,
+  });
+  mission.tool_calls += wave.length;
+
+  const freshSteps = await store.listMissionSteps(userId, missionId);
+  const outcomes: StepOutcome[] = await Promise.all(
+    wave.map(async (step): Promise<StepOutcome> => {
+      const fresh = freshSteps.find((s) => s.id === step.id) ?? step;
+      const tool = TOOLS[step.tool];
+      const profile = OPERATOR_PROFILES[step.operator];
+      const timeout = Math.min(tool.timeoutMs, profile.maxRuntimeMs);
+      try {
+        const result = await withTimeout(
+          tool.run({ userId, mission, steps: freshSteps, step: fresh }),
+          timeout
+        );
+        return { step: fresh, ok: true, result };
+      } catch (error) {
+        return { step: fresh, ok: false, error };
+      }
+    })
+  );
+
+  // Commit serially, re-reading the step list each time so a plan expansion
+  // by an earlier result is visible to the next one.
+  for (const outcome of outcomes) {
+    if (outcome.ok) {
+      const steps = await store.listMissionSteps(userId, missionId);
+      await applyToolResult({ userId, mission, steps, step: outcome.step }, outcome.result);
+    } else {
+      await recordStepFailure(userId, missionId, outcome.step, outcome.error);
+    }
+  }
+  logInfo("mission_wave", { missionId, steps: wave.length, tools: wave.map((s) => s.tool) });
+}
+
 export interface AdvanceResult {
   mission: MissionRecord;
   steps: MissionStepRecord[];
@@ -417,9 +541,6 @@ export async function advanceMission(
       break;
     }
 
-    const step = runnable[0];
-    attempted.add(step.id);
-
     // Cost control: a mission can never out-run its budget, and an adaptive
     // plan can't grow past it either. tool_calls is capped from budget_cents
     // (≈ one cent per five calls, matching the manifest limit). Over the cap →
@@ -451,6 +572,28 @@ export async function advanceMission(
       logInfo("mission_budget_reached", { missionId, used: budget.used, limit: budget.limit });
       break;
     }
+
+    // PARALLEL WAVE. Everything ready at this moment with no dependency on
+    // anything else ready at this moment is independent work — that is what
+    // `depends_on` means — so it runs together rather than in a queue.
+    //
+    // Read-only only, and never more than the tool-call headroom allows. The
+    // scope contract permits every non-consequential step by construction
+    // (adding a read mid-flight changes nothing outside cosigno), so no step
+    // here can skip a gate the serial path would have applied.
+    const headroom = maxToolCalls - mission.tool_calls;
+    const parallelizable = runnable.filter(
+      (s) => !isConsequentialTool(s.tool) && TOOLS[s.tool] && operatorAllows(s.operator, s.tool)
+    );
+    const wave = parallelizable.slice(0, Math.min(MAX_PARALLEL_STEPS, Math.max(0, headroom)));
+    if (wave.length > 1) {
+      for (const s of wave) attempted.add(s.id);
+      await runWave(userId, mission, missionId, wave);
+      continue;
+    }
+
+    const step = runnable[0];
+    attempted.add(step.id);
 
     // SCOPE CONTRACT. Approval means "I approve this plan". A consequential
     // step that appeared AFTER the user signed was never in that plan, so it
@@ -510,29 +653,7 @@ export async function advanceMission(
       );
       await applyToolResult({ userId, mission, steps: freshSteps, step: fresh }, result);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "the step didn't complete.";
-      // A forbidden capability is a decision, not a transient failure. Retrying
-      // it would burn attempts to arrive at the same refusal, and would read in
-      // the log as if cosigno kept trying to do the thing you said never.
-      if (err instanceof EngineError && err.code === "forbidden") {
-        await store.updateMissionStep(userId, step.id, { state: "failed", error: message });
-        continue;
-      }
-      const retries = step.retry_count + 1;
-      if (retries > step.max_retries) {
-        await store.updateMissionStep(userId, step.id, {
-          state: "failed",
-          retry_count: retries,
-          error: `${message} (gave up after ${retries} attempt${retries === 1 ? "" : "s"})`,
-        });
-      } else {
-        await store.updateMissionStep(userId, step.id, {
-          state: "retrying",
-          retry_count: retries,
-          error: `${message} (will retry — attempt ${retries} of ${step.max_retries + 1})`,
-        });
-      }
-      logError(newRequestId(), err, { event: "mission_step_failed", missionId, tool: step.tool });
+      await recordStepFailure(userId, missionId, step, err);
     }
   }
 

@@ -99,7 +99,7 @@ describe("open-ended research takes its subject from the goal", () => {
     const steps = await store.listMissionSteps("user-a", mission.id);
     const research = steps.find((s) => s.tool === "web.research")!;
     expect(research.state).toBe("completed");
-    const findings = research.output.findings as { url: string; figure: number | null; simulated: boolean }[];
+    const findings = (research.output ?? {}).findings as { url: string; figure: number | null; simulated: boolean }[];
     expect(findings.length).toBeGreaterThan(0);
     // Every finding is traceable to a page that was actually opened, and the
     // sandbox marks itself.
