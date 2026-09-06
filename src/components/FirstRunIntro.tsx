@@ -2,16 +2,28 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Inbox, PenLine, Reply, ShieldCheck, Sunrise } from "lucide-react";
+import { Inbox, PenLine, Plane, Reply, ShieldCheck, Sunrise, Tag, Telescope } from "lucide-react";
 import { useToast } from "@/components/Toast";
 
 /**
  * First-run onboarding — one question, one recommendation, one real mission.
- * "What steals the most time?" maps straight onto a shipped starter job;
- * choosing one starts the actual template mission (sandbox-labeled until the
- * app is connected) and lands in its isolated workspace. Shown once
- * (localStorage flag), dismissable at every step, never blocks a returning
- * user. No workspace configuration, no permission matrices, no pricing.
+ *
+ * The question used to be "what steals the most time?", answered by three
+ * inbox and calendar chores, which is the right question for an inbox product
+ * and too small for this one. It asks what cosigno should help with, and the
+ * answers span the work it can actually finish — a trip, a purchase, a
+ * question, as well as the inbox.
+ *
+ * Choosing one starts a REAL mission (sandbox-labeled until the app is
+ * connected) and lands in its workspace. Where the work is open-ended, the
+ * suggested subject is editable before it runs: someone who taps "something
+ * I'm buying" has told us the shape of the job, not what they are buying, and
+ * launching a mission about a laptop they never mentioned would be putting
+ * words in their mouth.
+ *
+ * Shown once (localStorage flag), dismissable at every step, never blocks a
+ * returning user. No workspace configuration, no permission matrices, no
+ * pricing.
  */
 
 const SEEN_KEY = "cosigno_intro_seen";
@@ -20,12 +32,25 @@ interface Choice {
   key: string;
   icon: typeof Inbox;
   label: string;
-  template: string;
   job: string;
   auto: string;
   signature: string;
+  /** A shipped template — starts on the user's own connected data. */
+  template?: string;
+  /**
+   * An open-ended goal, shown EDITABLE before it runs. The subject is a
+   * suggestion, not an assumption: starting a canned mission about headphones
+   * because someone tapped "shopping" is putting words in their mouth, and
+   * they would have to stop it to say what they actually wanted.
+   */
+  goal?: string;
 }
 
+/**
+ * What someone might hand over first. Only work the product can actually
+ * finish appears here — an opening move that produces a confident wrong
+ * answer is a worse introduction than a shorter list.
+ */
 const CHOICES: Choice[] = [
   {
     key: "inbox",
@@ -54,6 +79,33 @@ const CHOICES: Choice[] = [
     auto: "reads your schedule and overnight inbox signals, writes the brief.",
     signature: "blocking time for the top item — a separate card.",
   },
+  {
+    key: "travel",
+    icon: Plane,
+    label: "a trip I'm planning",
+    goal: "Research a weekend in Miami for under $800 and compare the options",
+    job: "research a trip",
+    auto: "searches, opens what it finds, records only what the pages actually show, and ranks the options.",
+    signature: "nothing — researching is read-only. booking anything would be its own card, with the total and the cancellation date on it.",
+  },
+  {
+    key: "shopping",
+    icon: Tag,
+    label: "something I'm buying",
+    goal: "Find the best price for a 14-inch laptop under $1,000",
+    job: "compare what's out there",
+    auto: "opens the product pages, records the prices they actually publish, and compares them.",
+    signature: "nothing — it stops at the recommended page. it never buys.",
+  },
+  {
+    key: "research",
+    icon: Telescope,
+    label: "something I need to know",
+    goal: "Research this company and tell me what I should know before my interview",
+    job: "research it properly",
+    auto: "gathers sources, compares what they say, and writes it up with every link it used.",
+    signature: "nothing — this one only reads.",
+  },
 ];
 
 export function FirstRunIntro() {
@@ -61,7 +113,14 @@ export function FirstRunIntro() {
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<Choice | null>(null);
+  const [goal, setGoal] = useState("");
   const [busy, setBusy] = useState(false);
+
+  /** Picking an open-ended choice loads its suggestion into an editable field. */
+  function pick(choice: Choice) {
+    setGoal(choice.goal ?? "");
+    setPicked(choice);
+  }
 
   useEffect(() => {
     try {
@@ -96,7 +155,9 @@ export function FirstRunIntro() {
       const res = await fetch("/api/missions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ template: choice.template }),
+        body: JSON.stringify(
+          choice.template ? { template: choice.template } : { goal: goal.trim() }
+        ),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "couldn't start the mission.");
@@ -126,7 +187,7 @@ export function FirstRunIntro() {
       >
         {!picked ? (
           <>
-            <h2 className="font-display text-xl font-bold lowercase">what steals the most time?</h2>
+            <h2 className="font-display text-xl font-bold lowercase">what should cosigno help you with?</h2>
             <p className="mt-1.5 text-sm font-semibold text-ink-soft">
               pick one and cosigno recommends a real starter job — you&apos;ll
               see exactly what runs on its own and what waits for your
@@ -136,7 +197,7 @@ export function FirstRunIntro() {
               {CHOICES.map((c) => (
                 <button
                   key={c.key}
-                  onClick={() => setPicked(c)}
+                  onClick={() => pick(c)}
                   className="flex items-center gap-3 rounded-btn bg-cream-deep px-4 py-3 text-left text-sm font-bold lowercase transition-colors hover:bg-signal/15"
                 >
                   <c.icon size={16} className="shrink-0 text-ink-soft" aria-hidden="true" />
@@ -161,6 +222,22 @@ export function FirstRunIntro() {
         ) : (
           <>
             <h2 className="font-display text-xl font-bold lowercase">start “{picked.job}”</h2>
+
+            {/* Open-ended work: the subject is theirs to set before it runs. */}
+            {picked.goal !== undefined && (
+              <label className="mt-3 block">
+                <span className="text-xs font-extrabold lowercase text-ink-soft">
+                  what should it look into?
+                </span>
+                <textarea
+                  value={goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                  rows={2}
+                  className="mt-1 w-full resize-none rounded-btn border border-line/70 bg-cream-deep px-3 py-2 text-sm font-semibold shadow-well focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
+                />
+              </label>
+            )}
+
             <dl className="mt-3 flex flex-col gap-2.5 text-sm">
               <div>
                 <dt className="text-xs font-extrabold lowercase text-ink-soft">runs automatically</dt>
@@ -179,7 +256,7 @@ export function FirstRunIntro() {
             <div className="mt-5 flex items-center gap-3">
               <button
                 onClick={() => start(picked)}
-                disabled={busy}
+                disabled={busy || (picked.goal !== undefined && goal.trim().length === 0)}
                 className="rounded-btn bg-signal px-5 py-2.5 text-sm font-extrabold text-on-signal disabled:bg-cream-deep disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed"
               >
                 {busy ? "starting…" : "start this job"}
