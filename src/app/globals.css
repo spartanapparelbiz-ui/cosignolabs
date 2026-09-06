@@ -23,12 +23,15 @@
 
   /* Logo identity tokens — exact brand values, independent of the product
      palette so the mark renders identically everywhere and flips with the
-     theme without a flash (data-theme is set before paint). Light: orange C,
-     ink check + wordmark, orange i-dot. */
-  --logo-c: #fb4c20;
-  --logo-check: #171512;
+     theme without a flash (data-theme is set before paint). The mark is the
+     brand orange in every theme; its counter is a hole, so it is transparent
+     and the surface behind the logo shows through. Only the wordmark flips. */
+  --logo-mark: #fb4c20;
+  --logo-counter: transparent;
   --logo-wordmark: #171512;
-  --logo-dot: #fb4c20;
+  /* The counter as a SOLID object rather than a hole — the extruded plug in
+     the 3D mark, which has to be a real material. Flips with the theme. */
+  --logo-plug: #171512;
 }
 
 :root[data-theme="dark"] {
@@ -41,36 +44,9 @@
   --c-signal: 255 99 64; /* the orange lifts a touch so it pops on dark */
   --c-surface: 34 30 24; /* raised cards, one step above the page */
 
-  /* Dark: orange C, CREAM check + wordmark, orange i-dot. */
-  --logo-check: #f7f0e5;
+  /* Dark: the mark stays orange; the wordmark and the 3D plug flip to cream. */
   --logo-wordmark: #f7f0e5;
-}
-
-/* Wordmark i-dot: the dotless "ı" carries an orange dot positioned above it.
-   `line-height: 1` is load-bearing. The dot is placed from the top of this
-   inline-block, whose height is the inherited line-height — so without it the
-   dot drifts against the letter every time the lockup changes size (the nav
-   sets text-lg/1.556, the hero text-4xl/1.111). Pinned to 1, the offset is
-   purely em-proportional and the dot sits identically at every size. */
-.cosigno-i {
-  position: relative;
-  display: inline-block;
-  line-height: 1;
-}
-/* Sized and placed against the real geometry of the wordmark face: Manrope 800
-   draws its own i-dot from 0.62em to 0.735em above the baseline, and the
-   baseline sits 0.88em down this box. The brand dot is a little larger than the
-   one it stands in for (0.15em against 0.115em) and centred on the same band,
-   which leaves the 0.06em gap the letter would have had. */
-.cosigno-dot {
-  position: absolute;
-  left: 50%;
-  top: 0.127em;
-  height: 0.15em;
-  width: 0.15em;
-  transform: translateX(-50%);
-  border-radius: 9999px;
-  background: var(--logo-dot);
+  --logo-plug: #f7f0e5;
 }
 
 /* A smooth cross-fade when the theme is toggled (only fires on change, since

@@ -11,7 +11,7 @@ Never hard-code a hex value in a component — use a token.
 | `ink` | `#141414` | text, primary surfaces (dark buttons, header) |
 | `cream` | `#FBF4EA` | page background |
 | `cream-deep` | `#F3E9DA` | cards / wells / payload blocks on cream |
-| `signal` | `#FF4B1F` | **only**: the Approve button, executed/success states, the logo **C** and the wordmark **i-dot**, focus rings, active nav, progress fill |
+| `signal` | `#FF4B1F` | **only**: the Approve button, executed/success states, **the mark**, focus rings, active nav, progress fill |
 | `ink-soft` | `#5C5650` | secondary text |
 | `line` | `#E4D9C8` | the one hairline (orb track) — avoid; prefer shadow |
 
@@ -24,18 +24,23 @@ palette so it's identical everywhere and flips cleanly per theme). Mirrored in
 
 | Token | Hex |
 |---|---|
-| `--cosigno-orange` | `#FF4B22` — the C (and the i-dot), every theme |
-| `--cosigno-ink` | `#171512` — integrated check + wordmark, **light** |
-| `--cosigno-cream` | `#F7F0E5` — integrated check + wordmark, **dark** |
+| `--cosigno-orange` | `#FF4B22` — the mark, every theme |
+| `--cosigno-ink` | `#171512` — wordmark, **light** |
+| `--cosigno-cream` | `#F7F0E5` — wordmark, **dark** |
 | `--cosigno-white` | `#FFFFFF` — wordmark, **OLED** |
 | `--cosigno-black` | `#090909` — **OLED** background |
 
-The symbol is a bold open **C** with an integrated **check** rising through the
-opening — **no dot on the icon** (the orange dot lives over the wordmark "i").
-Use the one shared component: `<Logo variant="full|icon" theme="light|dark|oled|auto"
-size="sm|md|lg" />` (`src/components/brand/Logo.tsx`), `theme="auto"` by default.
-Geometry is single-sourced (component ↔ `scripts/logo-geometry.mjs`); only colors
-change between themes. Regenerate assets with `node scripts/generate-assets.mjs`.
+The symbol is a soft **orange triangle** with a soft triangular **counter**
+knocked out of it. The counter is a real **hole**, not a second coloured shape:
+the mark is one path filled with `fill-rule="evenodd"`, so it sits correctly on
+cream, on ink, on OLED black and on the orange itself without ever needing a
+matched backdrop. The mark is orange in **every** theme; only the wordmark
+flips. Use the one shared component: `<Logo variant="full|mark"
+theme="light|dark|oled|auto" size={30} />` (`src/components/brand/Logo.tsx`),
+`theme="auto"` by default. Geometry is single-sourced (component ↔
+`scripts/logo-geometry.mjs`), which also carries the wordmark as outlines so
+generated SVGs render the real logotype with no webfont installed. Regenerate
+assets with `node scripts/generate-assets.mjs`.
 
 Rules:
 - **Orange is the signature, not decoration.** If it isn't approval, success,
@@ -57,7 +62,7 @@ a component.
 | --- | --- | --- | --- |
 | Interface | **Inter** (variable) | `font-sans` | everything you read to operate the product |
 | Display | **Source Serif 4** (variable, `opsz`) | `font-display` | headlines, prices, counters |
-| Wordmark | **Manrope 800** | `--font-wordmark` | the logotype, and nothing else |
+| Wordmark | **Libre Bodoni 500** | `--font-wordmark` | the logotype, and nothing else |
 | Record | **IBM Plex Mono** 400/700 | `font-mono` | payloads, ids, amounts, timestamps |
 
 - The display face carries a real optical-size axis, so a 96px headline gets the
@@ -67,8 +72,9 @@ a component.
   timestamp — is set in the mono. That is the difference between prose and a
   record, and it is why `font-mono` is a declared token rather than Tailwind's
   OS-dependent default stack.
-- The wordmark is always lowercase **cosigno**, with the signal i-dot, at 800.
-  It is the only place the wordmark face may appear.
+- The wordmark is always lowercase **cosigno**, at 500, in the wordmark face's
+  own letterforms — no substituted glyphs, no accent dot. It is the only place
+  the wordmark face may appear.
 - Product name is lowercase everywhere — UI, titles, metadata.
 - Weights: 700/800 for headings, 600/700 for body emphasis, 400 for prose.
 
@@ -99,7 +105,7 @@ a component.
 Named animations (Tailwind `animate-*`): `settle`, `float`, `rise-in`,
 `word-in`, `spring-in`, `ring-flash`, `chip-pulse`, `shake-x`, `check-draw`,
 `check-pop`, `modal-in`, `fade-through`, `orb-*`, `toast-in`, `shimmer`,
-`logo-breath`, `logo-check`.
+`logo-breath`, `logo-glow`.
 
 Rules: **transform/opacity only** (never animate layout properties), 60fps,
 capped element counts, and everything collapses to an instant state change
@@ -125,7 +131,7 @@ idle "breath," never a zoo of per-page effects. The token is
 | animation | value | on |
 | --- | --- | --- |
 | `logo-breath` | `scale 1 → 1.015 → 1`, 5s `ease-in-out` | the whole mark |
-| `logo-check` | `opacity 0.92 → 1 → 0.92`, 5s `ease-in-out` | the orange check path |
+| `logo-glow` | `opacity 0.92 → 1 → 0.92`, 5s `ease-in-out` | the mark path |
 
 This is the **only** idle animation the logo may use — no per-placement
 variants. Discipline (all enforced in `src/lib/useBreathing.ts`):
@@ -189,13 +195,15 @@ final states under `prefers-reduced-motion`.
   block), and `.tier3-texture` (faint diagonal hazard band on locked cards).
 - **Empty states**: `EmptyIllustration` — flat ink line-work with one orange
   accent, no people (`workspace` / `activity` / `integrations`).
-- **Mark**: an **orange C** opening right, a **check** completing it (theme-ink
-  → cream on dark), and a floating **orange accent dot** at the top of the
-  opening. Monochrome variant = one ink color. Geometry is the single source
-  of truth in `scripts/logo-geometry.mjs`, mirrored by `CosignoMark`.
-- **Favicon**: `favicon.svg` keeps the C orange and repaints the check
-  ink→cream on dark tabs via `prefers-color-scheme`; home-screen/PWA icons sit
-  on a cream plate; `.ico` is the fallback. Regenerate with `npm run assets`.
+- **Mark**: a soft **orange triangle** with a soft triangular **counter**
+  knocked out of it — one shape, one colour, the hole doing the work. The
+  monochrome variant is the same silhouette in one ink colour. Geometry is the
+  single source of truth in `scripts/logo-geometry.mjs`, mirrored by
+  `CosignoMark`.
+- **Favicon**: `favicon.svg` is the plain orange mark — one colour reads on a
+  light or a dark tab bar and the counter is a hole, so it needs no
+  `prefers-color-scheme` rule; home-screen/PWA icons sit on a cream plate;
+  `.ico` is the fallback. Regenerate with `npm run assets`.
 - Toasts: `animate-toast-in`, bottom-right, auto-dismiss, `aria-live`.
 - **`prefers-reduced-motion`**: globals.css collapses every animation and
   transition to an instant state change.

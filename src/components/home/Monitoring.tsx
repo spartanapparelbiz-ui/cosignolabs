@@ -113,9 +113,9 @@ export function Monitoring() {
       aria-labelledby="monitoring-title"
       className="relative overflow-hidden bg-cream-deep/60 py-24 text-ink sm:py-32"
     >
-      {/* The mark, lit from a dark room. Its check reads cream here because the
-          section overrides --logo-check, and the object reads the same custom
-          properties every flat mark on the site does. */}
+      {/* The mark, lit from a dark room. The object reads the same custom
+          properties every flat mark on the site does, so its plug flips with
+          the theme exactly as the wordmark beside it. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 hidden h-[30rem] opacity-[0.16] sm:block"

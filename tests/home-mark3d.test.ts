@@ -40,8 +40,8 @@ describe("the mark never depends on WebGL", () => {
   });
 
   it("uses the real brand geometry rather than a traced copy", () => {
-    expect(MARK).toMatch(/LOGO_C_PATH/);
-    expect(MARK).toMatch(/LOGO_CHECK_PATH/);
+    expect(MARK).toMatch(/LOGO_MARK_PATH/);
+    expect(MARK).toMatch(/LOGO_COUNTER_PATH/);
   });
 
   it("software rasterisers are excluded, and the probe is lazy and cached", () => {
@@ -86,10 +86,10 @@ describe("the scene costs nothing when nothing is happening", () => {
 
   it("disposes everything it owns", () => {
     for (const call of [
-      "cGeom.dispose()",
-      "checkGeom.dispose()",
-      "cMaterial.dispose()",
-      "checkMaterial.dispose()",
+      "markGeom.dispose()",
+      "plugGeom.dispose()",
+      "markMaterial.dispose()",
+      "plugMaterial.dispose()",
       "renderer.dispose()",
       "io.disconnect()",
       "ro.disconnect()",

@@ -15,9 +15,9 @@ export const LINE = "#E4D9C8";
  * everywhere and can flip per theme. Used by the Logo component (via the
  * --logo-* CSS vars) and the deterministic SVG asset generator.
  */
-export const LOGO_ORANGE = "#FB4C20";
-export const LOGO_INK = "#171512"; // check + wordmark, light
-export const LOGO_CREAM = "#F7F0E5"; // check + wordmark, dark
+export const LOGO_ORANGE = "#FB4C20"; // the mark, every theme
+export const LOGO_INK = "#171512"; // wordmark (and the one-colour mark), light
+export const LOGO_CREAM = "#F7F0E5"; // wordmark, dark
 export const LOGO_WHITE = "#FFFFFF"; // wordmark, OLED
 export const LOGO_BLACK = "#090909"; // OLED background
 

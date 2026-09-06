@@ -186,8 +186,8 @@ export function ApprovalMoment() {
             </AnimatePresence>
 
             {/* The seal, in three dimensions: while the card is unanswered the
-                check floats out of the C; answering springs it home. Fixed
-                height, so nothing moves when the canvas arrives. */}
+                counter floats out of the mark; answering springs it home.
+                Fixed height, so nothing moves when the canvas arrives. */}
             <Mark3D
               sealed={answered}
               still={still}

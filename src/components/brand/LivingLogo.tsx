@@ -34,7 +34,7 @@ export function LivingMark({
         active ? "animate-logo-breath" : ""
       } ${lift ? LIFT : ""} ${className}`}
     >
-      <CosignoMark size={size} checkClassName={active ? "animate-logo-check" : ""} />
+      <CosignoMark size={size} markClassName={active ? "animate-logo-glow" : ""} />
     </span>
   );
 }
@@ -57,7 +57,7 @@ export function LivingLockup({
           active ? "animate-logo-breath" : ""
         } ${lift ? LIFT : ""}`}
       >
-        <CosignoMark size={size} checkClassName={active ? "animate-logo-check" : ""} />
+        <CosignoMark size={size} markClassName={active ? "animate-logo-glow" : ""} />
       </span>
       <CosignoWordmark className={textClass} />
     </span>
