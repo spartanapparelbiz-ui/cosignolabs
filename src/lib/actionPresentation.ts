@@ -44,6 +44,8 @@ function countNoun(category: ActionCategory): string {
       return "emails";
     case "update_record":
       return "records";
+    case "computer_use":
+      return "inputs";
     case "refund":
     case "payment":
     case "spend":
@@ -318,6 +320,8 @@ export function operatorOf(category: ActionCategory): string {
     case "update_record":
     case "webhook":
       return "records";
+    case "computer_use":
+      return "computer";
     case "spend":
     case "payment":
     case "refund":

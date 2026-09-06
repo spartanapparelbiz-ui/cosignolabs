@@ -110,6 +110,41 @@ const HANDLERS: Readonly<Record<ActionCategory, Handler>> = Object.freeze({
       changes: payload.changes ?? payload,
     });
   },
+  /**
+   * The approved input sequence, replayed onto the machine.
+   *
+   * Everything that makes this safe happened before it got here: the sequence
+   * was fixed by the plan, shown in full on the card, and signed. This does
+   * not re-derive anything from the screen — it replays exactly what was
+   * approved, and the tool reads the screen back afterwards as evidence.
+   */
+  computer_use: async (payload, ctx) => {
+    if (payload.operation !== "computer_input_sequence") {
+      return { ok: false, summary: "that isn't a computer input sequence — nothing was done." };
+    }
+    const inputs = Array.isArray(payload.inputs) ? payload.inputs : [];
+    if (inputs.length === 0) {
+      return { ok: false, summary: "the card carried no inputs to make — nothing was done." };
+    }
+    void ctx;
+    const { runApprovedComputerInputs } = await import("../missions/computerTools");
+    const result = await runApprovedComputerInputs(
+      payload.session,
+      inputs.map((i) => {
+        const o = (i ?? {}) as Record<string, unknown>;
+        return {
+          kind: String(o.kind ?? ""),
+          target: typeof o.target === "string" ? o.target : undefined,
+          value: typeof o.value === "string" ? o.value : undefined,
+        };
+      })
+    );
+    return {
+      ok: result.ok,
+      summary: result.summary,
+      detail: { inputs_made: result.ran, simulated: result.simulated },
+    };
+  },
   spend: async (payload) => sim(`spend of ${str(payload.amount) ?? "amount"} recorded.`),
   webhook: async () => sim("webhook prepared for your configured endpoint."),
   delete: async (payload) => sim(`deletion of ${str(payload.target) ?? "target"} prepared.`),

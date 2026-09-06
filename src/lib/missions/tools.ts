@@ -773,6 +773,8 @@ import { INBOX_TOOLS } from "./inboxTools";
 import { GITHUB_TOOLS } from "./githubTools";
 import { WEB_TOOLS } from "./webTools";
 import { WORKSPACE_TOOLS } from "./workspaceTools";
+import { COMPUTER_TOOLS } from "./computerTools";
+import { COMPUTE_TOOLS } from "./computeTools";
 
 export const TOOLS: Record<string, MissionTool> = {
   [calendarFindEvent.id]: calendarFindEvent,
@@ -792,4 +794,6 @@ export const TOOLS: Record<string, MissionTool> = {
   ...GITHUB_TOOLS,
   ...WEB_TOOLS,
   ...WORKSPACE_TOOLS,
+  ...COMPUTER_TOOLS,
+  ...COMPUTE_TOOLS,
 };

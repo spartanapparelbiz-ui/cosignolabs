@@ -2,6 +2,7 @@ import { getStore } from "../store";
 import { TOOLS } from "./tools";
 import { OPERATOR_PROFILES } from "./operators";
 import { isLiveBrowser } from "../browser";
+import { computerUseAvailable, isLiveComputer } from "../computer";
 import { plannerConfigured } from "../agent/provider";
 
 /**
@@ -37,6 +38,8 @@ export interface CapabilityManifest {
   operators: { key: string; name: string; tools: string[] }[];
   connections: ConnectionCapability[];
   browser: { available: boolean; live: boolean };
+  /** A real desktop cosigno can see and drive, when one is configured. */
+  computer: { available: boolean; live: boolean };
   planner: boolean;
   limits: { maxToolCalls: number; maxBrowserActions: number; defaultBudgetCents: number };
 }
@@ -58,6 +61,12 @@ const TOOL_SUMMARY: Record<string, string> = {
   "deliverable.report": "write the findings up as a versioned report titled from the goal",
   "deliverable.write": "write a document from what this mission gathered and what you attached",
   "files.organize": "rename the workspace files so they read consistently (approval-gated; contents untouched)",
+  "computer.observe": "look at the screen and record what is on it (read-only)",
+  "computer.operate": "make a named sequence of clicks and keystrokes, after you approve every one of them",
+  // The summary is what the planner reads, so it carries the calling
+  // convention: the command lives in backticks inside the step's purpose,
+  // which keeps the arithmetic in the PLAN rather than in free-form output.
+  "compute.run": "calculate from a workspace file — put the command in backticks in the step purpose, e.g. `sum rents rent`. verbs: lines, words, rows, count, sum, avg, min, max, median, unique",
   "deliverable.comparison": "write a comparison deliverable as a versioned file",
   "browser.prepare_purchase": "prepare (never complete) a purchase for approval, then verify the stage",
   "laptop.confirm": "confirm the budget, requirements, and country",
@@ -90,6 +99,7 @@ const TOOL_SUMMARY: Record<string, string> = {
  * the other.
  */
 const CONSEQUENTIAL_TOOLS = new Set([
+  "computer.operate",
   "files.organize",
   "github.propose_issue",
   "approval.offer_send",
@@ -100,6 +110,7 @@ const CONSEQUENTIAL_TOOLS = new Set([
 ]);
 /** Tools with a post-execution verification hook. */
 const VERIFIABLE_TOOLS = new Set([
+  "computer.operate",
   "files.organize",
   "github.propose_issue",
   "approval.offer_send",
@@ -174,8 +185,22 @@ export async function buildCapabilityManifest(userId: string): Promise<Capabilit
   const NEEDS_PLANNER = new Set(["deliverable.write"]);
   const plannerReady = plannerConfigured();
 
+  /**
+   * Computer use is withheld unless a REAL machine is reachable.
+   *
+   * The browser can fall back to a labeled sandbox because a sandbox
+   * comparison of example products still demonstrates the loop honestly. A
+   * computer sandbox cannot: "cosigno operated your machine" is a claim about
+   * the user's own desktop, and a synthetic screen satisfying it is a lie no
+   * label repairs. So with no environment configured these tools do not exist
+   * as far as any plan is concerned, and the goal is refused with a reason.
+   */
+  const NEEDS_COMPUTER = new Set(["computer.observe", "computer.operate"]);
+  const computerReady = computerUseAvailable();
+
   const tools: ToolCapability[] = Object.keys(TOOLS)
     .filter((id) => plannerReady || !NEEDS_PLANNER.has(id))
+    .filter((id) => computerReady || !NEEDS_COMPUTER.has(id))
     .map((id) => {
       const providerKey = PROVIDER_TOOL[id];
       const usesBrowser = BROWSER_TOOLS.has(id);
@@ -199,6 +224,7 @@ export async function buildCapabilityManifest(userId: string): Promise<Capabilit
     })),
     connections,
     browser: { available: true, live: browserLive },
+    computer: { available: computerReady, live: isLiveComputer() },
     planner: plannerConfigured(),
     limits: { maxToolCalls: 40, maxBrowserActions: 30, defaultBudgetCents: 200 },
   };

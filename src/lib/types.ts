@@ -15,6 +15,7 @@ export type ActionCategory =
   | "send_email"
   | "post_content"
   | "update_record"
+  | "computer_use"
   | "spend"
   | "webhook"
   | "delete"
@@ -80,6 +81,18 @@ export const CATEGORIES: Record<ActionCategory, CategoryMeta> = {
     description: "Modify data in a connected tool",
     defaultTier: 2,
     pinned: false,
+  },
+  computer_use: {
+    category: "computer_use",
+    label: "Use your computer",
+    description:
+      "Make a named sequence of clicks and keystrokes on your machine. Every input is listed on the card before any of them runs.",
+    defaultTier: 2,
+    // PINNED at approval. A click on somebody's own desktop can send, buy, or
+    // delete, and nothing in the pixels says which — so this is the one
+    // capability whose gate is not the user's to remove. Pinning fixes it at
+    // "always ask": it can never be set to automatic.
+    pinned: true,
   },
   spend: {
     category: "spend",

@@ -50,6 +50,14 @@ export const CAPABILITIES: Capability[] = [
     pinned: false,
   },
   {
+    id: "computer",
+    icon: "🖱️",
+    title: "Use your computer",
+    detail: "Click and type on your machine — only the exact inputs listed on a card you signed.",
+    categories: ["computer_use"],
+    pinned: true,
+  },
+  {
     id: "create",
     icon: "✍️",
     title: "Create content",
@@ -231,6 +239,7 @@ export const PRESETS: Preset[] = [
       connect: "ask",
       money: "ask",
       delete: "ask",
+      computer: "ask",
     },
   },
   {
@@ -249,6 +258,7 @@ export const PRESETS: Preset[] = [
       connect: "ask",
       money: "ask",
       delete: "ask",
+      computer: "ask",
     },
   },
   {
@@ -266,6 +276,7 @@ export const PRESETS: Preset[] = [
       connect: "always",
       money: "ask",
       delete: "ask",
+      computer: "ask",
     },
   },
 ];

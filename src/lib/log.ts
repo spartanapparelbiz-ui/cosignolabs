@@ -20,6 +20,8 @@ export type SecurityEvent =
   | "injection_flagged"
   | "injection_approval_blocked"
   | "source_injection_detected"
+  /** On-screen text on a driven computer read like an instruction. */
+  | "computer_screen_injection_flagged"
   | "executor_category_denied"
   | "ssrf_blocked"
   | "usage_limit_hit"

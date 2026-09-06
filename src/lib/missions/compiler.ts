@@ -74,6 +74,7 @@ export type GoalShape =
   | "research"
   | "organize_files"
   | "write"
+  | "computer"
   | "unsupported";
 
 export interface CompileResult {
@@ -116,6 +117,14 @@ function classify(goal: string): GoalShape {
   const laptopSubject = /\b(laptop|laptops|notebook|macbook|chromebook|ultrabook|computer|computers|pc|pcs)\b/.test(g);
   if (shoppingIntent && laptopSubject) {
     return "product_compare";
+  }
+  // Driving the machine itself. Checked before the research verbs, because
+  // "find the file on my desktop and open it" is not a web search.
+  if (
+    /\b(my (computer|desktop|laptop|machine|screen)|on[- ]screen|this app|the app on my)\b/.test(g) &&
+    /\b(click|type|open|use|drive|control|operate|fill|press)\b/.test(g)
+  ) {
+    return "computer";
   }
   if (/\b(research|find|review|check|look up|investigate|analy[sz]e|gather)\b/.test(g)) {
     return "research";
@@ -365,6 +374,44 @@ function writePlan(goal: string, manifest: CapabilityManifest): CompiledPlan {
 }
 
 /**
+ * Driving the machine. Look, then propose the inputs, then verify by looking
+ * again — the same three beats as every other consequential slice.
+ *
+ * Refused outright when no computer environment is configured, because the
+ * alternative is a mission that reports having operated a machine it never
+ * touched.
+ */
+function computerPlan(goal: string, manifest: CapabilityManifest): CompiledPlan {
+  if (!manifest.computer.available) return unsupportedPlan(goal);
+  return {
+    normalizedGoal: goal,
+    successCriteria: [
+      "every click and keystroke is listed on the card before any of them runs",
+      "the screen is read back afterwards as evidence",
+    ],
+    assumptions: [
+      manifest.computer.live
+        ? "drives the computer environment connected to this workspace."
+        : "runs against a labeled test environment, not a real machine.",
+    ],
+    questions: [],
+    steps: [
+      { idx: 0, purpose: "look at the screen", operator: "computer", tool: "computer.observe", dependsOn: [] },
+      { idx: 1, purpose: "do the work on screen", operator: "computer", tool: "computer.operate", dependsOn: [0] },
+      { idx: 2, purpose: "write the mission receipt", operator: "chief", tool: "mission.receipt", dependsOn: [] },
+    ],
+    expectedDeliverables: ["the work done on your machine, with the screen read back"],
+    approvalCheckpoints: [
+      "every click and keystroke needs your approval — the whole sequence is on one card, in order",
+    ],
+    verificationRequirements: ["computer.operate: read the screen back after the inputs run"],
+    riskSummary:
+      "cosigno looks at the screen freely, and touches nothing until you sign. it then makes exactly the inputs on the card and nothing else.",
+    unsupported: [],
+  };
+}
+
+/**
  * Why this goal can't run, in the words of the thing that's actually missing.
  *
  * A single catch-all sentence about money and publishing was wrong for two of
@@ -376,6 +423,9 @@ function unsupportedReason(goal: string): string {
   const g = goal.toLowerCase();
   if (/\b(essay|post|posts|blog|article|story|script|copy|deck|slides?|presentation|newsletter|brief|memo|letter|website|app)\b/.test(g)) {
     return "writing a document needs the AI operator, which isn't configured on this deployment — so cosigno won't hand you a page and call it written. ask it to research the subject and it will give you the material, with sources.";
+  }
+  if (/\b(my (computer|desktop|laptop|machine|screen)|on[- ]screen)\b/.test(g)) {
+    return "no computer is connected to this workspace, so cosigno can't see or touch a screen — and it won't report having done so. it can still do this work through the browser or a connected app where one exists.";
   }
   return "this goal requires moving money or publishing through a connection that isn't available — cosigno can research and prepare, but can't complete it.";
 }
@@ -441,6 +491,8 @@ function buildPlan(shape: GoalShape, goal: string, manifest: CapabilityManifest)
       return organizeFilesPlan(goal);
     case "write":
       return writePlan(goal, manifest);
+    case "computer":
+      return computerPlan(goal, manifest);
     default:
       return unsupportedPlan(goal);
   }

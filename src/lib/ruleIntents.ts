@@ -244,6 +244,9 @@ const CATEGORY_OPERATION: Record<ActionCategory, Operation> = {
   send_email: "send",
   post_content: "post",
   update_record: "update",
+  // Driving the machine is an update to whatever is on screen; there is no
+  // narrower honest verb, and "read" would be plainly wrong.
+  computer_use: "update",
   spend: "payment",
   webhook: "webhook",
   delete: "delete",
