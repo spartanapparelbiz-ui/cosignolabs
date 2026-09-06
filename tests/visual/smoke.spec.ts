@@ -275,9 +275,9 @@ for (const vp of VIEWPORTS) {
       // tests seed missions, so their presence is not stable across passes.
       await expect(page.getByText(/good (morning|afternoon|evening)/i)).toBeVisible();
       await expect(
-        page.getByRole("heading", { name: /what would you like cosigno to do/i })
+        page.getByRole("heading", { name: /what do you want done/i })
       ).toBeVisible();
-      await expect(page.getByPlaceholder(/Ask cosigno anything/)).toBeVisible();
+      await expect(page.getByPlaceholder(/best flight to Mexico/)).toBeVisible();
       await expect(page.getByRole("button", { name: /Delegate/ })).toBeVisible();
       await noHorizontalScroll(page);
       await page.screenshot({ path: join(OUT, `dashboard-${vp.name}.png`), fullPage: true });

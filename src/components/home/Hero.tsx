@@ -23,29 +23,42 @@ import { useSectionProgress, useSmoothed, useStillness } from "./primitives";
  * visitor who asked for stillness never sees a single moved frame.
  */
 
+/**
+ * The mission on the hero surface is the product's own shape: legs that don't
+ * need each other run at once, everything read-only happens without asking,
+ * and the one step that spends money stops and waits for a signature.
+ */
 const HERO_ACTION: ActionSpec = {
   id: "a_01",
-  title: "reply to 3 leads who asked about pricing",
-  meta: "gmail, 3 recipients, drafted not sent",
+  title: "book the miami flight, $372.18",
+  meta: "cannot be undone after june 15",
   tier: "sign",
   payload: (
     <>
-      to: dana@northwind.co, sam@lumen.io, r.patel@arcadia.dev
+      orlando → miami, june 18–22
       <br />
-      subject: re: pricing for a 12-seat team
+      total: $372.18 — leaves $427.82 of the $800
       <br />
-      body: happy to walk you through it. here are the three plans.
+      cancellation: free until june 15
     </>
   ),
 };
 
 const STEPS = [
-  { label: "read 214 new messages", state: "done" as const },
-  { label: "file 168 newsletters", state: "done" as const },
-  { label: "find everyone waiting on a reply", state: "done" as const },
-  { label: "draft the three replies", state: "done" as const },
-  { label: "send the replies", state: "waiting" as const },
-  { label: "log what happened", state: "queued" as const },
+  { label: "search flights under $400", state: "done" as const },
+  { label: "compare 18 hotels on total cost", state: "done" as const },
+  { label: "check restaurants and opening hours", state: "done" as const },
+  { label: "verify the trip fits $800", state: "done" as const },
+  { label: "book the flight", state: "waiting" as const },
+  { label: "build the itinerary", state: "queued" as const },
+];
+
+/** The legs that ran at the same time, because none of them needed another. */
+const LEGS = [
+  { label: "flights", done: true },
+  { label: "hotels", done: true },
+  { label: "restaurants", done: true },
+  { label: "activities", done: false },
 ];
 
 /** The cards that were waiting off-frame the whole time. */
@@ -181,17 +194,18 @@ export function Hero() {
           />
 
           {/* The trailing space on the first line is load-bearing: block spans
-              concatenate for assistive tech, and "cannotact" is not a word. */}
+              concatenate for assistive tech, and "wantdone" is not a word. */}
           <h1 className="mt-1 text-balance font-display text-[clamp(2.5rem,9.2vw,7.25rem)] font-bold leading-[0.93] tracking-[-0.035em] text-ink">
-            <span className="block motion-safe:animate-word-in">ai that cannot </span>
+            <span className="block motion-safe:animate-word-in">tell cosigno what </span>
             <span className="block motion-safe:animate-word-in motion-safe:[animation-delay:110ms]">
-              act without you.
+              you want done.
             </span>
           </h1>
 
           <p className="mt-6 max-w-[36rem] text-pretty text-base font-medium leading-relaxed text-ink-soft motion-safe:animate-word-in motion-safe:[animation-delay:260ms] sm:text-lg">
-            cosigno does the busywork in the apps you already use. it always
-            asks before it sends, changes, or spends anything.
+            an agent that uses the browser, your files, and the apps you already
+            have to actually finish the work — and asks you first before it
+            sends, changes, or spends anything.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 motion-safe:animate-word-in motion-safe:[animation-delay:380ms]">
@@ -200,13 +214,13 @@ export function Hero() {
               prefetch
               className="rounded-btn bg-signal px-8 py-4 text-base font-extrabold lowercase text-on-signal shadow-lift transition-transform duration-fast ease-brand-out hover:-translate-y-0.5 hover:scale-[1.02] active:scale-95"
             >
-              start free
+              try cosigno
             </Link>
             <a
-              href="#pricing"
+              href="#how"
               className="text-sm font-bold lowercase text-ink underline decoration-signal decoration-2 underline-offset-4 transition-colors hover:text-signal"
             >
-              see the plans
+              see how it works
             </a>
           </div>
           <p className="mt-3 text-[12px] font-medium lowercase text-ink-soft motion-safe:animate-word-in motion-safe:[animation-delay:440ms]">
@@ -279,13 +293,37 @@ function HeroSurface() {
     <div className="pointer-events-auto overflow-hidden rounded-card bg-surface shadow-depth-lift">
       <div className="flex items-center justify-between gap-3 border-b border-line/50 px-4 py-3 sm:px-5">
         <span className="truncate text-[11px] font-extrabold lowercase text-ink sm:text-[13px]">
-          mission: clear the inbox and answer the leads
+          mission: a weekend in miami under $800
         </span>
         <TierChip tier="sign" className="hidden sm:inline-flex" />
       </div>
 
       <div className="grid gap-4 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] md:gap-6">
         <div>
+          {/* The four legs ran together — that is what independent steps do.
+              Shown as an outcome, not as a diagram of the scheduler. */}
+          <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line/50 pb-3">
+            <span className="text-[11px] font-extrabold lowercase text-ink-soft">
+              4 at once
+            </span>
+            {LEGS.map((leg) => (
+              <span
+                key={leg.label}
+                className={`inline-flex items-center gap-1 text-[11px] font-bold lowercase ${
+                  leg.done ? "text-ink" : "text-ink-soft"
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-1.5 w-1.5 rounded-pill ${
+                    leg.done ? "bg-signal" : "bg-ink-soft/40 motion-safe:animate-pulse"
+                  }`}
+                />
+                {leg.label}
+              </span>
+            ))}
+          </div>
+
           <ul>
             {STEPS.map((s, i) => (
               <StepRow

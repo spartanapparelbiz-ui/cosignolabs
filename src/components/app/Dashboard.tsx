@@ -32,16 +32,24 @@ function greeting(name: string): string {
 }
 
 /**
- * Starting points, phrased as things a person would actually say. Shown only
- * when nothing is running — once there is real work on the page, suggestions
- * are noise competing with it.
+ * Starting points, shown only when nothing is running — once there is real
+ * work on the page, suggestions are noise competing with it.
+ *
+ * Each one is a KIND of work you can hand over, with a real sentence behind
+ * it. The label is what someone scans for ("handle my inbox"); the fill is
+ * what lands in the box, because a box containing the words "research
+ * something" is a box you still have to write.
  */
-const PROMPTS = [
-  "Prepare tomorrow's meeting",
-  "Review my unread email",
-  "Research the best option",
-  "Follow up on unanswered threads",
-] as const;
+const PROMPTS: { label: string; fill: string }[] = [
+  { label: "plan a trip", fill: "Plan a weekend in Miami for under $800 and build the itinerary" },
+  { label: "research something", fill: "Research this company and summarise what I should know before my interview" },
+  { label: "find the best price", fill: "Find the best price for a 14-inch laptop under $1,000" },
+  { label: "compare options", fill: "Compare the best apartments near campus under $1,500 and rank them" },
+  { label: "handle my inbox", fill: "Review my unread email and draft replies to anyone waiting on me" },
+  { label: "organize my files", fill: "Go through my files and organize them into a sensible structure" },
+  { label: "create something", fill: "Write a one-page brief on what changed this week" },
+  { label: "do something on the web", fill: "Find me the best flight to Mexico under $400 and organize the options" },
+];
 
 async function jsonFetch(url: string, init?: RequestInit) {
   const res = await fetch(url, {
@@ -187,7 +195,7 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
       <header className="text-center">
         <p className="text-sm font-bold text-ink-soft">{greeting(displayName)}</p>
         <h1 className="mt-1 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          what would you like cosigno to do?
+          what do you want done?
         </h1>
         {opsThisMonth > 0 && (
           <p className="mt-2 text-xs font-bold text-ink-soft">
@@ -216,16 +224,17 @@ export function Dashboard({ initial }: { initial?: DashboardInitial }) {
       {working.length === 0 && waiting.length === 0 && (
         <section className="mt-6">
           <p className="text-[11px] font-extrabold uppercase tracking-widest text-ink-soft">
-            Try asking
+            Or hand over something like
           </p>
           <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
             {PROMPTS.map((p) => (
               <button
-                key={p}
-                onClick={() => askFor(p)}
+                key={p.label}
+                onClick={() => askFor(p.fill)}
+                title={p.fill}
                 className="group rounded-card border border-line bg-surface px-4 py-3 text-left text-sm font-semibold shadow-soft transition-all hover:-translate-y-0.5 hover:border-signal hover:shadow-depth"
               >
-                {p}
+                {p.label}
                 <ArrowRight
                   size={13}
                   className="ml-1.5 inline text-ink-soft transition-transform group-hover:translate-x-0.5"

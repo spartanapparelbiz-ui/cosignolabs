@@ -123,6 +123,7 @@ export function HowItWorks() {
   return (
     <section
       ref={sectionRef}
+      id="how"
       aria-labelledby="how-title"
       className="relative bg-cream"
       style={pinned ? { height: `${PANELS.length * 100}vh` } : undefined}

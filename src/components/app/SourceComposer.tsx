@@ -526,7 +526,7 @@ export function SourceComposer({
           onKeyDown={(e) => e.key === "Enter" && review()}
           maxLength={500}
           id="cosigno-ask"
-          placeholder="Ask cosigno anything…"
+          placeholder="Find me the best flight to Mexico under $400 and organize the options"
           aria-label="what do you need handled"
           className="w-full rounded-btn border border-line/70 bg-cream/40 px-4 py-3.5 text-base font-semibold shadow-well placeholder:font-medium placeholder:text-ink-soft/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
         />
