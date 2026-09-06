@@ -114,6 +114,34 @@ describe("open-ended research takes its subject from the goal", () => {
     expect(actions.every((a) => a.changes_external === false)).toBe(true);
   });
 
+  it("never reads the budget out of the goal as if it were each option's price", async () => {
+    // "under $1,500" is a CONSTRAINT the user typed. It gets echoed back in
+    // page titles and headers, and reading the first money-shaped string on
+    // the page turned it into every result's rent: four different apartments
+    // all priced at the ceiling, ranked by a tie-break, recommended anyway.
+    const compiled = await compileMission("user-a", APARTMENT_GOAL);
+    const { mission } = await instantiateCompiledMission("user-a", compiled.plan);
+    await drive("user-a", mission.id);
+
+    const steps = await store.listMissionSteps("user-a", mission.id);
+    const findings = ((await steps.find((s) => s.tool === "web.research")!.output) ?? {})
+      .findings as { figure: number | null; figureFrom: string | null }[];
+
+    const figures = findings.map((f) => f.figure);
+    expect(figures.every((f) => f !== null)).toBe(true);
+    // The ceiling from the goal is not what every option costs.
+    expect(figures.every((f) => f === 1500)).toBe(false);
+    expect(new Set(figures).size).toBeGreaterThan(1);
+    // Each one came from a labeled row on its own page, not from prose.
+    for (const f of findings) expect(f.figureFrom).not.toBe("page text");
+
+    // And the report ranks on those figures, so its recommendation is the
+    // cheapest thing actually found.
+    const report = (await store.listFiles("user-a")).find((f) => f.mime === "text/markdown")!;
+    const cheapest = Math.min(...(figures as number[]));
+    expect(report.content).toContain(`$${cheapest.toLocaleString()}`);
+  });
+
   it("the keyword fallback keeps the subject and drops the instruction words", () => {
     const q = keywordQuery(APARTMENT_GOAL);
     expect(q).toContain("apartments");

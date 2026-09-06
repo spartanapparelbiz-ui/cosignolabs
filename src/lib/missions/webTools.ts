@@ -48,6 +48,8 @@ export interface WebFinding {
   summary: string;
   /** A money/measure figure when the page actually stated one, else null. */
   figure: number | null;
+  /** Where that figure came from — the labeled row, or the page's prose. */
+  figureFrom: string | null;
   /** Row pairs the page presented as structured detail. */
   attributes: Record<string, string>;
   /** True when the page carried something that looked like an instruction. */
@@ -70,14 +72,54 @@ function findingsFrom(ctx: ToolContext): WebFinding[] {
 }
 
 /**
- * The first money-shaped figure a page actually stated. Returns null rather
- * than guessing: a missing price must read as missing, never as free.
+ * The first money-shaped figure in a string. Returns null rather than
+ * guessing: a missing price must read as missing, never as free.
  */
 function figureIn(text: string): number | null {
   const m = /(?:\$|usd\s*)\s?([0-9][0-9,]{0,9}(?:\.[0-9]{1,2})?)/i.exec(text);
   if (!m) return null;
   const n = Number(m[1].replace(/,/g, ""));
   return Number.isFinite(n) ? n : null;
+}
+
+/** Attribute keys that name the number an option is actually judged on. */
+const FIGURE_KEY = /\b(price|rent|cost|total|fare|rate|amount|fee|figure|from)\b/;
+
+/**
+ * WHICH number on the page is this option's number.
+ *
+ * Not "the first money-shaped string", which is how a search for apartments
+ * "under $1,500" gave every single result a figure of $1,500 — the constraint
+ * out of the user's own sentence, echoed back in the page title, read as if
+ * it were each listing's rent. Four different apartments all priced at the
+ * ceiling, ranked by a tie-break, and presented as a recommendation.
+ *
+ * So the structured detail a page publishes about itself is trusted first,
+ * and prose last:
+ *   1. a labeled row whose key names a price ("rent", "total", "fare"),
+ *   2. any other labeled row carrying a money value,
+ *   3. the page's own prose — weakest, and the one that carries headers,
+ *      banners, and the search terms that got us here.
+ * Nothing anywhere → null, and the option is listed as "not stated" rather
+ * than ranked on a number nobody published.
+ */
+function figureFor(
+  summary: string,
+  attributes: Record<string, string>
+): { figure: number | null; from: string | null } {
+  const entries = Object.entries(attributes);
+
+  for (const [key, value] of entries) {
+    if (!FIGURE_KEY.test(key)) continue;
+    const n = figureIn(value);
+    if (n !== null) return { figure: n, from: key };
+  }
+  for (const [key, value] of entries) {
+    const n = figureIn(value);
+    if (n !== null) return { figure: n, from: key };
+  }
+  const n = figureIn(summary);
+  return n === null ? { figure: null, from: null } : { figure: n, from: "page text" };
 }
 
 function attributesOf(obs: PageObservation): Record<string, string> {
@@ -96,11 +138,7 @@ function attributesOf(obs: PageObservation): Record<string, string> {
 
 function findingFrom(obs: PageObservation): WebFinding {
   const attrs = attributesOf(obs);
-  // The figure may appear in the summary or in a detail row.
-  const figure =
-    figureIn(obs.summary) ??
-    figureIn(Object.values(attrs).join(" ")) ??
-    null;
+  const { figure, from } = figureFor(obs.summary, attrs);
   // Page text is untrusted. A page that tries to issue instructions is
   // recorded and flagged; it never changes what cosigno does next.
   const flagged = detectInjection(`${obs.summary}\n${obs.headings.join("\n")}`);
@@ -110,6 +148,7 @@ function findingFrom(obs: PageObservation): WebFinding {
     source: sourceNameFor(obs.url),
     summary: obs.summary.slice(0, 600),
     figure,
+    figureFrom: from,
     attributes: attrs,
     flagged,
     simulated: obs.simulated,
@@ -399,8 +438,13 @@ const deliverableReport: MissionTool = {
     // The attribute columns are whatever the pages actually presented, so a
     // report about apartments has apartment columns without anyone naming
     // them in advance.
+    // Columns the table already has under another name are dropped rather
+    // than printed twice: the option's own title, the search terms, and the
+    // row the figure column was read from.
+    const usedForFigure = new Set(all.map((f) => f.figureFrom).filter((k): k is string => Boolean(k)));
     const attrKeys = [...new Set(all.flatMap((f) => Object.keys(f.attributes)))]
-      .filter((k) => k !== "query" && k !== "source")
+      .filter((k) => !usedForFigure.has(k))
+      .filter((k) => !/^(query|source|option|title|name|url|link)$/.test(k))
       .slice(0, 4);
 
     const header = ["option", "source", "figure", ...attrKeys];
