@@ -225,9 +225,44 @@ function toPlan(
 
   if (kept.length < MIN_STEPS) return null;
 
-  // Renumber densely and rewrite dependencies through the index map, dropping
-  // any that pointed at a step we removed or that points forward (which would
-  // deadlock — a step can only ever depend on earlier work).
+  /**
+   * What a step the model referred to actually means, now that some of them
+   * are gone.
+   *
+   * A dropped step is REPLACED BY WHAT IT DEPENDED ON, never simply deleted.
+   * Deleting the edge looks harmless and is the worse bug: given
+   * research → (invented tool) → compare, dropping the middle step left
+   * `compare` depending on nothing, which makes it independent — so the engine
+   * would run it in the same wave as the research it was supposed to consume,
+   * and it would faithfully report that there was nothing to compare.
+   *
+   * Splicing keeps the ordering the model actually described: whatever needed
+   * the dropped step still needs whatever the dropped step needed.
+   */
+  const spliced = new Map<number, number[]>();
+  function survivorsOf(oldIdx: number, seen: Set<number>): number[] {
+    const cached = spliced.get(oldIdx);
+    if (cached) return cached;
+    // A dependency cycle among dropped steps resolves to nothing rather than
+    // recursing; the plan is acyclic by construction either way.
+    if (seen.has(oldIdx)) return [];
+    seen.add(oldIdx);
+
+    const survived = oldToNew.get(oldIdx);
+    if (survived !== undefined) return [survived];
+
+    const raw = rawSteps[oldIdx];
+    const deps = Array.isArray(raw?.depends_on)
+      ? (raw.depends_on as unknown[]).filter((d): d is number => typeof d === "number")
+      : [];
+    const out = [...new Set(deps.flatMap((d) => survivorsOf(d, seen)))];
+    spliced.set(oldIdx, out);
+    return out;
+  }
+
+  // Renumber densely. A dependency that still points forward after splicing is
+  // dropped — a step can only ever depend on earlier work, and keeping it would
+  // deadlock the step permanently.
   const steps: CompiledStep[] = kept.map((k, idx) => ({
     idx,
     purpose: k.purpose,
@@ -237,10 +272,10 @@ function toPlan(
     dependsOn: [
       ...new Set(
         k.dependsOn
-          .map((d) => oldToNew.get(d))
-          .filter((d): d is number => d !== undefined && d < idx)
+          .flatMap((d) => survivorsOf(d, new Set()))
+          .filter((d) => d < idx)
       ),
-    ],
+    ].sort((a, b) => a - b),
   }));
 
   // The receipt closes every mission. The engine already holds it back until
